@@ -14,10 +14,14 @@ export const STANDARD_ZUSTAND = {
   viewports: [],
   archiv: 'aktiv',
   sortierung: 'datum-neu',
-  auswahl: null
+  auswahl: null,
+  ansicht: 'archiv'
 };
 
 export const ARCHIV_ANSICHTEN = ['aktiv', 'archiv', 'alle'];
+
+/** Hauptansichten der Seite (Navigation oben links). */
+export const ANSICHTEN = ['archiv', 'aufnahme', 'eingang'];
 
 export const SORTIERUNGEN = [
   { id: 'datum-neu', label: 'Neueste zuerst' },
@@ -220,7 +224,8 @@ const FELDER = [
   ['viewports', 'v'],
   ['archiv', 'a'],
   ['sortierung', 'sort'],
-  ['auswahl', 'id']
+  ['auswahl', 'id'],
+  ['ansicht', 'ans']
 ];
 
 export function zustandZuQuery(zustand) {
@@ -248,6 +253,7 @@ export function queryZuZustand(query) {
   }
   if (!ARCHIV_ANSICHTEN.includes(z.archiv)) z.archiv = STANDARD_ZUSTAND.archiv;
   if (!SORTIERUNGEN.some((s) => s.id === z.sortierung)) z.sortierung = STANDARD_ZUSTAND.sortierung;
+  if (!ANSICHTEN.includes(z.ansicht)) z.ansicht = STANDARD_ZUSTAND.ansicht;
   return z;
 }
 
@@ -276,4 +282,302 @@ export function formatiereWirkung(prozent) {
 /** Vorbereitung der Daten: Suchindex einmalig anhaengen. */
 export function bereiteVor(eintraege) {
   return eintraege.map((e) => ({ ...e, __index: suchIndex(e) }));
+}
+
+/* =========================================================================
+   Aufnahme und Eingang (ab v1.1.0)
+
+   Der Aufnahmemodus haelt einen Ausschnitt einer Quelle fest und legt ihn im
+   Eingang ab. Kategorie und Begriffe duerfen fehlen und werden nachtraeglich
+   ergaenzt - genau dafuer gibt es die Ansicht "Eingang".
+   ========================================================================= */
+
+export const EINGANG_SCHLUESSEL = 'screenarchiv:eingang';
+export const EINGANG_VERSION = 1;
+export const MINDEST_AUSSCHNITT = 32;
+export const HOECHSTZAHL_BEGRIFFE = 12;
+
+export const ROLLEN = [
+  { id: 'einzeln', label: 'Einzelaufnahme' },
+  { id: 'vorher', label: 'Vorher' },
+  { id: 'nachher', label: 'Nachher' }
+];
+
+export const EINGANG_SORTIERUNGEN = [
+  { id: 'neu', label: 'Zuletzt aufgenommen' },
+  { id: 'alt', label: 'Zuerst aufgenommen' },
+  { id: 'titel', label: 'Titel A–Z' },
+  { id: 'projekt', label: 'Projekt' }
+];
+
+export const EINGANG_ZUSTAENDE = [
+  { id: 'alle', label: 'Alle' },
+  { id: 'offen', label: 'Unvollständig' },
+  { id: 'fertig', label: 'Vollständig' }
+];
+
+/** Leerer Entwurf; `vorlage` uebernimmt die Angaben der letzten Aufnahme. */
+export function leereAufnahme(heute, vorlage = {}) {
+  return {
+    titel: '',
+    projekt: vorlage.projekt || '',
+    seite: vorlage.seite || '',
+    kategorie: vorlage.kategorie || '',
+    status: vorlage.status || 'in Prüfung',
+    rolle: vorlage.rolle || 'einzeln',
+    browser: vorlage.browser || '',
+    autor: vorlage.autor || '',
+    datum: vorlage.datum || heute,
+    begriffe: [...(vorlage.begriffe || [])],
+    notiz: ''
+  };
+}
+
+/** Fortlaufende Kennung je Jahr: AUF-2025-001 */
+export function naechsteAufnahmeKennung(vorhandene, datum) {
+  const jahr = String(datum || '').slice(0, 4) || String(new Date().getFullYear());
+  const hoechste = (vorhandene || [])
+    .map((a) => String(a.id || ''))
+    .filter((id) => id.startsWith(`AUF-${jahr}-`))
+    .map((id) => Number(id.slice(-3)))
+    .filter((n) => Number.isFinite(n))
+    .reduce((a, b) => Math.max(a, b), 0);
+  return `AUF-${jahr}-${String(hoechste + 1).padStart(3, '0')}`;
+}
+
+/** Freitext zu einer sauberen Begriffsliste: klein, ohne Rauten, ohne Dubletten. */
+export function normalisiereBegriffe(eingabe) {
+  const roh = Array.isArray(eingabe) ? eingabe : String(eingabe || '').split(/[,;\n]/);
+  const gesehen = new Set();
+  const begriffe = [];
+  for (const teil of roh) {
+    const wort = String(teil)
+      .replace(/^\s*#/, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase()
+      .slice(0, 40);
+    if (!wort || gesehen.has(wort)) continue;
+    gesehen.add(wort);
+    begriffe.push(wort);
+    if (begriffe.length >= HOECHSTZAHL_BEGRIFFE) break;
+  }
+  return begriffe;
+}
+
+export const begriffeAlsText = (begriffe) => (begriffe || []).join(', ');
+
+const ISO_DATUM = /^\d{4}-\d{2}-\d{2}$/;
+
+export function istGueltigesDatum(text) {
+  if (!ISO_DATUM.test(String(text || ''))) return false;
+  const d = new Date(text + 'T00:00:00Z');
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === text;
+}
+
+/**
+ * Prueft, ob ausgeloest werden darf. Titel, Projekt, Kategorie und Begriffe
+ * duerfen fehlen - sie werden im Eingang nachgetragen.
+ */
+export function pruefeEntwurf(entwurf, quelle, ausschnitt, heute) {
+  const probleme = [];
+  if (!quelle || !quelle.breite || !quelle.hoehe) {
+    probleme.push({ feld: 'quelle', text: 'Zuerst eine Quelle wählen: Bildschirm freigeben, Bild öffnen oder Beispielquelle.' });
+  } else if (!ausschnitt || ausschnitt.breite < MINDEST_AUSSCHNITT || ausschnitt.hoehe < MINDEST_AUSSCHNITT) {
+    probleme.push({ feld: 'ausschnitt', text: `Der Ausschnitt ist zu klein – mindestens ${MINDEST_AUSSCHNITT} × ${MINDEST_AUSSCHNITT} Bildpunkte.` });
+  }
+  if (!istGueltigesDatum(entwurf?.datum)) {
+    probleme.push({ feld: 'datum', text: 'Datum fehlt oder ist unvollständig (JJJJ-MM-TT).' });
+  } else if (heute && entwurf.datum > heute) {
+    probleme.push({ feld: 'datum', text: 'Das Datum liegt in der Zukunft.' });
+  }
+  return probleme;
+}
+
+/** Haelt den Ausschnitt innerhalb der Quelle und ueber der Mindestgroesse. */
+export function begrenzeAusschnitt(rechteck, quelle, mindest = MINDEST_AUSSCHNITT) {
+  const grenzeB = Math.max(mindest, Math.min(quelle.breite, Math.round(rechteck.breite)));
+  const grenzeH = Math.max(mindest, Math.min(quelle.hoehe, Math.round(rechteck.hoehe)));
+  return {
+    x: Math.max(0, Math.min(Math.round(rechteck.x), quelle.breite - grenzeB)),
+    y: Math.max(0, Math.min(Math.round(rechteck.y), quelle.hoehe - grenzeH)),
+    breite: grenzeB,
+    hoehe: grenzeH
+  };
+}
+
+/**
+ * Vorgabeausschnitte: 'voll' nimmt die ganze Quelle, ein Viewport-Bezeichner
+ * legt dessen Seitenverhaeltnis mittig auf die Quelle.
+ */
+export function presetAusschnitt(name, quelle, viewports = []) {
+  if (!quelle || !quelle.breite || !quelle.hoehe) return null;
+  if (name === 'voll') return { x: 0, y: 0, breite: quelle.breite, hoehe: quelle.hoehe };
+  const viewport = viewports.find((v) => v.id === name);
+  if (!viewport) return null;
+  const massstab = Math.min(quelle.breite / viewport.breite, quelle.hoehe / viewport.hoehe, 1);
+  const breite = Math.round(viewport.breite * massstab);
+  const hoehe = Math.round(viewport.hoehe * massstab);
+  return begrenzeAusschnitt(
+    { x: Math.round((quelle.breite - breite) / 2), y: Math.round((quelle.hoehe - hoehe) / 2), breite, hoehe },
+    quelle
+  );
+}
+
+/** Titel bleibt nie leer: ohne Eingabe entsteht ein sprechender Ersatz. */
+export function titelVorschlag(entwurf, kennung) {
+  const eigener = String(entwurf?.titel || '').trim();
+  if (eigener) return eigener;
+  const teile = [entwurf?.projekt, entwurf?.seite].map((t) => String(t || '').trim()).filter(Boolean);
+  const nummer = String(kennung || '').slice(-3);
+  return teile.length ? `${teile.join(' ')} – Aufnahme ${nummer}` : `Aufnahme ${nummer} vom ${formatiereDatum(entwurf?.datum)}`;
+}
+
+/** Baut den fertigen Eingangssatz aus Entwurf, Bild und Ausschnitt. */
+export function baueAufnahme({ entwurf, bild, ausschnitt, quelle, kennung, erfasstAm }) {
+  return {
+    id: kennung,
+    titel: titelVorschlag(entwurf, kennung),
+    projekt: String(entwurf.projekt || '').trim(),
+    seite: String(entwurf.seite || '').trim(),
+    kategorie: String(entwurf.kategorie || '').trim(),
+    status: entwurf.status || 'in Prüfung',
+    rolle: entwurf.rolle || 'einzeln',
+    browser: String(entwurf.browser || '').trim(),
+    autor: String(entwurf.autor || '').trim(),
+    datum: entwurf.datum,
+    begriffe: normalisiereBegriffe(entwurf.begriffe || []),
+    notiz: String(entwurf.notiz || '').trim(),
+    ausschnitt: { ...ausschnitt },
+    quelle: { art: quelle.art, name: quelle.name || '', breite: quelle.breite, hoehe: quelle.hoehe },
+    erfasst_am: erfasstAm,
+    bild
+  };
+}
+
+/** Vollständig heißt: nachträgliche Pflege ist erledigt. */
+export function istVollstaendig(aufnahme) {
+  return Boolean(
+    aufnahme &&
+      String(aufnahme.titel || '').trim() &&
+      String(aufnahme.projekt || '').trim() &&
+      String(aufnahme.kategorie || '').trim() &&
+      (aufnahme.begriffe || []).length > 0
+  );
+}
+
+export function eingangSuchIndex(aufnahme) {
+  const roh = [
+    aufnahme.id,
+    aufnahme.titel,
+    aufnahme.projekt,
+    aufnahme.seite,
+    aufnahme.kategorie,
+    aufnahme.status,
+    aufnahme.autor,
+    aufnahme.browser,
+    aufnahme.datum,
+    aufnahme.notiz,
+    (aufnahme.begriffe || []).join(' ')
+  ]
+    .filter(Boolean)
+    .join('   ');
+  return normalisiere(roh) + '   ' + normalisiereLang(roh);
+}
+
+export function filtereEingang(liste, auswahl = {}) {
+  const { suche = '', kategorien = [], projekte = [], zustand = 'alle' } = auswahl;
+  return (liste || []).filter((a) => {
+    if (zustand === 'offen' && istVollstaendig(a)) return false;
+    if (zustand === 'fertig' && !istVollstaendig(a)) return false;
+    if (kategorien.length && !kategorien.includes(a.kategorie)) return false;
+    if (projekte.length && !projekte.includes(a.projekt)) return false;
+    if (!passtZuSuche(a, suche, eingangSuchIndex(a))) return false;
+    return true;
+  });
+}
+
+export function sortiereEingang(liste, schluessel = 'neu') {
+  const kopie = [...(liste || [])];
+  const nachTitel = (a, b) => String(a.titel).localeCompare(String(b.titel), 'de');
+  switch (schluessel) {
+    case 'alt':
+      return kopie.sort((a, b) => String(a.erfasst_am).localeCompare(String(b.erfasst_am)) || nachTitel(a, b));
+    case 'titel':
+      return kopie.sort(nachTitel);
+    case 'projekt':
+      return kopie.sort((a, b) => String(a.projekt).localeCompare(String(b.projekt), 'de') || nachTitel(a, b));
+    case 'neu':
+    default:
+      return kopie.sort((a, b) => String(b.erfasst_am).localeCompare(String(a.erfasst_am)) || nachTitel(a, b));
+  }
+}
+
+export function eingangKennzahlen(liste) {
+  const alle = liste || [];
+  const fertig = alle.filter(istVollstaendig).length;
+  return {
+    anzahl: alle.length,
+    fertig,
+    offen: alle.length - fertig,
+    projekte: new Set(alle.map((a) => a.projekt).filter(Boolean)).size,
+    begriffe: new Set(alle.flatMap((a) => a.begriffe || [])).size,
+    bytes: schaetzeBytes(alle)
+  };
+}
+
+export function schaetzeBytes(liste) {
+  return (liste || []).reduce((summe, a) => summe + String(a.bild || '').length + 400, 0);
+}
+
+export function formatiereBytes(bytes) {
+  if (!bytes) return '0 kB';
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} kB`;
+  return `${formatiereZahl(bytes / 1024 / 1024, 1)} MB`;
+}
+
+/** Liest den Speicher nachsichtig: kaputte Sätze werden übergangen, nicht geworfen. */
+export function leseEingang(text) {
+  if (!text) return [];
+  let inhalt;
+  try {
+    inhalt = JSON.parse(text);
+  } catch (fehler) {
+    return [];
+  }
+  const liste = Array.isArray(inhalt) ? inhalt : inhalt && Array.isArray(inhalt.aufnahmen) ? inhalt.aufnahmen : [];
+  return liste
+    .filter((a) => a && typeof a === 'object' && a.id && typeof a.bild === 'string' && a.bild.startsWith('data:image/'))
+    .map((a) => ({
+      ...a,
+      titel: String(a.titel || a.id),
+      begriffe: normalisiereBegriffe(a.begriffe || []),
+      datum: istGueltigesDatum(a.datum) ? a.datum : String(a.erfasst_am || '').slice(0, 10),
+      ausschnitt: a.ausschnitt || { x: 0, y: 0, breite: 0, hoehe: 0 }
+    }));
+}
+
+export function schreibeEingang(liste) {
+  return JSON.stringify({ version: EINGANG_VERSION, aufnahmen: liste || [] });
+}
+
+/**
+ * Ausgabeformat zum Übernehmen in data/eintraege.json.
+ * Ohne `mitBildern` bleiben die Bilddaten draußen - dann ist die Ausgabe klein
+ * genug, um sie zur Not von Hand aus einem Textfeld zu kopieren.
+ */
+export function eingangAlsExport(liste, stand, mitBildern = false) {
+  return JSON.stringify(
+    {
+      version: `${EINGANG_VERSION}.0.0`,
+      erzeugt: stand,
+      anzahl: (liste || []).length,
+      mit_bildern: Boolean(mitBildern),
+      aufnahmen: (liste || []).map(({ bild, ...rest }) =>
+        mitBildern ? { ...rest, bild } : { ...rest, bild_bytes: String(bild || '').length }
+      )
+    },
+    null,
+    2
+  );
 }

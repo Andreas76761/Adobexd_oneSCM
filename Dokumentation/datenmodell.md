@@ -62,6 +62,34 @@ Diese Regeln setzt `Testing/tests/01-daten.test.mjs` durch:
 7. Verworfene Belege erklären im Wirkungstext, warum verworfen wurde.
 8. Jeder Beleg hat mindestens eine Kennzahl mit unterschiedlichen Werten.
 
+## Eingangssatz (Aufnahme, ab v1.1.0)
+
+Aufnahmen aus dem Aufnahmemodus sind **keine** Belege: ein Beleg braucht zwei
+Bilder und eine Begründung, eine Aufnahme ist ein einzelnes Bild. Sie liegen
+deshalb getrennt im Eingang und tragen ein eigenes Format:
+
+| Feld | Bedeutung |
+| --- | --- |
+| `id` | `AUF-<Jahr>-<Nummer>`, je Jahr fortlaufend |
+| `titel` | eigener Titel oder Vorschlag aus Projekt, Seite und Nummer |
+| `projekt`, `seite` | wie beim Beleg, dürfen zunächst leer bleiben |
+| `kategorie`, `status`, `rolle` | Rolle ist `vorher`, `nachher` oder `einzeln` |
+| `begriffe` | vereinheitlichte Schlagworte, höchstens zwölf |
+| `datum` | vom Betrachter angegeben, nie in der Zukunft |
+| `notiz` | Freitext |
+| `ausschnitt` | `x`, `y`, `breite`, `hoehe` in Bildpunkten der Quelle |
+| `quelle` | `art` (`bildschirm`, `datei`, `beispiel`), `name`, `breite`, `hoehe` |
+| `erfasst_am` | Zeitpunkt der Aufnahme |
+| `bild` | JPEG als Daten-Adresse, höchstens 1100 Bildpunkte breit |
+
+Eine Aufnahme gilt als **vollständig**, sobald Titel, Projekt, Kategorie und
+mindestens ein Begriff vorliegen. Bis dahin ist sie im Eingang markiert – das
+ist der Sinn der Ansicht: schnell aufnehmen, später ordnen.
+
+Aus Aufnahmen werden Belege, indem man sie als JSON sichert und in
+`data/eintraege.json` einträgt: zwei Aufnahmen desselben Zusammenhangs werden
+zu `vorher` und `nachher`, die Begründung kommt hinzu.
+
 ## Neuen Beleg aufnehmen
 
 1. Eintrag in `data/eintraege.json` ergänzen (Kennung fortlaufend).

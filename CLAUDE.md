@@ -29,8 +29,13 @@ npm test          # muss vollständig grün sein
 
 ## Regeln
 
-* **Kernlogik gehört in `app/src/core.mjs`**, nicht in `ui.js`. Nur so ist sie
-  ohne Browser testbar. `core.mjs` darf kein DOM anfassen.
+* **Kernlogik gehört in `app/src/core.mjs`**, nicht in `ui.js` oder
+  `aufnahme.js`. Nur so ist sie ohne Browser testbar. `core.mjs` darf kein DOM
+  anfassen.
+* **`ui.js` und `aufnahme.js` landen in einer gemeinsamen Klammer.** Sie teilen
+  sich dadurch `el`, `$`, `zustand` und `zeichne`. Der Start steht in `starte()`
+  (erklärt in `ui.js`) und wird in der letzten Zeile von `aufnahme.js`
+  aufgerufen – vorher stehen dortige `const`/`let` noch nicht bereit.
 * **Keine externen Ressourcen** in der Seite außer den Schriften von
   `fonts.googleapis.com` / `fonts.gstatic.com`. Bilder, Skripte und Daten
   werden eingebettet – alles andere blockiert die Inhaltsrichtlinie des
@@ -48,7 +53,12 @@ npm test          # muss vollständig grün sein
 * Version in `package.json` und Datenversion in `data/eintraege.json` werden
   getrennt geführt; die Regeln stehen im `CHANGELOG.md`.
 
+* **Aufnahmen liegen im Browser des Betrachters** (`localStorage`, Schlüssel
+  `screenarchiv:eingang`). Kein Schreibzugriff auf `data/` zur Laufzeit – der
+  Weg dorthin führt über „Als JSON sichern“.
+
 ## Veröffentlichen
 
 Nur `dist/index.html` an das Artifact-Werkzeug geben. Aktualisierungen gehen
-über denselben Dateipfad, damit die Adresse erhalten bleibt.
+über denselben Dateipfad, damit die Adresse erhalten bleibt. Die Seite braucht
+beim Veröffentlichen die Fähigkeit `downloads` (Sichern des Eingangs).

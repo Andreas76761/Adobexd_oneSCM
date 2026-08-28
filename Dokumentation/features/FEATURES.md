@@ -1,6 +1,6 @@
 # Feature-Katalog
 
-Stand: Anwendung **v1.0.0**, Datenbestand **1.0.0**.
+Stand: Anwendung **v1.1.0**, Datenbestand **1.0.0**.
 
 Jede Funktion hat eine feste Kennung. Sie bleibt bestehen, auch wenn sich die
 Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Änderung.
@@ -26,6 +26,13 @@ Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Ä
 | F-13 | Reaktionsfähiges Layout | 1.0.0 | `styles.css`, `ui.js` → `richteSchub` | Oberfläche: „kein waagerechter Überlauf …“, „Filterleiste klappt …“ |
 | F-14 | Eingebettete Aufnahmen | 1.0.0 | `data/generator/`, `app/build/build.mjs` | Aufnahmen: 5 Fälle · Build: „lädt von außen nur erlaubte Schriftquellen“ |
 | F-15 | Gemerkte Vergleichsart | 1.0.0 | `ui.js` → `leseModus`, `merkeModus` | Oberfläche: „Vergleichsarten lassen sich umschalten“ |
+| F-16 | Portalnavigation | 1.1.0 | `ui.js` → `zeigeAnsicht` | Aufnahme: „Portalnavigation …“, „Ein Verweis öffnet …“ |
+| F-17 | Aufnahmestudio mit drei Quellen | 1.1.0 | `aufnahme.js` → `quelleBildschirm`, `quelleDatei`, `quelleBeispiel` | Aufnahme: 4 Fälle |
+| F-18 | Wahl des Bildschirmausschnitts | 1.1.0 | `core.mjs` → `begrenzeAusschnitt`, `presetAusschnitt`; `aufnahme.js` → `verdrahteBuehne` | Kernlogik: 2 Fälle · Aufnahme: 3 Fälle |
+| F-19 | Metadaten und Datum | 1.1.0 | `core.mjs` → `pruefeEntwurf`, `titelVorschlag`; `aufnahme.js` → `baueFormular` | Kernlogik: 5 Fälle · Aufnahme: 3 Fälle |
+| F-20 | Auslösen mit der Leertaste | 1.1.0 | `aufnahme.js` → `loeseAus`, `schneideAus` | Aufnahme: 5 Fälle |
+| F-21 | Eingang mit Nachpflege | 1.1.0 | `core.mjs` → `filtereEingang`, `istVollstaendig`; `aufnahme.js` → `zeichneEingang` | Kernlogik: 6 Fälle · Aufnahme: 7 Fälle |
+| F-22 | Eingang als JSON sichern | 1.1.0 | `core.mjs` → `eingangAlsExport`; `aufnahme.js` → `sichereAlsDatei` | Kernlogik: 1 Fall · Aufnahme: „Sichern bietet … Ersatzweg“ |
 
 ---
 
@@ -186,3 +193,107 @@ Einzige externe Quelle sind die Schriften von `fonts.googleapis.com`.
 Die zuletzt gewählte Vergleichsart wird je Betrachter im Browser gemerkt
 (`localStorage`, Schlüssel `screenarchiv:vergleichsmodus`). Ist der Speicher
 nicht verfügbar, gilt der Schieberegler als Vorgabe; ein Fehler entsteht nicht.
+
+
+---
+
+## F-16 · Portalnavigation
+
+Oben links, unter dem Titel, steht die Gruppe **Portal** mit drei Ansichten:
+**Archiv** (der Bestand), **Aufnahme** (aufnehmen) und **Eingang** (die
+aufgenommenen Bilder). Am Eingang zeigt eine Marke, wie viele Aufnahmen dort
+liegen. Die Ansicht steht in der Adresszeile (`#ans=aufnahme`) und lässt sich
+verlinken. Die Suche im Kopf gehört zum Archiv und tritt in den anderen
+Ansichten zurück; der Eingang hat seine eigene.
+
+---
+
+## F-17 · Aufnahmestudio mit drei Quellen
+
+| Quelle | Wofür | Hinweis |
+| --- | --- | --- |
+| **Bildschirm freigeben** | echte Aufnahmen vom laufenden Bildschirm | Der Browser fragt um Erlaubnis. In der eingebetteten Vorschau des Artifacts ist das meist gesperrt; die Seite sagt das und nennt die Alternativen. |
+| **Bild öffnen** | vorhandene Bilddateien, auch per Ablegen auf der Bühne | Das Bild verlässt den Browser nicht. |
+| **Beispielquelle** | Ausprobieren ohne eigenes Material | Nimmt eine Aufnahme aus dem Archiv. |
+
+Die freigegebene Bildschirmansicht läuft als laufendes Bild auf der Bühne –
+aufgenommen wird das Bild in dem Augenblick, in dem ausgelöst wird. Endet die
+Freigabe, meldet die Seite es und sperrt den Auslöser.
+
+---
+
+## F-18 · Wahl des Bildschirmausschnitts
+
+Auf der Bühne wird der Ausschnitt mit gedrückter Maustaste aufgezogen, an den
+vier Ecken in der Größe verändert und in der Mitte verschoben. Deckt die
+Auswahl die ganze Quelle, zieht ein Zug darin sofort einen neuen Ausschnitt
+auf – sonst käme man aus dem Vollbild nicht heraus.
+
+Vier Vorgaben setzen gängige Formate mittig auf die Quelle: **Ganze Quelle**,
+**Desktop**, **Tablet**, **Mobil**. Pfeiltasten verschieben punktgenau, mit
+Umschalt in Zehnerschritten. Die Maße stehen immer daneben
+(`x 208 · y 66 · 1024 × 768`). Der Ausschnitt bleibt stets innerhalb der
+Quelle und misst mindestens 32 × 32 Bildpunkte.
+
+---
+
+## F-19 · Metadaten und Datum
+
+Rechts stehen die Angaben für die **nächste** Aufnahme: Titel, Projekt (mit
+Vorschlagsliste), Seite, Datum, Rolle (Vorher, Nachher, Einzelaufnahme),
+Kategorie, Status, erfasst von, Browser, Begriffe und Notiz.
+
+Blockierend sind nur drei Dinge: eine fehlende Quelle, ein zu kleiner
+Ausschnitt und ein fehlendes oder in der Zukunft liegendes Datum. Alles andere
+darf offen bleiben – ein leerer Titel wird beim Auslösen zu einem Vorschlag
+aus Projekt, Seite und laufender Nummer. Der Browser ist beim Öffnen bereits
+eingetragen.
+
+---
+
+## F-20 · Auslösen mit der Leertaste
+
+**Leertaste** legt den Ausschnitt sofort in den Eingang. Die Aufnahme bekommt
+eine Kennung `AUF-<Jahr>-<Nummer>`, wird als JPEG (höchstens 1100 Bildpunkte
+breit) eingebettet und mit Ausschnittmaßen, Quelle und Zeitpunkt abgelegt. Ein
+kurzer Blitz und eine Meldung bestätigen.
+
+Die Taste greift nur in der Ansicht *Aufnahme*, nie während in einem Feld
+getippt wird und nie bei offenem Dialog. Wer lieber klickt, nimmt die
+Schaltfläche daneben. Nach dem Auslösen bleiben alle Angaben stehen, nur der
+Titel wird geleert – so entsteht eine Reihe von Aufnahmen ohne erneutes
+Ausfüllen.
+
+Ist der Browserspeicher voll, wird die Aufnahme verworfen und gemeldet; der
+bisherige Stand bleibt unversehrt.
+
+---
+
+## F-21 · Eingang mit Nachpflege
+
+Der Eingang zeigt jede Aufnahme mit Vorschau, Kennung, Datum, Titel, Projekt,
+Kategorie und Begriffen. Fehlt Kategorie oder Begriff, trägt die Karte die
+Marke **unvollständig** und einen farbigen Rand.
+
+Ein Klick öffnet die Nachpflege: Titel, Projekt, Seite, Kategorie, Status,
+Datum, Rolle, Begriffe und Notiz – dazu das Bild in voller Größe mit Angabe
+der Quelle und des Ausschnitts. Begriffe werden beim Sichern vereinheitlicht
+(klein, ohne Rauten, ohne Dubletten, höchstens zwölf).
+
+Darüber: Suche über alle Felder einschließlich Notiz und Begriffen, Filter
+*Alle / Unvollständig / Vollständig*, vier Sortierungen und eine Kennzahlzeile
+mit Anzahl, offenen Aufnahmen, Projekten, Begriffen und belegtem Speicher.
+Löschen geht je Aufnahme im Dialog; „Eingang leeren“ fragt einmal nach.
+
+---
+
+## F-22 · Eingang als JSON sichern
+
+**Als JSON sichern** übergibt den Eingang mitsamt Bildern an die
+Ablagefähigkeit des Artifacts (`downloads`). Die veröffentlichte Seite hat
+keinen Server – das ist der Weg, auf dem Aufnahmen in `data/eintraege.json`
+gelangen.
+
+Fehlt die Fähigkeit oder lehnt der Betrachter ab, erscheint statt einer Datei
+ein Textfeld mit den Metadaten zum Herauskopieren; die Bilder bleiben dann im
+Browser. Der Unterschied wird benannt, nicht verschwiegen.

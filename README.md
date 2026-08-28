@@ -5,6 +5,10 @@ einer Aufnahme **vorher**, einer Aufnahme **nachher** und der **Begründung**,
 warum geändert wurde – samt gemessener Wirkung. Abgelöste Belege bleiben im
 Archiv auffindbar.
 
+Dazu ein **Aufnahmemodus**: Quelle wählen, Bildschirmausschnitt aufziehen,
+Metadaten und Datum eintragen, **Leertaste** – das Bild liegt sofort im
+**Eingang**, wo Kategorie und Begriffe nachgetragen werden.
+
 Ergebnis ist eine einzelne, in sich geschlossene HTML-Datei
 (`dist/index.html`), die über das Artifact-Werkzeug veröffentlicht wird.
 
@@ -21,7 +25,7 @@ Einzeln:
 | --- | --- |
 | `npm run screens` | erzeugt aus `data/eintraege.json` die 40 Aufnahmen in `data/screens/` |
 | `npm run build` | setzt Daten, Aufnahmen, Logik, Stil und Oberfläche zu `dist/index.html` zusammen |
-| `npm test` | 65 Prüfungen: Daten, Kernlogik, Aufnahmen, Build, Oberfläche im Browser |
+| `npm test` | 111 Prüfungen: Daten, Kernlogik, Aufnahmen, Build, Oberfläche, Aufnahmemodus |
 | `npm run test:e2e` | nur die Browserprüfung |
 
 ## Aufbau
@@ -41,14 +45,32 @@ Ergebnis.
 
 ## Funktionsumfang
 
-Suche über den Volltext aller Begründungen, Facettenfilter mit mitlaufenden
-Zählern, Archivumschalter, vier Sortierungen, Detailansicht mit drei
+**Archiv** – Suche über den Volltext aller Begründungen, Facettenfilter mit
+mitlaufenden Zählern, Archivumschalter, vier Sortierungen, Detailansicht mit drei
 Vergleichsarten (Schieberegler, nebeneinander, umschalten), Kennzahlenvergleich
-mit gerichteter Wirkungsberechnung, Zustand in der Adresszeile, Tastaturbedienung,
-helles und dunkles Thema.
+mit gerichteter Wirkungsberechnung.
+
+**Aufnahme** – drei Quellen (Bildschirmfreigabe, Bilddatei, Beispiel),
+Ausschnitt per Maus, Ecken, Vorgabeformaten oder Pfeiltasten, Metadaten und
+Datum, Auslösen mit der Leertaste.
+
+**Eingang** – Vorschau aller Aufnahmen, Marke für Unvollständiges, Nachtragen
+von Kategorie, Begriffen und übrigen Angaben, Suche, Filter, Sortierung,
+Sichern als JSON.
+
+Durchgehend: Zustand in der Adresszeile, Tastaturbedienung, helles und dunkles
+Thema.
 
 Der vollständige Katalog mit Versionen steht in
 [`Dokumentation/features/FEATURES.md`](Dokumentation/features/FEATURES.md).
+
+## Wo die Aufnahmen liegen
+
+Aufgenommene Bilder liegen im Browser des Betrachters (`localStorage`) – die
+veröffentlichte Seite hat keinen Server. Sie überstehen dort das Neuladen,
+sind aber nicht zwischen Geräten geteilt. „Als JSON sichern“ reicht sie an
+`data/eintraege.json` weiter. Die Begründung dieser Entscheidung steht in
+[`Dokumentation/versionen/v1.1.0.md`](Dokumentation/versionen/v1.1.0.md).
 
 ## Beispielbestand
 

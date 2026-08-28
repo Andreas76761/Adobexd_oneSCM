@@ -1,5 +1,5 @@
 <title>Screenarchiv oneSCM</title>
-<meta name="description" content="Bilddatenbank für Bildschirmaufnahmen aus dem Browser: jeder Beleg vorher und nachher, mit der Begründung der Änderung.">
+<meta name="description" content="Bilddatenbank für Bildschirmaufnahmen aus dem Browser: jeder Beleg vorher und nachher, mit der Begründung der Änderung. Mit Aufnahmemodus und Eingang.">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
@@ -19,9 +19,15 @@
             Bildschirmaufnahmen aus dem Browser – jeder Beleg mit der Aufnahme vorher, der Aufnahme
             nachher und der Begründung, warum geändert wurde. Abgelöste Belege bleiben im Archiv.
           </p>
+          <nav class="portal-nav" aria-label="Portal">
+            <span class="portal-schild">Portal</span>
+            <button type="button" data-ansicht="archiv">Archiv</button>
+            <button type="button" data-ansicht="aufnahme">Aufnahme</button>
+            <button type="button" data-ansicht="eingang">Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
+          </nav>
         </div>
       </div>
-      <div class="suchfeld">
+      <div class="suchfeld" id="archiv-suchfeld">
         <span class="such-symbol" aria-hidden="true">⌕</span>
         <label class="sprung" for="suche">Belege durchsuchen</label>
         <input id="suche" type="search" placeholder="Titel, Projekt, Begründung, Schlagwort …" autocomplete="off">
@@ -33,31 +39,122 @@
 </header>
 
 <div class="huelle">
-  <main class="haupt">
-    <details class="filterschub" id="filterschub" open>
-      <summary id="filterschub-titel">Filter und Ansicht</summary>
-      <aside class="facetten" id="facetten" aria-label="Filter"></aside>
-    </details>
 
-    <section id="ergebnisse" aria-label="Belege">
-      <div class="ergebnis-kopf">
-        <p class="treffer" id="treffer" role="status" aria-live="polite"></p>
-        <div class="sortierung">
-          <label for="sortierung">Sortierung</label>
-          <select id="sortierung"></select>
+  <section id="archiv-ansicht">
+    <main class="haupt">
+      <details class="filterschub" id="filterschub" open>
+        <summary id="filterschub-titel">Filter und Ansicht</summary>
+        <aside class="facetten" id="facetten" aria-label="Filter"></aside>
+      </details>
+
+      <section id="ergebnisse" aria-label="Belege">
+        <div class="ergebnis-kopf">
+          <p class="treffer" id="treffer" role="status" aria-live="polite"></p>
+          <div class="sortierung">
+            <label for="sortierung">Sortierung</label>
+            <select id="sortierung"></select>
+          </div>
         </div>
+        <div class="raster" id="raster"></div>
+        <div class="leermeldung" id="leermeldung" hidden>
+          <h3>Kein Beleg passt zu dieser Auswahl</h3>
+          <p>Suchbegriff kürzen, einen Filter lösen oder auf die Ansicht „Alle“ wechseln – das Archiv enthält auch abgelöste Belege.</p>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <section id="aufnahme-ansicht" aria-label="Aufnahme" hidden>
+    <div class="aufnahme-raster">
+      <div class="studio">
+        <div class="studio-leiste">
+          <div class="quellwahl" role="group" aria-label="Quelle wählen">
+            <button type="button" class="knopf" id="quelle-bildschirm">Bildschirm freigeben</button>
+            <button type="button" class="knopf" id="quelle-datei">Bild öffnen</button>
+            <button type="button" class="knopf" id="quelle-beispiel">Beispielquelle</button>
+            <label class="sprung" for="beispiel-wahl">Beispielaufnahme</label>
+            <select id="beispiel-wahl" class="beispiel-wahl"></select>
+          </div>
+          <span class="quelle-angabe">
+            <span id="quelle-name">Keine Quelle gewählt</span>
+            <span class="quelle-masse" id="quelle-masse"></span>
+          </span>
+        </div>
+        <input type="file" id="datei-eingabe" accept="image/*" hidden>
+
+        <div class="buehne-quelle" id="quelle-buehne" tabindex="0" role="application"
+             aria-label="Bildschirmausschnitt wählen – ziehen zum Aufziehen, Pfeiltasten verschieben">
+          <canvas id="quelle-leinwand" hidden></canvas>
+          <div class="ausschnitt-rahmen" id="ausschnitt-rahmen" hidden>
+            <span class="griff-punkt" data-ecke="lo"></span>
+            <span class="griff-punkt" data-ecke="ro"></span>
+            <span class="griff-punkt" data-ecke="lu"></span>
+            <span class="griff-punkt" data-ecke="ru"></span>
+          </div>
+          <p class="quelle-leer" id="quelle-leer">
+            Quelle wählen: Bildschirm freigeben, ein Bild öffnen (auch per Ablegen hier)
+            oder eine Beispielquelle laden. Danach den Ausschnitt aufziehen.
+          </p>
+        </div>
+
+        <div class="ausschnitt-leiste">
+          <div class="preset" role="group" aria-label="Ausschnitt vorgeben">
+            <button type="button" data-preset="voll" disabled>Ganze Quelle</button>
+            <button type="button" data-preset="desktop" disabled>Desktop</button>
+            <button type="button" data-preset="tablet" disabled>Tablet</button>
+            <button type="button" data-preset="mobil" disabled>Mobil</button>
+          </div>
+          <span class="ausschnitt-masse" id="ausschnitt-masse">kein Ausschnitt</span>
+        </div>
+
+        <div class="ausloeser">
+          <button type="button" class="knopf knopf--haupt" id="ausloesen" disabled>Aufnehmen</button>
+          <span class="taste">Leertaste</span>
+          <span class="eingang-hinweis" id="eingang-hinweis"></span>
+        </div>
+        <p class="studio-meldung" id="aufnahme-meldung" role="status" aria-live="polite"></p>
       </div>
-      <div class="raster" id="raster"></div>
-      <div class="leermeldung" id="leermeldung" hidden>
-        <h3>Kein Beleg passt zu dieser Auswahl</h3>
-        <p>Suchbegriff kürzen, einen Filter lösen oder auf die Ansicht „Alle“ wechseln – das Archiv enthält auch abgelöste Belege.</p>
+
+      <form class="metadaten" id="metadaten" autocomplete="off" onsubmit="return false"></form>
+    </div>
+  </section>
+
+  <section id="eingang-ansicht" aria-label="Eingang" hidden>
+    <div class="eingang-kennzahlen" id="eingang-kennzahlen"></div>
+    <div class="eingang-leiste">
+      <div class="suchfeld suchfeld--klein">
+        <span class="such-symbol" aria-hidden="true">⌕</span>
+        <label class="sprung" for="eingang-suche">Eingang durchsuchen</label>
+        <input id="eingang-suche" type="search" placeholder="Titel, Projekt, Begriff, Notiz …" autocomplete="off">
       </div>
-    </section>
-  </main>
+      <div class="segment eingang-zustand" role="group" aria-label="Vollständigkeit">
+        <button type="button" data-zustand="alle" aria-pressed="true">Alle</button>
+        <button type="button" data-zustand="offen" aria-pressed="false">Unvollständig</button>
+        <button type="button" data-zustand="fertig" aria-pressed="false">Vollständig</button>
+      </div>
+      <div class="sortierung">
+        <label for="eingang-sortierung">Sortierung</label>
+        <select id="eingang-sortierung"></select>
+      </div>
+      <div class="eingang-aktionen">
+        <button type="button" class="knopf" id="eingang-sichern">Als JSON sichern</button>
+        <button type="button" class="knopf" id="eingang-leeren">Eingang leeren</button>
+      </div>
+    </div>
+    <div class="ergebnis-kopf">
+      <p class="treffer" id="eingang-treffer" role="status" aria-live="polite"></p>
+      <p class="studio-meldung" id="eingang-meldung" role="status" aria-live="polite"></p>
+    </div>
+    <div class="eingang-raster" id="eingang-raster"></div>
+    <div class="leermeldung" id="eingang-leer" hidden>
+      <h3>Nichts im Eingang</h3>
+      <p id="eingang-leer-text"></p>
+    </div>
+  </section>
 
   <footer class="fuss">
     <span>Beispielbestand · Stand <code>/*%STAND%*/</code> · <code>/*%ANZAHL%*/</code> Belege, <code>/*%AUFNAHMEN%*/</code> Aufnahmen · Anwendung <code>v/*%VERSION%*/</code></span>
-    <span>Aufnahmen als SVG in die Seite eingebettet · Tastatur: <code>/</code> Suche, <code>←</code> <code>→</code> blättern, <code>Esc</code> schließen</span>
+    <span>Aufnahmen als SVG in die Seite eingebettet · Tastatur: <code>/</code> Suche, <code>Leertaste</code> auslösen, <code>←</code> <code>→</code> blättern, <code>Esc</code> schließen</span>
   </footer>
 </div>
 
@@ -69,8 +166,20 @@
   </div>
 </dialog>
 
+<dialog class="detail eingang-dialog" id="eingang-dialog" aria-labelledby="eingang-dialog-titel">
+  <div class="detail-kopf">
+    <h2 id="eingang-dialog-titel">Aufnahme bearbeiten</h2>
+    <button type="button" class="schliessen" id="eingang-dialog-schliessen" aria-label="Schließen">×</button>
+  </div>
+  <div class="eingang-dialog-koerper" id="eingang-dialog-inhalt"></div>
+</dialog>
+
 <script>
 /*%KERN%*/
 /*%DATEN%*/
+(function () {
+  'use strict';
 /*%UI%*/
+/*%AUFNAHME%*/
+})();
 </script>

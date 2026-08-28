@@ -4,53 +4,12 @@
  * Ohne playwright-core oder Chromium werden die Faelle uebersprungen.
  */
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { suite, wahr, gleich } from '../hilfen/pruefe.mjs';
-import { baueVorschau, findeChromium } from '../hilfen/seite.mjs';
+import { erzeugeBrowserHelfer } from '../hilfen/browser.mjs';
 
 const wurzel = join(import.meta.dirname, '..', '..');
+const { mitSeite, schliessen } = erzeugeBrowserHelfer(join(wurzel, 'dist', 'index.html'));
 const s = suite('Oberfläche (Browser)');
-
-let chromium = null;
-let browser = null;
-let adresse = null;
-
-async function bereit() {
-  if (browser) return true;
-  const start = findeChromium();
-  if (!start) return false;
-  try {
-    ({ chromium } = await import('playwright-core'));
-  } catch (fehler) {
-    return false;
-  }
-  browser = await chromium.launch({ executablePath: start, args: ['--no-sandbox', '--disable-gpu'] });
-  adresse = pathToFileURL(baueVorschau(join(wurzel, 'dist', 'index.html'))).href;
-  return true;
-}
-
-/** Oeffnet die Seite frisch, sammelt Konsolenfehler und raeumt hinterher auf. */
-async function mitSeite(fn, optionen = {}) {
-  if (!(await bereit())) return 'uebersprungen';
-  const kontext = await browser.newContext({ viewport: optionen.viewport || { width: 1440, height: 960 }, colorScheme: optionen.thema || 'light' });
-  const seite = await kontext.newPage();
-  const fehlerprotokoll = [];
-  seite.on('console', (m) => m.type() === 'error' && fehlerprotokoll.push(m.text()));
-  seite.on('pageerror', (e) => fehlerprotokoll.push(String(e)));
-  // Schriften werden lokal ersetzt: der Test soll ohne Netz laufen.
-  await seite.route(/fonts\.(googleapis|gstatic)\.com/, (route) =>
-    route.fulfill({ status: 200, contentType: 'text/css', body: '' })
-  );
-  try {
-    await seite.goto(adresse + (optionen.hash || ''), { waitUntil: 'domcontentloaded' });
-    await seite.waitForSelector('html[data-bereit="ja"]', { timeout: 10000 });
-    await fn(seite);
-    gleich(fehlerprotokoll.length, 0, 'Fehler in der Browserkonsole: ' + fehlerprotokoll.join(' | '));
-  } finally {
-    await kontext.close();
-  }
-  return undefined;
-}
 
 const karten = (seite) => seite.locator('.karte').count();
 
@@ -149,7 +108,7 @@ s.test('Blättern und Schließen über die Tastatur', () =>
     await seite.locator('.karte').first().click();
     await seite.waitForSelector('dialog[open]');
     const erster = await seite.locator('#detail-kopf .kennung').first().innerText();
-    await seite.locator('.detail-kopf').click({ position: { x: 5, y: 5 } });
+    await seite.locator('#detail-kopf').click({ position: { x: 5, y: 5 } });
     await seite.keyboard.press('ArrowRight');
     const zweiter = await seite.locator('#detail-kopf .kennung').first().innerText();
     wahr(erster !== zweiter, 'Pfeiltaste blättert nicht weiter');
@@ -244,11 +203,6 @@ s.test('dunkles Thema bleibt lesbar', () =>
     { thema: 'dark' }
   ));
 
-s.test('Browser wieder schließen', async () => {
-  if (!browser) return 'uebersprungen';
-  await browser.close();
-  browser = null;
-  return undefined;
-});
+s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

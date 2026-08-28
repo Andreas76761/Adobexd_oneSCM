@@ -20,6 +20,32 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.1.0] – Aufnahme und Eingang
+
+### Neu
+* Portalnavigation oben links: Archiv, Aufnahme, Eingang (F-16)
+* Aufnahmestudio mit drei Quellen – Bildschirmfreigabe, Bilddatei, Beispielquelle (F-17)
+* Wahl des Bildschirmausschnitts: aufziehen, an den Ecken fassen, Vorgabeformate, Pfeiltasten (F-18)
+* Metadaten und Datum für die nächste Aufnahme, mit Titelvorschlag bei leerem Feld (F-19)
+* Auslösen mit der Leertaste – nie, während in einem Feld getippt wird (F-20)
+* Eingang: Vorschau, Suche, Filter nach Vollständigkeit, vier Sortierungen, nachträgliches
+  Ergänzen von Kategorie, Begriffen und übrigen Angaben, Löschen (F-21)
+* Eingang als JSON sichern, mit Ersatzweg ohne Ablagefähigkeit (F-22)
+
+### Geändert
+* `app/src/ui.js` und `app/src/aufnahme.js` werden vom Build in **eine** Klammer
+  geschrieben; der Start liegt in `starte()` am Ende von `aufnahme.js`.
+* Der Zustand der Adresszeile führt zusätzlich die Ansicht (`ans=`).
+
+### Behoben
+* `el()` setzte `value` auch bei `<textarea>` als Attribut – das Feld blieb leer.
+  Gefunden von der Prüfung „Sichern bietet ohne Ablagefähigkeit einen Ersatzweg“.
+* Deckte die Auswahl die ganze Quelle, ließ sich kein neuer Ausschnitt aufziehen,
+  weil jeder Zug als Verschieben galt.
+
+### Prüfung
+* 111 Prüfungen in sieben Dateien, alle bestanden
+
 ## [1.0.0] – 2025-06-30
 
 ### Neu

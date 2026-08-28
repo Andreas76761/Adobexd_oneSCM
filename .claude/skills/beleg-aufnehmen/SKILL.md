@@ -1,6 +1,6 @@
 ---
 name: beleg-aufnehmen
-description: Nimmt einen neuen Vorher/Nachher-Beleg in das Screenarchiv auf - Datensatz anlegen, Aufnahmen erzeugen, Seite bauen, Prüfungen laufen lassen und die Dokumentation nachziehen. Verwenden, wenn eine Bildschirmänderung dokumentiert, ein Beleg ergänzt, ein Beleg archiviert oder der Bestand des Archivs gepflegt werden soll.
+description: Nimmt einen neuen Vorher/Nachher-Beleg in das Screenarchiv auf - Datensatz anlegen, Aufnahmen erzeugen, Seite bauen, Prüfungen laufen lassen und die Dokumentation nachziehen. Auch für die Übernahme gesicherter Aufnahmen aus dem Eingang. Verwenden, wenn eine Bildschirmänderung dokumentiert, ein Beleg ergänzt, ein Beleg archiviert oder der Bestand des Archivs gepflegt werden soll.
 ---
 
 # Beleg in das Screenarchiv aufnehmen
@@ -50,6 +50,24 @@ unvollständige Belege ohnehin ab.
    `package.json` erhöhen und im `Dokumentation/CHANGELOG.md` vermerken. Neue
    Felder oder Schalter sind ein Minor und brauchen zusätzlich einen Eintrag im
    Feature-Katalog sowie einen Testfall.
+
+## Aus dem Eingang in den Bestand
+
+Die veröffentlichte Seite hat einen Aufnahmemodus: dort entstehen einzelne
+Bilder, die im Browser des Betrachters liegen und über „Als JSON sichern“
+herauskommen. Diese Aufnahmen sind **keine Belege** – ein Beleg braucht zwei
+Bilder und eine Begründung.
+
+Aus einer gesicherten Datei entsteht ein Beleg so:
+
+1. Zwei Aufnahmen desselben Zusammenhangs suchen (Rolle `vorher` / `nachher`).
+2. Deren Metadaten in einen neuen Eintrag in `data/eintraege.json` übertragen.
+3. Die vier Begründungsfelder ergänzen – sie fehlen im Eingang und sind der
+   eigentliche Wert des Belegs.
+4. Kennzahlen mit Richtung ergänzen.
+5. `screen.archetyp` und die Schalter setzen, damit der Generator die Aufnahmen
+   zeichnet. Die Bilder aus dem Eingang ersetzen die erzeugten Aufnahmen nicht
+   automatisch; sie dienen als Vorlage für die Beschreibung.
 
 ## Verwerfen und Archivieren
 

@@ -7,6 +7,7 @@
       "Bash(npm test -- --nur=*)",
       "Bash(npm run test:e2e)",
       "Bash(npm run alles)",
+      "Bash(npm run schuss)",
       "Bash(node data/generator/erzeuge-screens.mjs)",
       "Bash(node app/build/build.mjs)",
       "Bash(node Testing/run-tests.mjs*)",

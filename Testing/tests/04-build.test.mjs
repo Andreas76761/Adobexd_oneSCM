@@ -40,7 +40,10 @@ s.test('kein Platzhalter blieb stehen', () => {
 
 s.test('lädt von außen nur erlaubte Schriftquellen', () => {
   const erlaubt = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
-  const verweise = seite.match(/https?:\/\/[^"')\s]+/g) || [];
+  // Die XML-Namensraum-Kennung ist keine Adresse, die abgerufen wird: sie steht
+  // im Skript, das die Beispielquelle als Bild aufbereitet.
+  const namensraum = 'http://www.w3.org/';
+  const verweise = (seite.match(/https?:\/\/[^"')\s\\]+/g) || []).filter((v) => !v.startsWith(namensraum));
   for (const v of verweise) {
     wahr(erlaubt.some((h) => v.startsWith(h)), `nicht erlaubte externe Quelle: ${v}`);
   }
@@ -74,10 +77,14 @@ s.test('bleibt deutlich unter der Größengrenze des Artifacts', () => {
 });
 
 s.test('Farbwerte sind vollständig im hellen Grundzustand definiert', () => {
+  // Nur echte Deklarationen zählen - "--x:" in einem Selektor wie
+  // .knopf--haupt:hover ist keine Farbfestlegung.
+  const deklarationen = (text) =>
+    [...text.matchAll(/(?:^|[;{])\s*(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]);
   const grund = css.slice(css.indexOf(':root {'), css.indexOf('@media (prefers-color-scheme: dark)'));
-  const definiert = new Set([...grund.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
+  const definiert = new Set(deklarationen(grund));
   const dunkel = css.slice(css.indexOf('@media (prefers-color-scheme: dark)'));
-  const nurDunkel = [...dunkel.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]).filter((t) => !definiert.has(t));
+  const nurDunkel = deklarationen(dunkel).filter((t) => !definiert.has(t));
   gleich(nurDunkel.length, 0, 'nur im dunklen Thema definiert: ' + nurDunkel.join(', '));
   // var(--x, ersatz) darf aus dem Skript kommen; var(--x) ohne Ersatz nicht.
   const ohneErsatz = new Set([...css.matchAll(/var\((--[a-z0-9-]+)\s*\)/g)].map((m) => m[1]));

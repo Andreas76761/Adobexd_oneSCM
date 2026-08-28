@@ -124,7 +124,8 @@ s.test('Zustand überlebt den Weg durch die Adresszeile', () => {
     viewports: ['mobil'],
     archiv: 'alle',
     sortierung: 'wirkung',
-    auswahl: 'SCR-2025-001'
+    auswahl: 'SCR-2025-001',
+    ansicht: 'eingang'
   };
   const zurueck = kern.queryZuZustand(kern.zustandZuQuery(zustand));
   tieferGleich(zurueck, zustand, 'Zustand geht beim Ein- und Auslesen verloren');

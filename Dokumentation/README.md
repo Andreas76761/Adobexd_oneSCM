@@ -8,7 +8,8 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | --- | --- |
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
-| [versionen/v1.0.0.md](versionen/v1.0.0.md) | Ausgabehinweise zur jeweiligen Version |
+| [versionen/v1.1.0.md](versionen/v1.1.0.md) | Aufnahme und Eingang – was neu ist und wo die Aufnahmen liegen |
+| [versionen/v1.0.0.md](versionen/v1.0.0.md) | erste Fassung |
 | [architektur.md](architektur.md) | Ordnerstruktur, Datenfluss, Build |
 | [datenmodell.md](datenmodell.md) | Felder eines Belegs, Vokabular, Regeln |
 | [gestaltung.md](gestaltung.md) | Farben, Schriften, Layout und deren Prüfung |

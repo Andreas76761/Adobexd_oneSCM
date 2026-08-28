@@ -14,8 +14,10 @@ Adobexd_oneSCM/
 │
 ├── app/                       ANWENDUNG
 │   ├── src/
-│   │   ├── core.mjs           Kernlogik ohne DOM (Suche, Filter, Wirkung, Zustand)
-│   │   ├── ui.js              Oberfläche, nutzt die Kernlogik
+│   │   ├── core.mjs           Kernlogik ohne DOM (Suche, Filter, Wirkung, Zustand,
+│   │   │                      Aufnahme-Entwurf, Ausschnitt, Eingang)
+│   │   ├── ui.js              Navigation, Archivansicht, Detailansicht
+│   │   ├── aufnahme.js        Aufnahmestudio und Eingang
 │   │   ├── styles.css         Gestaltung, Farbtoken für beide Themen
 │   │   └── index.template.html Gerüst mit Platzhaltern
 │   └── build/build.mjs        setzt alles zu einer Datei zusammen
@@ -34,7 +36,8 @@ data/eintraege.json ──▶ data/generator ──▶ data/screens/*.svg + mani
         │                                            │
         └──────────────┬─────────────────────────────┘
                        ▼
-       app/build/build.mjs  ◀── app/src/{core.mjs, ui.js, styles.css, index.template.html}
+       app/build/build.mjs  ◀── app/src/{core.mjs, ui.js, aufnahme.js, styles.css,
+                       ▼                  index.template.html}
                        ▼
               dist/index.html  ──▶ Artifact
 ```
@@ -47,6 +50,32 @@ in ein `<!doctype html> … <body>`-Gerüst gehüllt. Deshalb enthält
 Stil, Kernlogik, Oberfläche, Daten und die 40 Aufnahmen – steht inline in der
 Datei. Externe Abrufe scheitern an der Inhaltsrichtlinie der Vorschau; erlaubt
 sind allein Schriften von `fonts.googleapis.com` / `fonts.gstatic.com`.
+
+## Ein Skriptbereich, zwei Oberflächendateien
+
+`ui.js` und `aufnahme.js` werden vom Build in **dieselbe** Klammer geschrieben:
+
+```js
+(function () { 'use strict';
+  /* ui.js */
+  /* aufnahme.js */
+})();
+```
+
+Beide teilen sich damit Helfer (`el`, `$`, `zustand`, `setze`, `zeichne`) ohne
+globale Namen. Weil `aufnahme.js` Werte anlegt, die `ui.js` liest (etwa
+`eingang`), steht der Start am Ende: `ui.js` erklärt `starte()`, aufgerufen
+wird es in der letzten Zeile von `aufnahme.js`. Funktionserklärungen werden
+vorgezogen, `const`/`let` nicht – deshalb diese Reihenfolge.
+
+## Wo die Aufnahmen liegen
+
+Der Eingang liegt im Browser des Betrachters (`localStorage`, Schlüssel
+`screenarchiv:eingang`). Das veröffentlichte Artifact hat keinen Server, und
+der Weg über `artifact.publish` – die Seite schreibt sich selbst neu – wurde
+verworfen: er würde bei jeder Auslösung die vollständige Seite neu
+veröffentlichen und alle offenen Ansichten neu laden. Ausführlich in
+[versionen/v1.1.0.md](versionen/v1.1.0.md).
 
 ## Kernlogik doppelt genutzt
 
