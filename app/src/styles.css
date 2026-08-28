@@ -574,6 +574,7 @@ dialog.detail::backdrop { background: rgba(12, 16, 22, .62); backdrop-filter: bl
   color: var(--tinte-3); font-size: 13.5px; line-height: 1.6;
 }
 .quelle-leer[hidden] { display: none; }
+.quelle-leer-zusatz { display: block; margin-top: 10px; font-size: 12.5px; color: var(--tinte-3); }
 
 .ausschnitt-rahmen {
   position: absolute; border: 2px solid var(--akzent);

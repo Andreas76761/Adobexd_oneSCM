@@ -105,9 +105,38 @@ function zeichnePreview() {
   if (quelle.art === 'bildschirm') anzeigeTakt = requestAnimationFrame(zeichnePreview);
 }
 
+const EINFUEGE_TASTE = navigator.platform && /Mac/i.test(navigator.platform) ? 'Cmd+V' : 'Strg+V';
+const BILDSCHIRMFOTO_TASTE =
+  navigator.platform && /Mac/i.test(navigator.platform) ? 'Umschalt+Cmd+4' : 'Druck bzw. Windows+Umschalt+S';
+
+const AUSWEG =
+  `Bildschirmfoto mit ${BILDSCHIRMFOTO_TASTE} aufnehmen und hier mit ${EINFUEGE_TASTE} einfügen – ` +
+  'oder ein Bild öffnen.';
+
+/**
+ * Gibt die Richtlinie dieser Ansicht die Bildschirmfreigabe frei?
+ * true / false / null (nicht feststellbar).
+ */
+function freigabeErlaubt() {
+  const richtlinie = document.permissionsPolicy || document.featurePolicy;
+  if (!richtlinie || typeof richtlinie.allowsFeature !== 'function') return null;
+  try {
+    return richtlinie.allowsFeature('display-capture');
+  } catch (fehler) {
+    return null;
+  }
+}
+
 async function quelleBildschirm() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-    meldeStudio('Dieser Browser gibt die Bildschirmfreigabe hier nicht frei. Bitte ein Bild öffnen oder die Beispielquelle nehmen.', 'warnung');
+    meldeStudio(`Dieser Browser kennt die Bildschirmfreigabe nicht. ${AUSWEG}`, 'warnung');
+    return;
+  }
+  if (freigabeErlaubt() === false) {
+    meldeStudio(
+      `Diese eingebettete Ansicht darf den Bildschirm nicht freigeben – das entscheidet die Vorschau, nicht die Seite. ${AUSWEG}`,
+      'warnung'
+    );
     return;
   }
   try {
@@ -139,8 +168,54 @@ async function quelleBildschirm() {
     });
     meldeStudio('Bildschirm freigegeben. Ausschnitt ziehen und mit der Leertaste aufnehmen.', 'gut');
   } catch (fehler) {
-    meldeStudio('Die Bildschirmfreigabe wurde abgelehnt oder ist hier nicht erlaubt. Bitte ein Bild öffnen oder die Beispielquelle nehmen.', 'warnung');
+    const abgebrochen = fehler && fehler.name === 'NotAllowedError' && /denied by (the )?user|abort/i.test(fehler.message || '');
+    meldeStudio(
+      abgebrochen
+        ? 'Die Bildschirmfreigabe wurde abgebrochen. Erneut versuchen – oder: ' + AUSWEG
+        : `Die Bildschirmfreigabe ist in dieser Ansicht gesperrt. ${AUSWEG}`,
+      'warnung'
+    );
   }
+}
+
+/**
+ * Bild aus der Zwischenablage. Das Lesen der Zwischenablage ist an eine
+ * Erlaubnis gebunden, die eingebettete Ansichten meist nicht haben - dann
+ * bleibt der Weg über die Einfügetaste, den der Browser immer zulässt.
+ */
+/** Bricht ein Versprechen ab, das keine Antwort gibt. */
+const mitZeitgrenze = (versprechen, millisekunden) =>
+  Promise.race([
+    versprechen,
+    new Promise((_, scheitern) => setTimeout(() => scheitern(new Error('Zeitgrenze')), millisekunden))
+  ]);
+
+async function quelleZwischenablage() {
+  // Der Hinweis kommt zuerst: das Lesen der Zwischenablage kann auf eine
+  // Erlaubnis warten, die in einer eingebetteten Ansicht nie beantwortet wird.
+  meldeStudio(`Jetzt ${EINFUEGE_TASTE} drücken – so gibt der Browser das Bild frei.`, 'neutral');
+  $('#quelle-buehne').focus();
+  if (!navigator.clipboard || !navigator.clipboard.read) return;
+  try {
+    for (const eintrag of await mitZeitgrenze(navigator.clipboard.read(), 1500)) {
+      const typ = (eintrag.types || []).find((t) => t.startsWith('image/'));
+      if (!typ) continue;
+      await uebernimmBild(await eintrag.getType(typ), 'zwischenablage', 'Zwischenablage');
+      return;
+    }
+  } catch (fehler) {
+    /* Keine Erlaubnis oder keine Antwort - der Hinweis oben gilt weiter. */
+  }
+}
+
+/** Liest einen Blob als Daten-Adresse. */
+function liesAlsDatenadresse(blob) {
+  return new Promise((fertig, scheitern) => {
+    const leser = new FileReader();
+    leser.onload = () => fertig(leser.result);
+    leser.onerror = () => scheitern(leser.error);
+    leser.readAsDataURL(blob);
+  });
 }
 
 function ladeBild(adresse, art, name) {
@@ -153,25 +228,28 @@ function ladeBild(adresse, art, name) {
   });
 }
 
-async function quelleDatei(datei) {
-  if (!datei) return;
-  if (!datei.type.startsWith('image/')) {
-    meldeStudio('Das ist keine Bilddatei.', 'warnung');
-    return;
+/** Uebernimmt ein Bild aus Datei, Ablegen oder Zwischenablage als Quelle. */
+async function uebernimmBild(blob, art, name) {
+  if (!blob || !String(blob.type || '').startsWith('image/')) {
+    meldeStudio('Das ist kein Bild.', 'warnung');
+    return false;
   }
   try {
-    const adresse = await new Promise((fertig, scheitern) => {
-      const leser = new FileReader();
-      leser.onload = () => fertig(leser.result);
-      leser.onerror = () => scheitern(leser.error);
-      leser.readAsDataURL(datei);
-    });
-    setzeQuelle(await ladeBild(adresse, 'datei', datei.name));
-    meldeStudio(`„${datei.name}“ geöffnet.`, 'gut');
+    setzeQuelle(await ladeBild(await liesAlsDatenadresse(blob), art, name));
+    meldeStudio(
+      art === 'zwischenablage'
+        ? 'Bild aus der Zwischenablage übernommen. Ausschnitt ziehen und mit der Leertaste aufnehmen.'
+        : `„${name}“ geöffnet. Ausschnitt ziehen und mit der Leertaste aufnehmen.`,
+      'gut'
+    );
+    return true;
   } catch (fehler) {
-    meldeStudio('Die Datei konnte nicht gelesen werden.', 'warnung');
+    meldeStudio('Das Bild konnte nicht gelesen werden.', 'warnung');
+    return false;
   }
 }
+
+const quelleDatei = (datei) => (datei ? uebernimmBild(datei, 'datei', datei.name) : Promise.resolve(false));
 
 async function quelleBeispiel(kennung) {
   const eintrag = EINTRAEGE.find((e) => e.id === kennung) || EINTRAEGE[0];
@@ -528,7 +606,7 @@ function zeichneStudio() {
 }
 
 const quelleArtName = (art) =>
-  ({ bildschirm: 'Bildschirm', datei: 'Datei', beispiel: 'Beispiel' })[art] || 'Quelle';
+  ({ bildschirm: 'Bildschirm', datei: 'Datei', beispiel: 'Beispiel', zwischenablage: 'Zwischenablage' })[art] || 'Quelle';
 
 /* ------------------------------------------------------ Eingang zeichnen */
 
@@ -841,6 +919,7 @@ function verdrahteAufnahme() {
   verdrahteBuehne();
 
   $('#quelle-bildschirm').addEventListener('click', quelleBildschirm);
+  $('#quelle-zwischenablage').addEventListener('click', quelleZwischenablage);
   $('#quelle-datei').addEventListener('click', () => $('#datei-eingabe').click());
   $('#datei-eingabe').addEventListener('change', (e) => quelleDatei(e.target.files[0]));
   $('#quelle-beispiel').addEventListener('click', () => quelleBeispiel($('#beispiel-wahl').value));
@@ -921,6 +1000,22 @@ function verdrahteAufnahme() {
     meldeEingang('Der Eingang wurde geleert.', 'neutral');
   });
   $('#eingang-dialog-schliessen').addEventListener('click', () => $('#eingang-dialog').close());
+
+  /* Eingefügte Bildschirmfotos: der Weg, der auch in einer eingebetteten
+     Ansicht funktioniert. Text in Eingabefeldern bleibt unberührt, weil nur
+     Bildbestandteile beachtet werden. */
+  document.addEventListener('paste', (e) => {
+    if (zustand.ansicht !== 'aufnahme') return;
+    const ablage = e.clipboardData;
+    if (!ablage) return;
+    const stueck = Array.from(ablage.items || []).find(
+      (i) => i.kind === 'file' && String(i.type || '').startsWith('image/')
+    );
+    const bild = stueck ? stueck.getAsFile() : Array.from(ablage.files || []).find((f) => f.type.startsWith('image/'));
+    if (!bild) return;
+    e.preventDefault();
+    uebernimmBild(bild, 'zwischenablage', 'Zwischenablage');
+  });
 
   // Die Bildschirmfreigabe endet, sobald die Ansicht verlassen wird.
   window.addEventListener('pagehide', beendeStrom);

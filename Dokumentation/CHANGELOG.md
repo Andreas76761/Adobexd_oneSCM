@@ -20,6 +20,28 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.3.0] – Bildschirmfoto aus der Zwischenablage
+
+### Neu
+* Vierte Quelle im Aufnahmestudio: eingefügte Bildschirmfotos (`Strg+V` / `Cmd+V`)
+  und die Schaltfläche „Aus Zwischenablage“ (F-17)
+
+### Geändert
+* Die Bildschirmfreigabe unterscheidet jetzt zwischen einer Sperre durch die
+  Richtlinie der Ansicht und einem Abbruch durch die Person; beide Meldungen
+  nennen die Tastenkürzel des jeweiligen Systems und die Auswege.
+* Der leere Bühnentext erklärt den Weg über das Bildschirmfoto.
+
+### Behoben
+* Ein Klick auf „Aus Zwischenablage“ blieb ohne Rückmeldung, wenn der Browser
+  die Erlaubnisfrage zum Lesen der Zwischenablage nie beantwortet. Der Hinweis
+  erscheint jetzt sofort, das Lesen läuft mit Zeitgrenze im Hintergrund.
+
+### Prüfung
+* 132 Prüfungen, alle bestanden. Der Browsertest löst ein echtes
+  Einfüge-Ereignis mit einem erzeugten PNG aus und stellt die gesperrte
+  Richtlinie nach.
+
 ## [1.2.0] – Kontaktbogen
 
 ### Neu

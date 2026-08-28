@@ -70,6 +70,7 @@
         <div class="studio-leiste">
           <div class="quellwahl" role="group" aria-label="Quelle wählen">
             <button type="button" class="knopf" id="quelle-bildschirm">Bildschirm freigeben</button>
+            <button type="button" class="knopf" id="quelle-zwischenablage">Aus Zwischenablage</button>
             <button type="button" class="knopf" id="quelle-datei">Bild öffnen</button>
             <button type="button" class="knopf" id="quelle-beispiel">Beispielquelle</button>
             <label class="sprung" for="beispiel-wahl">Beispielaufnahme</label>
@@ -92,8 +93,13 @@
             <span class="griff-punkt" data-ecke="ru"></span>
           </div>
           <p class="quelle-leer" id="quelle-leer">
-            Quelle wählen: Bildschirm freigeben, ein Bild öffnen (auch per Ablegen hier)
-            oder eine Beispielquelle laden. Danach den Ausschnitt aufziehen.
+            Quelle wählen: Bildschirm freigeben, ein Bildschirmfoto aus der Zwischenablage
+            einfügen, ein Bild öffnen (auch per Ablegen hier) oder eine Beispielquelle laden.
+            Danach den Ausschnitt aufziehen.
+            <span class="quelle-leer-zusatz">
+              Gibt die Vorschau den Bildschirm nicht frei, führt der Weg über das
+              Bildschirmfoto der Systemtaste und die Einfügetaste.
+            </span>
           </p>
         </div>
 

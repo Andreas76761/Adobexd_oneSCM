@@ -127,6 +127,111 @@ s.test('die Bildschirmfreigabe meldet sich verständlich, wenn sie nicht geht', 
     }
   ));
 
+/* ------------------------------------------------------- Zwischenablage */
+
+/** Erzeugt im Browser ein Einfüge-Ereignis mit einem Bild, wie es ein
+    Bildschirmfoto aus der Systemtaste liefert. */
+async function fuegeBildEin(seite, base64, typ = 'image/png') {
+  await seite.evaluate(
+    ([daten, art]) => {
+      const roh = atob(daten);
+      const bytes = new Uint8Array(roh.length);
+      for (let i = 0; i < roh.length; i++) bytes[i] = roh.charCodeAt(i);
+      const uebergabe = new DataTransfer();
+      uebergabe.items.add(new File([bytes], 'bildschirmfoto.png', { type: art }));
+      document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: uebergabe, bubbles: true, cancelable: true }));
+    },
+    [base64, typ]
+  );
+}
+
+const pngAlsBase64 = erzeugePng(720, 450, (x, y) => [(x * 2) % 256, 90, (y * 4) % 256]).toString('base64');
+
+s.test('ein eingefügtes Bildschirmfoto wird zur Quelle', () =>
+  mitSeite(
+    async (seite) => {
+      await fuegeBildEin(seite, pngAlsBase64);
+      await seite.waitForFunction(() => document.getElementById('quelle-masse').textContent === '720 × 450', null, { timeout: 5000 });
+      wahr((await seite.locator('#quelle-name').innerText()).includes('Zwischenablage'), 'die Herkunft wird nicht benannt');
+      gleich(await seite.locator('#ausschnitt-masse').innerText(), 'x 0 · y 0 · 720 × 450');
+      gleich(await seite.locator('#ausloesen').isDisabled(), false, 'der Auslöser bleibt gesperrt');
+      wahr((await seite.locator('#aufnahme-meldung').innerText()).includes('Zwischenablage'), 'keine Rückmeldung');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('ein eingefügtes Bildschirmfoto lässt sich sofort aufnehmen', () =>
+  mitSeite(
+    async (seite) => {
+      await fuegeBildEin(seite, pngAlsBase64);
+      await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled);
+      await seite.fill('#feld-titel', 'Eingefügtes Bildschirmfoto');
+      await seite.locator('#quelle-buehne').focus();
+      await seite.keyboard.press('Space');
+      await seite.waitForFunction(() => document.getElementById('eingang-zahl').textContent === '1');
+      const [a] = await eingangImSpeicher(seite);
+      gleich(a.quelle.art, 'zwischenablage', 'die Herkunft wird nicht festgehalten');
+      gleich(a.ausschnitt.breite, 720);
+      wahr(a.bild.startsWith('data:image/jpeg;base64,'));
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('eingefügter Text stört die Aufnahme nicht', () =>
+  mitSeite(
+    async (seite) => {
+      await mitBeispielquelle(seite);
+      await seite.evaluate(() => {
+        const uebergabe = new DataTransfer();
+        uebergabe.setData('text/plain', 'nur Text');
+        document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: uebergabe, bubbles: true, cancelable: true }));
+      });
+      await seite.waitForTimeout(150);
+      gleich(await seite.locator('#quelle-masse').innerText(), '1440 × 900', 'die Quelle wurde durch Text ersetzt');
+      wahr((await seite.locator('#quelle-name').innerText()).includes('Beispiel'), 'die Quelle hat gewechselt');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('das Einfügen wirkt nur in der Aufnahmeansicht', () =>
+  mitSeite(async (seite) => {
+    await fuegeBildEin(seite, pngAlsBase64);
+    await seite.waitForTimeout(200);
+    gleich(await seite.locator('.karte').count(), 16, 'das Archiv hat auf das Einfügen reagiert');
+    await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+    gleich(await seite.locator('#quelle-leer').isVisible(), true, 'im Archiv eingefügtes Bild wurde übernommen');
+  }));
+
+s.test('die Schaltfläche nennt den Weg über die Einfügetaste', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-zwischenablage');
+      await seite.waitForFunction(() => document.getElementById('aufnahme-meldung').textContent.length > 0);
+      const meldung = await seite.locator('#aufnahme-meldung').innerText();
+      wahr(/Strg\+V|Cmd\+V/.test(meldung), 'die Einfügetaste wird nicht genannt: ' + meldung);
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('gesperrte Bildschirmfreigabe nennt Ursache und Ausweg', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.getElementById('aufnahme-meldung').textContent.length > 0);
+      const meldung = await seite.locator('#aufnahme-meldung').innerText();
+      wahr(/eingebettete Ansicht|gesperrt/.test(meldung), 'die Ursache wird nicht benannt: ' + meldung);
+      wahr(/Strg\+V|Cmd\+V/.test(meldung), 'der Ausweg über die Einfügetaste fehlt: ' + meldung);
+      wahr(/Bild öffnen/.test(meldung), 'der zweite Ausweg fehlt: ' + meldung);
+    },
+    {
+      hash: AUFNAHME,
+      initSkript: `Object.defineProperty(document, 'featurePolicy', {
+        configurable: true,
+        value: { allowsFeature: (name) => name !== 'display-capture' }
+      });`
+    }
+  ));
+
 /* ------------------------------------------------------------ Ausschnitt */
 
 s.test('der Ausschnitt lässt sich mit der Maus aufziehen', () =>

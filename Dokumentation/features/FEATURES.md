@@ -1,6 +1,6 @@
 # Feature-Katalog
 
-Stand: Anwendung **v1.2.0**, Datenbestand **1.0.0**.
+Stand: Anwendung **v1.3.0**, Datenbestand **1.0.0**.
 
 Jede Funktion hat eine feste Kennung. Sie bleibt bestehen, auch wenn sich die
 Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Änderung.
@@ -27,7 +27,7 @@ Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Ä
 | F-14 | Eingebettete Aufnahmen | 1.0.0 | `data/generator/`, `app/build/build.mjs` | Aufnahmen: 5 Fälle · Build: „lädt von außen nur erlaubte Schriftquellen“ |
 | F-15 | Gemerkte Vergleichsart | 1.0.0 | `ui.js` → `leseModus`, `merkeModus` | Oberfläche: „Vergleichsarten lassen sich umschalten“ |
 | F-16 | Portalnavigation | 1.1.0 | `ui.js` → `zeigeAnsicht` | Aufnahme: „Portalnavigation …“, „Ein Verweis öffnet …“ |
-| F-17 | Aufnahmestudio mit drei Quellen | 1.1.0 | `aufnahme.js` → `quelleBildschirm`, `quelleDatei`, `quelleBeispiel` | Aufnahme: 4 Fälle |
+| F-17 | Aufnahmestudio mit vier Quellen | 1.1.0, erweitert 1.3.0 | `aufnahme.js` → `quelleBildschirm`, `quelleZwischenablage`, `quelleDatei`, `quelleBeispiel` | Aufnahme: 10 Fälle |
 | F-18 | Wahl des Bildschirmausschnitts | 1.1.0 | `core.mjs` → `begrenzeAusschnitt`, `presetAusschnitt`; `aufnahme.js` → `verdrahteBuehne` | Kernlogik: 2 Fälle · Aufnahme: 3 Fälle |
 | F-19 | Metadaten und Datum | 1.1.0 | `core.mjs` → `pruefeEntwurf`, `titelVorschlag`; `aufnahme.js` → `baueFormular` | Kernlogik: 5 Fälle · Aufnahme: 3 Fälle |
 | F-20 | Auslösen mit der Leertaste | 1.1.0 | `aufnahme.js` → `loeseAus`, `schneideAus` | Aufnahme: 5 Fälle |
@@ -209,17 +209,28 @@ Ansichten zurück; der Eingang hat seine eigene.
 
 ---
 
-## F-17 · Aufnahmestudio mit drei Quellen
+## F-17 · Aufnahmestudio mit vier Quellen
 
 | Quelle | Wofür | Hinweis |
 | --- | --- | --- |
-| **Bildschirm freigeben** | echte Aufnahmen vom laufenden Bildschirm | Der Browser fragt um Erlaubnis. In der eingebetteten Vorschau des Artifacts ist das meist gesperrt; die Seite sagt das und nennt die Alternativen. |
+| **Bildschirm freigeben** | laufende Ansicht des Bildschirms | Der Browser fragt um Erlaubnis. In der eingebetteten Vorschau des Artifacts ist das durch die Richtlinie der Ansicht gesperrt – die Seite kann das nicht aufheben und sagt es. |
+| **Aus Zwischenablage** | Bildschirmfoto der Systemtaste | Der verlässliche Weg in der eingebetteten Ansicht: `Druck` / `Windows+Umschalt+S` / `Umschalt+Cmd+4`, dann `Strg+V` bzw. `Cmd+V`. |
 | **Bild öffnen** | vorhandene Bilddateien, auch per Ablegen auf der Bühne | Das Bild verlässt den Browser nicht. |
 | **Beispielquelle** | Ausprobieren ohne eigenes Material | Nimmt eine Aufnahme aus dem Archiv. |
 
 Die freigegebene Bildschirmansicht läuft als laufendes Bild auf der Bühne –
 aufgenommen wird das Bild in dem Augenblick, in dem ausgelöst wird. Endet die
 Freigabe, meldet die Seite es und sperrt den Auslöser.
+
+**Einfügen** greift nur in der Ansicht *Aufnahme* und nur bei Bildern;
+eingefügter Text landet weiterhin dort, wo er hingehört. Die Schaltfläche
+„Aus Zwischenablage“ gibt den Hinweis auf die Einfügetaste sofort und versucht
+das Lesen der Zwischenablage nur nebenher mit Zeitgrenze – sonst bliebe ein
+Klick ohne Rückmeldung, wenn die Erlaubnisfrage unbeantwortet bleibt.
+
+**Meldungen der Bildschirmfreigabe** unterscheiden Sperre durch die Richtlinie,
+Abbruch durch die Person und sonstige Fehler; die Tastenbezeichnungen richten
+sich nach dem System.
 
 ---
 
