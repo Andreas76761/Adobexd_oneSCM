@@ -24,12 +24,12 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `01-daten.test.mjs` | Bestand gegen Schema und inhaltliche Regeln | 10 |
 | `02-kern.test.mjs` | Kernlogik ohne DOM: Suche, Filter, Facetten, Wirkung, Sortierung, Zustand, Formate | 19 |
 | `03-aufnahmen.test.mjs` | erzeugte SVG-Aufnahmen: Vollständigkeit, Maße, Sauberkeit, Determinismus | 8 |
-| `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken | 13 |
+| `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken, doppelte Selektoren | 15 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
 | `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme und Eingang: Kennungen, Begriffe, Prüfregeln, Ausschnitt, Filter, Speicher, Kontaktbogen | 27 |
-| `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen | 54 |
+| `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Bilderstapel, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen | 59 |
 
-Summe: **147 Prüfungen**.
+Summe: **153 Prüfungen**.
 
 ## Eigene Helfer
 
@@ -55,6 +55,9 @@ Summe: **147 Prüfungen**.
 * **„Farbwerte sind vollständig im hellen Grundzustand definiert“** verhindert
   den häufigsten Artifact-Fehler: eine Farbe, die nur im dunklen Zweig steht und
   in der Systemvorgabe fehlt.
+* **„kein Selektor ist doppelt gesetzt“** entstand aus einem echten Fehler:
+  eine Ersetzung ohne Begrenzung fügte einen Stilblock dreifach ein, und die
+  letzte Kopie hob die Korrektur der ersten still wieder auf.
 * **„keine kollidierenden IDs“** – 40 Aufnahmen liegen in derselben Seite;
   gleiche IDs würden sich gegenseitig überschreiben.
 * **„Erzeugung ist wiederholbar“** stellt sicher, dass ein erneuter Lauf von

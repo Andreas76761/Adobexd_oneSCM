@@ -82,7 +82,16 @@
             <button type="button" class="knopf knopf--klein" id="kompakt-schalter" aria-pressed="false">Kompakt</button>
           </span>
         </div>
-        <input type="file" id="datei-eingabe" accept="image/*" hidden>
+        <input type="file" id="datei-eingabe" accept="image/*" multiple hidden>
+
+        <div class="stapel-leiste" id="stapel-leiste" hidden>
+          <span class="stapel-stand" id="stapel-stand"></span>
+          <span class="stapel-name" id="stapel-name"></span>
+          <span class="stapel-knoepfe">
+            <button type="button" class="knopf knopf--klein" id="stapel-zurueck">← Zurück</button>
+            <button type="button" class="knopf knopf--klein" id="stapel-weiter">Weiter →</button>
+          </span>
+        </div>
 
         <div class="buehne-quelle" id="quelle-buehne" tabindex="0" role="application"
              aria-label="Bildschirmausschnitt wählen – ziehen zum Aufziehen, Pfeiltasten verschieben">
@@ -103,8 +112,8 @@
           </p>
           <p class="quelle-leer" id="quelle-leer">
             Quelle wählen: Bildschirm freigeben, ein Bildschirmfoto aus der Zwischenablage
-            einfügen, ein Bild öffnen (auch per Ablegen hier) oder eine Beispielquelle laden.
-            Danach den Ausschnitt aufziehen.
+            einfügen, Bilddateien öffnen oder hier ablegen – auch mehrere auf einmal –
+            oder eine Beispielquelle laden. Danach den Ausschnitt aufziehen.
             <span class="quelle-leer-zusatz">
               Gibt die Vorschau den Bildschirm nicht frei, führt der Weg über das
               Bildschirmfoto der Systemtaste und die Einfügetaste.

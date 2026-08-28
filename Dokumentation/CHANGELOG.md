@@ -20,6 +20,24 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.6.0] – Bilderstapel
+
+### Neu
+* Mehrere Bilddateien lassen sich zugleich öffnen oder ablegen. Die Leiste über
+  der Bühne zeigt Stand und Dateinamen, *Zurück* / *Weiter* gehen durch den
+  Stapel; jedes Bild kann einzeln zugeschnitten und aufgenommen werden (F-25)
+* Ein aus einer anderen Seite gezogener Verweis wird erkannt und erklärt, statt
+  wirkungslos zu bleiben (F-17)
+
+### Behoben
+* Die Stilregeln des Bilderstapels waren durch eine Ersetzung ohne Begrenzung
+  dreifach eingefügt; die letzte Kopie hob die Korrektur der ersten auf. Eine
+  neue Build-Prüfung lässt doppelt gesetzte Selektoren nicht mehr durch.
+* „Bild 2 von 4“ stand in Versalien – ein Wert, keine Beschriftung.
+
+### Prüfung
+* 153 Prüfungen, alle bestanden
+
 ## [1.5.0] – Kompakter Aufnahmemodus
 
 ### Neu

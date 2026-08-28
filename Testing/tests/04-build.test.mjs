@@ -119,6 +119,14 @@ s.test('Farbwerte sind vollständig im hellen Grundzustand definiert', () => {
   gleich(fehlend.length, 0, 'ohne Ersatzwert benutzt, aber nirgends definiert: ' + fehlend.join(', '));
 });
 
+s.test('kein Selektor ist doppelt gesetzt', () => {
+  // Zwei gleiche Blöcke heißen: eine Bearbeitung hat sich verdoppelt, und der
+  // spätere Block hebt den früheren still auf.
+  const selektoren = [...css.matchAll(/^([.#][a-z0-9_-]+)\s*\{/gm)].map((m) => m[1]);
+  const doppelt = selektoren.filter((sel, i) => selektoren.indexOf(sel) !== i);
+  gleich(doppelt.length, 0, 'mehrfach gesetzte Selektoren: ' + [...new Set(doppelt)].join(', '));
+});
+
 s.test('beide Umschaltwege des dunklen Themas sind gesetzt', () => {
   wahr(css.includes(':root:not([data-theme="light"])'), 'Systemvorgabe dunkel ist nicht abgesichert');
   wahr(css.includes(':root[data-theme="dark"]'), 'ausdrückliche Wahl dunkel fehlt');

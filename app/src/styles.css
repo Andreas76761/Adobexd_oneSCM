@@ -560,6 +560,24 @@ dialog.detail::backdrop { background: rgba(12, 16, 22, .62); backdrop-filter: bl
 .quelle-angabe { display: flex; gap: 10px; align-items: baseline; font-family: var(--schrift-mono); font-size: 11.5px; color: var(--tinte-3); }
 .quelle-masse { color: var(--tinte-2); }
 
+.stapel-leiste {
+  display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;
+  background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--radius);
+  padding: 7px 10px;
+}
+.stapel-leiste[hidden] { display: none; }
+.stapel-stand {
+  /* Ein Wert, keine Beschriftung - deshalb ohne Versalien. */
+  font-family: var(--schrift-mono); font-size: 11.5px; color: var(--akzent-tief);
+  background: var(--akzent-hauch); border-radius: 2px; padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.stapel-name {
+  font-family: var(--schrift-mono); font-size: 11.5px; color: var(--tinte-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 120px;
+}
+.stapel-knoepfe { display: flex; gap: 6px; }
+
 .buehne-quelle {
   position: relative; overflow: hidden;
   min-height: 320px; display: grid; place-items: center;

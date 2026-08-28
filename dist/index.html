@@ -565,6 +565,24 @@ dialog.detail::backdrop { background: rgba(12, 16, 22, .62); backdrop-filter: bl
 .quelle-angabe { display: flex; gap: 10px; align-items: baseline; font-family: var(--schrift-mono); font-size: 11.5px; color: var(--tinte-3); }
 .quelle-masse { color: var(--tinte-2); }
 
+.stapel-leiste {
+  display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;
+  background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--radius);
+  padding: 7px 10px;
+}
+.stapel-leiste[hidden] { display: none; }
+.stapel-stand {
+  /* Ein Wert, keine Beschriftung - deshalb ohne Versalien. */
+  font-family: var(--schrift-mono); font-size: 11.5px; color: var(--akzent-tief);
+  background: var(--akzent-hauch); border-radius: 2px; padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.stapel-name {
+  font-family: var(--schrift-mono); font-size: 11.5px; color: var(--tinte-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 120px;
+}
+.stapel-knoepfe { display: flex; gap: 6px; }
+
 .buehne-quelle {
   position: relative; overflow: hidden;
   min-height: 320px; display: grid; place-items: center;
@@ -846,7 +864,16 @@ body.kompakt .taste { font-size: 10px; }
             <button type="button" class="knopf knopf--klein" id="kompakt-schalter" aria-pressed="false">Kompakt</button>
           </span>
         </div>
-        <input type="file" id="datei-eingabe" accept="image/*" hidden>
+        <input type="file" id="datei-eingabe" accept="image/*" multiple hidden>
+
+        <div class="stapel-leiste" id="stapel-leiste" hidden>
+          <span class="stapel-stand" id="stapel-stand"></span>
+          <span class="stapel-name" id="stapel-name"></span>
+          <span class="stapel-knoepfe">
+            <button type="button" class="knopf knopf--klein" id="stapel-zurueck">← Zurück</button>
+            <button type="button" class="knopf knopf--klein" id="stapel-weiter">Weiter →</button>
+          </span>
+        </div>
 
         <div class="buehne-quelle" id="quelle-buehne" tabindex="0" role="application"
              aria-label="Bildschirmausschnitt wählen – ziehen zum Aufziehen, Pfeiltasten verschieben">
@@ -867,8 +894,8 @@ body.kompakt .taste { font-size: 10px; }
           </p>
           <p class="quelle-leer" id="quelle-leer">
             Quelle wählen: Bildschirm freigeben, ein Bildschirmfoto aus der Zwischenablage
-            einfügen, ein Bild öffnen (auch per Ablegen hier) oder eine Beispielquelle laden.
-            Danach den Ausschnitt aufziehen.
+            einfügen, Bilddateien öffnen oder hier ablegen – auch mehrere auf einmal –
+            oder eine Beispielquelle laden. Danach den Ausschnitt aufziehen.
             <span class="quelle-leer-zusatz">
               Gibt die Vorschau den Bildschirm nicht frei, führt der Weg über das
               Bildschirmfoto der Systemtaste und die Einfügetaste.
@@ -942,7 +969,7 @@ body.kompakt .taste { font-size: 10px; }
   </section>
 
   <footer class="fuss">
-    <span>Beispielbestand · Stand <code>30.06.2025</code> · <code>20</code> Belege, <code>40</code> Aufnahmen · Anwendung <code>v1.5.0</code></span>
+    <span>Beispielbestand · Stand <code>30.06.2025</code> · <code>20</code> Belege, <code>40</code> Aufnahmen · Anwendung <code>v1.6.0</code></span>
     <span>Aufnahmen als SVG in die Seite eingebettet · Tastatur: <code>/</code> Suche, <code>Leertaste</code> auslösen, <code>←</code> <code>→</code> blättern, <code>Esc</code> schließen</span>
   </footer>
 </div>
@@ -2340,6 +2367,8 @@ let bearbeitet = null; // Kennung der im Eingang geöffneten Aufnahme
 let speicherGemeldet = false; // gesperrter Speicher wird nur einmal gemeldet
 let kompakt = false; // schmale Leiste rechts, Live-Ansicht gross
 let letzte = null; // zuletzt aufgenommenes Bild fuer die Rueckmeldung
+let stapel = []; // mehrere geoeffnete Bilddateien
+let stapelIndex = 0;
 
 /* ------------------------------------------------------------- Speicher */
 
@@ -2482,6 +2511,7 @@ function freigabeErlaubt() {
 }
 
 async function quelleBildschirm() {
+  stapel = [];
   if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
     meldeStudio(`Dieser Browser kennt die Bildschirmfreigabe nicht. ${AUSWEG}`, 'warnung');
     return;
@@ -2628,9 +2658,37 @@ async function uebernimmBild(blob, art, name) {
   }
 }
 
-const quelleDatei = (datei) => (datei ? uebernimmBild(datei, 'datei', datei.name) : Promise.resolve(false));
+/**
+ * Öffnet eine oder mehrere Bilddateien. Mehrere werden zum Stapel, den man
+ * nacheinander durchgeht - der Weg für einen Ordner voller Bildschirmfotos,
+ * ganz ohne Zwischenablage.
+ */
+async function quelleDateien(dateien) {
+  const bilder = Array.from(dateien || []).filter((d) => String(d.type || '').startsWith('image/'));
+  if (!bilder.length) {
+    meldeStudio('Darunter ist keine Bilddatei.', 'warnung');
+    return false;
+  }
+  stapel = bilder;
+  stapelIndex = 0;
+  const geladen = await zeigeStapelbild(0);
+  if (geladen && bilder.length > 1) {
+    meldeStudio(`${bilder.length} Bilder geöffnet – mit „Weiter“ durch den Stapel gehen.`, 'gut');
+  }
+  return geladen;
+}
+
+async function zeigeStapelbild(index) {
+  const datei = stapel[index];
+  if (!datei) return false;
+  stapelIndex = index;
+  return uebernimmBild(datei, 'datei', datei.name);
+}
+
+const quelleDatei = (datei) => quelleDateien(datei ? [datei] : []);
 
 async function quelleBeispiel(kennung) {
+  stapel = [];
   const eintrag = EINTRAEGE.find((e) => e.id === kennung) || EINTRAEGE[0];
   // Als Bild geladenes SVG braucht die Namensraum-Angabe, die der Build entfernt.
   const roh = AUFNAHMEN[eintrag.id].nachher.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
@@ -3007,6 +3065,15 @@ function zeichneStudio() {
       ? 'Noch keine Aufnahme im Eingang.'
       : `${eingang.length} ${eingang.length === 1 ? 'Aufnahme' : 'Aufnahmen'} im Eingang, davon ${eingangKennzahlen(eingang).offen} unvollständig.`;
 
+  const leiste = $('#stapel-leiste');
+  leiste.hidden = stapel.length < 2;
+  if (stapel.length > 1) {
+    $('#stapel-stand').textContent = `Bild ${stapelIndex + 1} von ${stapel.length}`;
+    $('#stapel-name').textContent = stapel[stapelIndex] ? stapel[stapelIndex].name : '';
+    $('#stapel-zurueck').disabled = stapelIndex === 0;
+    $('#stapel-weiter').disabled = stapelIndex >= stapel.length - 1;
+  }
+
   const block = $('#letzte-aufnahme');
   block.hidden = !letzte;
   if (letzte) {
@@ -3332,7 +3399,7 @@ function verdrahteAufnahme() {
   $('#quelle-bildschirm').addEventListener('click', quelleBildschirm);
   $('#quelle-zwischenablage').addEventListener('click', quelleZwischenablage);
   $('#quelle-datei').addEventListener('click', () => $('#datei-eingabe').click());
-  $('#datei-eingabe').addEventListener('change', (e) => quelleDatei(e.target.files[0]));
+  $('#datei-eingabe').addEventListener('change', (e) => quelleDateien(e.target.files));
   $('#quelle-beispiel').addEventListener('click', () => quelleBeispiel($('#beispiel-wahl').value));
   $('#beispiel-wahl').replaceChildren(
     ...EINTRAEGE.slice(0, 12).map((e) => el('option', { value: e.id, text: `${e.id} · ${e.titel}` }))
@@ -3347,7 +3414,19 @@ function verdrahteAufnahme() {
   buehne.addEventListener('drop', (e) => {
     e.preventDefault();
     buehne.classList.remove('zieht');
-    quelleDatei(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      quelleDateien(e.dataTransfer.files);
+      return;
+    }
+    // Aus einer anderen Seite gezogene Bilder kommen nur als Verweis an - und
+    // die Seite darf nichts nachladen. Also sagen, was stattdessen hilft.
+    const verweis = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+    meldeStudio(
+      verweis
+        ? 'Hierher gezogene Bilder aus anderen Seiten kommen nur als Verweis an, und diese Seite darf nichts nachladen. Bitte das Bild erst speichern und die Datei ablegen – oder den Bildschirm freigeben.'
+        : 'Damit lässt sich nichts anfangen. Bitte eine Bilddatei ablegen.',
+      'warnung'
+    );
   });
 
   for (const knopf of document.querySelectorAll('.preset button')) {
@@ -3360,6 +3439,8 @@ function verdrahteAufnahme() {
 
   $('#ausloesen').addEventListener('click', loeseAus);
   $('#kompakt-schalter').addEventListener('click', () => setzeKompakt(!kompakt));
+  $('#stapel-zurueck').addEventListener('click', () => zeigeStapelbild(stapelIndex - 1));
+  $('#stapel-weiter').addEventListener('click', () => zeigeStapelbild(stapelIndex + 1));
 
   // Escape verlässt den Kompaktmodus - solange kein Dialog offen ist.
   document.addEventListener('keydown', (e) => {

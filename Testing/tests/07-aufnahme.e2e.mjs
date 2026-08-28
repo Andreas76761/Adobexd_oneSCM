@@ -18,6 +18,16 @@ const bildOrdner = mkdtempSync(join(tmpdir(), 'screenarchiv-bild-'));
 const bildPfad = join(bildOrdner, 'bildschirm.png');
 writeFileSync(bildPfad, erzeugePng(800, 500, (x, y) => [(x * 3) % 256, (y * 5) % 256, 200]));
 
+/* Drei Bilder mit verschiedenen Maßen - so ist erkennbar, welches gerade gilt. */
+const stapelPfade = [
+  [join(bildOrdner, 'schirm-01.png'), 640, 400],
+  [join(bildOrdner, 'schirm-02.png'), 900, 500],
+  [join(bildOrdner, 'schirm-03.png'), 520, 340]
+].map(([pfad, breite, hoehe]) => {
+  writeFileSync(pfad, erzeugePng(breite, hoehe, (x, y) => [(x * 2) % 256, breite % 256, (y * 3) % 256]));
+  return pfad;
+});
+
 const AUFNAHME = '#ans=aufnahme';
 const heute = () => new Date().toISOString().slice(0, 10);
 
@@ -125,6 +135,103 @@ s.test('die Bildschirmfreigabe meldet sich verständlich, wenn sie nicht geht', 
         });
       }
     }
+  ));
+
+/* ----------------------------------------------------------- Bilderstapel */
+
+s.test('mehrere Bilddateien werden zum Stapel', () =>
+  mitSeite(
+    async (seite) => {
+      gleich(await seite.locator('#stapel-leiste').isVisible(), false, 'die Leiste steht ungefragt da');
+      await seite.setInputFiles('#datei-eingabe', stapelPfade);
+      await seite.waitForSelector('#stapel-leiste:not([hidden])');
+      gleich(await seite.locator('#stapel-stand').innerText(), 'Bild 1 von 3');
+      wahr((await seite.locator('#stapel-name').innerText()).includes('schirm-01'), 'der Dateiname fehlt');
+      gleich(await seite.locator('#quelle-masse').innerText(), '640 × 400');
+      gleich(await seite.locator('#stapel-zurueck').isDisabled(), true, 'am Anfang lässt sich zurückgehen');
+      gleich(await seite.locator('#stapel-weiter').isDisabled(), false);
+      wahr((await seite.locator('#aufnahme-meldung').innerText()).includes('3 Bilder'), 'die Zahl wird nicht gemeldet');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('durch den Stapel lässt sich vor und zurück gehen', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.setInputFiles('#datei-eingabe', stapelPfade);
+      await seite.waitForSelector('#stapel-leiste:not([hidden])');
+
+      await seite.click('#stapel-weiter');
+      await seite.waitForFunction(() => document.getElementById('quelle-masse').textContent === '900 × 500');
+      gleich(await seite.locator('#stapel-stand').innerText(), 'Bild 2 von 3');
+      gleich(await seite.locator('#ausschnitt-masse').innerText(), 'x 0 · y 0 · 900 × 500', 'der Ausschnitt folgt dem neuen Bild nicht');
+
+      await seite.click('#stapel-weiter');
+      await seite.waitForFunction(() => document.getElementById('quelle-masse').textContent === '520 × 340');
+      gleich(await seite.locator('#stapel-weiter').isDisabled(), true, 'am Ende lässt sich weitergehen');
+
+      await seite.click('#stapel-zurueck');
+      await seite.waitForFunction(() => document.getElementById('quelle-masse').textContent === '900 × 500');
+      gleich(await seite.locator('#stapel-stand').innerText(), 'Bild 2 von 3');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('aus dem Stapel lässt sich jedes Bild einzeln aufnehmen', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.setInputFiles('#datei-eingabe', stapelPfade);
+      await seite.waitForSelector('#stapel-leiste:not([hidden])');
+      await seite.fill('#feld-projekt', 'oneSCM Portal');
+      await seite.fill('#feld-titel', 'Erstes Bild');
+      await seite.click('#ausloesen');
+      await seite.waitForFunction(() => document.getElementById('eingang-zahl').textContent === '1');
+
+      await seite.click('#stapel-weiter');
+      await seite.waitForFunction(() => document.getElementById('quelle-masse').textContent === '900 × 500');
+      await seite.fill('#feld-titel', 'Zweites Bild');
+      await seite.click('#ausloesen');
+      await seite.waitForFunction(() => document.getElementById('eingang-zahl').textContent === '2');
+
+      const liste = await eingangImSpeicher(seite);
+      gleich(liste[0].titel, 'Zweites Bild');
+      gleich(liste[0].ausschnitt.breite, 900, 'das zweite Bild wurde nicht in seiner Größe aufgenommen');
+      wahr(liste[0].quelle.name.includes('schirm-02'), 'die Herkunft nennt die falsche Datei: ' + liste[0].quelle.name);
+      gleich(liste[1].ausschnitt.breite, 640);
+      wahr(liste[1].quelle.name.includes('schirm-01'), 'die erste Herkunft stimmt nicht');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('eine andere Quelle beendet den Stapel', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.setInputFiles('#datei-eingabe', stapelPfade);
+      await seite.waitForSelector('#stapel-leiste:not([hidden])');
+      await seite.click('#quelle-beispiel');
+      await seite.waitForFunction(() => document.getElementById('quelle-masse').textContent === '1440 × 900');
+      gleich(await seite.locator('#stapel-leiste').isVisible(), false, 'die Stapelleiste bleibt stehen');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('ein hierher gezogener Verweis erklärt sich', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.evaluate(() => {
+        const uebergabe = new DataTransfer();
+        uebergabe.setData('text/uri-list', 'https://example.org/bild.png');
+        document.getElementById('quelle-buehne').dispatchEvent(
+          new DragEvent('drop', { dataTransfer: uebergabe, bubbles: true, cancelable: true })
+        );
+      });
+      await seite.waitForFunction(() => document.getElementById('aufnahme-meldung').textContent.length > 0);
+      const meldung = await seite.locator('#aufnahme-meldung').innerText();
+      wahr(meldung.includes('Verweis'), 'die Ursache wird nicht benannt: ' + meldung);
+      wahr(/speichern|freigeben/.test(meldung), 'es wird kein Ausweg genannt: ' + meldung);
+      gleich(await seite.locator('#quelle-leer').isVisible(), true, 'es wurde eine Quelle gesetzt');
+    },
+    { hash: AUFNAHME }
   ));
 
 /* ------------------------------------------------------- Zwischenablage */

@@ -23,6 +23,8 @@ let bearbeitet = null; // Kennung der im Eingang geöffneten Aufnahme
 let speicherGemeldet = false; // gesperrter Speicher wird nur einmal gemeldet
 let kompakt = false; // schmale Leiste rechts, Live-Ansicht gross
 let letzte = null; // zuletzt aufgenommenes Bild fuer die Rueckmeldung
+let stapel = []; // mehrere geoeffnete Bilddateien
+let stapelIndex = 0;
 
 /* ------------------------------------------------------------- Speicher */
 
@@ -165,6 +167,7 @@ function freigabeErlaubt() {
 }
 
 async function quelleBildschirm() {
+  stapel = [];
   if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
     meldeStudio(`Dieser Browser kennt die Bildschirmfreigabe nicht. ${AUSWEG}`, 'warnung');
     return;
@@ -311,9 +314,37 @@ async function uebernimmBild(blob, art, name) {
   }
 }
 
-const quelleDatei = (datei) => (datei ? uebernimmBild(datei, 'datei', datei.name) : Promise.resolve(false));
+/**
+ * Öffnet eine oder mehrere Bilddateien. Mehrere werden zum Stapel, den man
+ * nacheinander durchgeht - der Weg für einen Ordner voller Bildschirmfotos,
+ * ganz ohne Zwischenablage.
+ */
+async function quelleDateien(dateien) {
+  const bilder = Array.from(dateien || []).filter((d) => String(d.type || '').startsWith('image/'));
+  if (!bilder.length) {
+    meldeStudio('Darunter ist keine Bilddatei.', 'warnung');
+    return false;
+  }
+  stapel = bilder;
+  stapelIndex = 0;
+  const geladen = await zeigeStapelbild(0);
+  if (geladen && bilder.length > 1) {
+    meldeStudio(`${bilder.length} Bilder geöffnet – mit „Weiter“ durch den Stapel gehen.`, 'gut');
+  }
+  return geladen;
+}
+
+async function zeigeStapelbild(index) {
+  const datei = stapel[index];
+  if (!datei) return false;
+  stapelIndex = index;
+  return uebernimmBild(datei, 'datei', datei.name);
+}
+
+const quelleDatei = (datei) => quelleDateien(datei ? [datei] : []);
 
 async function quelleBeispiel(kennung) {
+  stapel = [];
   const eintrag = EINTRAEGE.find((e) => e.id === kennung) || EINTRAEGE[0];
   // Als Bild geladenes SVG braucht die Namensraum-Angabe, die der Build entfernt.
   const roh = AUFNAHMEN[eintrag.id].nachher.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
@@ -690,6 +721,15 @@ function zeichneStudio() {
       ? 'Noch keine Aufnahme im Eingang.'
       : `${eingang.length} ${eingang.length === 1 ? 'Aufnahme' : 'Aufnahmen'} im Eingang, davon ${eingangKennzahlen(eingang).offen} unvollständig.`;
 
+  const leiste = $('#stapel-leiste');
+  leiste.hidden = stapel.length < 2;
+  if (stapel.length > 1) {
+    $('#stapel-stand').textContent = `Bild ${stapelIndex + 1} von ${stapel.length}`;
+    $('#stapel-name').textContent = stapel[stapelIndex] ? stapel[stapelIndex].name : '';
+    $('#stapel-zurueck').disabled = stapelIndex === 0;
+    $('#stapel-weiter').disabled = stapelIndex >= stapel.length - 1;
+  }
+
   const block = $('#letzte-aufnahme');
   block.hidden = !letzte;
   if (letzte) {
@@ -1015,7 +1055,7 @@ function verdrahteAufnahme() {
   $('#quelle-bildschirm').addEventListener('click', quelleBildschirm);
   $('#quelle-zwischenablage').addEventListener('click', quelleZwischenablage);
   $('#quelle-datei').addEventListener('click', () => $('#datei-eingabe').click());
-  $('#datei-eingabe').addEventListener('change', (e) => quelleDatei(e.target.files[0]));
+  $('#datei-eingabe').addEventListener('change', (e) => quelleDateien(e.target.files));
   $('#quelle-beispiel').addEventListener('click', () => quelleBeispiel($('#beispiel-wahl').value));
   $('#beispiel-wahl').replaceChildren(
     ...EINTRAEGE.slice(0, 12).map((e) => el('option', { value: e.id, text: `${e.id} · ${e.titel}` }))
@@ -1030,7 +1070,19 @@ function verdrahteAufnahme() {
   buehne.addEventListener('drop', (e) => {
     e.preventDefault();
     buehne.classList.remove('zieht');
-    quelleDatei(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      quelleDateien(e.dataTransfer.files);
+      return;
+    }
+    // Aus einer anderen Seite gezogene Bilder kommen nur als Verweis an - und
+    // die Seite darf nichts nachladen. Also sagen, was stattdessen hilft.
+    const verweis = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+    meldeStudio(
+      verweis
+        ? 'Hierher gezogene Bilder aus anderen Seiten kommen nur als Verweis an, und diese Seite darf nichts nachladen. Bitte das Bild erst speichern und die Datei ablegen – oder den Bildschirm freigeben.'
+        : 'Damit lässt sich nichts anfangen. Bitte eine Bilddatei ablegen.',
+      'warnung'
+    );
   });
 
   for (const knopf of document.querySelectorAll('.preset button')) {
@@ -1043,6 +1095,8 @@ function verdrahteAufnahme() {
 
   $('#ausloesen').addEventListener('click', loeseAus);
   $('#kompakt-schalter').addEventListener('click', () => setzeKompakt(!kompakt));
+  $('#stapel-zurueck').addEventListener('click', () => zeigeStapelbild(stapelIndex - 1));
+  $('#stapel-weiter').addEventListener('click', () => zeigeStapelbild(stapelIndex + 1));
 
   // Escape verlässt den Kompaktmodus - solange kein Dialog offen ist.
   document.addEventListener('keydown', (e) => {

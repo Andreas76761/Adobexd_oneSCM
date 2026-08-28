@@ -25,7 +25,7 @@ Einzeln:
 | --- | --- |
 | `npm run screens` | erzeugt aus `data/eintraege.json` die 40 Aufnahmen in `data/screens/` |
 | `npm run build` | setzt Daten, Aufnahmen, Logik, Stil und Oberfläche zu `dist/index.html` zusammen |
-| `npm test` | 147 Prüfungen: Daten, Kernlogik, Aufnahmen, Build, Oberfläche, Aufnahmemodus |
+| `npm test` | 153 Prüfungen: Daten, Kernlogik, Aufnahmen, Build, Oberfläche, Aufnahmemodus |
 | `npm run test:e2e` | nur die Browserprüfung |
 
 ## Aufbau
@@ -51,8 +51,8 @@ Vergleichsarten (Schieberegler, nebeneinander, umschalten), Kennzahlenvergleich
 mit gerichteter Wirkungsberechnung.
 
 **Aufnahme** – vier Quellen (Bildschirmfreigabe, eingefügtes Bildschirmfoto,
-Bilddatei, Beispiel), kompakter Aufnahmemodus für Serien vom geteilten
-Bildschirm,
+Bilddatei oder ganzer Bilderstapel, Beispiel), kompakter Aufnahmemodus für
+Serien vom geteilten Bildschirm,
 Ausschnitt per Maus, Ecken, Vorgabeformaten oder Pfeiltasten, Metadaten und
 Datum, Auslösen mit der Leertaste.
 

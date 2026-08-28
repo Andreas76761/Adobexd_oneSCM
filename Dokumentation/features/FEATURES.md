@@ -1,6 +1,6 @@
 # Feature-Katalog
 
-Stand: Anwendung **v1.5.0**, Datenbestand **1.0.0**.
+Stand: Anwendung **v1.6.0**, Datenbestand **1.0.0**.
 
 Jede Funktion hat eine feste Kennung. Sie bleibt bestehen, auch wenn sich die
 Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Änderung.
@@ -33,6 +33,7 @@ Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Ä
 | F-20 | Auslösen mit der Leertaste | 1.1.0, erweitert 1.4.0 | `aufnahme.js` → `loeseAus`, `schneideAus`, `sichereEingang` | Aufnahme: 8 Fälle |
 | F-21 | Eingang mit Nachpflege | 1.1.0 | `core.mjs` → `filtereEingang`, `istVollstaendig`; `aufnahme.js` → `zeichneEingang` | Kernlogik: 6 Fälle · Aufnahme: 7 Fälle |
 | F-22 | Eingang als JSON sichern | 1.1.0 | `core.mjs` → `eingangAlsExport`; `aufnahme.js` → `sichereAlsDatei` | Kernlogik: 1 Fall · Aufnahme: „Sichern bietet … Ersatzweg“ |
+| F-25 | Bilderstapel | 1.6.0 | `aufnahme.js` → `quelleDateien`, `zeigeStapelbild` | Aufnahme: 5 Fälle |
 | F-24 | Kompakter Aufnahmemodus | 1.5.0 | `aufnahme.js` → `setzeKompakt`; `styles.css` → `body.kompakt` | Aufnahme: 9 Fälle |
 | F-23 | Kontaktbogen als eine Datei | 1.2.0 | `core.mjs` → `baueKontaktbogen`, `maskiereHtml`; `aufnahme.js` → `sichereKontaktbogen`, `uebergebeDatei` | Kernlogik: 8 Fälle · Aufnahme: 6 Fälle |
 
@@ -216,7 +217,7 @@ Ansichten zurück; der Eingang hat seine eigene.
 | --- | --- | --- |
 | **Bildschirm freigeben** | laufende Ansicht des Bildschirms | Der Browser fragt um Erlaubnis. In der eingebetteten Vorschau des Artifacts ist das durch die Richtlinie der Ansicht gesperrt – die Seite kann das nicht aufheben und sagt es. |
 | **Aus Zwischenablage** | Bildschirmfoto der Systemtaste | Der verlässliche Weg in der eingebetteten Ansicht: `Druck` / `Windows+Umschalt+S` / `Umschalt+Cmd+4`, dann `Strg+V` bzw. `Cmd+V`. |
-| **Bild öffnen** | vorhandene Bilddateien, auch per Ablegen auf der Bühne | Das Bild verlässt den Browser nicht. |
+| **Bild öffnen** | vorhandene Bilddateien, auch mehrere und per Ablegen auf der Bühne | Das Bild verlässt den Browser nicht. Mehrere werden zum Stapel (F-25). |
 | **Beispielquelle** | Ausprobieren ohne eigenes Material | Nimmt eine Aufnahme aus dem Archiv. |
 
 Die freigegebene Bildschirmansicht läuft als laufendes Bild auf der Bühne –
@@ -394,3 +395,27 @@ wenn die Bildschirmfreigabe endet.
 Webseite darf weder das Fenster bewegen noch über dem Betriebssystem schweben.
 Damit der echte Bildschirm daneben sichtbar bleibt, gehört das Browserfenster
 auf eine Bildschirmhälfte oder einen zweiten Bildschirm.
+
+
+---
+
+## F-25 · Bilderstapel
+
+**Zweck** Der Weg ohne Zwischenablage: Bildschirmfotos, die die Systemtaste als
+**Datei** ablegt (`Windows+Druck` → *Bilder\Bildschirmfotos*, auf dem Mac
+`Umschalt+Cmd+3/4` → Schreibtisch), gesammelt abarbeiten.
+
+**Bedienung** Mehrere Dateien über „Bild öffnen“ auswählen oder zusammen auf
+die Bühne ablegen. Über der Bühne erscheint eine Leiste mit dem Stand
+(`Bild 2 von 4`), dem Dateinamen und *Zurück* / *Weiter*. Jedes Bild lässt sich
+einzeln zuschneiden und aufnehmen – auch mehrfach, für mehrere Ausschnitte aus
+demselben Bild. Die Metadaten bleiben über den ganzen Stapel stehen; die
+Herkunft jeder Aufnahme hält den Dateinamen fest.
+
+**Ende** Eine andere Quelle – Bildschirmfreigabe, Zwischenablage oder
+Beispielquelle – beendet den Stapel und blendet die Leiste aus.
+
+**Ziehen aus einer anderen Seite** funktioniert bewusst nicht: Ein von dort
+gezogenes Bild kommt nur als Verweis an, und die Seite darf nichts nachladen.
+Statt still nichts zu tun, nennt die App den Grund und die beiden Wege, die
+gehen – Datei speichern und ablegen, oder den Bildschirm freigeben.
