@@ -1,0 +1,624 @@
+{
+  "version": "1.0.0",
+  "stand": "2025-06-30",
+  "vokabular": {
+    "projekte": ["oneSCM Portal", "Lieferanten-Cockpit", "Bestell-Checkout", "Admin-Konsole"],
+    "kategorien": ["Barrierefreiheit", "Navigation", "Formular", "Layout", "Typografie", "Farbe & Kontrast", "Datenvisualisierung", "Fehlerzustände"],
+    "status": ["übernommen", "in Prüfung", "verworfen"],
+    "viewports": [
+      { "id": "desktop", "label": "Desktop 1440 × 900", "breite": 1440, "hoehe": 900 },
+      { "id": "tablet", "label": "Tablet 1024 × 768", "breite": 1024, "hoehe": 768 },
+      { "id": "mobil", "label": "Mobil 390 × 844", "breite": 390, "hoehe": 844 }
+    ]
+  },
+  "eintraege": [
+    {
+      "id": "SCR-2025-001",
+      "titel": "Kontrast der Sekundärnavigation angehoben",
+      "projekt": "oneSCM Portal",
+      "seite": "/portal/uebersicht",
+      "kategorie": "Barrierefreiheit",
+      "status": "übernommen",
+      "viewport": "desktop",
+      "browser": "Chrome 141",
+      "autor": "M. Ackermann",
+      "datum": "2025-03-04",
+      "tags": ["kontrast", "navigation", "wcag-aa"],
+      "begruendung": {
+        "anlass": "Im Barrierefreiheits-Audit fiel die Sekundärnavigation mit einem Kontrastverhältnis von 2,8:1 durch; WCAG 2.2 AA verlangt mindestens 4,5:1 für Fließtext.",
+        "aenderung": "Textfarbe von Hellgrau auf ein dunkles Blaugrau gesetzt, aktiver Eintrag zusätzlich durch eine Markierungsleiste am linken Rand gekennzeichnet.",
+        "wirkung": "Kontrastverhältnis auf 5,1:1 angehoben, die Suche nach dem aktiven Bereich dauert im Test spürbar kürzer.",
+        "quelle": "Audit Barrierefreiheit Q1/2025, Befund A-14"
+      },
+      "metriken": [
+        { "name": "Kontrastverhältnis", "einheit": ":1", "vorher": 2.8, "nachher": 5.1, "richtung": "groesser_besser" },
+        { "name": "Aufgabendauer", "einheit": "s", "vorher": 42, "nachher": 33, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "uebersicht",
+        "vorher": { "aufgenommen": "2025-02-18", "kontrast": "niedrig", "dichte": "normal", "hierarchie": false },
+        "nachher": { "aufgenommen": "2025-03-04", "kontrast": "hoch", "dichte": "normal", "hierarchie": false }
+      }
+    },
+    {
+      "id": "SCR-2025-002",
+      "titel": "Bestellübersicht als Tabelle statt Kachelraster",
+      "projekt": "oneSCM Portal",
+      "seite": "/portal/bestellungen",
+      "kategorie": "Layout",
+      "status": "übernommen",
+      "viewport": "desktop",
+      "browser": "Chrome 140",
+      "autor": "S. Brandt",
+      "datum": "2025-03-19",
+      "tags": ["tabelle", "vergleichbarkeit", "scrolltiefe"],
+      "begruendung": {
+        "anlass": "Einkäuferinnen vergleichen Bestellungen spaltenweise. Das Kachelraster zwang zum Springen zwischen Karten und erzeugte lange Scrollwege.",
+        "aenderung": "Kachelraster durch eine Tabelle mit festen Spalten für Nummer, Lieferant, Termin, Betrag und Status ersetzt, Kopfzeile sortierbar.",
+        "wirkung": "Der Weg bis zur gesuchten Bestellung halbierte sich, die nötige Scrolltiefe sank deutlich.",
+        "quelle": "Beobachtungsstudie Einkauf, 6 Teilnehmende, 2025-03-11"
+      },
+      "metriken": [
+        { "name": "Klicks bis Ziel", "einheit": "Klicks", "vorher": 6, "nachher": 3, "richtung": "kleiner_besser" },
+        { "name": "Scrolltiefe bis Aktion", "einheit": "%", "vorher": 78, "nachher": 31, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "liste",
+        "vorher": { "aufgenommen": "2025-03-05", "spalten": 3, "dichte": "luftig", "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-03-19", "spalten": 1, "dichte": "normal", "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2025-003",
+      "titel": "Primäraktion im Checkout hervorgehoben",
+      "projekt": "Bestell-Checkout",
+      "seite": "/checkout/zahlung",
+      "kategorie": "Farbe & Kontrast",
+      "status": "übernommen",
+      "viewport": "desktop",
+      "browser": "Chrome 141",
+      "autor": "J. Kern",
+      "datum": "2025-04-02",
+      "tags": ["primaeraktion", "abbruchquote", "checkout"],
+      "begruendung": {
+        "anlass": "Alle drei Schaltflächen des Zahlungsschritts sahen gleich aus; im Test klickten vier von neun Personen zuerst auf 'Zurück'.",
+        "aenderung": "Nur 'Zahlungspflichtig bestellen' bleibt gefüllt und farbig, die Nebenaktionen erhalten eine reine Konturform ohne Füllung.",
+        "wirkung": "Die Abbruchquote im Zahlungsschritt sank um ein Drittel, die Dauer bis zum Abschluss verkürzte sich.",
+        "quelle": "A/B-Test CHK-19, Laufzeit 2025-03-17 bis 2025-03-31"
+      },
+      "metriken": [
+        { "name": "Abbruchquote", "einheit": "%", "vorher": 24.5, "nachher": 16.2, "richtung": "kleiner_besser" },
+        { "name": "Aufgabendauer", "einheit": "s", "vorher": 71, "nachher": 58, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "checkout",
+        "vorher": { "aufgenommen": "2025-03-16", "primaer": false, "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-04-02", "primaer": true, "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2025-004",
+      "titel": "Formularfehler direkt am Feld statt in Sammelmeldung",
+      "projekt": "Lieferanten-Cockpit",
+      "seite": "/cockpit/stammdaten",
+      "kategorie": "Formular",
+      "status": "übernommen",
+      "viewport": "desktop",
+      "browser": "Firefox 143",
+      "autor": "S. Brandt",
+      "datum": "2025-04-15",
+      "tags": ["validierung", "fehlermeldung", "stammdaten"],
+      "begruendung": {
+        "anlass": "Die Sammelmeldung am Seitenkopf nannte die Feldnamen, nicht ihre Position. Lieferanten scrollten mehrfach zwischen Meldung und Feld hin und her.",
+        "aenderung": "Meldung an das jeweilige Feld gesetzt, Feldrahmen markiert und der Text sagt, was einzutragen ist statt nur, dass etwas fehlt.",
+        "wirkung": "Die Fehlerquote beim Absenden sank auf ein Drittel, das Ausfüllen dauert rund eine halbe Minute weniger.",
+        "quelle": "Auswertung Formular-Telemetrie KW 12–16/2025"
+      },
+      "metriken": [
+        { "name": "Fehlerquote im Formular", "einheit": "%", "vorher": 31, "nachher": 12, "richtung": "kleiner_besser" },
+        { "name": "Aufgabendauer", "einheit": "s", "vorher": 96, "nachher": 64, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "formular",
+        "vorher": { "aufgenommen": "2025-03-28", "fehlerAmFeld": false, "hinweis": "3 Fehler im Formular", "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-04-15", "fehlerAmFeld": true, "hinweis": null, "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2025-005",
+      "titel": "Filterleiste auf Mobil einklappbar",
+      "projekt": "oneSCM Portal",
+      "seite": "/portal/bestellungen",
+      "kategorie": "Navigation",
+      "status": "übernommen",
+      "viewport": "mobil",
+      "browser": "Safari 18.4",
+      "autor": "M. Ackermann",
+      "datum": "2025-04-28",
+      "tags": ["mobil", "filter", "scrolltiefe"],
+      "begruendung": {
+        "anlass": "Auf dem Telefon füllte die dauerhaft ausgeklappte Filterleiste den halben Bildschirm; die erste Bestellung war erst nach vier Wischgesten sichtbar.",
+        "aenderung": "Filter hinter eine Schaltfläche mit Trefferzähler gelegt, gesetzte Filter bleiben als kompakte Chips sichtbar.",
+        "wirkung": "Die erste Zeile ist ohne Wischen erreichbar, deutlich mehr Personen schließen die Suche erfolgreich ab.",
+        "quelle": "Feldtest Mobil, 11 Teilnehmende, April 2025"
+      },
+      "metriken": [
+        { "name": "Scrolltiefe bis Aktion", "einheit": "%", "vorher": 84, "nachher": 38, "richtung": "kleiner_besser" },
+        { "name": "Erfolgsquote", "einheit": "%", "vorher": 62, "nachher": 81, "richtung": "groesser_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "liste",
+        "vorher": { "aufgenommen": "2025-04-09", "dichte": "eng", "spalten": 1, "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-04-28", "dichte": "normal", "spalten": 1, "kontrast": "hoch", "suchfeld": true }
+      }
+    },
+    {
+      "id": "SCR-2025-006",
+      "titel": "Statusfarben durch Symbole ergänzt",
+      "projekt": "oneSCM Portal",
+      "seite": "/portal/bestellungen",
+      "kategorie": "Barrierefreiheit",
+      "status": "übernommen",
+      "viewport": "desktop",
+      "browser": "Chrome 141",
+      "autor": "T. Weiß",
+      "datum": "2025-05-06",
+      "tags": ["farbfehlsichtigkeit", "status", "symbole"],
+      "begruendung": {
+        "anlass": "Der Status wurde allein über Farbe codiert. Bei Rotgrünschwäche waren 'freigegeben' und 'abgelehnt' im Test nicht unterscheidbar.",
+        "aenderung": "Jede Statusmarke erhält ein eigenes Symbol und den ausgeschriebenen Text; die Farbe bleibt als zusätzliche Ebene erhalten.",
+        "wirkung": "Der Status wurde in der Simulation von nahezu allen Teilnehmenden korrekt benannt.",
+        "quelle": "Test mit Farbfehlsichtigkeits-Simulation, 2025-04-30"
+      },
+      "metriken": [
+        { "name": "Erfolgsquote", "einheit": "%", "vorher": 68, "nachher": 94, "richtung": "groesser_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "liste",
+        "vorher": { "aufgenommen": "2025-04-22", "symbole": false, "spalten": 1, "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-05-06", "symbole": true, "spalten": 1, "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2025-007",
+      "titel": "Typografische Hierarchie im Lieferschein",
+      "projekt": "Lieferanten-Cockpit",
+      "seite": "/cockpit/lieferschein",
+      "kategorie": "Typografie",
+      "status": "übernommen",
+      "viewport": "desktop",
+      "browser": "Chrome 140",
+      "autor": "J. Kern",
+      "datum": "2025-05-14",
+      "tags": ["hierarchie", "lesbarkeit", "beleg"],
+      "begruendung": {
+        "anlass": "Überschrift, Belegnummer und Fließtext lagen auf einer Schriftgröße; beim Querlesen wurde die Belegnummer regelmäßig übersehen.",
+        "aenderung": "Drei feste Stufen eingeführt: Belegtitel groß und halbfett, Belegnummer als Mono-Zeile, Fließtext eine Stufe kleiner mit mehr Zeilenabstand.",
+        "wirkung": "Der Beleg wird schneller erfasst, die Nummer wird im Test zuerst gefunden.",
+        "quelle": "Interner Lesetest, 8 Teilnehmende, 2025-05-08"
+      },
+      "metriken": [
+        { "name": "Aufgabendauer", "einheit": "s", "vorher": 55, "nachher": 41, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "uebersicht",
+        "vorher": { "aufgenommen": "2025-04-30", "hierarchie": false, "dichte": "eng", "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-05-14", "hierarchie": true, "dichte": "luftig", "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2025-008",
+      "titel": "Leerer Zustand mit Handlungsaufforderung",
+      "projekt": "Lieferanten-Cockpit",
+      "seite": "/cockpit/anfragen",
+      "kategorie": "Fehlerzustände",
+      "status": "übernommen",
+      "viewport": "desktop",
+      "browser": "Edge 141",
+      "autor": "T. Weiß",
+      "datum": "2025-05-21",
+      "tags": ["leerer-zustand", "onboarding"],
+      "begruendung": {
+        "anlass": "Neue Lieferanten sahen nach dem ersten Login eine leere Liste ohne Hinweis und hielten den Zugang für fehlerhaft.",
+        "aenderung": "Leerer Zustand erklärt in einem Satz, was hier später steht, und bietet die Anlage der ersten Anfrage als Primäraktion an.",
+        "wirkung": "Deutlich mehr Erstnutzende legen in der ersten Sitzung eine Anfrage an, statt den Support zu kontaktieren.",
+        "quelle": "Onboarding-Auswertung Mai 2025"
+      },
+      "metriken": [
+        { "name": "Erfolgsquote", "einheit": "%", "vorher": 21, "nachher": 57, "richtung": "groesser_besser" },
+        { "name": "Supportanfragen je Woche", "einheit": "Anfragen", "vorher": 9, "nachher": 3, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "liste",
+        "vorher": { "aufgenommen": "2025-05-07", "leerzustand": true, "hinweis": null, "spalten": 1, "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-05-21", "leerzustand": true, "hinweis": "Erste Anfrage anlegen", "primaer": true, "spalten": 1, "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2025-009",
+      "titel": "Diagramm mit Doppelachse aufgelöst",
+      "projekt": "Admin-Konsole",
+      "seite": "/admin/auswertung",
+      "kategorie": "Datenvisualisierung",
+      "status": "übernommen",
+      "viewport": "desktop",
+      "browser": "Chrome 141",
+      "autor": "M. Ackermann",
+      "datum": "2025-06-03",
+      "tags": ["diagramm", "doppelachse", "auswertung"],
+      "begruendung": {
+        "anlass": "Bestellmenge und Durchlaufzeit lagen auf zwei Achsen im selben Diagramm; die Schnittpunkte wurden als Zusammenhang gelesen, den es nicht gibt.",
+        "aenderung": "Aufgeteilt in zwei untereinander liegende Diagramme mit gemeinsamer Zeitachse, jede Reihe direkt beschriftet.",
+        "wirkung": "Fehldeutungen in der Interpretationsaufgabe gingen stark zurück, die Ablesegenauigkeit stieg.",
+        "quelle": "Review Datenvisualisierung, 2025-05-27"
+      },
+      "metriken": [
+        { "name": "Korrekte Ablesungen", "einheit": "%", "vorher": 44, "nachher": 86, "richtung": "groesser_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "diagramm",
+        "vorher": { "aufgenommen": "2025-05-20", "doppelachse": true, "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-06-03", "doppelachse": false, "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2025-010",
+      "titel": "Ladeanzeige durch Skelettdarstellung ersetzt",
+      "projekt": "oneSCM Portal",
+      "seite": "/portal/uebersicht",
+      "kategorie": "Fehlerzustände",
+      "status": "in Prüfung",
+      "viewport": "desktop",
+      "browser": "Chrome 141",
+      "autor": "J. Kern",
+      "datum": "2025-06-11",
+      "tags": ["ladezustand", "wahrgenommene-dauer"],
+      "begruendung": {
+        "anlass": "Während des Ladens zeigte die Übersicht nur einen Spinner; die Wartezeit wurde durchweg länger geschätzt, als sie war.",
+        "aenderung": "Platzhalter in der Form der späteren Kacheln und Zeilen, sobald das Grundgerüst steht; der Spinner entfällt.",
+        "wirkung": "Die wahrgenommene Wartezeit halbiert sich bei unveränderter tatsächlicher Ladezeit. Freigabe steht aus.",
+        "quelle": "Prototyp-Test PT-08, offen seit 2025-06-11"
+      },
+      "metriken": [
+        { "name": "Wahrgenommene Wartezeit", "einheit": "ms", "vorher": 1900, "nachher": 900, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "uebersicht",
+        "vorher": { "aufgenommen": "2025-06-04", "skelett": false, "hinweis": "Wird geladen …", "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-06-11", "skelett": true, "hinweis": null, "kontrast": "mittel" }
+      }
+    },
+    {
+      "id": "SCR-2025-011",
+      "titel": "Suchfeld in die Kopfzeile verschoben",
+      "projekt": "oneSCM Portal",
+      "seite": "/portal/bestellungen",
+      "kategorie": "Navigation",
+      "status": "in Prüfung",
+      "viewport": "desktop",
+      "browser": "Firefox 143",
+      "autor": "S. Brandt",
+      "datum": "2025-06-17",
+      "tags": ["suche", "kopfzeile"],
+      "begruendung": {
+        "anlass": "Die Suche lag unterhalb der Filter und wurde beim ersten Besuch häufig übersehen; stattdessen wurde durch die Liste geblättert.",
+        "aenderung": "Suchfeld dauerhaft in die Kopfzeile gesetzt, mit Tastenkürzel und Platzhaltertext, der die durchsuchten Felder nennt.",
+        "wirkung": "Der Weg zum Treffer verkürzt sich; die Rückmeldung aus dem Test ist positiv, die Messreihe läuft noch.",
+        "quelle": "Prototyp-Test PT-09, offen seit 2025-06-17"
+      },
+      "metriken": [
+        { "name": "Klicks bis Ziel", "einheit": "Klicks", "vorher": 4, "nachher": 2, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "liste",
+        "vorher": { "aufgenommen": "2025-06-05", "suchfeld": false, "spalten": 1, "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-06-17", "suchfeld": true, "spalten": 1, "kontrast": "mittel" }
+      }
+    },
+    {
+      "id": "SCR-2025-012",
+      "titel": "Dichte Tabellenansicht als Option",
+      "projekt": "Admin-Konsole",
+      "seite": "/admin/benutzer",
+      "kategorie": "Layout",
+      "status": "in Prüfung",
+      "viewport": "desktop",
+      "browser": "Chrome 141",
+      "autor": "T. Weiß",
+      "datum": "2025-06-24",
+      "tags": ["dichte", "tabelle", "power-user"],
+      "begruendung": {
+        "anlass": "Die Administration arbeitet täglich mit Listen von mehreren hundert Konten; die luftige Zeilenhöhe zeigte nur acht Zeilen ohne Scrollen.",
+        "aenderung": "Umschalter für eine dichte Zeilenhöhe eingeführt, Auswahl wird pro Person gemerkt; die luftige Ansicht bleibt Voreinstellung.",
+        "wirkung": "Doppelt so viele Zeilen ohne Scrollen sichtbar. Offen ist, ob die dichte Ansicht auf kleinen Bildschirmen bedienbar bleibt.",
+        "quelle": "Anforderung ADM-231 aus dem Betriebsteam"
+      },
+      "metriken": [
+        { "name": "Sichtbare Zeilen", "einheit": "Zeilen", "vorher": 8, "nachher": 17, "richtung": "groesser_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "liste",
+        "vorher": { "aufgenommen": "2025-06-12", "dichte": "luftig", "spalten": 1, "kontrast": "hoch" },
+        "nachher": { "aufgenommen": "2025-06-24", "dichte": "eng", "spalten": 1, "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2025-013",
+      "titel": "Modal durch Seitenpanel ersetzt",
+      "projekt": "Bestell-Checkout",
+      "seite": "/checkout/adresse",
+      "kategorie": "Navigation",
+      "status": "verworfen",
+      "viewport": "desktop",
+      "browser": "Chrome 140",
+      "autor": "J. Kern",
+      "datum": "2025-05-28",
+      "tags": ["modal", "panel", "verworfen"],
+      "begruendung": {
+        "anlass": "Der Adressdialog verdeckte die Bestellzusammenfassung, auf die er sich bezieht; die Vermutung war, dass ein Seitenpanel besser trägt.",
+        "aenderung": "Modal durch ein von rechts einfahrendes Panel ersetzt, die Zusammenfassung bleibt links sichtbar.",
+        "wirkung": "Kein messbarer Vorteil; die Abbruchquote stieg leicht, da das schmalere Panel die Adressfelder umbrach. Variante verworfen, Beleg bleibt als Entscheidungsgrundlage.",
+        "quelle": "A/B-Test CHK-22, Laufzeit 2025-05-05 bis 2025-05-26"
+      },
+      "metriken": [
+        { "name": "Abbruchquote", "einheit": "%", "vorher": 18.0, "nachher": 19.4, "richtung": "kleiner_besser" },
+        { "name": "Aufgabendauer", "einheit": "s", "vorher": 64, "nachher": 69, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "checkout",
+        "vorher": { "aufgenommen": "2025-05-05", "panel": false, "kontrast": "hoch" },
+        "nachher": { "aufgenommen": "2025-05-28", "panel": true, "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2025-014",
+      "titel": "Fehlerseite 404 mit Suchvorschlägen",
+      "projekt": "oneSCM Portal",
+      "seite": "/404",
+      "kategorie": "Fehlerzustände",
+      "status": "übernommen",
+      "viewport": "desktop",
+      "browser": "Chrome 141",
+      "autor": "M. Ackermann",
+      "datum": "2025-02-12",
+      "tags": ["404", "fehlerseite", "wiedereinstieg"],
+      "begruendung": {
+        "anlass": "Die Fehlerseite bestand aus einer Zahl und einem Satz. Aus Lesezeichen kommende Personen verließen das Portal an dieser Stelle.",
+        "aenderung": "Fehlerseite nennt die gesuchte Adresse, schlägt die drei nächstliegenden Bereiche vor und bietet die Suche direkt an.",
+        "wirkung": "Ein Vielfaches der Aufrufe endet jetzt in einem weiteren Seitenaufruf statt im Abbruch.",
+        "quelle": "Webanalyse Januar 2025, Seitenpfad /404"
+      },
+      "metriken": [
+        { "name": "Erfolgsquote", "einheit": "%", "vorher": 12, "nachher": 48, "richtung": "groesser_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "fehler",
+        "vorher": { "aufgenommen": "2025-01-28", "hinweis": null, "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-02-12", "hinweis": "Meinten Sie: Bestellhistorie", "primaer": true, "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2025-015",
+      "titel": "Berechtigungshinweis nennt die fehlende Rolle",
+      "projekt": "Admin-Konsole",
+      "seite": "/admin/rollen",
+      "kategorie": "Fehlerzustände",
+      "status": "in Prüfung",
+      "viewport": "desktop",
+      "browser": "Edge 141",
+      "autor": "T. Weiß",
+      "datum": "2025-06-27",
+      "tags": ["berechtigung", "fehlermeldung", "support"],
+      "begruendung": {
+        "anlass": "'Zugriff verweigert' ließ offen, welche Rolle fehlt und wer sie vergibt; daraus entstanden die meisten Supportanfragen der Konsole.",
+        "aenderung": "Meldung nennt die benötigte Rolle, die zuständige Freigabestelle und verlinkt den Antrag.",
+        "wirkung": "Die Supportanfragen zu Berechtigungen gehen deutlich zurück; die Messung läuft noch bis zum Quartalsende.",
+        "quelle": "Ticketauswertung Support, KW 20–25/2025"
+      },
+      "metriken": [
+        { "name": "Supportanfragen je Woche", "einheit": "Anfragen", "vorher": 14, "nachher": 5, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "formular",
+        "vorher": { "aufgenommen": "2025-06-13", "hinweis": "Zugriff verweigert", "fehlerAmFeld": false, "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-06-27", "hinweis": "Rolle „Einkauf freigeben“ fehlt – Antrag an IT-Betrieb", "fehlerAmFeld": true, "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2025-016",
+      "titel": "Kennzahlenkacheln nach Wichtigkeit sortiert",
+      "projekt": "Admin-Konsole",
+      "seite": "/admin/auswertung",
+      "kategorie": "Layout",
+      "status": "übernommen",
+      "viewport": "desktop",
+      "browser": "Chrome 141",
+      "autor": "S. Brandt",
+      "datum": "2025-01-22",
+      "tags": ["kennzahlen", "reihenfolge", "dashboard"],
+      "begruendung": {
+        "anlass": "Die Kacheln standen in der Reihenfolge ihrer Entstehung. Die täglich benötigte Kennzahl lag an fünfter Stelle unterhalb der Faltkante.",
+        "aenderung": "Reihenfolge nach Abrufhäufigkeit neu gesetzt, die drei wichtigsten Kacheln stehen in der ersten Reihe und sind größer.",
+        "wirkung": "Die Leitkennzahl ist ohne Scrollen sichtbar, der Weg zur täglichen Auswertung verkürzt sich.",
+        "quelle": "Klickpfadanalyse Dezember 2024"
+      },
+      "metriken": [
+        { "name": "Scrolltiefe bis Aktion", "einheit": "%", "vorher": 61, "nachher": 12, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": false,
+      "archiviert_am": null,
+      "archiv_grund": null,
+      "screen": {
+        "archetyp": "uebersicht",
+        "vorher": { "aufgenommen": "2025-01-08", "hierarchie": false, "dichte": "normal", "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2025-01-22", "hierarchie": true, "dichte": "normal", "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2024-031",
+      "titel": "Kopfzeile bleibt beim Scrollen sichtbar",
+      "projekt": "oneSCM Portal",
+      "seite": "/portal/bestellungen",
+      "kategorie": "Navigation",
+      "status": "übernommen",
+      "viewport": "desktop",
+      "browser": "Chrome 128",
+      "autor": "M. Ackermann",
+      "datum": "2024-09-12",
+      "tags": ["sticky", "tabellenkopf", "archiv"],
+      "begruendung": {
+        "anlass": "Beim Scrollen langer Bestelllisten verschwand der Tabellenkopf; die Spaltenbedeutung musste durch Zurückscrollen geprüft werden.",
+        "aenderung": "Tabellenkopf und Werkzeugleiste bleiben am oberen Rand stehen, mit feiner Trennlinie sobald gescrollt wird.",
+        "wirkung": "Zurückscrollen zum Kopf entfiel im Test vollständig.",
+        "quelle": "Beobachtungsstudie Einkauf, September 2024"
+      },
+      "metriken": [
+        { "name": "Klicks bis Ziel", "einheit": "Klicks", "vorher": 5, "nachher": 3, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": true,
+      "archiviert_am": "2025-01-15",
+      "archiv_grund": "Durch den Neuaufbau der Bestellliste in Release 4.2 abgelöst; Beleg bleibt als Nachweis der damaligen Entscheidung erhalten.",
+      "screen": {
+        "archetyp": "liste",
+        "vorher": { "aufgenommen": "2024-08-29", "sticky": false, "spalten": 1, "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2024-09-12", "sticky": true, "spalten": 1, "kontrast": "mittel" }
+      }
+    },
+    {
+      "id": "SCR-2024-018",
+      "titel": "Datumsformat vereinheitlicht",
+      "projekt": "Lieferanten-Cockpit",
+      "seite": "/cockpit/lieferschein",
+      "kategorie": "Typografie",
+      "status": "übernommen",
+      "viewport": "tablet",
+      "browser": "Safari 17.6",
+      "autor": "J. Kern",
+      "datum": "2024-06-19",
+      "tags": ["datum", "einheitlichkeit", "archiv"],
+      "begruendung": {
+        "anlass": "Auf einem Beleg standen drei Datumsformate nebeneinander; Liefer- und Rechnungsdatum wurden dadurch verwechselt.",
+        "aenderung": "Durchgehend TT.MM.JJJJ mit Tabellenziffern, Uhrzeiten nur dort, wo sie eine Rolle spielen.",
+        "wirkung": "Rückfragen zu Terminen im Lieferschein gingen im Folgequartal spürbar zurück.",
+        "quelle": "Rückfragenprotokoll Lieferantenservice Q2/2024"
+      },
+      "metriken": [
+        { "name": "Rückfragen je Monat", "einheit": "Rückfragen", "vorher": 22, "nachher": 9, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": true,
+      "archiviert_am": "2024-12-01",
+      "archiv_grund": "Regel in das Design-System übernommen; der Beleg dient nur noch der Herleitung.",
+      "screen": {
+        "archetyp": "formular",
+        "vorher": { "aufgenommen": "2024-06-05", "hierarchie": false, "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2024-06-19", "hierarchie": true, "kontrast": "hoch" }
+      }
+    },
+    {
+      "id": "SCR-2024-007",
+      "titel": "Kachelraster auf Tablet zweispaltig",
+      "projekt": "oneSCM Portal",
+      "seite": "/portal/uebersicht",
+      "kategorie": "Layout",
+      "status": "verworfen",
+      "viewport": "tablet",
+      "browser": "Safari 17.4",
+      "autor": "S. Brandt",
+      "datum": "2024-04-08",
+      "tags": ["tablet", "raster", "verworfen", "archiv"],
+      "begruendung": {
+        "anlass": "Auf dem Tablet wirkte das dreispaltige Raster gedrängt; getestet wurde eine zweispaltige Variante mit größeren Kacheln.",
+        "aenderung": "Raster auf zwei Spalten reduziert, Kachelinhalt um eine Zeile Kontext erweitert.",
+        "wirkung": "Die Kacheln wurden lesbarer, dafür rutschten zwei häufig genutzte Kacheln unter die Faltkante. Variante verworfen.",
+        "quelle": "Nutzertest Tablet, 5 Teilnehmende, 2024-04-03"
+      },
+      "metriken": [
+        { "name": "Scrolltiefe bis Aktion", "einheit": "%", "vorher": 35, "nachher": 68, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": true,
+      "archiviert_am": "2024-08-20",
+      "archiv_grund": "Verworfene Variante; archiviert, damit die Frage nicht erneut aufgeworfen wird.",
+      "screen": {
+        "archetyp": "uebersicht",
+        "vorher": { "aufgenommen": "2024-03-25", "spalten": 3, "dichte": "eng", "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2024-04-08", "spalten": 2, "dichte": "luftig", "kontrast": "mittel" }
+      }
+    },
+    {
+      "id": "SCR-2024-022",
+      "titel": "Fehlermeldung im Checkout entschärft",
+      "projekt": "Bestell-Checkout",
+      "seite": "/checkout/zahlung",
+      "kategorie": "Formular",
+      "status": "übernommen",
+      "viewport": "mobil",
+      "browser": "Safari 17.5",
+      "autor": "T. Weiß",
+      "datum": "2024-07-30",
+      "tags": ["fehlermeldung", "tonalitaet", "archiv"],
+      "begruendung": {
+        "anlass": "Die Meldung „Ungültige Eingabe“ erschien rot über dem ganzen Formular und benannte weder Feld noch Ursache.",
+        "aenderung": "Text sagt, welches Feld welches Format erwartet, und steht am Feld; die Signalfarbe bleibt der tatsächlichen Blockade vorbehalten.",
+        "wirkung": "Weniger Abbrüche im Zahlungsschritt auf dem Telefon, weniger Wiederholungsversuche je Feld.",
+        "quelle": "Formular-Telemetrie Juli 2024"
+      },
+      "metriken": [
+        { "name": "Abbruchquote", "einheit": "%", "vorher": 29.0, "nachher": 21.5, "richtung": "kleiner_besser" },
+        { "name": "Fehlerquote im Formular", "einheit": "%", "vorher": 27, "nachher": 15, "richtung": "kleiner_besser" }
+      ],
+      "archiviert": true,
+      "archiviert_am": "2025-02-02",
+      "archiv_grund": "Formulierung in den Textbausteinkatalog überführt; Beleg archiviert.",
+      "screen": {
+        "archetyp": "checkout",
+        "vorher": { "aufgenommen": "2024-07-16", "fehlerAmFeld": false, "hinweis": "Ungültige Eingabe", "kontrast": "mittel" },
+        "nachher": { "aufgenommen": "2024-07-30", "fehlerAmFeld": true, "hinweis": null, "primaer": true, "kontrast": "hoch" }
+      }
+    }
+  ]
+}

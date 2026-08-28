@@ -1,0 +1,76 @@
+<title>Screenarchiv oneSCM</title>
+<meta name="description" content="Bilddatenbank für Bildschirmaufnahmen aus dem Browser: jeder Beleg vorher und nachher, mit der Begründung der Änderung.">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/*%STYLES%*/
+</style>
+
+<a class="sprung" href="#ergebnisse">Direkt zu den Belegen</a>
+
+<header class="kopf">
+  <div class="huelle">
+    <div class="kopf-zeile">
+      <div class="marke">
+        <span class="stempel" aria-hidden="true">SCR</span>
+        <div>
+          <h1>Screenarchiv</h1>
+          <p class="unterzeile">
+            Bildschirmaufnahmen aus dem Browser – jeder Beleg mit der Aufnahme vorher, der Aufnahme
+            nachher und der Begründung, warum geändert wurde. Abgelöste Belege bleiben im Archiv.
+          </p>
+        </div>
+      </div>
+      <div class="suchfeld">
+        <span class="such-symbol" aria-hidden="true">⌕</span>
+        <label class="sprung" for="suche">Belege durchsuchen</label>
+        <input id="suche" type="search" placeholder="Titel, Projekt, Begründung, Schlagwort …" autocomplete="off">
+        <span class="such-kuerzel" aria-hidden="true">/</span>
+      </div>
+    </div>
+    <div class="kennzahlen" id="kennzahlen" aria-label="Kennzahlen der aktuellen Auswahl"></div>
+  </div>
+</header>
+
+<div class="huelle">
+  <main class="haupt">
+    <details class="filterschub" id="filterschub" open>
+      <summary id="filterschub-titel">Filter und Ansicht</summary>
+      <aside class="facetten" id="facetten" aria-label="Filter"></aside>
+    </details>
+
+    <section id="ergebnisse" aria-label="Belege">
+      <div class="ergebnis-kopf">
+        <p class="treffer" id="treffer" role="status" aria-live="polite"></p>
+        <div class="sortierung">
+          <label for="sortierung">Sortierung</label>
+          <select id="sortierung"></select>
+        </div>
+      </div>
+      <div class="raster" id="raster"></div>
+      <div class="leermeldung" id="leermeldung" hidden>
+        <h3>Kein Beleg passt zu dieser Auswahl</h3>
+        <p>Suchbegriff kürzen, einen Filter lösen oder auf die Ansicht „Alle“ wechseln – das Archiv enthält auch abgelöste Belege.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="fuss">
+    <span>Beispielbestand · Stand <code>/*%STAND%*/</code> · <code>/*%ANZAHL%*/</code> Belege, <code>/*%AUFNAHMEN%*/</code> Aufnahmen · Anwendung <code>v/*%VERSION%*/</code></span>
+    <span>Aufnahmen als SVG in die Seite eingebettet · Tastatur: <code>/</code> Suche, <code>←</code> <code>→</code> blättern, <code>Esc</code> schließen</span>
+  </footer>
+</div>
+
+<dialog class="detail" id="detail" aria-labelledby="detail-titel">
+  <div class="detail-kopf" id="detail-kopf"></div>
+  <div class="detail-koerper" id="detail-koerper">
+    <div class="buehne-spalte" id="buehne-spalte"></div>
+    <div class="blatt-spalte" id="blatt-spalte"></div>
+  </div>
+</dialog>
+
+<script>
+/*%KERN%*/
+/*%DATEN%*/
+/*%UI%*/
+</script>

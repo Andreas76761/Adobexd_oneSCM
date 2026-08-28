@@ -1,0 +1,18 @@
+{
+  "name": "screen-archiv",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bilddatenbank fuer Browser-Screens mit Archiv, Vorher-Nachher-Vergleich und Begruendung",
+  "scripts": {
+    "screens": "node data/generator/erzeuge-screens.mjs",
+    "build": "node app/build/build.mjs",
+    "test": "node Testing/run-tests.mjs",
+    "test:e2e": "node Testing/run-tests.mjs --nur=e2e",
+    "schuss": "node Testing/schuss.mjs",
+    "alles": "npm run screens && npm run build && npm test"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.62.1"
+  }
+}

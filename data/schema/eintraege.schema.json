@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://screen-archiv.local/schema/eintraege.schema.json",
+  "title": "Screen-Archiv Eintraege",
+  "type": "object",
+  "required": [
+    "version",
+    "stand",
+    "vokabular",
+    "eintraege"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "stand": {
+      "type": "string",
+      "format": "date"
+    },
+    "vokabular": {
+      "type": "object",
+      "required": [
+        "projekte",
+        "kategorien",
+        "status",
+        "viewports"
+      ],
+      "properties": {
+        "projekte": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "kategorien": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "status": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "viewports": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "label",
+              "breite",
+              "hoehe"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "breite": {
+                "type": "integer",
+                "minimum": 200
+              },
+              "hoehe": {
+                "type": "integer",
+                "minimum": 200
+              }
+            }
+          }
+        }
+      }
+    },
+    "eintraege": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "titel",
+          "projekt",
+          "seite",
+          "kategorie",
+          "status",
+          "viewport",
+          "browser",
+          "autor",
+          "datum",
+          "tags",
+          "begruendung",
+          "metriken",
+          "archiviert",
+          "screen"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SCR-\\d{4}-\\d{3}$"
+          },
+          "titel": {
+            "type": "string",
+            "minLength": 6
+          },
+          "projekt": {
+            "type": "string"
+          },
+          "seite": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "kategorie": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "viewport": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "autor": {
+            "type": "string"
+          },
+          "datum": {
+            "type": "string",
+            "format": "date"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "begruendung": {
+            "type": "object",
+            "required": [
+              "anlass",
+              "aenderung",
+              "wirkung",
+              "quelle"
+            ],
+            "properties": {
+              "anlass": {
+                "type": "string",
+                "minLength": 20
+              },
+              "aenderung": {
+                "type": "string",
+                "minLength": 20
+              },
+              "wirkung": {
+                "type": "string",
+                "minLength": 20
+              },
+              "quelle": {
+                "type": "string",
+                "minLength": 3
+              }
+            }
+          },
+          "metriken": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "einheit",
+                "vorher",
+                "nachher",
+                "richtung"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "einheit": {
+                  "type": "string"
+                },
+                "vorher": {
+                  "type": "number"
+                },
+                "nachher": {
+                  "type": "number"
+                },
+                "richtung": {
+                  "type": "string",
+                  "enum": [
+                    "groesser_besser",
+                    "kleiner_besser"
+                  ]
+                }
+              }
+            }
+          },
+          "archiviert": {
+            "type": "boolean"
+          },
+          "archiviert_am": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "archiv_grund": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "screen": {
+            "type": "object",
+            "required": [
+              "archetyp",
+              "vorher",
+              "nachher"
+            ],
+            "properties": {
+              "archetyp": {
+                "type": "string",
+                "enum": [
+                  "uebersicht",
+                  "liste",
+                  "formular",
+                  "checkout",
+                  "fehler",
+                  "diagramm"
+                ]
+              },
+              "vorher": {
+                "$ref": "#/$defs/screenOptionen"
+              },
+              "nachher": {
+                "$ref": "#/$defs/screenOptionen"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "screenOptionen": {
+      "type": "object",
+      "required": [
+        "aufgenommen"
+      ],
+      "properties": {
+        "aufgenommen": {
+          "type": "string",
+          "format": "date"
+        },
+        "kontrast": {
+          "type": "string",
+          "enum": [
+            "niedrig",
+            "mittel",
+            "hoch"
+          ]
+        },
+        "dichte": {
+          "type": "string",
+          "enum": [
+            "eng",
+            "normal",
+            "luftig"
+          ]
+        },
+        "hierarchie": {
+          "type": "boolean"
+        },
+        "primaer": {
+          "type": "boolean"
+        },
+        "symbole": {
+          "type": "boolean"
+        },
+        "fehlerAmFeld": {
+          "type": "boolean"
+        },
+        "leerzustand": {
+          "type": "boolean"
+        },
+        "spalten": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "hinweis": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notiz": {
+          "type": "string"
+        },
+        "doppelachse": {
+          "type": "boolean"
+        },
+        "skelett": {
+          "type": "boolean"
+        },
+        "sticky": {
+          "type": "boolean"
+        },
+        "suchfeld": {
+          "type": "boolean"
+        },
+        "panel": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

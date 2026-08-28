@@ -1,0 +1,406 @@
+{
+  "erzeugt_aus": "data/eintraege.json",
+  "anzahl": 40,
+  "aufnahmen": [
+    {
+      "datei": "SCR-2025-001-vorher.svg",
+      "eintrag": "SCR-2025-001",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-02-18",
+      "bytes": 15409
+    },
+    {
+      "datei": "SCR-2025-001-nachher.svg",
+      "eintrag": "SCR-2025-001",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-03-04",
+      "bytes": 15529
+    },
+    {
+      "datei": "SCR-2025-002-vorher.svg",
+      "eintrag": "SCR-2025-002",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-03-05",
+      "bytes": 18910
+    },
+    {
+      "datei": "SCR-2025-002-nachher.svg",
+      "eintrag": "SCR-2025-002",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-03-19",
+      "bytes": 23662
+    },
+    {
+      "datei": "SCR-2025-003-vorher.svg",
+      "eintrag": "SCR-2025-003",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-03-16",
+      "bytes": 7751
+    },
+    {
+      "datei": "SCR-2025-003-nachher.svg",
+      "eintrag": "SCR-2025-003",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-04-02",
+      "bytes": 7752
+    },
+    {
+      "datei": "SCR-2025-004-vorher.svg",
+      "eintrag": "SCR-2025-004",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-03-28",
+      "bytes": 7473
+    },
+    {
+      "datei": "SCR-2025-004-nachher.svg",
+      "eintrag": "SCR-2025-004",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-04-15",
+      "bytes": 7472
+    },
+    {
+      "datei": "SCR-2025-005-vorher.svg",
+      "eintrag": "SCR-2025-005",
+      "variante": "vorher",
+      "viewport": "mobil",
+      "breite": 390,
+      "hoehe": 844,
+      "aufgenommen": "2025-04-09",
+      "bytes": 12953
+    },
+    {
+      "datei": "SCR-2025-005-nachher.svg",
+      "eintrag": "SCR-2025-005",
+      "variante": "nachher",
+      "viewport": "mobil",
+      "breite": 390,
+      "hoehe": 844,
+      "aufgenommen": "2025-04-28",
+      "bytes": 9820
+    },
+    {
+      "datei": "SCR-2025-006-vorher.svg",
+      "eintrag": "SCR-2025-006",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-04-22",
+      "bytes": 23516
+    },
+    {
+      "datei": "SCR-2025-006-nachher.svg",
+      "eintrag": "SCR-2025-006",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-05-06",
+      "bytes": 26462
+    },
+    {
+      "datei": "SCR-2025-007-vorher.svg",
+      "eintrag": "SCR-2025-007",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-04-30",
+      "bytes": 18814
+    },
+    {
+      "datei": "SCR-2025-007-nachher.svg",
+      "eintrag": "SCR-2025-007",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-05-14",
+      "bytes": 12693
+    },
+    {
+      "datei": "SCR-2025-008-vorher.svg",
+      "eintrag": "SCR-2025-008",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-05-07",
+      "bytes": 4608
+    },
+    {
+      "datei": "SCR-2025-008-nachher.svg",
+      "eintrag": "SCR-2025-008",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-05-21",
+      "bytes": 5354
+    },
+    {
+      "datei": "SCR-2025-009-vorher.svg",
+      "eintrag": "SCR-2025-009",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-05-20",
+      "bytes": 6933
+    },
+    {
+      "datei": "SCR-2025-009-nachher.svg",
+      "eintrag": "SCR-2025-009",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-06-03",
+      "bytes": 8119
+    },
+    {
+      "datei": "SCR-2025-010-vorher.svg",
+      "eintrag": "SCR-2025-010",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-06-04",
+      "bytes": 14573
+    },
+    {
+      "datei": "SCR-2025-010-nachher.svg",
+      "eintrag": "SCR-2025-010",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-06-11",
+      "bytes": 9663
+    },
+    {
+      "datei": "SCR-2025-011-vorher.svg",
+      "eintrag": "SCR-2025-011",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-06-05",
+      "bytes": 23519
+    },
+    {
+      "datei": "SCR-2025-011-nachher.svg",
+      "eintrag": "SCR-2025-011",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-06-17",
+      "bytes": 23089
+    },
+    {
+      "datei": "SCR-2025-012-vorher.svg",
+      "eintrag": "SCR-2025-012",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-06-12",
+      "bytes": 18512
+    },
+    {
+      "datei": "SCR-2025-012-nachher.svg",
+      "eintrag": "SCR-2025-012",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-06-24",
+      "bytes": 31547
+    },
+    {
+      "datei": "SCR-2025-013-vorher.svg",
+      "eintrag": "SCR-2025-013",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-05-05",
+      "bytes": 7853
+    },
+    {
+      "datei": "SCR-2025-013-nachher.svg",
+      "eintrag": "SCR-2025-013",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-05-28",
+      "bytes": 7820
+    },
+    {
+      "datei": "SCR-2025-014-vorher.svg",
+      "eintrag": "SCR-2025-014",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-01-28",
+      "bytes": 3541
+    },
+    {
+      "datei": "SCR-2025-014-nachher.svg",
+      "eintrag": "SCR-2025-014",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-02-12",
+      "bytes": 4763
+    },
+    {
+      "datei": "SCR-2025-015-vorher.svg",
+      "eintrag": "SCR-2025-015",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-06-13",
+      "bytes": 7448
+    },
+    {
+      "datei": "SCR-2025-015-nachher.svg",
+      "eintrag": "SCR-2025-015",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-06-27",
+      "bytes": 7789
+    },
+    {
+      "datei": "SCR-2025-016-vorher.svg",
+      "eintrag": "SCR-2025-016",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-01-08",
+      "bytes": 15410
+    },
+    {
+      "datei": "SCR-2025-016-nachher.svg",
+      "eintrag": "SCR-2025-016",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2025-01-22",
+      "bytes": 14966
+    },
+    {
+      "datei": "SCR-2024-031-vorher.svg",
+      "eintrag": "SCR-2024-031",
+      "variante": "vorher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2024-08-29",
+      "bytes": 23524
+    },
+    {
+      "datei": "SCR-2024-031-nachher.svg",
+      "eintrag": "SCR-2024-031",
+      "variante": "nachher",
+      "viewport": "desktop",
+      "breite": 1440,
+      "hoehe": 900,
+      "aufgenommen": "2024-09-12",
+      "bytes": 23653
+    },
+    {
+      "datei": "SCR-2024-018-vorher.svg",
+      "eintrag": "SCR-2024-018",
+      "variante": "vorher",
+      "viewport": "tablet",
+      "breite": 1024,
+      "hoehe": 768,
+      "aufgenommen": "2024-06-05",
+      "bytes": 6943
+    },
+    {
+      "datei": "SCR-2024-018-nachher.svg",
+      "eintrag": "SCR-2024-018",
+      "variante": "nachher",
+      "viewport": "tablet",
+      "breite": 1024,
+      "hoehe": 768,
+      "aufgenommen": "2024-06-19",
+      "bytes": 7063
+    },
+    {
+      "datei": "SCR-2024-007-vorher.svg",
+      "eintrag": "SCR-2024-007",
+      "variante": "vorher",
+      "viewport": "tablet",
+      "breite": 1024,
+      "hoehe": 768,
+      "aufgenommen": "2024-03-25",
+      "bytes": 13659
+    },
+    {
+      "datei": "SCR-2024-007-nachher.svg",
+      "eintrag": "SCR-2024-007",
+      "variante": "nachher",
+      "viewport": "tablet",
+      "breite": 1024,
+      "hoehe": 768,
+      "aufgenommen": "2024-04-08",
+      "bytes": 10257
+    },
+    {
+      "datei": "SCR-2024-022-vorher.svg",
+      "eintrag": "SCR-2024-022",
+      "variante": "vorher",
+      "viewport": "mobil",
+      "breite": 390,
+      "hoehe": 844,
+      "aufgenommen": "2024-07-16",
+      "bytes": 4731
+    },
+    {
+      "datei": "SCR-2024-022-nachher.svg",
+      "eintrag": "SCR-2024-022",
+      "variante": "nachher",
+      "viewport": "mobil",
+      "breite": 390,
+      "hoehe": 844,
+      "aufgenommen": "2024-07-30",
+      "bytes": 4527
+    }
+  ]
+}
