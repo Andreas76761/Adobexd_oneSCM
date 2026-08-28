@@ -1,6 +1,6 @@
 # Feature-Katalog
 
-Stand: Anwendung **v1.3.0**, Datenbestand **1.0.0**.
+Stand: Anwendung **v1.4.0**, Datenbestand **1.0.0**.
 
 Jede Funktion hat eine feste Kennung. Sie bleibt bestehen, auch wenn sich die
 Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Änderung.
@@ -27,10 +27,10 @@ Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Ä
 | F-14 | Eingebettete Aufnahmen | 1.0.0 | `data/generator/`, `app/build/build.mjs` | Aufnahmen: 5 Fälle · Build: „lädt von außen nur erlaubte Schriftquellen“ |
 | F-15 | Gemerkte Vergleichsart | 1.0.0 | `ui.js` → `leseModus`, `merkeModus` | Oberfläche: „Vergleichsarten lassen sich umschalten“ |
 | F-16 | Portalnavigation | 1.1.0 | `ui.js` → `zeigeAnsicht` | Aufnahme: „Portalnavigation …“, „Ein Verweis öffnet …“ |
-| F-17 | Aufnahmestudio mit vier Quellen | 1.1.0, erweitert 1.3.0 | `aufnahme.js` → `quelleBildschirm`, `quelleZwischenablage`, `quelleDatei`, `quelleBeispiel` | Aufnahme: 10 Fälle |
+| F-17 | Aufnahmestudio mit vier Quellen | 1.1.0, erweitert 1.3.0 und 1.4.0 | `aufnahme.js` → `quelleBildschirm`, `quelleZwischenablage`, `warteAufEinfuegen` | Aufnahme: 11 Fälle |
 | F-18 | Wahl des Bildschirmausschnitts | 1.1.0 | `core.mjs` → `begrenzeAusschnitt`, `presetAusschnitt`; `aufnahme.js` → `verdrahteBuehne` | Kernlogik: 2 Fälle · Aufnahme: 3 Fälle |
 | F-19 | Metadaten und Datum | 1.1.0 | `core.mjs` → `pruefeEntwurf`, `titelVorschlag`; `aufnahme.js` → `baueFormular` | Kernlogik: 5 Fälle · Aufnahme: 3 Fälle |
-| F-20 | Auslösen mit der Leertaste | 1.1.0 | `aufnahme.js` → `loeseAus`, `schneideAus` | Aufnahme: 5 Fälle |
+| F-20 | Auslösen mit der Leertaste | 1.1.0, erweitert 1.4.0 | `aufnahme.js` → `loeseAus`, `schneideAus`, `sichereEingang` | Aufnahme: 8 Fälle |
 | F-21 | Eingang mit Nachpflege | 1.1.0 | `core.mjs` → `filtereEingang`, `istVollstaendig`; `aufnahme.js` → `zeichneEingang` | Kernlogik: 6 Fälle · Aufnahme: 7 Fälle |
 | F-22 | Eingang als JSON sichern | 1.1.0 | `core.mjs` → `eingangAlsExport`; `aufnahme.js` → `sichereAlsDatei` | Kernlogik: 1 Fall · Aufnahme: „Sichern bietet … Ersatzweg“ |
 | F-23 | Kontaktbogen als eine Datei | 1.2.0 | `core.mjs` → `baueKontaktbogen`, `maskiereHtml`; `aufnahme.js` → `sichereKontaktbogen`, `uebergebeDatei` | Kernlogik: 8 Fälle · Aufnahme: 6 Fälle |
@@ -232,6 +232,12 @@ Klick ohne Rückmeldung, wenn die Erlaubnisfrage unbeantwortet bleibt.
 Abbruch durch die Person und sonstige Fehler; die Tastenbezeichnungen richten
 sich nach dem System.
 
+**Bereit zum Einfügen** (ab 1.4.0) Ist die Freigabe gesperrt oder wird „Aus
+Zwischenablage“ gedrückt, wird die Bühne zur hervorgehobenen Fläche mit Marke,
+Tastenangabe und dem Hinweis, notfalls einmal hineinzuklicken – in einer
+eingebetteten Ansicht muss die Tastenkombination in der Seite ankommen, nicht
+im Fenster darum herum. Der Zustand endet, sobald ein Bild eintrifft.
+
 ---
 
 ## F-18 · Wahl des Bildschirmausschnitts
@@ -276,8 +282,17 @@ Schaltfläche daneben. Nach dem Auslösen bleiben alle Angaben stehen, nur der
 Titel wird geleert – so entsteht eine Reihe von Aufnahmen ohne erneutes
 Ausfüllen.
 
-Ist der Browserspeicher voll, wird die Aufnahme verworfen und gemeldet; der
-bisherige Stand bleibt unversehrt.
+**Wenn etwas schiefgeht** (ab 1.4.0) Drei Wege sind auseinandergehalten, weil
+sie verschiedene Folgen haben:
+
+* **Speicher voll** – die Aufnahme wird zurückgenommen, damit Anzeige und
+  Speicher nicht auseinanderlaufen; gemeldet wird der Rat, den Kontaktbogen zu
+  sichern und Aufnahmen zu löschen.
+* **Speicher gesperrt** – kommt in eingebetteten Ansichten vor. Die Aufnahme
+  **bleibt** für diese Sitzung im Eingang; gemeldet wird, dass sie kein
+  Neuladen übersteht. Dieser Hinweis erscheint nur einmal.
+* **Ausschneiden verweigert** – der Browser schützt fremde Bildinhalte. Statt
+  seiner Fehlermeldung steht dort der Weg, der funktioniert.
 
 ---
 

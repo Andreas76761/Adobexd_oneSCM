@@ -27,9 +27,9 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken | 13 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
 | `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme und Eingang: Kennungen, Begriffe, Prüfregeln, Ausschnitt, Filter, Speicher, Kontaktbogen | 27 |
-| `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Zwischenablage, Ausschnitt, Auslösen, Eingang, Nachpflege, Kontaktbogen | 39 |
+| `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Zwischenablage, Ausschnitt, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen | 43 |
 
-Summe: **132 Prüfungen**.
+Summe: **136 Prüfungen**.
 
 ## Eigene Helfer
 
@@ -74,6 +74,11 @@ Summe: **132 Prüfungen**.
   Bildschirmfoto aus der Systemtaste – und prüft, dass daraus eine Quelle wird.
   Ein zweiter Fall stellt die gesperrte Richtlinie nach und verlangt, dass die
   Meldung Ursache **und** Ausweg nennt.
+* **Die Fehlerwege des Auslösers werden nachgestellt**, weil sie sich anders
+  nicht auslösen lassen: `Storage.prototype.setItem` wirft einmal
+  `QuotaExceededError` (voll) und einmal `SecurityError` (gesperrt),
+  `toDataURL` wirft den Schutzfehler des Browsers. Geprüft wird jeweils, ob die
+  Meldung stimmt **und** ob die Aufnahme das richtige Schicksal hat.
 * **Der Kontaktbogen wird gegen eine nachgebildete Ablagefähigkeit geprüft.**
   Der Test schiebt vor dem Laden ein `window.claude` unter, das jede Übergabe
   festhält oder mit einem gewählten Fehlercode scheitert. So sind der echte

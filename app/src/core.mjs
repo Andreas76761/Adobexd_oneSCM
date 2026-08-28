@@ -382,7 +382,7 @@ export function istGueltigesDatum(text) {
 export function pruefeEntwurf(entwurf, quelle, ausschnitt, heute) {
   const probleme = [];
   if (!quelle || !quelle.breite || !quelle.hoehe) {
-    probleme.push({ feld: 'quelle', text: 'Zuerst eine Quelle wählen: Bildschirm freigeben, Bild öffnen oder Beispielquelle.' });
+    probleme.push({ feld: 'quelle', text: 'Zuerst eine Quelle wählen: Bildschirmfoto einfügen, ein Bild öffnen, den Bildschirm freigeben oder die Beispielquelle nehmen.' });
   } else if (!ausschnitt || ausschnitt.breite < MINDEST_AUSSCHNITT || ausschnitt.hoehe < MINDEST_AUSSCHNITT) {
     probleme.push({ feld: 'ausschnitt', text: `Der Ausschnitt ist zu klein – mindestens ${MINDEST_AUSSCHNITT} × ${MINDEST_AUSSCHNITT} Bildpunkte.` });
   }

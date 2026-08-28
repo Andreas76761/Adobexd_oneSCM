@@ -20,6 +20,7 @@ let eingangAuswahl = { suche: '', zustand: 'alle', sortierung: 'neu' };
 let aufnahmeLaeuft = false;
 let anzeigeTakt = null;
 let bearbeitet = null; // Kennung der im Eingang geöffneten Aufnahme
+let speicherGemeldet = false; // gesperrter Speicher wird nur einmal gemeldet
 
 /* ------------------------------------------------------------- Speicher */
 
@@ -31,13 +32,28 @@ function leseEingangAusSpeicher() {
   }
 }
 
-/** Schreibt den Eingang zurück. Bei vollem Speicher bleibt der alte Stand. */
+/**
+ * Schreibt den Eingang zurück.
+ * Zwei Ausgänge, die man nicht verwechseln darf: der Speicher ist **voll**
+ * (dann hilft nur Sichern und Löschen) oder er ist **gesperrt** – das kommt in
+ * eingebetteten Ansichten vor, wenn der Browser fremden Rahmen keinen Speicher
+ * gibt. Dann ist die Aufnahme nicht verloren, sie überlebt nur kein Neuladen.
+ */
 function sichereEingang() {
   try {
     localStorage.setItem(EINGANG_SCHLUESSEL, schreibeEingang(eingang));
     return { ok: true };
   } catch (fehler) {
-    return { ok: false, text: 'Der Browserspeicher ist voll. Bitte den Eingang sichern und Aufnahmen löschen.' };
+    const voll =
+      fehler &&
+      (fehler.name === 'QuotaExceededError' || fehler.code === 22 || /quota|exceeded/i.test(String(fehler.name || fehler.message)));
+    return {
+      ok: false,
+      voll: Boolean(voll),
+      text: voll
+        ? 'Der Browserspeicher ist voll. Bitte den Eingang als Kontaktbogen sichern und Aufnahmen löschen.'
+        : 'Dieser Browser gibt der eingebetteten Ansicht keinen Speicher. Die Aufnahmen bleiben für diese Sitzung erhalten und gehen beim Neuladen verloren – bitte vorher als Kontaktbogen sichern.'
+    };
   }
 }
 
@@ -75,6 +91,8 @@ function beendeStrom() {
 
 function setzeQuelle(neueQuelle) {
   beendeStrom();
+  $('#quelle-buehne').classList.remove('wartet');
+  $('#einfuege-hinweis').hidden = true;
   quelle = neueQuelle;
   ausschnitt = presetAusschnitt('voll', quelle, VOKABULAR.viewports);
   zeichnePreview();
@@ -137,6 +155,7 @@ async function quelleBildschirm() {
       `Diese eingebettete Ansicht darf den Bildschirm nicht freigeben – das entscheidet die Vorschau, nicht die Seite. ${AUSWEG}`,
       'warnung'
     );
+    warteAufEinfuegen();
     return;
   }
   try {
@@ -175,6 +194,7 @@ async function quelleBildschirm() {
         : `Die Bildschirmfreigabe ist in dieser Ansicht gesperrt. ${AUSWEG}`,
       'warnung'
     );
+    if (!abgebrochen) warteAufEinfuegen();
   }
 }
 
@@ -190,11 +210,25 @@ const mitZeitgrenze = (versprechen, millisekunden) =>
     new Promise((_, scheitern) => setTimeout(() => scheitern(new Error('Zeitgrenze')), millisekunden))
   ]);
 
+/**
+ * Macht die Fläche sichtbar bereit für das Einfügen. Ohne diesen Zustand ist
+ * nicht zu erkennen, wohin eingefügt werden muss - und ein Einfügen in den
+ * umgebenden Rahmen erreicht die Seite nicht.
+ */
+function warteAufEinfuegen() {
+  const buehne = $('#quelle-buehne');
+  buehne.classList.add('wartet');
+  buehne.focus();
+  $('#einfuege-hinweis').hidden = false;
+  $('#einfuege-taste').textContent = EINFUEGE_TASTE;
+  zeichneStudio();
+}
+
 async function quelleZwischenablage() {
   // Der Hinweis kommt zuerst: das Lesen der Zwischenablage kann auf eine
   // Erlaubnis warten, die in einer eingebetteten Ansicht nie beantwortet wird.
   meldeStudio(`Jetzt ${EINFUEGE_TASTE} drücken – so gibt der Browser das Bild frei.`, 'neutral');
-  $('#quelle-buehne').focus();
+  warteAufEinfuegen();
   if (!navigator.clipboard || !navigator.clipboard.read) return;
   try {
     for (const eintrag of await mitZeitgrenze(navigator.clipboard.read(), 1500)) {
@@ -396,20 +430,40 @@ function loeseAus() {
     });
     eingang = [aufnahme, ...eingang];
     const ergebnis = sichereEingang();
-    if (!ergebnis.ok) {
+    if (!ergebnis.ok && ergebnis.voll) {
+      // Voll heißt: es passt nichts mehr hinein. Die Aufnahme zurücknehmen,
+      // damit Anzeige und Speicher nicht auseinanderlaufen.
       eingang = eingang.filter((a) => a.id !== kennung);
       meldeStudio(ergebnis.text, 'warnung');
+      zeigeAnsicht();
       return null;
+    }
+    if (!ergebnis.ok && !speicherGemeldet) {
+      // Gesperrt heißt: die Aufnahme ist da, sie überlebt nur kein Neuladen.
+      speicherGemeldet = true;
+      meldeEingang(ergebnis.text, 'warnung');
     }
     entwurf.titel = '';
     fuelleFormular();
     blitze();
-    meldeStudio(`${kennung} im Eingang gespeichert – Kategorie und Begriffe können dort nachgetragen werden.`, 'gut');
+    meldeStudio(
+      ergebnis.ok
+        ? `${kennung} im Eingang gespeichert – Kategorie und Begriffe können dort nachgetragen werden.`
+        : `${kennung} im Eingang – nur für diese Sitzung, der Browser gibt hier keinen Speicher.`,
+      ergebnis.ok ? 'gut' : 'warnung'
+    );
     zeigeAnsicht();
     zeichneStudio();
     return kennung;
   } catch (fehler) {
-    meldeStudio('Die Aufnahme ist fehlgeschlagen: ' + (fehler && fehler.message ? fehler.message : 'unbekannter Grund'), 'warnung');
+    const verweigert =
+      fehler && (fehler.name === 'SecurityError' || /tainted|cross-origin|insecure/i.test(String(fehler.message || '')));
+    meldeStudio(
+      verweigert
+        ? 'Dieser Browser lässt das Ausschneiden dieser Quelle nicht zu. Bitte ein Bildschirmfoto einfügen oder eine Bilddatei öffnen – damit geht es.'
+        : 'Die Aufnahme ist fehlgeschlagen: ' + (fehler && fehler.message ? fehler.message : 'unbekannter Grund'),
+      'warnung'
+    );
     return null;
   } finally {
     aufnahmeLaeuft = false;
@@ -576,7 +630,7 @@ function zeichneStudio() {
   const hatQuelle = Boolean(quelle);
   $('#quelle-name').textContent = hatQuelle ? `${quelleArtName(quelle.art)}: ${quelle.name}` : 'Keine Quelle gewählt';
   $('#quelle-masse').textContent = hatQuelle ? `${quelle.breite} × ${quelle.hoehe}` : '';
-  $('#quelle-leer').hidden = hatQuelle;
+  $('#quelle-leer').hidden = hatQuelle || !$('#einfuege-hinweis').hidden;
   $('#quelle-leinwand').hidden = !hatQuelle;
 
   const rahmen = $('#ausschnitt-rahmen');

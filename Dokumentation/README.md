@@ -8,6 +8,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | --- | --- |
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [versionen/v1.4.0.md](versionen/v1.4.0.md) | Bereit zum Einfügen, ehrliche Fehlermeldungen |
 | [versionen/v1.3.0.md](versionen/v1.3.0.md) | Bildschirmfoto aus der Zwischenablage – wenn die Freigabe gesperrt ist |
 | [versionen/v1.2.0.md](versionen/v1.2.0.md) | Kontaktbogen – wie Aufnahmen die Seite verlassen |
 | [versionen/v1.1.0.md](versionen/v1.1.0.md) | Aufnahme und Eingang – was neu ist und wo die Aufnahmen liegen |

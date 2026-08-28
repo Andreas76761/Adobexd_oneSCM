@@ -232,6 +232,98 @@ s.test('gesperrte Bildschirmfreigabe nennt Ursache und Ausweg', () =>
     }
   ));
 
+s.test('gesperrte Freigabe zeigt sichtbar, wohin eingefügt wird', () =>
+  mitSeite(
+    async (seite) => {
+      gleich(await seite.locator('#einfuege-hinweis').isVisible(), false, 'der Hinweis steht ungefragt da');
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForSelector('#einfuege-hinweis:not([hidden])');
+      // innerText liefert die dargestellte Schreibweise (Versalien aus dem Stil).
+      wahr(
+        (await seite.locator('#einfuege-hinweis').innerText()).toLowerCase().includes('bereit zum einfügen'),
+        'keine Bereitschaftsmarke'
+      );
+      wahr(/Strg\+V|Cmd\+V/.test(await seite.locator('#einfuege-taste').innerText()), 'die Taste wird nicht genannt');
+      gleich(await seite.locator('#quelle-buehne').evaluate((n) => n.classList.contains('wartet')), true, 'die Fläche ist nicht hervorgehoben');
+      gleich(await seite.locator('#quelle-leer').isVisible(), false, 'zwei Hinweise gleichzeitig');
+      gleich(await seite.evaluate(() => document.activeElement.id), 'quelle-buehne', 'der Fokus liegt nicht auf der Fläche');
+
+      await fuegeBildEin(seite, pngAlsBase64);
+      await seite.waitForFunction(() => document.getElementById('einfuege-hinweis').hidden);
+      gleich(await seite.locator('#quelle-buehne').evaluate((n) => n.classList.contains('wartet')), false, 'die Bereitschaft bleibt stehen');
+    },
+    {
+      hash: AUFNAHME,
+      initSkript: `Object.defineProperty(document, 'featurePolicy', {
+        configurable: true,
+        value: { allowsFeature: (name) => name !== 'display-capture' }
+      });`
+    }
+  ));
+
+/* ------------------------------------------------- Fehlerwege des Auslösers */
+
+s.test('voller Browserspeicher nimmt die Aufnahme zurück und sagt es', () =>
+  mitSeite(
+    async (seite) => {
+      await mitBeispielquelle(seite);
+      await seite.click('#ausloesen');
+      await seite.waitForFunction(() => document.getElementById('aufnahme-meldung').textContent.includes('voll'), null, { timeout: 5000 });
+      const meldung = await seite.locator('#aufnahme-meldung').innerText();
+      wahr(meldung.includes('Kontaktbogen'), 'es fehlt der Rat, was zu tun ist: ' + meldung);
+      gleich(await seite.locator('#eingang-zahl').isHidden(), true, 'der Zähler zählt eine nicht gespeicherte Aufnahme');
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      gleich(await seite.locator('.eingang-karte').count(), 0, 'die Aufnahme steht trotz vollem Speicher im Eingang');
+    },
+    {
+      hash: AUFNAHME,
+      initSkript: `const alt = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (k, v) {
+          if (k === 'screenarchiv:eingang') { const f = new Error('voll'); f.name = 'QuotaExceededError'; throw f; }
+          return alt.call(this, k, v);
+        };`
+    }
+  ));
+
+s.test('gesperrter Speicher behält die Aufnahme für die Sitzung', () =>
+  mitSeite(
+    async (seite) => {
+      await mitBeispielquelle(seite);
+      await seite.fill('#feld-titel', 'Trotzdem da');
+      await seite.click('#ausloesen');
+      await seite.waitForFunction(() => document.getElementById('eingang-zahl').textContent === '1', null, { timeout: 5000 });
+      const meldung = await seite.locator('#aufnahme-meldung').innerText();
+      wahr(meldung.includes('Sitzung'), 'die Einschränkung wird nicht benannt: ' + meldung);
+      wahr(!meldung.includes('voll'), 'gesperrter Speicher wird als voll gemeldet');
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      gleich(await seite.locator('.eingang-karte').count(), 1, 'die Aufnahme ging verloren, obwohl sie im Fenster bleiben kann');
+      wahr((await seite.locator('#eingang-meldung').innerText()).includes('Kontaktbogen'), 'kein Rat zum Sichern');
+    },
+    {
+      hash: AUFNAHME,
+      initSkript: `Storage.prototype.setItem = function () { const f = new Error('gesperrt'); f.name = 'SecurityError'; throw f; };`
+    }
+  ));
+
+s.test('verweigertes Ausschneiden nennt den Weg, der geht', () =>
+  mitSeite(
+    async (seite) => {
+      await mitBeispielquelle(seite);
+      await seite.click('#ausloesen');
+      await seite.waitForFunction(() => document.getElementById('aufnahme-meldung').textContent.length > 0);
+      const meldung = await seite.locator('#aufnahme-meldung').innerText();
+      wahr(meldung.includes('Bildschirmfoto einfügen'), 'kein gangbarer Weg genannt: ' + meldung);
+      wahr(!/Tainted|SecurityError/.test(meldung), 'die Meldung wirft mit Fachbegriffen: ' + meldung);
+      gleich((await eingangImSpeicher(seite)).length, 0);
+    },
+    {
+      hash: AUFNAHME,
+      initSkript: `HTMLCanvasElement.prototype.toDataURL = function () {
+        const f = new Error('Tainted canvases may not be exported.'); f.name = 'SecurityError'; throw f;
+      };`
+    }
+  ));
+
 /* ------------------------------------------------------------ Ausschnitt */
 
 s.test('der Ausschnitt lässt sich mit der Maus aufziehen', () =>

@@ -567,6 +567,23 @@ dialog.detail::backdrop { background: rgba(12, 16, 22, .62); backdrop-filter: bl
   cursor: crosshair; touch-action: none;
 }
 .buehne-quelle.zieht { border-color: var(--akzent); border-style: dashed; }
+.buehne-quelle.wartet { border: 2px dashed var(--akzent); background: var(--akzent-hauch); }
+
+.einfuege-hinweis {
+  display: grid; gap: 10px; justify-items: center; max-width: 46ch;
+  padding: 28px 24px; text-align: center; font-size: 13.5px; line-height: 1.6; color: var(--tinte-2);
+}
+.einfuege-hinweis[hidden] { display: none; }
+.einfuege-marke {
+  font-family: var(--schrift-mono); font-size: 10.5px; letter-spacing: var(--spur);
+  text-transform: uppercase; background: var(--akzent); color: var(--auf-farbe);
+  border-radius: 2px; padding: 3px 9px;
+}
+.einfuege-hinweis kbd {
+  font-family: var(--schrift-mono); font-size: 12px; color: var(--tinte);
+  border: 1px solid var(--linie-stark); border-bottom-width: 2px; border-radius: 3px;
+  padding: 1px 7px; background: var(--flaeche);
+}
 .buehne-quelle canvas { display: block; width: 100%; height: auto; }
 .buehne-quelle canvas[hidden] { display: none; }
 .quelle-leer {

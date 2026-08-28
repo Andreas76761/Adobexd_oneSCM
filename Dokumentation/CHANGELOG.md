@@ -20,6 +20,25 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.4.0] – Bereit zum Einfügen, ehrliche Fehlermeldungen
+
+### Neu
+* Sichtbarer Bereitschaftszustand der Bühne: Marke „Bereit zum Einfügen“, die
+  Systemtaste und der Hinweis, dass die Tastenkombination in der Seite ankommen
+  muss. Erscheint bei gesperrter Freigabe und auf „Aus Zwischenablage“ (F-17)
+
+### Behoben
+* Ein **gesperrter** Browserspeicher wurde als **voller** Speicher gemeldet und
+  die gelungene Aufnahme verworfen. Jetzt bleibt sie für die Sitzung erhalten,
+  und die Meldung nennt die tatsächliche Einschränkung (F-20)
+* Ein verweigertes Ausschneiden warf dem Betrachter die Fehlermeldung des
+  Browsers vor die Füße; jetzt steht dort der Weg, der funktioniert (F-20)
+* Die Meldung „Zuerst eine Quelle wählen“ nannte die Zwischenablage nicht
+
+### Prüfung
+* 136 Prüfungen, alle bestanden. Neu: voller Speicher, gesperrter Speicher und
+  verweigertes Ausschneiden werden im Browser nachgestellt.
+
 ## [1.3.0] – Bildschirmfoto aus der Zwischenablage
 
 ### Neu
