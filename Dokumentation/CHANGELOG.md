@@ -20,6 +20,27 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.2.0] – Kontaktbogen
+
+### Neu
+* Der Eingang lässt sich als Kontaktbogen sichern: eine in sich geschlossene
+  HTML-Datei mit allen Bildern, allen Metadaten, Druckregeln für den Weg ins
+  PDF und ohne jeden externen Verweis (F-23)
+
+### Geändert
+* Gesichert wird die **sichtbare Auswahl** – gefiltert und sortiert wie am
+  Bildschirm. Das gilt nun auch für „Als JSON sichern“, das zuvor immer den
+  ganzen Eingang ausgab.
+* Jeder Ausgang der Ablagefähigkeit wird benannt: bestätigt, abgebrochen,
+  Abfrage offen, zu groß, Format nicht erlaubt, gar nicht möglich. Ein
+  abgelehntes Format stößt keinen stillen Ersatzweg mehr an.
+
+### Prüfung
+* 126 Prüfungen, alle bestanden. Zwei Build-Prüfungen wurden geschärft: sie
+  betrachten jetzt nur noch das Markup der Seite, weil im Skriptbereich
+  bewusst `<!doctype` und `<img` als Text stehen – der Kontaktbogen wird dort
+  erzeugt.
+
 ## [1.1.0] – Aufnahme und Eingang
 
 ### Neu

@@ -1,6 +1,6 @@
 # Feature-Katalog
 
-Stand: Anwendung **v1.1.0**, Datenbestand **1.0.0**.
+Stand: Anwendung **v1.2.0**, Datenbestand **1.0.0**.
 
 Jede Funktion hat eine feste Kennung. Sie bleibt bestehen, auch wenn sich die
 Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Änderung.
@@ -33,6 +33,7 @@ Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Ä
 | F-20 | Auslösen mit der Leertaste | 1.1.0 | `aufnahme.js` → `loeseAus`, `schneideAus` | Aufnahme: 5 Fälle |
 | F-21 | Eingang mit Nachpflege | 1.1.0 | `core.mjs` → `filtereEingang`, `istVollstaendig`; `aufnahme.js` → `zeichneEingang` | Kernlogik: 6 Fälle · Aufnahme: 7 Fälle |
 | F-22 | Eingang als JSON sichern | 1.1.0 | `core.mjs` → `eingangAlsExport`; `aufnahme.js` → `sichereAlsDatei` | Kernlogik: 1 Fall · Aufnahme: „Sichern bietet … Ersatzweg“ |
+| F-23 | Kontaktbogen als eine Datei | 1.2.0 | `core.mjs` → `baueKontaktbogen`, `maskiereHtml`; `aufnahme.js` → `sichereKontaktbogen`, `uebergebeDatei` | Kernlogik: 8 Fälle · Aufnahme: 6 Fälle |
 
 ---
 
@@ -297,3 +298,39 @@ gelangen.
 Fehlt die Fähigkeit oder lehnt der Betrachter ab, erscheint statt einer Datei
 ein Textfeld mit den Metadaten zum Herauskopieren; die Bilder bleiben dann im
 Browser. Der Unterschied wird benannt, nicht verschwiegen.
+
+
+---
+
+## F-23 · Kontaktbogen als eine Datei
+
+**Zweck** Die Aufnahmen sollen den Browser verlassen können – in ein Laufwerk,
+ein Ticket, eine Ablage wie SharePoint. Einzelbilder wären mühsam: die
+Ablagefähigkeit des Artifacts lässt immer nur **eine** Abfrage gleichzeitig zu
+und der Betrachter bestätigt jede Datei einzeln. Also ein Blatt für alles.
+
+**Bedienung** Im Eingang „Kontaktbogen sichern“. Gesichert wird, was gerade
+sichtbar ist – gefiltert und sortiert wie am Bildschirm. Ist die Auswahl
+eingeschränkt, steht das im Blatt.
+
+**Das Blatt** Kopf mit Stempel und Stand, eine Zeile mit Anzahl, offenen
+Aufnahmen, Projekten und Begriffen, dann je Aufnahme das Bild neben Kennung,
+Datum, Titel, Projekt, Seite, Kategorie, Status, Rolle, erfassender Person,
+Browser, Begriffen, Notiz und einer Herkunftszeile mit Quelle, Ausschnittmaßen
+und Erfassungszeitpunkt. Unvollständige Aufnahmen sind markiert.
+
+**Beschaffenheit** Ein vollständiges HTML-Dokument mit eingebetteten Bildern,
+Systemschriften, **ohne externen Verweis und ohne Skript**. Es öffnet sich in
+jedem Browser, ist durchsuchbar und wird mit Strg+P zum PDF; die Druckregeln
+verhindern, dass ein Satz über die Seitenkante bricht.
+
+**Sicherheit** Alle Metadaten stammen aus Eingabefeldern und werden beim Bauen
+maskiert. Ein Titel wie `<script>…</script>` erscheint als Text, nicht als
+Markup – geprüft.
+
+**Wenn es nicht geht** Jeder Ausgang der Ablagefähigkeit hat eine eigene
+Meldung: bestätigt (mit Größe), abgebrochen, Abfrage noch offen, über 16 MB,
+Format nicht erlaubt. Ein abgelehntes Format stößt bewusst **keinen** stillen
+Ersatzweg an. Fehlt die Fähigkeit ganz, erscheint das Textfeld mit den
+Metadaten zum Herauskopieren – mit dem Hinweis, dass die Bilder dabei im
+Browser bleiben.

@@ -24,12 +24,12 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `01-daten.test.mjs` | Bestand gegen Schema und inhaltliche Regeln | 10 |
 | `02-kern.test.mjs` | Kernlogik ohne DOM: Suche, Filter, Facetten, Wirkung, Sortierung, Zustand, Formate | 19 |
 | `03-aufnahmen.test.mjs` | erzeugte SVG-Aufnahmen: Vollständigkeit, Maße, Sauberkeit, Determinismus | 8 |
-| `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken | 12 |
+| `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken | 13 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
-| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme und Eingang: Kennungen, Begriffe, Prüfregeln, Ausschnitt, Filter, Speicher | 19 |
-| `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Ausschnitt, Auslösen, Eingang, Nachpflege, Sichern | 27 |
+| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme und Eingang: Kennungen, Begriffe, Prüfregeln, Ausschnitt, Filter, Speicher, Kontaktbogen | 27 |
+| `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Ausschnitt, Auslösen, Eingang, Nachpflege, Kontaktbogen | 33 |
 
-Summe: **111 Prüfungen**.
+Summe: **126 Prüfungen**.
 
 ## Eigene Helfer
 
@@ -69,9 +69,19 @@ Summe: **111 Prüfungen**.
 * **„der Eingang überlebt das Neuladen“** prüft die Ablage im Browser; jeder
   Fall startet mit leerem Speicher, sodass sich die Fälle nicht beeinflussen.
 
+* **Der Kontaktbogen wird gegen eine nachgebildete Ablagefähigkeit geprüft.**
+  Der Test schiebt vor dem Laden ein `window.claude` unter, das jede Übergabe
+  festhält oder mit einem gewählten Fehlercode scheitert. So sind der echte
+  Übergabeweg, der Dateiname, der Inhalt und jeder Fehlerausgang geprüft, ohne
+  dass eine Datei entsteht.
+
 Zwei Fehler hat diese Stufe bei der Entwicklung von v1.1.0 gefunden: ein leer
 bleibendes Ausgabefeld (`value` ist bei `<textarea>` kein Attribut) und eine
 formatfüllende Auswahl, aus der sich kein neuer Ausschnitt aufziehen ließ.
+In v1.2.0 kamen zwei Treffer der Build-Stufe dazu: `<!doctype` und `<img`
+tauchten in der Seite auf, weil der Kontaktbogen-Erzeuger sie als Text enthält.
+Die Prüfungen betrachten seither nur noch das Markup außerhalb des Skripts –
+geschärft, nicht aufgeweicht.
 
 ## Was nicht geprüft wird
 

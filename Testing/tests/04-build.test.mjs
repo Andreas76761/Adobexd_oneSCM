@@ -12,6 +12,19 @@ const css = readFileSync(join(wurzel, 'app', 'src', 'styles.css'), 'utf8');
 const s = suite('Build');
 const seite = existsSync(seitenPfad) ? readFileSync(seitenPfad, 'utf8') : '';
 
+/**
+ * Nur das Markup, das der Browser als HTML liest - ohne den Skriptbereich.
+ * Im Skript stehen Zeichenfolgen wie "<!doctype" und "<img", weil dort der
+ * Kontaktbogen zum Herunterladen erzeugt wird; für die Seite selbst gelten
+ * die Regeln unverändert.
+ */
+const markup = (() => {
+  const anfang = seite.indexOf('<script>');
+  const ende = seite.lastIndexOf('</script>');
+  if (anfang < 0 || ende < 0) return seite;
+  return seite.slice(0, anfang) + seite.slice(ende + '</script>'.length);
+})();
+
 s.test('dist/index.html existiert und ist aktuell', () => {
   wahr(existsSync(seitenPfad), 'dist/index.html fehlt – "npm run build" ausführen');
   const vorher = readFileSync(seitenPfad, 'utf8');
@@ -29,7 +42,7 @@ s.test('trägt einen eigenen Namen im Titel', () => {
 s.test('enthält keine Gerüst-Tags, die das Artifact selbst ergänzt', () => {
   // <header> darf vorkommen, <head> nicht - deshalb auf das Tag-Ende prüfen.
   for (const tag of ['<!doctype', '<html[\\s>]', '<head[\\s>]', '<body[\\s>]']) {
-    wahr(!new RegExp(tag, 'i').test(seite), `${tag} darf nicht in der Datei stehen`);
+    wahr(!new RegExp(tag, 'i').test(markup), `${tag} darf nicht in der Datei stehen`);
   }
 });
 
@@ -47,7 +60,9 @@ s.test('lädt von außen nur erlaubte Schriftquellen', () => {
   for (const v of verweise) {
     wahr(erlaubt.some((h) => v.startsWith(h)), `nicht erlaubte externe Quelle: ${v}`);
   }
-  wahr(!/<img\s/i.test(seite), 'externe Bilder werden im Artifact blockiert – Aufnahmen müssen inline sein');
+  wahr(!/<img\s/i.test(markup), 'externe Bilder werden im Artifact blockiert – Aufnahmen müssen inline sein');
+  // Bilder entstehen zur Laufzeit; keines davon darf von außen kommen.
+  wahr(!/src=["']https?:/i.test(seite), 'eine Quelle verweist nach außen');
 });
 
 s.test('alle Belege und Aufnahmen sind eingebettet', () => {
@@ -63,6 +78,13 @@ s.test('das Skript ist als ein Block lauffähig (keine Module-Reste)', () => {
   wahr(!/^\s*export\s/m.test(skript), 'export-Anweisung im eingebetteten Skript');
   wahr(!/\bimport\s+.*\bfrom\b/.test(skript), 'import-Anweisung im eingebetteten Skript');
   wahr(skript.includes('const DATEN ='), 'Datenblock fehlt');
+});
+
+s.test('der Skriptbereich ist die einzige Stelle mit Dokumentgerüst', () => {
+  // Der Kontaktbogen zum Herunterladen ist ein vollständiges Dokument - er darf
+  // nur als Zeichenfolge im Skript vorkommen, nie als Markup der Seite.
+  wahr(seite.includes('<!doctype html>'), 'der Kontaktbogen-Erzeuger fehlt');
+  gleich((markup.match(/<!doctype/gi) || []).length, 0);
 });
 
 s.test('nennt die Version der Anwendung', () => {

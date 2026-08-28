@@ -581,3 +581,167 @@ export function eingangAlsExport(liste, stand, mitBildern = false) {
     2
   );
 }
+
+/* =========================================================================
+   Kontaktbogen (ab v1.2.0)
+
+   Erzeugt aus dem Eingang EINE in sich geschlossene HTML-Datei: alle Bilder
+   als Daten-Adresse eingebettet, alle Metadaten daneben, Druckregeln fuer den
+   Weg ins PDF. Bewusst ohne jeden externen Verweis - das Blatt soll auch in
+   zehn Jahren ohne Netz aufgehen.
+   ========================================================================= */
+
+/** Groessengrenze der Ablagefaehigkeit (16 MiB). */
+export const HOECHSTGROESSE_DATEI = 16 * 1024 * 1024;
+
+const MASKEN = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+
+/** Maskiert Freitext fuer die Ausgabe in HTML. */
+export function maskiereHtml(text) {
+  return String(text ?? '').replace(/[&<>"']/g, (z) => MASKEN[z]);
+}
+
+const KONTAKTBOGEN_STIL = `
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 32px 28px 60px; background: #fff; color: #14181f;
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px; line-height: 1.55;
+}
+.blatt { max-width: 1100px; margin: 0 auto; }
+.kopf { display: flex; gap: 18px; align-items: flex-start; border-bottom: 2px solid #14181f; padding-bottom: 16px; }
+.stempel {
+  flex: none; width: 52px; height: 52px; display: grid; place-items: center;
+  border: 2px solid #b4432b; color: #b4432b; border-radius: 3px; transform: rotate(-4deg);
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; letter-spacing: .08em;
+}
+h1 { margin: 0; font-size: 25px; letter-spacing: -.02em; }
+.kopf-zeile { margin-top: 4px; color: #5c6675; font-size: 13px; }
+.mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+.summe { display: flex; flex-wrap: wrap; gap: 10px 26px; margin: 16px 0 6px; font-size: 13px; color: #5c6675; }
+.summe b { color: #14181f; font-weight: 600; }
+.auswahl { margin: 4px 0 0; font-size: 13px; color: #8a6110; }
+.satz {
+  display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 22px;
+  padding: 22px 0; border-bottom: 1px solid #d6dbe4; page-break-inside: avoid; break-inside: avoid;
+}
+.satz img { display: block; width: 100%; height: auto; border: 1px solid #d6dbe4; background: #f6f7fa; }
+.satz-kopf { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }
+.kennung { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: #5c6675; }
+.offen {
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10px; letter-spacing: .06em;
+  text-transform: uppercase; background: #f6eedc; color: #8a6110; padding: 2px 7px; border-radius: 2px;
+}
+h2 { margin: 6px 0 12px; font-size: 17px; line-height: 1.3; }
+dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px 16px; margin: 0; font-size: 13px; }
+dt { color: #5c6675; }
+dd { margin: 0; }
+.begriffe { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.begriffe span {
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
+  background: #eef0f4; border-radius: 2px; padding: 2px 7px;
+}
+.notiz { margin-top: 12px; padding-left: 12px; border-left: 3px solid #d6dbe4; color: #4a5769; font-size: 13px; }
+.herkunft { margin-top: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; color: #8892a0; }
+.leer { padding: 60px 0; text-align: center; color: #5c6675; }
+.fuss { margin-top: 26px; font-size: 12px; color: #8892a0; }
+@media print {
+  body { padding: 0; font-size: 11pt; }
+  .satz { padding: 14pt 0; }
+  .fuss { position: static; }
+  a { text-decoration: none; color: inherit; }
+}
+@page { margin: 14mm; }
+`;
+
+function kontaktbogenSatz(aufnahme) {
+  const m = maskiereHtml;
+  const zeile = (bezeichnung, wert) =>
+    wert ? `<dt>${m(bezeichnung)}</dt><dd>${m(wert)}</dd>` : '';
+  const rolle = { vorher: 'Vorher', nachher: 'Nachher', einzeln: 'Einzelaufnahme' }[aufnahme.rolle] || aufnahme.rolle;
+  const quelle =
+    { bildschirm: 'Bildschirm', datei: 'Datei', beispiel: 'Beispiel' }[aufnahme.quelle?.art] || 'Quelle';
+  const a = aufnahme.ausschnitt || {};
+  return `
+      <article class="satz">
+        <div><img src="${m(aufnahme.bild)}" alt="${m(aufnahme.titel)}"></div>
+        <div>
+          <div class="satz-kopf">
+            <span class="kennung">${m(aufnahme.id)}</span>
+            <span class="kennung">${m(formatiereDatum(aufnahme.datum))}</span>
+            ${istVollstaendig(aufnahme) ? '' : '<span class="offen">unvollständig</span>'}
+          </div>
+          <h2>${m(aufnahme.titel)}</h2>
+          <dl>
+            ${zeile('Projekt', aufnahme.projekt)}
+            ${zeile('Seite', aufnahme.seite)}
+            ${zeile('Kategorie', aufnahme.kategorie)}
+            ${zeile('Status', aufnahme.status)}
+            ${zeile('Rolle', rolle)}
+            ${zeile('Erfasst von', aufnahme.autor)}
+            ${zeile('Browser', aufnahme.browser)}
+          </dl>
+          ${
+            (aufnahme.begriffe || []).length
+              ? `<div class="begriffe">${aufnahme.begriffe.map((b) => `<span>#${m(b)}</span>`).join('')}</div>`
+              : ''
+          }
+          ${aufnahme.notiz ? `<p class="notiz">${m(aufnahme.notiz)}</p>` : ''}
+          <p class="herkunft">${m(quelle)}: ${m(aufnahme.quelle?.name || '–')} · Ausschnitt ${m(a.breite)} × ${m(a.hoehe)} bei x ${m(a.x)}, y ${m(a.y)} · erfasst ${m(String(aufnahme.erfasst_am || '').replace('T', ' ').slice(0, 16))}</p>
+        </div>
+      </article>`;
+}
+
+/**
+ * Baut den Kontaktbogen als vollständiges HTML-Dokument.
+ * @param {Array} aufnahmen  die auszugebenden Aufnahmen (bereits gefiltert)
+ * @param {{stand?: string, auswahl?: string, gesamt?: number}} angaben
+ */
+export function baueKontaktbogen(aufnahmen, angaben = {}) {
+  const liste = aufnahmen || [];
+  const m = maskiereHtml;
+  const k = eingangKennzahlen(liste);
+  const stand = angaben.stand || '';
+  const titel = `Screenarchiv – Kontaktbogen ${formatiereDatum(stand)}`;
+  const auswahlHinweis =
+    angaben.auswahl && angaben.gesamt && angaben.gesamt !== liste.length
+      ? `<p class="auswahl">Ausschnitt aus dem Eingang: ${m(angaben.auswahl)} – ${liste.length} von ${angaben.gesamt} Aufnahmen.</p>`
+      : '';
+  const inhalt = liste.length
+    ? liste.map(kontaktbogenSatz).join('')
+    : '<p class="leer">Keine Aufnahmen in dieser Auswahl.</p>';
+
+  return `<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${m(titel)}</title>
+<style>${KONTAKTBOGEN_STIL}</style>
+</head>
+<body>
+<div class="blatt">
+  <header class="kopf">
+    <span class="stempel">SCR</span>
+    <div>
+      <h1>Kontaktbogen</h1>
+      <p class="kopf-zeile">Aufnahmen aus dem Screenarchiv · Stand <span class="mono">${m(formatiereDatum(stand))}</span></p>
+    </div>
+  </header>
+  <p class="summe">
+    <span><b>${liste.length}</b> ${liste.length === 1 ? 'Aufnahme' : 'Aufnahmen'}</span>
+    <span><b>${k.offen}</b> unvollständig</span>
+    <span><b>${k.projekte}</b> ${k.projekte === 1 ? 'Projekt' : 'Projekte'}</span>
+    <span><b>${k.begriffe}</b> ${k.begriffe === 1 ? 'Begriff' : 'Begriffe'}</span>
+  </p>
+  ${auswahlHinweis}
+  ${inhalt}
+  <p class="fuss">
+    Alle Bilder sind in diese Datei eingebettet – sie funktioniert ohne Netzverbindung.
+    Zum Ablegen als PDF im Browser drucken (Strg+P / Cmd+P).
+  </p>
+</div>
+</body>
+</html>`;
+}

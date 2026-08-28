@@ -6,7 +6,7 @@
  *
  *   node Testing/schuss.mjs [Zielordner]     (Vorgabe: Testing/berichte)
  */
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { baueVorschau, findeChromium } from './hilfen/seite.mjs';
@@ -86,6 +86,33 @@ for (const { name, optionen, vorher } of ansichten) {
   await seite.screenshot({ path: join(ziel, name + '.png') });
   await kontext.close();
   console.log(`${name}.png`);
+}
+
+/* Der Kontaktbogen zum Herunterladen: erzeugen, ablegen, ansehen. */
+{
+  const kontext = await browser.newContext({ viewport: { width: 1440, height: 960 } });
+  await kontext.addInitScript(`window.__abgelegt = [];
+    window.claude = { use: async (n) => n === 'downloads'
+      ? { save: async (a) => { window.__abgelegt.push({ filename: a.filename, data: String(a.data) }); return { status: 'saved' }; } }
+      : null };`);
+  const seite = await kontext.newPage();
+  await seite.goto(adresse + '#ans=aufnahme', { waitUntil: 'load' });
+  await seite.waitForSelector('html[data-bereit="ja"]');
+  await fuelleEingang(seite);
+  await seite.click('.portal-nav button[data-ansicht="eingang"]');
+  await seite.click('#eingang-kontaktbogen');
+  await seite.waitForFunction(() => (window.__abgelegt || []).length === 1);
+  const [datei] = await seite.evaluate(() => window.__abgelegt);
+  const bogenPfad = join(ziel, datei.filename);
+  writeFileSync(bogenPfad, datei.data, 'utf8');
+  console.log(`${datei.filename} (${(datei.data.length / 1024).toFixed(0)} kB)`);
+
+  const ansicht = await kontext.newPage();
+  await ansicht.goto(pathToFileURL(bogenPfad).href, { waitUntil: 'load' });
+  await ansicht.waitForTimeout(400);
+  await ansicht.screenshot({ path: join(ziel, 'kontaktbogen.png'), fullPage: true });
+  console.log('kontaktbogen.png');
+  await kontext.close();
 }
 
 await browser.close();

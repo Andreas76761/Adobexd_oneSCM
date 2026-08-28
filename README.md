@@ -25,7 +25,7 @@ Einzeln:
 | --- | --- |
 | `npm run screens` | erzeugt aus `data/eintraege.json` die 40 Aufnahmen in `data/screens/` |
 | `npm run build` | setzt Daten, Aufnahmen, Logik, Stil und Oberfläche zu `dist/index.html` zusammen |
-| `npm test` | 111 Prüfungen: Daten, Kernlogik, Aufnahmen, Build, Oberfläche, Aufnahmemodus |
+| `npm test` | 126 Prüfungen: Daten, Kernlogik, Aufnahmen, Build, Oberfläche, Aufnahmemodus |
 | `npm run test:e2e` | nur die Browserprüfung |
 
 ## Aufbau
@@ -55,8 +55,9 @@ Ausschnitt per Maus, Ecken, Vorgabeformaten oder Pfeiltasten, Metadaten und
 Datum, Auslösen mit der Leertaste.
 
 **Eingang** – Vorschau aller Aufnahmen, Marke für Unvollständiges, Nachtragen
-von Kategorie, Begriffen und übrigen Angaben, Suche, Filter, Sortierung,
-Sichern als JSON.
+von Kategorie, Begriffen und übrigen Angaben, Suche, Filter, Sortierung.
+Sichern als **Kontaktbogen**: eine in sich geschlossene HTML-Datei mit allen
+Bildern und Metadaten, im Browser zum PDF druckbar – oder als JSON.
 
 Durchgehend: Zustand in der Adresszeile, Tastaturbedienung, helles und dunkles
 Thema.
@@ -69,8 +70,11 @@ Der vollständige Katalog mit Versionen steht in
 Aufgenommene Bilder liegen im Browser des Betrachters (`localStorage`) – die
 veröffentlichte Seite hat keinen Server. Sie überstehen dort das Neuladen,
 sind aber nicht zwischen Geräten geteilt. „Als JSON sichern“ reicht sie an
-`data/eintraege.json` weiter. Die Begründung dieser Entscheidung steht in
-[`Dokumentation/versionen/v1.1.0.md`](Dokumentation/versionen/v1.1.0.md).
+`data/eintraege.json` weiter, „Kontaktbogen sichern“ auf ein Laufwerk oder in
+eine Ablage. Ein direkter Upload zu SharePoint ist nicht möglich – die Gründe
+stehen in [`Dokumentation/versionen/v1.2.0.md`](Dokumentation/versionen/v1.2.0.md),
+die Ablageentscheidung in
+[`v1.1.0.md`](Dokumentation/versionen/v1.1.0.md).
 
 ## Beispielbestand
 

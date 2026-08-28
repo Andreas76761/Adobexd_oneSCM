@@ -209,4 +209,93 @@ s.test('die Ansicht steht in der Adresszeile', () => {
   gleich(kern.zustandZuQuery(kern.STANDARD_ZUSTAND), '', 'die Vorgabe steht unnötig in der Adresse');
 });
 
+/* ---------------------------------------------------------- Kontaktbogen */
+
+const bogenProbe = () => [
+  {
+    ...eingangProbe()[0],
+    titel: 'Kopfzeile <script>alert(1)</script> & "Anführung"',
+    notiz: 'Vergleich mit Release 4.2',
+    autor: 'M. Ackermann',
+    browser: 'Chrome 141',
+    rolle: 'vorher',
+    ausschnitt: { x: 12, y: 34, breite: 300, hoehe: 200 },
+    quelle: { art: 'datei', name: 'schirm.png', breite: 1440, hoehe: 900 }
+  },
+  eingangProbe()[1]
+];
+
+s.test('der Kontaktbogen ist ein vollständiges HTML-Dokument', () => {
+  const html = kern.baueKontaktbogen(bogenProbe(), { stand: '2025-06-30' });
+  wahr(html.startsWith('<!doctype html>'), 'kein Doctype');
+  wahr(html.includes('<html lang="de">') && html.includes('</html>'), 'Gerüst unvollständig');
+  wahr(html.includes('<title>'), 'kein Titel');
+  wahr(html.includes('@media print'), 'keine Druckregeln');
+  wahr(html.includes('page-break-inside: avoid'), 'Sätze dürfen über Seiten brechen');
+  wahr(html.includes('@page'), 'keine Seitenränder für den Druck');
+});
+
+s.test('der Kontaktbogen enthält alle Aufnahmen mit Bild und Metadaten', () => {
+  const liste = bogenProbe();
+  const html = kern.baueKontaktbogen(liste, { stand: '2025-06-30' });
+  for (const a of liste) {
+    wahr(html.includes(a.id), `${a.id} fehlt`);
+    wahr(html.includes(a.bild), `${a.id}: das Bild ist nicht eingebettet`);
+  }
+  wahr(html.includes('oneSCM Portal'), 'das Projekt fehlt');
+  wahr(html.includes('Vergleich mit Release 4.2'), 'die Notiz fehlt');
+  wahr(html.includes('#kontrast'), 'die Begriffe fehlen');
+  wahr(html.includes('M. Ackermann'), 'die erfassende Person fehlt');
+  wahr(html.includes('Vorher'), 'die Rolle fehlt');
+  wahr(html.includes('01.06.2025'), 'das Datum steht nicht in deutscher Schreibweise');
+  wahr(html.includes('300 × 200'), 'die Ausschnittmaße fehlen');
+  wahr(html.includes('x 12, y 34'), 'die Lage des Ausschnitts fehlt');
+  wahr(html.includes('schirm.png'), 'die Quelle wird nicht genannt');
+  wahr(html.includes('unvollständig'), 'die unvollständige Aufnahme ist nicht markiert');
+});
+
+s.test('Freitext aus den Metadaten kann das Dokument nicht zerlegen', () => {
+  const html = kern.baueKontaktbogen(bogenProbe(), { stand: '2025-06-30' });
+  wahr(!html.includes('<script>alert(1)</script>'), 'ungefiltertes Markup im Dokument');
+  wahr(html.includes('&lt;script&gt;'), 'der Text wurde nicht maskiert');
+  wahr(html.includes('&quot;Anführung&quot;') || html.includes('&quot;'), 'Anführungszeichen nicht maskiert');
+  gleich(kern.maskiereHtml('a<b>&"\''), 'a&lt;b&gt;&amp;&quot;&#39;');
+});
+
+s.test('der Kontaktbogen kommt ohne jeden externen Verweis aus', () => {
+  const html = kern.baueKontaktbogen(bogenProbe(), { stand: '2025-06-30' });
+  gleich((html.match(/https?:\/\//g) || []).length, 0, 'das Blatt lädt von außen');
+  wahr(!/<script/i.test(html), 'das Blatt führt Skript aus');
+  wahr(html.includes('ui-sans-serif'), 'keine Systemschrift – das Blatt bräuchte einen Schriftserver');
+});
+
+s.test('die Zusammenfassung zählt die Auswahl', () => {
+  const html = kern.baueKontaktbogen(bogenProbe(), { stand: '2025-06-30' });
+  wahr(html.includes('<b>2</b> Aufnahmen'), 'Anzahl falsch');
+  wahr(html.includes('<b>1</b> unvollständig'), 'offene Aufnahmen falsch gezählt');
+  wahr(html.includes('<b>2</b> Projekte'), 'Projekte falsch gezählt');
+  const einer = kern.baueKontaktbogen([bogenProbe()[0]], { stand: '2025-06-30' });
+  wahr(einer.includes('<b>1</b> Aufnahme<'), 'Einzahl wird nicht gebildet');
+});
+
+s.test('eine eingeschränkte Auswahl wird im Blatt benannt', () => {
+  const teil = [bogenProbe()[1]];
+  const html = kern.baueKontaktbogen(teil, { stand: '2025-06-30', auswahl: 'Unvollständig', gesamt: 7 });
+  wahr(html.includes('1 von 7 Aufnahmen'), 'der Ausschnitt wird nicht benannt');
+  wahr(html.includes('Unvollständig'));
+  const ganz = kern.baueKontaktbogen(bogenProbe(), { stand: '2025-06-30', auswahl: '', gesamt: 2 });
+  wahr(!ganz.includes('Ausschnitt aus dem Eingang'), 'ohne Einschränkung erscheint ein Hinweis');
+});
+
+s.test('ein leerer Kontaktbogen bleibt lesbar', () => {
+  const html = kern.baueKontaktbogen([], { stand: '2025-06-30' });
+  wahr(html.startsWith('<!doctype html>'));
+  wahr(html.includes('Keine Aufnahmen in dieser Auswahl'), 'kein Hinweis auf die leere Auswahl');
+  wahr(html.includes('<b>0</b> Aufnahmen'));
+});
+
+s.test('die Größengrenze der Ablage ist bekannt', () => {
+  gleich(kern.HOECHSTGROESSE_DATEI, 16 * 1024 * 1024);
+});
+
 export default s;

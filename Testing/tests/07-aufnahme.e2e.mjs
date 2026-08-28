@@ -488,6 +488,135 @@ s.test('Sichern bietet ohne Ablagefähigkeit einen Ersatzweg', () =>
     { hash: AUFNAHME }
   ));
 
+/* --------------------------------------------------------- Kontaktbogen */
+
+/**
+ * Baut eine Ablagefähigkeit nach, die jede Übergabe festhält.
+ * `fehler` lässt sie stattdessen mit dem angegebenen Code scheitern.
+ * Rückgabe ist Quelltext - eine gebundene Funktion überstünde die Übergabe an
+ * den Browser nicht.
+ */
+const ablageNachbau = (fehler) => `
+  window.__abgelegt = [];
+  window.claude = {
+    use: async (name) => {
+      if (name !== 'downloads') return null;
+      return {
+        save: async (auftrag) => {
+          window.__abgelegt.push({ filename: auftrag.filename, data: String(auftrag.data) });
+          ${fehler ? `const f = new Error('abgelehnt'); f.code = ${JSON.stringify(fehler)}; throw f;` : ''}
+          return { status: 'saved' };
+        }
+      };
+    }
+  };
+`;
+
+/** Legt zwei Aufnahmen an, eine davon vollständig. */
+async function zweiAufnahmen(seite) {
+  await mitBeispielquelle(seite);
+  await seite.fill('#feld-projekt', 'oneSCM Portal');
+  await seite.fill('#feld-titel', 'Vollständige Aufnahme');
+  await seite.selectOption('#feld-kategorie', 'Layout');
+  await seite.fill('#feld-begriffe', 'raster, dichte');
+  await seite.click('#ausloesen');
+  await seite.waitForFunction(() => document.getElementById('eingang-zahl').textContent === '1');
+  await seite.fill('#feld-titel', 'Offene Aufnahme');
+  await seite.selectOption('#feld-kategorie', '');
+  await seite.fill('#feld-begriffe', '');
+  await seite.click('#ausloesen');
+  await seite.waitForFunction(() => document.getElementById('eingang-zahl').textContent === '2');
+  await seite.click('.portal-nav button[data-ansicht="eingang"]');
+}
+
+s.test('der Kontaktbogen wird als eine HTML-Datei übergeben', () =>
+  mitSeite(
+    async (seite) => {
+      await zweiAufnahmen(seite);
+      await seite.click('#eingang-kontaktbogen');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 5000 });
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      wahr(/^screenarchiv-kontaktbogen-\d{4}-\d{2}-\d{2}\.html$/.test(datei.filename), 'Dateiname: ' + datei.filename);
+      wahr(datei.data.startsWith('<!doctype html>'), 'kein vollständiges Dokument');
+      wahr(datei.data.includes('Vollständige Aufnahme') && datei.data.includes('Offene Aufnahme'), 'nicht alle Aufnahmen im Blatt');
+      gleich((datei.data.match(/<img /g) || []).length, 2, 'nicht beide Bilder eingebettet');
+      wahr(datei.data.includes('data:image/jpeg;base64,'), 'die Bilder sind nicht eingebettet');
+      wahr(datei.data.includes('#raster'), 'die Begriffe fehlen');
+      wahr(datei.data.includes('unvollständig'), 'die offene Aufnahme ist nicht markiert');
+      wahr((await seite.locator('#eingang-meldung').innerText()).includes('gesichert'), 'keine Rückmeldung');
+    },
+    { hash: AUFNAHME, initSkript: ablageNachbau() }
+  ));
+
+s.test('der Kontaktbogen enthält nur die sichtbare Auswahl', () =>
+  mitSeite(
+    async (seite) => {
+      await zweiAufnahmen(seite);
+      await seite.click('.eingang-zustand button[data-zustand="offen"]');
+      await seite.waitForFunction(() => document.querySelectorAll('.eingang-karte').length === 1);
+      await seite.click('#eingang-kontaktbogen');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1);
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      wahr(datei.data.includes('Offene Aufnahme'), 'die gefilterte Aufnahme fehlt');
+      wahr(!datei.data.includes('Vollständige Aufnahme'), 'eine ausgefilterte Aufnahme steht im Blatt');
+      gleich((datei.data.match(/<img /g) || []).length, 1);
+      wahr(datei.data.includes('1 von 2 Aufnahmen'), 'der Ausschnitt wird im Blatt nicht benannt');
+    },
+    { hash: AUFNAHME, initSkript: ablageNachbau() }
+  ));
+
+s.test('ein abgebrochenes Sichern wird gemeldet, nicht wiederholt', () =>
+  mitSeite(
+    async (seite) => {
+      await zweiAufnahmen(seite);
+      await seite.click('#eingang-kontaktbogen');
+      await seite.waitForFunction(() => document.getElementById('eingang-meldung').textContent.includes('abgebrochen'), null, { timeout: 5000 });
+      gleich(await seite.evaluate(() => window.__abgelegt.length), 1, 'die Übergabe wurde wiederholt');
+      gleich(await seite.locator('#eingang-dialog').evaluate((n) => n.open), false, 'der Ersatzweg wird fälschlich angeboten');
+    },
+    { hash: AUFNAHME, initSkript: ablageNachbau('declined') }
+  ));
+
+s.test('ein abgelehntes Dateiformat stößt keinen Ersatzweg an', () =>
+  mitSeite(
+    async (seite) => {
+      await zweiAufnahmen(seite);
+      await seite.click('#eingang-kontaktbogen');
+      await seite.waitForFunction(
+        () => document.getElementById('eingang-meldung').textContent.toLowerCase().includes('dateiformat'),
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await seite.locator('#eingang-dialog').evaluate((n) => n.open), false, 'nach einem abgelehnten Format erscheint der Ersatzweg');
+    },
+    { hash: AUFNAHME, initSkript: ablageNachbau('extension_not_enabled') }
+  ));
+
+s.test('ohne Ablagefähigkeit führt der Kontaktbogen zum Ersatzweg', () =>
+  mitSeite(
+    async (seite) => {
+      await zweiAufnahmen(seite);
+      await seite.click('#eingang-kontaktbogen');
+      await seite.waitForSelector('#eingang-ausgabe');
+      wahr(
+        (await seite.locator('#eingang-dialog-inhalt .hinweis-archiv').innerText()).includes('Kontaktbogen'),
+        'der Hinweis nennt den Kontaktbogen nicht'
+      );
+      const ausgabe = JSON.parse(await seite.inputValue('#eingang-ausgabe'));
+      gleich(ausgabe.anzahl, 2);
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('bei leerem Eingang ist das Sichern gesperrt', () =>
+  mitSeite(
+    async (seite) => {
+      gleich(await seite.locator('#eingang-kontaktbogen').isDisabled(), true);
+      gleich(await seite.locator('#eingang-sichern').isDisabled(), true);
+    },
+    { hash: '#ans=eingang' }
+  ));
+
 /* ------------------------------------------------------------- Zusammenspiel */
 
 s.test('das Archiv bleibt von der Aufnahme unberührt', () =>

@@ -609,7 +609,8 @@ function zeichneEingang() {
     eingang.length === 0
       ? 'Der Eingang ist leer. In der Ansicht „Aufnahme“ eine Quelle wählen, den Ausschnitt ziehen und die Leertaste drücken.'
       : 'Keine Aufnahme passt zu dieser Auswahl.';
-  $('#eingang-sichern').disabled = eingang.length === 0;
+  $('#eingang-kontaktbogen').disabled = gefiltert.length === 0;
+  $('#eingang-sichern').disabled = gefiltert.length === 0;
   $('#eingang-leeren').disabled = eingang.length === 0;
 }
 
@@ -726,33 +727,105 @@ function meldeEingang(text, art = 'neutral') {
 
 /* ------------------------------------------------------------- Sichern */
 
-async function sichereAlsDatei() {
-  const name = `screenarchiv-eingang-${heute()}.json`;
-  const downloads = await holeFaehigkeit('downloads');
-  if (downloads && typeof downloads.save === 'function') {
-    try {
-      await downloads.save({ filename: name, data: eingangAlsExport(eingang, heute(), true) });
-      meldeEingang(`${eingang.length} Aufnahmen als ${name} gesichert.`, 'gut');
-      return;
-    } catch (fehler) {
-      /* Abgelehnt oder nicht möglich - unten steht der Ersatzweg. */
-    }
+/** Beschreibt die gerade sichtbare Auswahl in einem Satz. */
+function auswahlText() {
+  const teile = [];
+  if (eingangAuswahl.suche) teile.push(`Suche „${eingangAuswahl.suche}“`);
+  if (eingangAuswahl.zustand !== 'alle') {
+    teile.push((EINGANG_ZUSTAENDE.find((z) => z.id === eingangAuswahl.zustand) || {}).label || eingangAuswahl.zustand);
   }
-  zeigeErsatzausgabe();
+  return teile.join(', ');
 }
 
-/** Ohne Sicherungsfähigkeit: Metadaten zum Herauskopieren anzeigen. */
-function zeigeErsatzausgabe() {
+/** Die sichtbare Auswahl - gesichert wird, was man sieht. */
+const sichtbareAufnahmen = () =>
+  sortiereEingang(filtereEingang(eingang, eingangAuswahl), eingangAuswahl.sortierung);
+
+/**
+ * Übergibt eine Datei an die Ablagefähigkeit des Artifacts.
+ * Jeder Ausgang ist benannt; der Vertrag verlangt, dass nichts still scheitert
+ * und abgelehnte Formate keinen Ersatzweg anstoßen.
+ */
+async function uebergebeDatei(name, daten) {
+  const groesse = new Blob([daten]).size;
+  if (groesse > HOECHSTGROESSE_DATEI) return { art: 'zu_gross', groesse };
+  const downloads = await holeFaehigkeit('downloads');
+  if (!downloads || typeof downloads.save !== 'function') return { art: 'ohne', groesse };
+  try {
+    await downloads.save({ filename: name, data: daten });
+    return { art: 'gesichert', groesse };
+  } catch (fehler) {
+    return { art: 'fehler', code: (fehler && fehler.code) || 'unavailable', groesse };
+  }
+}
+
+/** Meldet das Ergebnis; gibt true zurück, wenn der Ersatzweg gezeigt werden soll. */
+function meldeAblage(ergebnis, name) {
+  if (ergebnis.art === 'gesichert') {
+    meldeEingang(`${name} gesichert (${formatiereBytes(ergebnis.groesse)}).`, 'gut');
+    return false;
+  }
+  if (ergebnis.art === 'zu_gross') {
+    meldeEingang(
+      `Die Datei ist mit ${formatiereBytes(ergebnis.groesse)} zu groß – die Grenze liegt bei 16 MB. Bitte die Auswahl einschränken.`,
+      'warnung'
+    );
+    return false;
+  }
+  const nachSchluessel = {
+    declined: 'Das Sichern wurde abgebrochen.',
+    rate_limited: 'Es ist noch eine Abfrage offen – bitte gleich noch einmal.',
+    too_large: 'Die Datei ist zu groß – bitte die Auswahl einschränken.',
+    rejected_extension: 'Dieses Dateiformat lässt sich hier nicht ablegen.',
+    extension_not_enabled: 'Dieses Dateiformat ist in dieser Ansicht nicht verfügbar.'
+  };
+  if (ergebnis.code && nachSchluessel[ergebnis.code]) {
+    meldeEingang(nachSchluessel[ergebnis.code], 'warnung');
+    return false;
+  }
+  return true; // keine Ablage möglich - Ersatzweg anbieten
+}
+
+/** Alle sichtbaren Aufnahmen als ein Kontaktbogen: eine Datei, alle Bilder. */
+async function sichereKontaktbogen() {
+  const liste = sichtbareAufnahmen();
+  if (!liste.length) return;
+  const name = `screenarchiv-kontaktbogen-${heute()}.html`;
+  const blatt = baueKontaktbogen(liste, { stand: heute(), auswahl: auswahlText(), gesamt: eingang.length });
+  meldeEingang('Kontaktbogen wird vorbereitet …', 'neutral');
+  const ergebnis = await uebergebeDatei(name, blatt);
+  if (meldeAblage(ergebnis, `${liste.length} Aufnahmen als Kontaktbogen`)) {
+    zeigeErsatzausgabe(
+      'Diese Ansicht darf keine Datei ablegen. Der Kontaktbogen lässt sich hier nicht übergeben – unten stehen die Metadaten zum Herauskopieren, die Bilder bleiben im Browser gespeichert.'
+    );
+  }
+}
+
+async function sichereAlsDatei() {
+  const liste = sichtbareAufnahmen();
+  if (!liste.length) return;
+  const name = `screenarchiv-eingang-${heute()}.json`;
+  const ergebnis = await uebergebeDatei(name, eingangAlsExport(liste, heute(), true));
+  if (meldeAblage(ergebnis, `${liste.length} Aufnahmen als ${name}`)) zeigeErsatzausgabe();
+}
+
+/** Ohne Ablagefähigkeit: Metadaten zum Herauskopieren anzeigen. */
+function zeigeErsatzausgabe(hinweis) {
   const dialog = $('#eingang-dialog');
   $('#eingang-dialog-titel').textContent = 'Eingang sichern';
   $('#eingang-dialog-inhalt').replaceChildren(
-    el('p', { klasse: 'hinweis-archiv', text: 'Diese Ansicht darf keine Datei ablegen. Die Metadaten stehen unten zum Herauskopieren – die Bilder bleiben im Browser gespeichert.' }),
+    el('p', {
+      klasse: 'hinweis-archiv',
+      text:
+        hinweis ||
+        'Diese Ansicht darf keine Datei ablegen. Die Metadaten stehen unten zum Herauskopieren – die Bilder bleiben im Browser gespeichert.'
+    }),
     el('textarea', {
       klasse: 'ausgabe',
       id: 'eingang-ausgabe',
       rows: '16',
       readonly: true,
-      value: eingangAlsExport(eingang, heute(), false)
+      value: eingangAlsExport(sichtbareAufnahmen(), heute(), false)
     })
   );
   if (!dialog.open) dialog.showModal();
@@ -825,6 +898,7 @@ function verdrahteAufnahme() {
     eingangAuswahl = { ...eingangAuswahl, sortierung: e.target.value };
     zeichneEingang();
   });
+  $('#eingang-kontaktbogen').addEventListener('click', sichereKontaktbogen);
   $('#eingang-sichern').addEventListener('click', sichereAlsDatei);
   $('#eingang-leeren').addEventListener('click', () => {
     if (!eingang.length) return;
