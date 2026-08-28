@@ -387,6 +387,97 @@ s.test('eine undurchsichtige Datenstrom-Kennung wird nicht als Name gezeigt', ()
     { hash: AUFNAHME, initSkript: bildschirmNachbau }
   ));
 
+/** Liest die Maße des Ausschnitts aus der Anzeige. */
+async function liesAusschnitt(seite) {
+  const text = await seite.locator('#ausschnitt-masse').innerText();
+  const werte = text.match(/x (\d+) · y (\d+) · (\d+) × (\d+)/);
+  wahr(werte, 'die Maße sind nicht lesbar: ' + text);
+  return { x: +werte[1], y: +werte[2], breite: +werte[3], hoehe: +werte[4] };
+}
+
+/** Zieht mit gedrückter Maustaste von einem Punkt zum anderen. */
+async function ziehe(seite, vonX, vonY, nachX, nachY) {
+  await seite.mouse.move(vonX, vonY);
+  await seite.mouse.down();
+  await seite.mouse.move(nachX, nachY, { steps: 10 });
+  await seite.mouse.up();
+}
+
+s.test('der Ausschnitt lässt sich im Kompaktmodus frei ziehen, schieben und an der Ecke fassen', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.body.classList.contains('kompakt'), null, { timeout: 8000 });
+      const leinwand = await seite.locator('#quelle-leinwand').boundingBox();
+      // Bildpunkte der Quelle je Bildpunkt am Schirm
+      const faktor = 1280 / leinwand.width;
+      const nahe = (ist, soll, spanne, was) =>
+        wahr(Math.abs(ist - soll) <= spanne, `${was}: ${Math.round(ist)} statt ${Math.round(soll)} (±${spanne})`);
+
+      // 1. Frei aufziehen - zu Beginn deckt die Auswahl die ganze Quelle,
+      //    ein Zug darin zieht deshalb einen neuen Ausschnitt auf.
+      await ziehe(seite, leinwand.x + 80, leinwand.y + 60, leinwand.x + 380, leinwand.y + 260);
+      const gezogen = await liesAusschnitt(seite);
+      nahe(gezogen.x, 80 * faktor, 12, 'linke Kante');
+      nahe(gezogen.y, 60 * faktor, 12, 'obere Kante');
+      nahe(gezogen.breite, 300 * faktor, 16, 'Breite');
+      nahe(gezogen.hoehe, 200 * faktor, 16, 'Höhe');
+
+      // 2. Verschieben: Zug in der Mitte des Rahmens
+      const rahmen = await seite.locator('#ausschnitt-rahmen').boundingBox();
+      await ziehe(
+        seite,
+        rahmen.x + rahmen.width / 2,
+        rahmen.y + rahmen.height / 2,
+        rahmen.x + rahmen.width / 2 + 90,
+        rahmen.y + rahmen.height / 2 + 50
+      );
+      const geschoben = await liesAusschnitt(seite);
+      nahe(geschoben.x, gezogen.x + 90 * faktor, 12, 'Verschiebung waagerecht');
+      nahe(geschoben.y, gezogen.y + 50 * faktor, 12, 'Verschiebung senkrecht');
+      gleich(geschoben.breite, gezogen.breite, 'die Größe hat sich beim Schieben geändert');
+      gleich(geschoben.hoehe, gezogen.hoehe, 'die Höhe hat sich beim Schieben geändert');
+
+      // 3. Ecke fassen: rechte untere Ecke nach außen ziehen
+      const ecke = await seite.locator('.griff-punkt[data-ecke="ru"]').boundingBox();
+      await ziehe(seite, ecke.x + ecke.width / 2, ecke.y + ecke.height / 2, ecke.x + ecke.width / 2 + 120, ecke.y + ecke.height / 2 + 70);
+      const gefasst = await liesAusschnitt(seite);
+      nahe(gefasst.breite, geschoben.breite + 120 * faktor, 16, 'Breite nach dem Ziehen an der Ecke');
+      nahe(gefasst.hoehe, geschoben.hoehe + 70 * faktor, 16, 'Höhe nach dem Ziehen an der Ecke');
+      gleich(gefasst.x, geschoben.x, 'die linke Kante ist mitgewandert');
+
+      // 4. Was gezogen wurde, wird auch aufgenommen
+      await seite.click('#ausloesen');
+      await seite.waitForFunction(() => document.getElementById('eingang-zahl').textContent === '1');
+      const [gespeichert] = await eingangImSpeicher(seite);
+      gleich(gespeichert.ausschnitt.breite, gefasst.breite, 'die Aufnahme hat eine andere Breite als der Ausschnitt');
+      gleich(gespeichert.ausschnitt.x, gefasst.x, 'die Aufnahme sitzt an einer anderen Stelle');
+    },
+    { hash: AUFNAHME, initSkript: bildschirmNachbau }
+  ));
+
+s.test('der Ausschnitt bleibt beim Ziehen innerhalb der Quelle', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.body.classList.contains('kompakt'), null, { timeout: 8000 });
+      const leinwand = await seite.locator('#quelle-leinwand').boundingBox();
+      // Weit über den rechten unteren Rand hinaus ziehen
+      await ziehe(
+        seite,
+        leinwand.x + leinwand.width - 60,
+        leinwand.y + leinwand.height - 40,
+        leinwand.x + leinwand.width + 400,
+        leinwand.y + leinwand.height + 300
+      );
+      const a = await liesAusschnitt(seite);
+      wahr(a.x + a.breite <= 1280, `der Ausschnitt ragt rechts hinaus: ${a.x} + ${a.breite}`);
+      wahr(a.y + a.hoehe <= 720, `der Ausschnitt ragt unten hinaus: ${a.y} + ${a.hoehe}`);
+      wahr(a.breite >= 32 && a.hoehe >= 32, 'der Ausschnitt ist unter die Mindestgröße gerutscht');
+    },
+    { hash: AUFNAHME, initSkript: bildschirmNachbau }
+  ));
+
 s.test('die Leiste zeigt die zuletzt aufgenommene Aufnahme', () =>
   mitSeite(
     async (seite) => {

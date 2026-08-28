@@ -35,9 +35,12 @@ bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 * Undurchsichtige Kennungen des Datenstroms wurden als Quellenname angezeigt
 
 ### Prüfung
-* 145 Prüfungen, alle bestanden. Der Live-Pfad wird erstmals vollständig
+* 147 Prüfungen, alle bestanden. Der Live-Pfad wird erstmals vollständig
   geprüft: ein Leinwand-Datenstrom vertritt die Bildschirmfreigabe, sodass
   Video, Ausschnitt, Serienauslösung und das Ende der Freigabe echt durchlaufen.
+* Nachgereicht: das Ziehen des Ausschnitts mit der Maus im Kompaktmodus
+  (aufziehen, verschieben, Ecke fassen, Begrenzung auf die Quelle). Das
+  Verhalten war bereits richtig, war aber nicht abgesichert.
 
 ## [1.4.0] – Bereit zum Einfügen, ehrliche Fehlermeldungen
 

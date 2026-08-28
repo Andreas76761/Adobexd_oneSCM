@@ -27,9 +27,9 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken | 13 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
 | `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme und Eingang: Kennungen, Begriffe, Prüfregeln, Ausschnitt, Filter, Speicher, Kontaktbogen | 27 |
-| `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen | 52 |
+| `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen | 54 |
 
-Summe: **145 Prüfungen**.
+Summe: **147 Prüfungen**.
 
 ## Eigene Helfer
 
@@ -79,6 +79,11 @@ Summe: **145 Prüfungen**.
   Video, laufende Vorschau, Ausschnitt, Serienauslösung und das Ende der
   Freigabe wirklich durch – ohne Berechtigung und ohne Person am Bildschirm.
   Dieser Weg war vorher gar nicht geprüft.
+* **Das Ziehen mit der Maus wird im Kompaktmodus geprüft**, mit echten
+  Zeigerbewegungen über der laufenden Quelle: neu aufziehen, verschieben, an
+  der Ecke fassen – jeweils in Bildpunkten der Quelle nachgerechnet. Ein
+  zweiter Fall zieht absichtlich über den Rand hinaus und verlangt, dass der
+  Ausschnitt in der Quelle bleibt und die Mindestgröße hält.
 * **Die Fehlerwege des Auslösers werden nachgestellt**, weil sie sich anders
   nicht auslösen lassen: `Storage.prototype.setItem` wirft einmal
   `QuotaExceededError` (voll) und einmal `SecurityError` (gesperrt),

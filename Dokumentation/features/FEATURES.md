@@ -28,7 +28,7 @@ Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Ä
 | F-15 | Gemerkte Vergleichsart | 1.0.0 | `ui.js` → `leseModus`, `merkeModus` | Oberfläche: „Vergleichsarten lassen sich umschalten“ |
 | F-16 | Portalnavigation | 1.1.0 | `ui.js` → `zeigeAnsicht` | Aufnahme: „Portalnavigation …“, „Ein Verweis öffnet …“ |
 | F-17 | Aufnahmestudio mit vier Quellen | 1.1.0, erweitert 1.3.0 und 1.4.0 | `aufnahme.js` → `quelleBildschirm`, `quelleZwischenablage`, `warteAufEinfuegen` | Aufnahme: 11 Fälle |
-| F-18 | Wahl des Bildschirmausschnitts | 1.1.0 | `core.mjs` → `begrenzeAusschnitt`, `presetAusschnitt`; `aufnahme.js` → `verdrahteBuehne` | Kernlogik: 2 Fälle · Aufnahme: 3 Fälle |
+| F-18 | Wahl des Bildschirmausschnitts | 1.1.0 | `core.mjs` → `begrenzeAusschnitt`, `presetAusschnitt`; `aufnahme.js` → `verdrahteBuehne` | Kernlogik: 2 Fälle · Aufnahme: 5 Fälle |
 | F-19 | Metadaten und Datum | 1.1.0 | `core.mjs` → `pruefeEntwurf`, `titelVorschlag`; `aufnahme.js` → `baueFormular` | Kernlogik: 5 Fälle · Aufnahme: 3 Fälle |
 | F-20 | Auslösen mit der Leertaste | 1.1.0, erweitert 1.4.0 | `aufnahme.js` → `loeseAus`, `schneideAus`, `sichereEingang` | Aufnahme: 8 Fälle |
 | F-21 | Eingang mit Nachpflege | 1.1.0 | `core.mjs` → `filtereEingang`, `istVollstaendig`; `aufnahme.js` → `zeichneEingang` | Kernlogik: 6 Fälle · Aufnahme: 7 Fälle |
@@ -380,6 +380,12 @@ Fensterhöhe), rechts bleiben 272 Bildpunkte für die zuletzt aufgenommene
 Aufnahme mit Kennung und Zähler sowie die Metadaten der nächsten. Der Fokus
 springt auf die Bühne, damit die Leertaste sofort greift. Unter 1000 Bildpunkten
 Breite stapeln sich beide Bereiche wieder.
+
+**Bedienung unverändert** Der Kompaktmodus ändert die Darstellung, nicht die
+Bedienung: der Ausschnitt lässt sich weiterhin frei mit der Maus aufziehen, in
+der Mitte verschieben, an den vier Ecken in der Größe ändern und mit den
+Pfeiltasten punktgenau rücken – über der laufenden Bildschirmfreigabe genauso
+wie über einem stehenden Bild. Geprüft mit echten Zeigerbewegungen.
 
 **Zurück** Schalter, `Esc`, Wechsel in eine andere Ansicht – oder von selbst,
 wenn die Bildschirmfreigabe endet.
