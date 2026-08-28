@@ -317,6 +317,7 @@ function zeichne() {
     $('#sortierung').value = zustand.sortierung;
   }
   if (zustand.ansicht === 'aufnahme') zeichneStudio();
+  else if (document.body.classList.contains('kompakt')) setzeKompakt(false);
   if (zustand.ansicht === 'eingang') zeichneEingang();
   zeigeAnsicht();
 }

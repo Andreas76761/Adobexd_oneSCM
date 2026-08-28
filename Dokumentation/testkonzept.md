@@ -27,9 +27,9 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken | 13 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
 | `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme und Eingang: Kennungen, Begriffe, Prüfregeln, Ausschnitt, Filter, Speicher, Kontaktbogen | 27 |
-| `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Zwischenablage, Ausschnitt, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen | 43 |
+| `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen | 52 |
 
-Summe: **136 Prüfungen**.
+Summe: **145 Prüfungen**.
 
 ## Eigene Helfer
 
@@ -74,6 +74,11 @@ Summe: **136 Prüfungen**.
   Bildschirmfoto aus der Systemtaste – und prüft, dass daraus eine Quelle wird.
   Ein zweiter Fall stellt die gesperrte Richtlinie nach und verlangt, dass die
   Meldung Ursache **und** Ausweg nennt.
+* **Die Bildschirmfreigabe wird durch einen Leinwand-Datenstrom vertreten.**
+  `canvas.captureStream()` liefert einen echten `MediaStream`; damit laufen
+  Video, laufende Vorschau, Ausschnitt, Serienauslösung und das Ende der
+  Freigabe wirklich durch – ohne Berechtigung und ohne Person am Bildschirm.
+  Dieser Weg war vorher gar nicht geprüft.
 * **Die Fehlerwege des Auslösers werden nachgestellt**, weil sie sich anders
   nicht auslösen lassen: `Storage.prototype.setItem` wirft einmal
   `QuotaExceededError` (voll) und einmal `SecurityError` (gesperrt),
@@ -95,7 +100,12 @@ geschärft, nicht aufgeweicht.
 
 ## Was nicht geprüft wird
 
-Das Aussehen selbst. Dafür gibt es `npm run schuss`: das Skript legt fünf
-Bildschirmaufnahmen der fertigen Seite ab (Liste hell und dunkel, Detailansicht
-hell und dunkel, Telefon) – zum Ansehen, nicht zum automatischen Vergleichen.
-Automatisiert wird nur, was sich eindeutig entscheiden lässt.
+Das Aussehen selbst. Dafür gibt es `npm run schuss`: das Skript legt elf
+Bildschirmaufnahmen der fertigen Seite ab (Liste, Detailansicht, Telefon,
+Aufnahmestudio, Kompaktmodus, Eingang, Nachpflege – hell und dunkel) sowie
+einen echten Kontaktbogen samt Bild davon. Zum Ansehen, nicht zum automatischen
+Vergleichen: Automatisiert wird nur, was sich eindeutig entscheiden lässt.
+
+Dass das nötig bleibt, hat v1.5.0 gezeigt – der liegen gebliebene Auslöseblitz
+war für jede Zusicherung unsichtbar und fiel erst auf einem Bild mit
+Verzögerung auf.

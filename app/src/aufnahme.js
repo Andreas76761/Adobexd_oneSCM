@@ -21,6 +21,8 @@ let aufnahmeLaeuft = false;
 let anzeigeTakt = null;
 let bearbeitet = null; // Kennung der im Eingang geöffneten Aufnahme
 let speicherGemeldet = false; // gesperrter Speicher wird nur einmal gemeldet
+let kompakt = false; // schmale Leiste rechts, Live-Ansicht gross
+let letzte = null; // zuletzt aufgenommenes Bild fuer die Rueckmeldung
 
 /* ------------------------------------------------------------- Speicher */
 
@@ -77,6 +79,23 @@ async function holeFaehigkeit(name) {
   } catch (fehler) {
     return null;
   }
+}
+
+/* --------------------------------------------------------- Kompaktmodus */
+
+/**
+ * Kompaktmodus: die App zieht sich auf eine schmale Leiste rechts zusammen,
+ * die Live-Ansicht des geteilten Bildschirms bekommt den Rest. Beim Teilen des
+ * Bildschirms schaltet er sich selbst ein - dort ist er der eigentliche Zweck.
+ */
+function setzeKompakt(an) {
+  kompakt = Boolean(an);
+  document.body.classList.toggle('kompakt', kompakt);
+  const schalter = $('#kompakt-schalter');
+  schalter.setAttribute('aria-pressed', String(kompakt));
+  schalter.textContent = kompakt ? 'Ansicht zurück' : 'Kompakt';
+  if (kompakt) $('#quelle-buehne').focus();
+  zeichneStudio();
 }
 
 /* --------------------------------------------------------------- Quelle */
@@ -172,20 +191,29 @@ async function quelleBildschirm() {
     strom.getVideoTracks()[0].addEventListener('ended', () => {
       if (quelle && quelle.art === 'bildschirm') {
         quelle = null;
+        setzeKompakt(false);
         zeichnePreview();
         zeichneStudio();
         meldeStudio('Die Bildschirmfreigabe wurde beendet.', 'warnung');
       }
     });
+    // Die Kennung des Datenstroms ist oft eine undurchsichtige Zeichenfolge -
+    // dann sagt "Geteilter Bildschirm" mehr als sie.
+    const kennung = String(strom.getVideoTracks()[0].label || '');
+    const lesbar = kennung && !(kennung.length > 24 && !/\s/.test(kennung));
     setzeQuelle({
       art: 'bildschirm',
-      name: strom.getVideoTracks()[0].label || 'Bildschirm',
+      name: lesbar ? kennung : 'Geteilter Bildschirm',
       breite: video.videoWidth,
       hoehe: video.videoHeight,
       element: video,
       strom
     });
-    meldeStudio('Bildschirm freigegeben. Ausschnitt ziehen und mit der Leertaste aufnehmen.', 'gut');
+    setzeKompakt(true);
+    meldeStudio(
+      'Bildschirm freigegeben. Ausschnitt ziehen und mit der Leertaste aufnehmen – die Ansicht ist auf die Leiste rechts zusammengezogen, damit der Bildschirm sichtbar bleibt.',
+      'gut'
+    );
   } catch (fehler) {
     const abgebrochen = fehler && fehler.name === 'NotAllowedError' && /denied by (the )?user|abort/i.test(fehler.message || '');
     meldeStudio(
@@ -443,6 +471,7 @@ function loeseAus() {
       speicherGemeldet = true;
       meldeEingang(ergebnis.text, 'warnung');
     }
+    letzte = { id: kennung, bild };
     entwurf.titel = '';
     fuelleFormular();
     blitze();
@@ -475,6 +504,9 @@ function blitze() {
   buehne.classList.remove('blitzt');
   void buehne.offsetWidth;
   buehne.classList.add('blitzt');
+  // Zweite Sicherung: die Marke wieder abnehmen, damit über der Live-Ansicht
+  // nichts liegen bleibt, falls die Animation nicht sauber ausläuft.
+  setTimeout(() => buehne.classList.remove('blitzt'), 400);
 }
 
 function meldeStudio(text, art = 'neutral') {
@@ -657,6 +689,14 @@ function zeichneStudio() {
     eingang.length === 0
       ? 'Noch keine Aufnahme im Eingang.'
       : `${eingang.length} ${eingang.length === 1 ? 'Aufnahme' : 'Aufnahmen'} im Eingang, davon ${eingangKennzahlen(eingang).offen} unvollständig.`;
+
+  const block = $('#letzte-aufnahme');
+  block.hidden = !letzte;
+  if (letzte) {
+    $('#letzte-vorschau').src = letzte.bild;
+    $('#letzte-kennung').textContent = letzte.id;
+    $('#letzte-zahl').textContent = `${eingang.length} im Eingang`;
+  }
 }
 
 const quelleArtName = (art) =>
@@ -1002,6 +1042,15 @@ function verdrahteAufnahme() {
   }
 
   $('#ausloesen').addEventListener('click', loeseAus);
+  $('#kompakt-schalter').addEventListener('click', () => setzeKompakt(!kompakt));
+
+  // Escape verlässt den Kompaktmodus - solange kein Dialog offen ist.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !kompakt) return;
+    if (document.querySelector('dialog[open]')) return;
+    e.preventDefault();
+    setzeKompakt(false);
+  });
 
   // Leertaste löst aus - nie, während in einem Feld getippt wird.
   document.addEventListener('keydown', (e) => {

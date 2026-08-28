@@ -60,7 +60,12 @@ s.test('lädt von außen nur erlaubte Schriftquellen', () => {
   for (const v of verweise) {
     wahr(erlaubt.some((h) => v.startsWith(h)), `nicht erlaubte externe Quelle: ${v}`);
   }
-  wahr(!/<img\s/i.test(markup), 'externe Bilder werden im Artifact blockiert – Aufnahmen müssen inline sein');
+  // Ein <img> im Markup ist erlaubt, solange es nichts von außen lädt: die
+  // Vorschau der letzten Aufnahme bekommt ihre Quelle erst zur Laufzeit.
+  for (const bild of markup.match(/<img\s[^>]*>/gi) || []) {
+    const quelle = (bild.match(/\ssrc=["']([^"']*)["']/i) || [])[1];
+    wahr(!quelle || quelle.startsWith('data:'), `Bild lädt von außen: ${bild}`);
+  }
   // Bilder entstehen zur Laufzeit; keines davon darf von außen kommen.
   wahr(!/src=["']https?:/i.test(seite), 'eine Quelle verweist nach außen');
 });

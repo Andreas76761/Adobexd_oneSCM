@@ -261,6 +261,190 @@ s.test('gesperrte Freigabe zeigt sichtbar, wohin eingefügt wird', () =>
     }
   ));
 
+/* --------------------------------------------------- Kompakter Aufnahmemodus */
+
+/**
+ * Stellt eine Bildschirmfreigabe nach: ein Leinwand-Datenstrom liefert echte
+ * Bilder, damit der Live-Pfad vom Video bis zum Ausschnitt geprüft wird.
+ */
+const bildschirmNachbau = `
+  const leinwand = document.createElement('canvas');
+  leinwand.width = 1280; leinwand.height = 720;
+  const stift = leinwand.getContext('2d');
+  let takt = 0;
+  const male = () => {
+    stift.fillStyle = takt++ % 2 ? '#2c6fa8' : '#b4432b';
+    stift.fillRect(0, 0, 1280, 720);
+    stift.fillStyle = '#ffffff';
+    stift.fillRect(40, 40, 400, 120);
+  };
+  male();
+  setInterval(male, 100);
+  window.__strom = leinwand.captureStream(10);
+  Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    value: { getDisplayMedia: async () => window.__strom }
+  });
+`;
+
+s.test('die Bildschirmfreigabe liefert eine laufende Quelle', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.getElementById('quelle-masse').textContent === '1280 × 720', null, { timeout: 8000 });
+      wahr((await seite.locator('#quelle-name').innerText()).startsWith('Bildschirm'), 'die Quelle wird nicht als Bildschirm geführt');
+      gleich(await seite.locator('#ausschnitt-masse').innerText(), 'x 0 · y 0 · 1280 × 720');
+      gleich(await seite.locator('#ausloesen').isDisabled(), false);
+    },
+    { hash: AUFNAHME, initSkript: bildschirmNachbau }
+  ));
+
+s.test('die Freigabe zieht die Ansicht auf die Leiste rechts zusammen', () =>
+  mitSeite(
+    async (seite) => {
+      gleich(await seite.evaluate(() => document.body.classList.contains('kompakt')), false, 'die Ansicht startet zusammengezogen');
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.body.classList.contains('kompakt'), null, { timeout: 8000 });
+
+      gleich(await seite.locator('.portal-nav').isVisible(), false, 'die Navigation nimmt weiter Platz');
+      gleich(await seite.locator('#kennzahlen').isVisible(), false);
+      gleich(await seite.locator('.unterzeile').isVisible(), false);
+      const buehne = await seite.locator('#quelle-buehne').boundingBox();
+      const spalte = await seite.locator('.metadaten-spalte').boundingBox();
+      wahr(spalte.width <= 290, `die Leiste ist mit ${Math.round(spalte.width)} px nicht schmal`);
+      wahr(buehne.width > spalte.width * 3, 'die Live-Ansicht bekommt nicht den Platz');
+      wahr(buehne.height > 400, `die Live-Ansicht ist mit ${Math.round(buehne.height)} px zu klein`);
+      gleich(await seite.locator('#kompakt-schalter').innerText(), 'Ansicht zurück');
+      gleich(await seite.evaluate(() => document.activeElement.id), 'quelle-buehne', 'der Fokus liegt nicht auf der Fläche');
+    },
+    { hash: AUFNAHME, initSkript: bildschirmNachbau }
+  ));
+
+s.test('aus der laufenden Freigabe lassen sich Bilder in Serie aufnehmen', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.body.classList.contains('kompakt'), null, { timeout: 8000 });
+      await seite.fill('#feld-projekt', 'oneSCM Portal');
+      await seite.fill('#feld-titel', 'Erster Ausschnitt');
+      await seite.click('.preset button[data-preset="tablet"]');
+      const ausschnitt = await seite.locator('#ausschnitt-masse').innerText();
+
+      await seite.locator('#quelle-buehne').focus();
+      await seite.keyboard.press('Space');
+      await seite.waitForFunction(() => document.getElementById('eingang-zahl').textContent === '1');
+      await seite.keyboard.press('Space');
+      await seite.waitForFunction(() => document.getElementById('eingang-zahl').textContent === '2');
+
+      gleich(await seite.locator('#ausschnitt-masse').innerText(), ausschnitt, 'der Ausschnitt bleibt nicht stehen');
+      const liste = await eingangImSpeicher(seite);
+      gleich(liste.length, 2);
+      gleich(liste[0].quelle.art, 'bildschirm', 'die Herkunft wird nicht festgehalten');
+      // Das Tablet-Format (1024 × 768) passt nicht in die 720 Bildpunkte hohe
+      // Quelle und wird mittig auf 960 × 720 heruntergerechnet.
+      gleich(liste[0].ausschnitt.breite, 960);
+      gleich(liste[0].ausschnitt.hoehe, 720);
+      gleich(liste[1].projekt, 'oneSCM Portal');
+      wahr(liste[0].bild.startsWith('data:image/jpeg;base64,'), 'kein Bild aus dem Datenstrom');
+      wahr(liste[0].bild.length > 2000, 'das Bild ist verdächtig klein');
+    },
+    { hash: AUFNAHME, initSkript: bildschirmNachbau }
+  ));
+
+s.test('der Auslöseblitz bleibt nicht über der Live-Ansicht liegen', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.body.classList.contains('kompakt'), null, { timeout: 8000 });
+      await seite.click('#ausloesen');
+      await seite.waitForFunction(() => document.getElementById('eingang-zahl').textContent === '1');
+      await seite.waitForFunction(() => !document.getElementById('quelle-buehne').classList.contains('blitzt'), null, {
+        timeout: 3000
+      });
+      // Ohne die Klasse gibt es kein Pseudo-Element; geprüft wird der Ruhewert,
+      // den die Fläche nach dem Auslaufen der Animation annimmt.
+      const ruhe = await seite.evaluate(() => {
+        const buehne = document.getElementById('quelle-buehne');
+        buehne.classList.add('blitzt');
+        buehne.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+        const deckung = getComputedStyle(buehne, '::after').opacity;
+        buehne.classList.remove('blitzt');
+        return deckung;
+      });
+      wahr(Number(ruhe) < 0.05, `die Blitzfläche kommt bei Deckung ${ruhe} zur Ruhe und verdeckt die Live-Ansicht`);
+      gleich(await seite.locator('#quelle-leinwand').isVisible(), true, 'die Live-Ansicht ist verdeckt');
+    },
+    { hash: AUFNAHME, initSkript: bildschirmNachbau }
+  ));
+
+s.test('eine undurchsichtige Datenstrom-Kennung wird nicht als Name gezeigt', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.body.classList.contains('kompakt'), null, { timeout: 8000 });
+      gleich(await seite.locator('#quelle-name').innerText(), 'Bildschirm: Geteilter Bildschirm');
+    },
+    { hash: AUFNAHME, initSkript: bildschirmNachbau }
+  ));
+
+s.test('die Leiste zeigt die zuletzt aufgenommene Aufnahme', () =>
+  mitSeite(
+    async (seite) => {
+      gleich(await seite.locator('#letzte-aufnahme').isVisible(), false, 'der Block steht ungefragt da');
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.body.classList.contains('kompakt'), null, { timeout: 8000 });
+      await seite.click('#ausloesen');
+      await seite.waitForSelector('#letzte-aufnahme:not([hidden])');
+      wahr((await seite.locator('#letzte-kennung').innerText()).startsWith('AUF-'), 'keine Kennung');
+      wahr((await seite.locator('#letzte-zahl').innerText()).includes('1'), 'kein Zähler');
+      wahr((await seite.locator('#letzte-vorschau').getAttribute('src')).startsWith('data:image/jpeg'), 'keine Vorschau');
+    },
+    { hash: AUFNAHME, initSkript: bildschirmNachbau }
+  ));
+
+s.test('die zusammengezogene Ansicht lässt sich wieder aufziehen', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.body.classList.contains('kompakt'), null, { timeout: 8000 });
+      await seite.keyboard.press('Escape');
+      await seite.waitForFunction(() => !document.body.classList.contains('kompakt'));
+      gleich(await seite.locator('.portal-nav').isVisible(), true, 'die Navigation bleibt verborgen');
+      gleich(await seite.locator('#kompakt-schalter').innerText(), 'Kompakt');
+
+      await seite.click('#kompakt-schalter');
+      gleich(await seite.evaluate(() => document.body.classList.contains('kompakt')), true, 'der Schalter zieht nicht zusammen');
+      await seite.click('#kompakt-schalter');
+      gleich(await seite.evaluate(() => document.body.classList.contains('kompakt')), false, 'der Schalter zieht nicht auf');
+    },
+    { hash: AUFNAHME, initSkript: bildschirmNachbau }
+  ));
+
+s.test('das Ende der Freigabe zieht die Ansicht wieder auf', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.body.classList.contains('kompakt'), null, { timeout: 8000 });
+      await seite.evaluate(() => window.__strom.getVideoTracks()[0].dispatchEvent(new Event('ended')));
+      await seite.waitForFunction(() => !document.body.classList.contains('kompakt'));
+      wahr((await seite.locator('#aufnahme-meldung').innerText()).includes('beendet'), 'das Ende wird nicht gemeldet');
+      gleich(await seite.locator('#ausloesen').isDisabled(), true, 'ohne Quelle bleibt der Auslöser bedienbar');
+    },
+    { hash: AUFNAHME, initSkript: bildschirmNachbau }
+  ));
+
+s.test('ein Wechsel in eine andere Ansicht zieht die Leiste wieder auf', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-bildschirm');
+      await seite.waitForFunction(() => document.body.classList.contains('kompakt'), null, { timeout: 8000 });
+      await seite.evaluate(() => (location.hash = '#ans=eingang'));
+      await seite.waitForFunction(() => !document.body.classList.contains('kompakt'));
+      gleich(await seite.locator('#eingang-ansicht').isVisible(), true);
+    },
+    { hash: AUFNAHME, initSkript: bildschirmNachbau }
+  ));
+
 /* ------------------------------------------------- Fehlerwege des Auslösers */
 
 s.test('voller Browserspeicher nimmt die Aufnahme zurück und sagt es', () =>

@@ -1,6 +1,6 @@
 # Feature-Katalog
 
-Stand: Anwendung **v1.4.0**, Datenbestand **1.0.0**.
+Stand: Anwendung **v1.5.0**, Datenbestand **1.0.0**.
 
 Jede Funktion hat eine feste Kennung. Sie bleibt bestehen, auch wenn sich die
 Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Änderung.
@@ -33,6 +33,7 @@ Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Ä
 | F-20 | Auslösen mit der Leertaste | 1.1.0, erweitert 1.4.0 | `aufnahme.js` → `loeseAus`, `schneideAus`, `sichereEingang` | Aufnahme: 8 Fälle |
 | F-21 | Eingang mit Nachpflege | 1.1.0 | `core.mjs` → `filtereEingang`, `istVollstaendig`; `aufnahme.js` → `zeichneEingang` | Kernlogik: 6 Fälle · Aufnahme: 7 Fälle |
 | F-22 | Eingang als JSON sichern | 1.1.0 | `core.mjs` → `eingangAlsExport`; `aufnahme.js` → `sichereAlsDatei` | Kernlogik: 1 Fall · Aufnahme: „Sichern bietet … Ersatzweg“ |
+| F-24 | Kompakter Aufnahmemodus | 1.5.0 | `aufnahme.js` → `setzeKompakt`; `styles.css` → `body.kompakt` | Aufnahme: 9 Fälle |
 | F-23 | Kontaktbogen als eine Datei | 1.2.0 | `core.mjs` → `baueKontaktbogen`, `maskiereHtml`; `aufnahme.js` → `sichereKontaktbogen`, `uebergebeDatei` | Kernlogik: 8 Fälle · Aufnahme: 6 Fälle |
 
 ---
@@ -360,3 +361,30 @@ Format nicht erlaubt. Ein abgelehntes Format stößt bewusst **keinen** stillen
 Ersatzweg an. Fehlt die Fähigkeit ganz, erscheint das Textfeld mit den
 Metadaten zum Herauskopieren – mit dem Hinweis, dass die Bilder dabei im
 Browser bleiben.
+
+
+---
+
+## F-24 · Kompakter Aufnahmemodus
+
+**Zweck** Serienaufnahmen vom geteilten Bildschirm. Ausschnitt einmal
+festlegen, Metadaten einmal eintragen, dann nur noch auslösen – ohne dass die
+Bedienung den Blick auf das verdeckt, was aufgenommen wird.
+
+**Wann** Von selbst, sobald der Bildschirm freigegeben ist. Von Hand über den
+Schalter **Kompakt** in der Werkzeugleiste – auch bei anderen Quellen.
+
+**Was sich ändert** Untertitel, Portalnavigation, Kopfsuche und Kennzahlen
+treten zurück; die Live-Ansicht bekommt den übrigen Platz (mindestens 72 % der
+Fensterhöhe), rechts bleiben 272 Bildpunkte für die zuletzt aufgenommene
+Aufnahme mit Kennung und Zähler sowie die Metadaten der nächsten. Der Fokus
+springt auf die Bühne, damit die Leertaste sofort greift. Unter 1000 Bildpunkten
+Breite stapeln sich beide Bereiche wieder.
+
+**Zurück** Schalter, `Esc`, Wechsel in eine andere Ansicht – oder von selbst,
+wenn die Bildschirmfreigabe endet.
+
+**Grenze** Der Modus verkleinert die Seite, nicht das Browserfenster: eine
+Webseite darf weder das Fenster bewegen noch über dem Betriebssystem schweben.
+Damit der echte Bildschirm daneben sichtbar bleibt, gehört das Browserfenster
+auf eine Bildschirmhälfte oder einen zweiten Bildschirm.

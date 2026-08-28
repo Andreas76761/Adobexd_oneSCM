@@ -88,6 +88,53 @@ for (const { name, optionen, vorher } of ansichten) {
   console.log(`${name}.png`);
 }
 
+/* Kompakter Aufnahmemodus. Die Bildschirmfreigabe wird durch einen
+   Leinwand-Datenstrom nachgestellt - anders ist sie nicht zu zeigen. */
+{
+  const geteilterBildschirm = `
+    const leinwand = document.createElement('canvas');
+    leinwand.width = 1600; leinwand.height = 900;
+    const stift = leinwand.getContext('2d');
+    const male = () => {
+      stift.fillStyle = '#eef1f5'; stift.fillRect(0, 0, 1600, 900);
+      stift.fillStyle = '#22364f'; stift.fillRect(0, 0, 1600, 64);
+      stift.fillStyle = '#ffffff'; stift.font = '600 22px sans-serif';
+      stift.fillText('Geteilter Bildschirm – Positionsliste', 28, 40);
+      stift.fillStyle = '#ffffff'; stift.fillRect(40, 100, 1520, 760);
+      stift.strokeStyle = '#d6dbe4';
+      for (let i = 0; i < 18; i++) { stift.beginPath(); stift.moveTo(60, 150 + i * 40); stift.lineTo(1540, 150 + i * 40); stift.stroke(); }
+      for (let i = 0; i < 8; i++) { stift.beginPath(); stift.moveTo(60 + i * 190, 130); stift.lineTo(60 + i * 190, 840); stift.stroke(); }
+      stift.fillStyle = '#4a5769'; stift.font = '13px monospace';
+      for (let z = 0; z < 17; z++) for (let sp = 0; sp < 7; sp++)
+        stift.fillText(String(1200 + z * 7 + sp), 74 + sp * 190, 175 + z * 40);
+    };
+    male(); setInterval(male, 200);
+    window.__strom = leinwand.captureStream(10);
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true, value: { getDisplayMedia: async () => window.__strom }
+    });`;
+
+  for (const [name, thema] of [['kompakt', 'light'], ['kompakt-dunkel', 'dark']]) {
+    const kontext = await browser.newContext({ viewport: { width: 1500, height: 940 }, colorScheme: thema });
+    await kontext.addInitScript(geteilterBildschirm);
+    const seite = await kontext.newPage();
+    await seite.goto(adresse + '#ans=aufnahme', { waitUntil: 'load' });
+    await seite.waitForSelector('html[data-bereit="ja"]');
+    await seite.click('#quelle-bildschirm');
+    await seite.waitForFunction(() => document.body.classList.contains('kompakt'));
+    await seite.fill('#feld-projekt', 'oneSCM Portal');
+    await seite.fill('#feld-titel', 'Positionsliste ohne Spaltenbreite');
+    await seite.selectOption('#feld-kategorie', 'Layout');
+    await seite.fill('#feld-begriffe', 'tabelle, spalten');
+    await seite.click('.preset button[data-preset="desktop"]');
+    await seite.click('#ausloesen');
+    await seite.waitForTimeout(800);
+    await seite.screenshot({ path: join(ziel, name + '.png') });
+    console.log(name + '.png');
+    await kontext.close();
+  }
+}
+
 /* Der Kontaktbogen zum Herunterladen: erzeugen, ablegen, ansehen. */
 {
   const kontext = await browser.newContext({ viewport: { width: 1440, height: 960 } });

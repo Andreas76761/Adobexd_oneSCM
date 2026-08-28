@@ -79,6 +79,7 @@
           <span class="quelle-angabe">
             <span id="quelle-name">Keine Quelle gewählt</span>
             <span class="quelle-masse" id="quelle-masse"></span>
+            <button type="button" class="knopf knopf--klein" id="kompakt-schalter" aria-pressed="false">Kompakt</button>
           </span>
         </div>
         <input type="file" id="datei-eingabe" accept="image/*" hidden>
@@ -129,7 +130,16 @@
         <p class="studio-meldung" id="aufnahme-meldung" role="status" aria-live="polite"></p>
       </div>
 
-      <form class="metadaten" id="metadaten" autocomplete="off" onsubmit="return false"></form>
+      <div class="metadaten-spalte">
+        <div class="letzte-aufnahme" id="letzte-aufnahme" hidden>
+          <img id="letzte-vorschau" alt="Zuletzt aufgenommen">
+          <div>
+            <span class="kennung" id="letzte-kennung"></span>
+            <span class="letzte-zahl" id="letzte-zahl"></span>
+          </div>
+        </div>
+        <form class="metadaten" id="metadaten" autocomplete="off" onsubmit="return false"></form>
+      </div>
     </div>
   </section>
 

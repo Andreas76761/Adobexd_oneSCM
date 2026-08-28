@@ -20,6 +20,25 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.5.0] – Kompakter Aufnahmemodus
+
+### Neu
+* Kompakter Aufnahmemodus: bei freigegebenem Bildschirm zieht sich die App auf
+  eine schmale Leiste rechts zusammen, die Live-Ansicht bekommt den Rest.
+  Ausschnitt und Metadaten bleiben stehen, die Leertaste löst in Serie aus.
+  Ein- und ausschaltbar über den Schalter, `Esc` oder das Ende der Freigabe (F-24)
+* Die Leiste zeigt die zuletzt aufgenommene Aufnahme mit Kennung und Zähler
+
+### Behoben
+* Der Auslöseblitz blieb nach der Animation als deckend weiße Fläche über der
+  Bühne liegen und verdeckte die Live-Ansicht (Ruhewert der Deckung fehlte)
+* Undurchsichtige Kennungen des Datenstroms wurden als Quellenname angezeigt
+
+### Prüfung
+* 145 Prüfungen, alle bestanden. Der Live-Pfad wird erstmals vollständig
+  geprüft: ein Leinwand-Datenstrom vertritt die Bildschirmfreigabe, sodass
+  Video, Ausschnitt, Serienauslösung und das Ende der Freigabe echt durchlaufen.
+
 ## [1.4.0] – Bereit zum Einfügen, ehrliche Fehlermeldungen
 
 ### Neu
