@@ -42,6 +42,33 @@
 <div class="huelle">
 
   <section id="archiv-ansicht">
+    <div class="band" id="eigene-aufnahmen" hidden>
+      <div class="band-kopf">
+        <h2 class="abschnitt-titel">Eigene Aufnahmen</h2>
+        <span class="band-stand" id="eigene-stand"></span>
+        <button type="button" class="knopf knopf--klein" id="zum-eingang">Im Eingang bearbeiten</button>
+      </div>
+      <div class="streifen" id="eigene-streifen"></div>
+      <p class="band-hinweis">
+        Aufgenommene Bilder stehen im Eingang, nicht im Belegbestand – ein Beleg
+        braucht zwei Aufnahmen und eine Begründung. Im Eingang werden Kategorie und
+        Begriffe nachgetragen.
+      </p>
+    </div>
+
+    <div class="band" id="ordner-band" hidden>
+      <div class="band-kopf">
+        <h2 class="abschnitt-titel">Im Ordner <span class="kennung" id="ordner-name"></span></h2>
+        <span class="band-stand" id="ordner-stand"></span>
+        <button type="button" class="knopf knopf--klein" id="ordner-auffrischen">Neu lesen</button>
+      </div>
+      <div class="streifen" id="ordner-streifen"></div>
+      <p class="band-hinweis">
+        Gelesen aus dem Ordner, den die Ansicht Ausschneiden verwendet – das ist
+        der tatsächliche Inhalt, keine Aufstellung dieser Seite.
+      </p>
+    </div>
+
     <main class="haupt">
       <details class="filterschub" id="filterschub" open>
         <summary id="filterschub-titel">Filter und Ansicht</summary>

@@ -11,7 +11,8 @@
    ========================================================================= */
 
 let ablage = leseAblageAusSpeicher();
-let ordnerZugriff = null; // FileSystemDirectoryHandle, gilt nur für diese Sitzung
+let ordnerZugriff = null; // FileSystemDirectoryHandle der laufenden Sitzung
+let ordnerWartet = null; // gemerkter Ordner, dem die Erlaubnis fehlt
 let schnipselQuelle = null;
 let schnipselTakt = null;
 let schnipselBereich = null;
@@ -38,6 +39,92 @@ function meldeSchnipsel(text, art = 'neutral') {
   const feld = $('#schnipsel-meldung');
   feld.textContent = text;
   feld.className = 'studio-meldung studio-meldung--' + art;
+}
+
+/* ------------------------------------------------- Ordner über Sitzungen */
+
+const ORDNER_DB = 'screenarchiv';
+const ORDNER_LADEN = 'zugriffe';
+
+/** Der Zugriff auf einen Ordner ist kein Text - er gehört in die Datenbank. */
+function oeffneDatenbank() {
+  return new Promise((fertig, scheitern) => {
+    if (!window.indexedDB) return scheitern(new Error('keine Datenbank'));
+    const anfrage = indexedDB.open(ORDNER_DB, 1);
+    anfrage.onupgradeneeded = () => anfrage.result.createObjectStore(ORDNER_LADEN);
+    anfrage.onsuccess = () => fertig(anfrage.result);
+    anfrage.onerror = () => scheitern(anfrage.error);
+  });
+}
+
+async function merkeOrdner(zugriff) {
+  try {
+    const db = await oeffneDatenbank();
+    await new Promise((fertig, scheitern) => {
+      const vorgang = db.transaction(ORDNER_LADEN, 'readwrite');
+      vorgang.objectStore(ORDNER_LADEN).put(zugriff, 'ordner');
+      vorgang.oncomplete = fertig;
+      vorgang.onerror = () => scheitern(vorgang.error);
+    });
+  } catch (fehler) {
+    /* Ohne Datenbank gilt der Ordner nur für diese Sitzung. */
+  }
+}
+
+async function holeGemerktenOrdner() {
+  try {
+    const db = await oeffneDatenbank();
+    return await new Promise((fertig, scheitern) => {
+      const anfrage = db.transaction(ORDNER_LADEN, 'readonly').objectStore(ORDNER_LADEN).get('ordner');
+      anfrage.onsuccess = () => fertig(anfrage.result || null);
+      anfrage.onerror = () => scheitern(anfrage.error);
+    });
+  } catch (fehler) {
+    return null;
+  }
+}
+
+/**
+ * Holt den gemerkten Ordner zurück. Ohne bereits erteilte Erlaubnis wird
+ * nicht gefragt - dafür braucht es einen Klick der Person.
+ */
+async function stelleOrdnerWiederHer() {
+  const zugriff = await holeGemerktenOrdner();
+  if (!zugriff || !zugriff.queryPermission) return;
+  try {
+    if ((await zugriff.queryPermission({ mode: 'readwrite' })) !== 'granted') {
+      ordnerWartet = zugriff;
+      zeichneSchnipsel();
+      return;
+    }
+    ordnerZugriff = zugriff;
+    ablage = { ...ablage, ordner: true };
+    zeichneSchnipsel();
+    zeigeOrdnerImArchiv();
+  } catch (fehler) {
+    /* Ordner nicht mehr erreichbar - er wird beim nächsten Mal neu gewählt. */
+  }
+}
+
+/** Liest die Bilder aus dem gewählten Ordner, neueste zuerst. */
+async function liesOrdnerBilder(grenze = 24) {
+  if (!ordnerZugriff || typeof ordnerZugriff.values !== 'function') return [];
+  const gefunden = [];
+  try {
+    for await (const eintrag of ordnerZugriff.values()) {
+      if (eintrag.kind !== 'file' || !/\.(png|jpe?g|webp|gif)$/i.test(eintrag.name)) continue;
+      const datei = await eintrag.getFile();
+      gefunden.push({ name: datei.name, groesse: datei.size, geaendert: datei.lastModified, datei });
+    }
+  } catch (fehler) {
+    return [];
+  }
+  gefunden.sort((a, b) => b.geaendert - a.geaendert);
+  const ausschnitt = gefunden.slice(0, grenze);
+  for (const eintrag of ausschnitt) {
+    eintrag.bild = await liesAlsDatenadresse(eintrag.datei);
+  }
+  return Object.assign(ausschnitt, { gesamt: gefunden.length });
 }
 
 /* ----------------------------------------------------------- Ablageziele */
@@ -67,9 +154,12 @@ async function waehleOrdner() {
       }
     }
     ablage = { ...ablage, ordner: true };
+    ordnerWartet = null;
     sichereAblage();
+    await merkeOrdner(ordnerZugriff);
     meldeSchnipsel(`Ordner „${ordnerZugriff.name}“ gewählt – die Aufnahmen landen dort.`, 'gut');
     zeichneSchnipsel();
+    zeigeOrdnerImArchiv();
     return true;
   } catch (fehler) {
     ordnerZugriff = null;
@@ -361,6 +451,7 @@ async function nimmSchnipsel() {
         await schreiber.write(blob);
         await schreiber.close();
         wohin.push(`${ordnerZugriff.name}/${name}`);
+        zeigeOrdnerImArchiv();
       } catch (f) {
         fehler.push('In den Ordner ließ sich nicht schreiben: ' + (f && f.message ? f.message : 'unbekannter Grund'));
       }
@@ -421,3 +512,4 @@ function verdrahteSchnipsel() {
 
 verdrahteSchnipsel();
 starte();
+stelleOrdnerWiederHer();

@@ -1165,6 +1165,8 @@ function verdrahteAufnahme() {
     meldeEingang('Der Eingang wurde geleert.', 'neutral');
   });
   $('#eingang-dialog-schliessen').addEventListener('click', () => $('#eingang-dialog').close());
+  $('#zum-eingang').addEventListener('click', () => setze({ ansicht: 'eingang' }));
+  $('#ordner-auffrischen').addEventListener('click', zeigeOrdnerImArchiv);
 
   /* Eingefügte Bildschirmfotos: der Weg, der auch in einer eingebetteten
      Ansicht funktioniert. Text in Eingabefeldern bleibt unberührt, weil nur

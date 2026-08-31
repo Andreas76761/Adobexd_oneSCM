@@ -29,9 +29,9 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage und Kontaktbogen | 33 |
 | `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Bilderstapel, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen | 59 |
 
-| `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beenden | 15 |
+| `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beenden, Sichtbarkeit im Archiv | 19 |
 
-Summe: **174 Prüfungen**.
+Summe: **178 Prüfungen**.
 
 ## Eigene Helfer
 
@@ -79,6 +79,10 @@ Summe: **174 Prüfungen**.
   Bildschirmfoto aus der Systemtaste – und prüft, dass daraus eine Quelle wird.
   Ein zweiter Fall stellt die gesperrte Richtlinie nach und verlangt, dass die
   Meldung Ursache **und** Ausweg nennt.
+* **Der Ordner-Nachbau listet auch auf.** Er hält nicht nur jeden
+  Schreibvorgang fest, sondern gibt die geschriebenen Dateien über einen
+  Iterator zurück – so ist geprüft, dass das Archivband wirklich aus dem
+  Dateisystem liest und die neuesten zuerst zeigt.
 * **Ordnerwahl und Schreibzugriff werden nachgebildet.** Der Test schiebt ein
   `showDirectoryPicker` unter, das jeden Schreibvorgang festhält – so ist der
   ganze Weg bis in die Datei geprüft, samt Dateiname aus dem Muster und PNG als
@@ -113,6 +117,12 @@ Die Prüfungen betrachten seither nur noch das Markup außerhalb des Skripts –
 geschärft, nicht aufgeweicht.
 
 ## Was nicht geprüft wird
+
+Ob ein gemerkter Ordner nach dem Neuladen zurückkommt. Der Nachbau eines
+Ordnerzugriffs enthält Funktionen und lässt sich deshalb nicht in die
+Browserdatenbank kopieren – echte Zugriffe sind dafür eigens vorgesehen.
+Geprüft ist, dass das Merken stattfindet; das Zurückholen bleibt der
+Sichtprüfung im Browser vorbehalten.
 
 Das Aussehen selbst. Dafür gibt es `npm run schuss`: das Skript legt dreizehn
 Bildschirmaufnahmen der fertigen Seite ab (Liste, Detailansicht, Telefon,

@@ -1,6 +1,6 @@
 # Feature-Katalog
 
-Stand: Anwendung **v1.7.0**, Datenbestand **1.0.0**.
+Stand: Anwendung **v1.8.0**, Datenbestand **1.0.0**.
 
 Jede Funktion hat eine feste Kennung. Sie bleibt bestehen, auch wenn sich die
 Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Änderung.
@@ -33,6 +33,7 @@ Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Ä
 | F-20 | Auslösen mit der Leertaste | 1.1.0, erweitert 1.4.0 | `aufnahme.js` → `loeseAus`, `schneideAus`, `sichereEingang` | Aufnahme: 8 Fälle |
 | F-21 | Eingang mit Nachpflege | 1.1.0 | `core.mjs` → `filtereEingang`, `istVollstaendig`; `aufnahme.js` → `zeichneEingang` | Kernlogik: 6 Fälle · Aufnahme: 7 Fälle |
 | F-22 | Eingang als JSON sichern | 1.1.0 | `core.mjs` → `eingangAlsExport`; `aufnahme.js` → `sichereAlsDatei` | Kernlogik: 1 Fall · Aufnahme: „Sichern bietet … Ersatzweg“ |
+| F-27 | Aufnahmen und Ordner im Archiv sichtbar | 1.8.0 | `ui.js` → `zeichneEigeneAufnahmen`, `zeigeOrdnerImArchiv`; `schnipsel.js` → `liesOrdnerBilder` | Ausschneiden: 4 Fälle |
 | F-26 | Ausschneiden mit wählbarer Ablage | 1.7.0 | `core.mjs` → `dateinameAus`, `pruefeAblage`; `schnipsel.js` | Kernlogik: 6 Fälle · Ausschneiden: 15 Fälle |
 | F-25 | Bilderstapel | 1.6.0 | `aufnahme.js` → `quelleDateien`, `zeigeStapelbild` | Aufnahme: 5 Fälle |
 | F-24 | Kompakter Aufnahmemodus | 1.5.0 | `aufnahme.js` → `setzeKompakt`; `styles.css` → `body.kompakt` | Aufnahme: 9 Fälle |
@@ -457,3 +458,33 @@ gespeichert.
 `{kategorie}`, mit lebendem Beispiel. Namen werden entschärft: Umlaute
 aufgelöst, Sonderzeichen und Pfadangaben entfernt, auf 60 Zeichen begrenzt. Ein
 unbekannter Baustein wird als Wort übernommen, damit ein Tippfehler auffällt.
+
+
+---
+
+## F-27 · Aufnahmen und Ordner im Archiv sichtbar
+
+**Zweck** Im Archiv wird zuerst gesucht. Bis v1.7.0 erschienen dort nur die
+Belege aus `data/eintraege.json` – aufgenommene Bilder lagen im Eingang und
+waren nicht zu finden, ohne dass man wusste, wo man suchen muss.
+
+**Band „Eigene Aufnahmen“** Über dem Belegbestand: die letzten zwölf Aufnahmen
+aus dem Eingang als Streifen, mit Kennung, Anzahl und dem Hinweis, wie viele
+noch ohne Kategorie oder Begriffe sind. Ein Klick auf ein Bild führt in den
+Eingang. Ein Satz erklärt den Unterschied: ein Beleg braucht zwei Aufnahmen und
+eine Begründung, eine Aufnahme ist ein einzelnes Bild.
+
+**Band „Im Ordner ⟨Name⟩“** Der tatsächliche Inhalt des Ordners, der in der
+Ansicht Ausschneiden gewählt wurde – aus dem Dateisystem gelesen, neueste
+zuerst, mit Dateinamen und Größe im Tooltip. Das ist bewusst keine Aufstellung
+aus dem Gedächtnis der Seite: es zeigt, was wirklich dort liegt, auch von
+früheren Sitzungen. „Neu lesen“ frischt auf. Gezeigt werden zwölf Bilder, die
+Gesamtzahl steht daneben.
+
+Beide Bänder bleiben verborgen, solange es nichts zu zeigen gibt.
+
+**Ordner über Sitzungen** Der Zugriff liegt in der Browserdatenbank
+(IndexedDB) – als Text ließe er sich nicht ablegen. Beim Öffnen wird er
+zurückgeholt: besteht die Schreiberlaubnis noch, ist der Ordner sofort wieder
+da; sonst wartet er auf einen Klick, weil eine Erlaubnis nur nach einer
+Handlung erfragt werden darf.

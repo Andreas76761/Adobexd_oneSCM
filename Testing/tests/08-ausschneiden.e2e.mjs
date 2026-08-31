@@ -30,16 +30,30 @@ const bildschirm = `
 /** Ordnerwahl nachbilden und jeden Schreibvorgang festhalten. */
 const ordnerNachbau = `
   window.__geschrieben = [];
-  window.showDirectoryPicker = async () => ({
+  window.__inhalt = [];
+  const ordner = {
     name: 'Bildschirmfotos',
     queryPermission: async () => 'granted',
     getFileHandle: async (name) => ({
       createWritable: async () => ({
-        write: async (blob) => window.__geschrieben.push({ name, groesse: blob.size, typ: blob.type }),
+        write: async (blob) => {
+          window.__geschrieben.push({ name, groesse: blob.size, typ: blob.type });
+          window.__inhalt.push({ name, blob, zeit: Date.now() + window.__inhalt.length });
+        },
         close: async () => {}
       })
-    })
-  });`;
+    }),
+    values: async function* () {
+      for (const e of window.__inhalt) {
+        yield {
+          kind: 'file',
+          name: e.name,
+          getFile: async () => new File([e.blob], e.name, { type: 'image/png', lastModified: e.zeit })
+        };
+      }
+    }
+  };
+  window.showDirectoryPicker = async () => ordner;`;
 
 /** Ablagefähigkeit nachbilden. */
 const ablageNachbau = `
@@ -130,8 +144,10 @@ s.test('die Ablageeinstellung überlebt das Neuladen, der Ordner nicht', () =>
       await seite.check('#ziel-datei');
       await seite.uncheck('#ziel-eingang');
       await seite.fill('#ablage-muster', 'schnipsel-{zeit}');
-      await seite.check('#ziel-ordner');
-      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked);
+      // click statt check: die Wahl läuft über den Ordnerdialog, das Kästchen
+      // wird erst nach dessen Antwort gesetzt.
+      await seite.locator('#ziel-ordner').click();
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
 
       await seite.reload({ waitUntil: 'domcontentloaded' });
       await seite.waitForSelector('html[data-bereit="ja"]');
@@ -298,6 +314,95 @@ s.test('das Ende der Freigabe von außen wird bemerkt', () =>
       gleich(await seite.locator('#schnipsel-leer').isVisible(), true, 'die Anleitung kommt nicht zurück');
     },
     { hash: SCHNEIDEN, initSkript: bildschirm }
+  ));
+
+/* --------------------------------------------------- Sichtbarkeit im Archiv */
+
+s.test('aufgenommene Bilder erscheinen im Archiv als eigenes Band', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('.portal-nav button[data-ansicht="archiv"]');
+      gleich(await seite.locator('#eigene-aufnahmen').isVisible(), false, 'das Band steht ohne Aufnahmen da');
+
+      await seite.click('.portal-nav button[data-ansicht="ausschneiden"]');
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 30, 320, 230);
+      await seite.waitForFunction(() => document.getElementById('eingang-zahl').textContent === '1');
+
+      await seite.click('.portal-nav button[data-ansicht="archiv"]');
+      await seite.waitForSelector('#eigene-aufnahmen:not([hidden])');
+      wahr((await seite.locator('#eigene-stand').innerText()).includes('1 Aufnahme'), 'der Stand fehlt');
+      gleich(await seite.locator('#eigene-streifen .streifen-bild').count(), 1);
+      wahr(
+        (await seite.locator('#eigene-streifen img').getAttribute('src')).startsWith('data:image/jpeg'),
+        'die Vorschau fehlt'
+      );
+      wahr((await seite.locator('#eigene-aufnahmen').innerText()).includes('nicht im Belegbestand'), 'der Unterschied wird nicht erklärt');
+      gleich(await seite.locator('.karte').count(), 16, 'der Belegbestand hat sich verändert');
+
+      await seite.click('#eigene-streifen .streifen-bild');
+      gleich(await seite.locator('#eingang-ansicht').isVisible(), true, 'der Klick führt nicht in den Eingang');
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm }
+  ));
+
+s.test('das Archiv zeigt den Inhalt des gewählten Ordners', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.fill('#ablage-muster', 'schirm-{nummer}');
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 30, 300, 220);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 1, null, { timeout: 5000 });
+      await ziehe(seite, 60, 60, 360, 300);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 2, null, { timeout: 5000 });
+
+      await seite.click('.portal-nav button[data-ansicht="archiv"]');
+      await seite.waitForSelector('#ordner-band:not([hidden])');
+      gleich(await seite.locator('#ordner-name').innerText(), 'Bildschirmfotos');
+      await seite.waitForFunction(() => document.querySelectorAll('#ordner-streifen .streifen-bild').length === 2, null, { timeout: 5000 });
+      const namen = await seite.locator('#ordner-streifen .kennung').allInnerTexts();
+      gleich(namen.join('|'), 'schirm-002.png|schirm-001.png', 'die neuesten stehen nicht vorn');
+      wahr((await seite.locator('#ordner-stand').innerText()).includes('2 Bilder'), 'der Stand stimmt nicht');
+      wahr(
+        (await seite.locator('#ordner-streifen img').first().getAttribute('src')).startsWith('data:image/png'),
+        'die Vorschau kommt nicht aus der Datei'
+      );
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
+s.test('ohne gewählten Ordner bleibt das Ordnerband weg', () =>
+  mitSeite(async (seite) => {
+    gleich(await seite.locator('#ordner-band').isVisible(), false);
+  }));
+
+s.test('der gewählte Ordner wird für das nächste Mal gemerkt', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      const gemerkt = await seite.evaluate(
+        () =>
+          new Promise((fertig) => {
+            const anfrage = indexedDB.open('screenarchiv', 1);
+            anfrage.onsuccess = () => {
+              const holen = anfrage.result.transaction('zugriffe', 'readonly').objectStore('zugriffe').get('ordner');
+              holen.onsuccess = () => fertig(holen.result ? holen.result.name : null);
+              holen.onerror = () => fertig(null);
+            };
+            anfrage.onerror = () => fertig(null);
+          })
+      );
+      gleich(gemerkt, 'Bildschirmfotos', 'der Ordner wurde nicht gemerkt');
+    },
+    {
+      hash: SCHNEIDEN,
+      // Ein Zugriff ohne Funktionen: nur so lässt sich der Nachbau in die
+      // Datenbank kopieren. Echte Ordnerzugriffe sind dafür eigens vorgesehen.
+      initSkript: `window.showDirectoryPicker = async () => ({ name: 'Bildschirmfotos' });`
+    }
   ));
 
 s.test('Browser wieder schließen', () => schliessen());

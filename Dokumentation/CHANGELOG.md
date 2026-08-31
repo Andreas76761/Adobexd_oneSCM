@@ -20,6 +20,26 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.8.0] – Aufnahmen im Archiv sichtbar
+
+### Neu
+* Band **Eigene Aufnahmen** im Archiv: die letzten zwölf Aufnahmen aus dem
+  Eingang mit Vorschau, Zahl und einem Satz, warum sie nicht im Belegbestand
+  stehen. Ein Klick führt in den Eingang. (F-27)
+* Band **Im Ordner ⟨Name⟩** im Archiv: der tatsächliche Inhalt des in der
+  Ansicht Ausschneiden gewählten Ordners, aus dem Dateisystem gelesen,
+  neueste zuerst, mit „Neu lesen“. (F-27)
+* Der Ordnerzugriff wird in der Browserdatenbank gemerkt und beim nächsten
+  Öffnen zurückgeholt, sofern die Schreiberlaubnis noch besteht.
+
+### Behoben
+* Der Ordnername stand in Versalien, weil er in einer Abschnittsüberschrift
+  sitzt – ein Name behält seine Schreibweise.
+
+### Prüfung
+* 178 Prüfungen, alle bestanden. Der Ordner-Nachbau listet jetzt auch auf,
+  sodass das Lesen aus dem Dateisystem mitgeprüft ist.
+
 ## [1.7.0] – Ausschneiden
 
 ### Neu

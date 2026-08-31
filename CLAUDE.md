@@ -55,8 +55,12 @@ npm test          # muss vollständig grün sein
   getrennt geführt; die Regeln stehen im `CHANGELOG.md`.
 
 * **Aufnahmen liegen im Browser des Betrachters** (`localStorage`, Schlüssel
-  `screenarchiv:eingang`). Kein Schreibzugriff auf `data/` zur Laufzeit – der
-  Weg dorthin führt über „Als JSON sichern“.
+  `screenarchiv:eingang`), Ordnerzugriffe in der Browserdatenbank
+  `screenarchiv`. Kein Schreibzugriff auf `data/` zur Laufzeit – der Weg
+  dorthin führt über „Als JSON sichern“ oder den Kontaktbogen.
+* **Der Belegbestand des Archivs und die eigenen Aufnahmen sind getrennt.**
+  Ein Beleg braucht zwei Aufnahmen und eine Begründung. Die Bänder oben im
+  Archiv machen die Aufnahmen sichtbar, ohne die Bestände zu vermischen.
 
 ## Veröffentlichen
 

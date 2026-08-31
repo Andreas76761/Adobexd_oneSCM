@@ -853,6 +853,38 @@ body.kompakt .taste { font-size: 10px; }
   background: var(--akzent); border-radius: 2px; padding: 1px 6px; white-space: nowrap;
 }
 
+/* -------------------------------------------- Bänder im Archiv (ab 1.8.0) */
+
+.band {
+  background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--radius);
+  padding: 14px 16px 16px; margin: 22px 0 0; display: grid; gap: 12px;
+}
+.band[hidden] { display: none; }
+.band-kopf { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
+.band-kopf .abschnitt-titel { margin: 0; padding: 0; border: none; }
+/* Der Ordnername ist ein Wert und bleibt in seiner Schreibweise. */
+.band-kopf .abschnitt-titel .kennung { text-transform: none; letter-spacing: 0; color: var(--tinte-2); }
+.band-stand { font-family: var(--schrift-mono); font-size: 11.5px; color: var(--tinte-3); flex: 1 1 auto; }
+.band-hinweis { font-size: 12.5px; color: var(--tinte-3); line-height: 1.5; }
+
+.streifen {
+  display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.streifen-bild {
+  flex: 0 0 auto; width: 132px; display: grid; gap: 4px; padding: 0;
+  background: none; border: none; text-align: left; cursor: pointer;
+}
+div.streifen-bild { cursor: default; }
+.streifen-bild img {
+  display: block; width: 132px; height: 84px; object-fit: cover; object-position: top left;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche-2);
+}
+.streifen-bild:hover img { border-color: var(--akzent); }
+.streifen-bild .kennung {
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px;
+}
+
 </style>
 
 <a class="sprung" href="#ergebnisse">Direkt zu den Belegen</a>
@@ -891,6 +923,33 @@ body.kompakt .taste { font-size: 10px; }
 <div class="huelle">
 
   <section id="archiv-ansicht">
+    <div class="band" id="eigene-aufnahmen" hidden>
+      <div class="band-kopf">
+        <h2 class="abschnitt-titel">Eigene Aufnahmen</h2>
+        <span class="band-stand" id="eigene-stand"></span>
+        <button type="button" class="knopf knopf--klein" id="zum-eingang">Im Eingang bearbeiten</button>
+      </div>
+      <div class="streifen" id="eigene-streifen"></div>
+      <p class="band-hinweis">
+        Aufgenommene Bilder stehen im Eingang, nicht im Belegbestand – ein Beleg
+        braucht zwei Aufnahmen und eine Begründung. Im Eingang werden Kategorie und
+        Begriffe nachgetragen.
+      </p>
+    </div>
+
+    <div class="band" id="ordner-band" hidden>
+      <div class="band-kopf">
+        <h2 class="abschnitt-titel">Im Ordner <span class="kennung" id="ordner-name"></span></h2>
+        <span class="band-stand" id="ordner-stand"></span>
+        <button type="button" class="knopf knopf--klein" id="ordner-auffrischen">Neu lesen</button>
+      </div>
+      <div class="streifen" id="ordner-streifen"></div>
+      <p class="band-hinweis">
+        Gelesen aus dem Ordner, den die Ansicht Ausschneiden verwendet – das ist
+        der tatsächliche Inhalt, keine Aufstellung dieser Seite.
+      </p>
+    </div>
+
     <main class="haupt">
       <details class="filterschub" id="filterschub" open>
         <summary id="filterschub-titel">Filter und Ansicht</summary>
@@ -1086,7 +1145,7 @@ body.kompakt .taste { font-size: 10px; }
   </section>
 
   <footer class="fuss">
-    <span>Beispielbestand · Stand <code>30.06.2025</code> · <code>20</code> Belege, <code>40</code> Aufnahmen · Anwendung <code>v1.7.0</code></span>
+    <span>Beispielbestand · Stand <code>30.06.2025</code> · <code>20</code> Belege, <code>40</code> Aufnahmen · Anwendung <code>v1.8.0</code></span>
     <span>Aufnahmen als SVG in die Seite eingebettet · Tastatur: <code>/</code> Suche, <code>Leertaste</code> auslösen, <code>←</code> <code>→</code> blättern, <code>Esc</code> schließen</span>
   </footer>
 </div>
@@ -2185,6 +2244,65 @@ function zeichneFacetten() {
   ziel.replaceChildren(...gruppen);
 }
 
+/* --------------------------------------------- Eigene Aufnahmen im Archiv */
+
+/**
+ * Aufgenommene Bilder gehören nicht in den Belegbestand - ein Beleg braucht
+ * zwei Aufnahmen und eine Begründung. Sichtbar müssen sie hier trotzdem sein:
+ * im Archiv wird zuerst gesucht.
+ */
+function zeichneEigeneAufnahmen() {
+  const band = $('#eigene-aufnahmen');
+  const anzahl = eingang.length;
+  band.hidden = anzahl === 0;
+  if (!anzahl) return;
+  const k = eingangKennzahlen(eingang);
+  $('#eigene-stand').textContent =
+    `${anzahl} ${anzahl === 1 ? 'Aufnahme' : 'Aufnahmen'} im Eingang` +
+    (k.offen ? `, davon ${k.offen} ohne Kategorie oder Begriffe` : '');
+  $('#eigene-streifen').replaceChildren(
+    ...sortiereEingang(eingang, 'neu')
+      .slice(0, 12)
+      .map((a) =>
+        el(
+          'button',
+          {
+            klasse: 'streifen-bild',
+            type: 'button',
+            title: `${a.id} · ${a.titel}`,
+            onclick: () => setze({ ansicht: 'eingang' })
+          },
+          [el('img', { src: a.bild, alt: a.titel, loading: 'lazy' }), el('span', { klasse: 'kennung', text: a.id })]
+        )
+      )
+  );
+}
+
+/** Zeigt, was tatsächlich im gewählten Ordner liegt - gelesen, nicht vermutet. */
+async function zeigeOrdnerImArchiv() {
+  const band = $('#ordner-band');
+  if (!ordnerZugriff) {
+    band.hidden = true;
+    return;
+  }
+  band.hidden = false;
+  $('#ordner-name').textContent = ordnerZugriff.name;
+  $('#ordner-stand').textContent = 'wird gelesen …';
+  const bilder = await liesOrdnerBilder(12);
+  const gesamt = bilder.gesamt || bilder.length;
+  $('#ordner-stand').textContent = gesamt
+    ? `${gesamt} ${gesamt === 1 ? 'Bild' : 'Bilder'}${gesamt > bilder.length ? `, neueste ${bilder.length} gezeigt` : ''}`
+    : 'noch kein Bild abgelegt';
+  $('#ordner-streifen').replaceChildren(
+    ...bilder.map((b) =>
+      el('div', { klasse: 'streifen-bild', title: `${b.name} · ${formatiereBytes(b.groesse)}` }, [
+        el('img', { src: b.bild, alt: b.name, loading: 'lazy' }),
+        el('span', { klasse: 'kennung', text: b.name })
+      ])
+    )
+  );
+}
+
 /* ----------------------------------------------------------- Raster */
 
 function zeichneKarte(eintrag) {
@@ -2281,6 +2399,7 @@ function zeichne() {
     zeichneKennzahlen(sichtbar);
     zeichneFacetten();
     zeichneRaster();
+    zeichneEigeneAufnahmen();
     const suchfeld = $('#suche');
     if (suchfeld.value !== zustand.suche) suchfeld.value = zustand.suche;
     $('#sortierung').value = zustand.sortierung;
@@ -3736,6 +3855,8 @@ function verdrahteAufnahme() {
     meldeEingang('Der Eingang wurde geleert.', 'neutral');
   });
   $('#eingang-dialog-schliessen').addEventListener('click', () => $('#eingang-dialog').close());
+  $('#zum-eingang').addEventListener('click', () => setze({ ansicht: 'eingang' }));
+  $('#ordner-auffrischen').addEventListener('click', zeigeOrdnerImArchiv);
 
   /* Eingefügte Bildschirmfotos: der Weg, der auch in einer eingebetteten
      Ansicht funktioniert. Text in Eingabefeldern bleibt unberührt, weil nur
@@ -3772,7 +3893,8 @@ verdrahteAufnahme();
    ========================================================================= */
 
 let ablage = leseAblageAusSpeicher();
-let ordnerZugriff = null; // FileSystemDirectoryHandle, gilt nur für diese Sitzung
+let ordnerZugriff = null; // FileSystemDirectoryHandle der laufenden Sitzung
+let ordnerWartet = null; // gemerkter Ordner, dem die Erlaubnis fehlt
 let schnipselQuelle = null;
 let schnipselTakt = null;
 let schnipselBereich = null;
@@ -3799,6 +3921,92 @@ function meldeSchnipsel(text, art = 'neutral') {
   const feld = $('#schnipsel-meldung');
   feld.textContent = text;
   feld.className = 'studio-meldung studio-meldung--' + art;
+}
+
+/* ------------------------------------------------- Ordner über Sitzungen */
+
+const ORDNER_DB = 'screenarchiv';
+const ORDNER_LADEN = 'zugriffe';
+
+/** Der Zugriff auf einen Ordner ist kein Text - er gehört in die Datenbank. */
+function oeffneDatenbank() {
+  return new Promise((fertig, scheitern) => {
+    if (!window.indexedDB) return scheitern(new Error('keine Datenbank'));
+    const anfrage = indexedDB.open(ORDNER_DB, 1);
+    anfrage.onupgradeneeded = () => anfrage.result.createObjectStore(ORDNER_LADEN);
+    anfrage.onsuccess = () => fertig(anfrage.result);
+    anfrage.onerror = () => scheitern(anfrage.error);
+  });
+}
+
+async function merkeOrdner(zugriff) {
+  try {
+    const db = await oeffneDatenbank();
+    await new Promise((fertig, scheitern) => {
+      const vorgang = db.transaction(ORDNER_LADEN, 'readwrite');
+      vorgang.objectStore(ORDNER_LADEN).put(zugriff, 'ordner');
+      vorgang.oncomplete = fertig;
+      vorgang.onerror = () => scheitern(vorgang.error);
+    });
+  } catch (fehler) {
+    /* Ohne Datenbank gilt der Ordner nur für diese Sitzung. */
+  }
+}
+
+async function holeGemerktenOrdner() {
+  try {
+    const db = await oeffneDatenbank();
+    return await new Promise((fertig, scheitern) => {
+      const anfrage = db.transaction(ORDNER_LADEN, 'readonly').objectStore(ORDNER_LADEN).get('ordner');
+      anfrage.onsuccess = () => fertig(anfrage.result || null);
+      anfrage.onerror = () => scheitern(anfrage.error);
+    });
+  } catch (fehler) {
+    return null;
+  }
+}
+
+/**
+ * Holt den gemerkten Ordner zurück. Ohne bereits erteilte Erlaubnis wird
+ * nicht gefragt - dafür braucht es einen Klick der Person.
+ */
+async function stelleOrdnerWiederHer() {
+  const zugriff = await holeGemerktenOrdner();
+  if (!zugriff || !zugriff.queryPermission) return;
+  try {
+    if ((await zugriff.queryPermission({ mode: 'readwrite' })) !== 'granted') {
+      ordnerWartet = zugriff;
+      zeichneSchnipsel();
+      return;
+    }
+    ordnerZugriff = zugriff;
+    ablage = { ...ablage, ordner: true };
+    zeichneSchnipsel();
+    zeigeOrdnerImArchiv();
+  } catch (fehler) {
+    /* Ordner nicht mehr erreichbar - er wird beim nächsten Mal neu gewählt. */
+  }
+}
+
+/** Liest die Bilder aus dem gewählten Ordner, neueste zuerst. */
+async function liesOrdnerBilder(grenze = 24) {
+  if (!ordnerZugriff || typeof ordnerZugriff.values !== 'function') return [];
+  const gefunden = [];
+  try {
+    for await (const eintrag of ordnerZugriff.values()) {
+      if (eintrag.kind !== 'file' || !/\.(png|jpe?g|webp|gif)$/i.test(eintrag.name)) continue;
+      const datei = await eintrag.getFile();
+      gefunden.push({ name: datei.name, groesse: datei.size, geaendert: datei.lastModified, datei });
+    }
+  } catch (fehler) {
+    return [];
+  }
+  gefunden.sort((a, b) => b.geaendert - a.geaendert);
+  const ausschnitt = gefunden.slice(0, grenze);
+  for (const eintrag of ausschnitt) {
+    eintrag.bild = await liesAlsDatenadresse(eintrag.datei);
+  }
+  return Object.assign(ausschnitt, { gesamt: gefunden.length });
 }
 
 /* ----------------------------------------------------------- Ablageziele */
@@ -3828,9 +4036,12 @@ async function waehleOrdner() {
       }
     }
     ablage = { ...ablage, ordner: true };
+    ordnerWartet = null;
     sichereAblage();
+    await merkeOrdner(ordnerZugriff);
     meldeSchnipsel(`Ordner „${ordnerZugriff.name}“ gewählt – die Aufnahmen landen dort.`, 'gut');
     zeichneSchnipsel();
+    zeigeOrdnerImArchiv();
     return true;
   } catch (fehler) {
     ordnerZugriff = null;
@@ -4122,6 +4333,7 @@ async function nimmSchnipsel() {
         await schreiber.write(blob);
         await schreiber.close();
         wohin.push(`${ordnerZugriff.name}/${name}`);
+        zeigeOrdnerImArchiv();
       } catch (f) {
         fehler.push('In den Ordner ließ sich nicht schreiben: ' + (f && f.message ? f.message : 'unbekannter Grund'));
       }
@@ -4182,6 +4394,7 @@ function verdrahteSchnipsel() {
 
 verdrahteSchnipsel();
 starte();
+stelleOrdnerWiederHer();
 
 })();
 </script>

@@ -217,6 +217,65 @@ function zeichneFacetten() {
   ziel.replaceChildren(...gruppen);
 }
 
+/* --------------------------------------------- Eigene Aufnahmen im Archiv */
+
+/**
+ * Aufgenommene Bilder gehören nicht in den Belegbestand - ein Beleg braucht
+ * zwei Aufnahmen und eine Begründung. Sichtbar müssen sie hier trotzdem sein:
+ * im Archiv wird zuerst gesucht.
+ */
+function zeichneEigeneAufnahmen() {
+  const band = $('#eigene-aufnahmen');
+  const anzahl = eingang.length;
+  band.hidden = anzahl === 0;
+  if (!anzahl) return;
+  const k = eingangKennzahlen(eingang);
+  $('#eigene-stand').textContent =
+    `${anzahl} ${anzahl === 1 ? 'Aufnahme' : 'Aufnahmen'} im Eingang` +
+    (k.offen ? `, davon ${k.offen} ohne Kategorie oder Begriffe` : '');
+  $('#eigene-streifen').replaceChildren(
+    ...sortiereEingang(eingang, 'neu')
+      .slice(0, 12)
+      .map((a) =>
+        el(
+          'button',
+          {
+            klasse: 'streifen-bild',
+            type: 'button',
+            title: `${a.id} · ${a.titel}`,
+            onclick: () => setze({ ansicht: 'eingang' })
+          },
+          [el('img', { src: a.bild, alt: a.titel, loading: 'lazy' }), el('span', { klasse: 'kennung', text: a.id })]
+        )
+      )
+  );
+}
+
+/** Zeigt, was tatsächlich im gewählten Ordner liegt - gelesen, nicht vermutet. */
+async function zeigeOrdnerImArchiv() {
+  const band = $('#ordner-band');
+  if (!ordnerZugriff) {
+    band.hidden = true;
+    return;
+  }
+  band.hidden = false;
+  $('#ordner-name').textContent = ordnerZugriff.name;
+  $('#ordner-stand').textContent = 'wird gelesen …';
+  const bilder = await liesOrdnerBilder(12);
+  const gesamt = bilder.gesamt || bilder.length;
+  $('#ordner-stand').textContent = gesamt
+    ? `${gesamt} ${gesamt === 1 ? 'Bild' : 'Bilder'}${gesamt > bilder.length ? `, neueste ${bilder.length} gezeigt` : ''}`
+    : 'noch kein Bild abgelegt';
+  $('#ordner-streifen').replaceChildren(
+    ...bilder.map((b) =>
+      el('div', { klasse: 'streifen-bild', title: `${b.name} · ${formatiereBytes(b.groesse)}` }, [
+        el('img', { src: b.bild, alt: b.name, loading: 'lazy' }),
+        el('span', { klasse: 'kennung', text: b.name })
+      ])
+    )
+  );
+}
+
 /* ----------------------------------------------------------- Raster */
 
 function zeichneKarte(eintrag) {
@@ -313,6 +372,7 @@ function zeichne() {
     zeichneKennzahlen(sichtbar);
     zeichneFacetten();
     zeichneRaster();
+    zeichneEigeneAufnahmen();
     const suchfeld = $('#suche');
     if (suchfeld.value !== zustand.suche) suchfeld.value = zustand.suche;
     $('#sortierung').value = zustand.sortierung;
