@@ -41,6 +41,7 @@ if (/\bexport\b/.test(kern)) throw new Error('core.mjs enthält eine nicht entfe
 const nutzlast = {
   stand: daten.stand,
   version: daten.version,
+  anwendung: paket.version,
   vokabular: daten.vokabular,
   eintraege: daten.eintraege,
   aufnahmen

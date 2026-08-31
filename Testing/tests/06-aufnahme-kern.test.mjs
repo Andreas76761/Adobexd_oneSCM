@@ -255,6 +255,68 @@ s.test('die gewählten Ziele lassen sich in einem Satz nennen', () => {
   gleich(kern.beschreibeAblage({ eingang: false, ordner: false, datei: false }), 'kein Ziel');
 });
 
+s.test('der Beipackzettel führt alle Felder in fester Folge', () => {
+  const zettel = JSON.parse(
+    kern.baueBeipackzettel({
+      entwurf: {
+        titel: '  Kopfzeile  ',
+        projekt: 'oneSCM Portal',
+        seite: '/portal/uebersicht',
+        kategorie: 'Layout',
+        status: 'in Prüfung',
+        rolle: 'vorher',
+        begriffe: ['#Kontrast', 'kontrast', 'raster'],
+        notiz: ' Notiz ',
+        autor: 'M. A.',
+        browser: 'Chrome 141',
+        datum: '2026-08-31'
+      },
+      bildname: 'beleg-001.png',
+      ausschnitt: { x: 10, y: 20, breite: 300, hoehe: 200 },
+      quelle: { art: 'bildschirm', name: 'Geteilter Bildschirm', breite: 1600, hoehe: 900 },
+      erfasstAm: '2026-08-31T12:00:00.000Z',
+      anwendung: '1.9.0'
+    })
+  );
+  gleich(zettel.beipackzettel, kern.BEIPACKZETTEL_VERSION);
+  gleich(zettel.erzeugt_von, 'Screenarchiv 1.9.0');
+  gleich(zettel.bild, 'beleg-001.png');
+  gleich(zettel.titel, 'Kopfzeile', 'Leerzeichen bleiben stehen');
+  gleich(zettel.notiz, 'Notiz');
+  tieferGleich(zettel.begriffe, ['kontrast', 'raster'], 'Begriffe nicht vereinheitlicht');
+  tieferGleich(zettel.ausschnitt, { x: 10, y: 20, breite: 300, hoehe: 200 });
+  gleich(zettel.quelle.name, 'Geteilter Bildschirm');
+  gleich(zettel.rolle, 'vorher');
+  tieferGleich(
+    Object.keys(zettel),
+    ['beipackzettel', 'erzeugt_von', 'bild', 'erfasst_am', 'datum', 'titel', 'projekt', 'seite', 'kategorie',
+     'status', 'rolle', 'begriffe', 'notiz', 'autor', 'browser', 'ausschnitt', 'quelle'],
+    'die Feldfolge ist nicht stabil'
+  );
+});
+
+s.test('der Beipackzettel bleibt auch ohne Angaben vollständig geformt', () => {
+  const zettel = JSON.parse(kern.baueBeipackzettel({ bildname: 'a.png' }));
+  gleich(Object.keys(zettel).length, 17, 'Felder fehlen, wenn nichts eingetragen ist');
+  gleich(zettel.titel, '');
+  tieferGleich(zettel.begriffe, []);
+  gleich(zettel.ausschnitt, null);
+  gleich(zettel.quelle, null);
+  gleich(zettel.erzeugt_von, 'Screenarchiv');
+});
+
+s.test('der Beipackzettel heißt wie sein Bild', () => {
+  gleich(kern.beipackzettelName('schirm-001.png'), 'schirm-001.json');
+  gleich(kern.beipackzettelName('a.b.c.jpeg'), 'a.b.c.json');
+  gleich(kern.beipackzettelName('ohne-endung'), 'ohne-endung.json');
+});
+
+s.test('die Wahl des Beipackzettels wird gespeichert', () => {
+  gleich(kern.ABLAGE_STANDARD.beipack, true, 'der Zettel ist nicht voreingestellt');
+  gleich(kern.leseAblage(kern.schreibeAblage({ beipack: false })).beipack, false);
+  gleich(kern.leseAblage('{}').beipack, true, 'ohne Angabe fehlt die Vorgabe');
+});
+
 /* ---------------------------------------------------------- Kontaktbogen */
 
 const bogenProbe = () => [

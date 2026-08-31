@@ -26,12 +26,12 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `03-aufnahmen.test.mjs` | erzeugte SVG-Aufnahmen: Vollständigkeit, Maße, Sauberkeit, Determinismus | 8 |
 | `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken, doppelte Selektoren | 15 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
-| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage und Kontaktbogen | 33 |
+| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel und Kontaktbogen | 37 |
 | `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Bilderstapel, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen | 59 |
 
-| `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beenden, Sichtbarkeit im Archiv | 19 |
+| `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beipackzettel, Beenden, Sichtbarkeit im Archiv | 22 |
 
-Summe: **178 Prüfungen**.
+Summe: **185 Prüfungen**.
 
 ## Eigene Helfer
 
@@ -79,6 +79,10 @@ Summe: **178 Prüfungen**.
   Bildschirmfoto aus der Systemtaste – und prüft, dass daraus eine Quelle wird.
   Ein zweiter Fall stellt die gesperrte Richtlinie nach und verlangt, dass die
   Meldung Ursache **und** Ausweg nennt.
+* **Der Beipackzettel wird aus dem Nachbau zurückgelesen.** Der Test schreibt
+  einen Schnipsel in den nachgebildeten Ordner, holt die abgelegte `.json`
+  wieder heraus und vergleicht jedes Feld mit dem, was in der Ansicht Aufnahme
+  eingetragen wurde – einschließlich der vereinheitlichten Begriffe.
 * **Der Ordner-Nachbau listet auch auf.** Er hält nicht nur jeden
   Schreibvorgang fest, sondern gibt die geschriebenen Dateien über einen
   Iterator zurück – so ist geprüft, dass das Archivband wirklich aus dem

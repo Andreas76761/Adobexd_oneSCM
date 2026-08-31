@@ -20,6 +20,22 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.9.0] – Beipackzettel
+
+### Neu
+* Neben jedem in Ordner oder Datei abgelegten Bild entsteht eine gleichnamige
+  `.json` mit allen Metadaten – Titel, Projekt, Seite, Kategorie, Status,
+  Rolle, Begriffe, Notiz, Autor, Browser, Ausschnitt, Quelle und Zeitpunkt.
+  Feste Feldfolge, auch bei leeren Werten (F-26)
+* Kästchen zum Abschalten; es erscheint nur bei Ordner- oder Dateizielen und
+  nennt die zweite Bestätigung beim Sichern als Einzeldatei
+
+### Geändert
+* Bisher trug eine abgelegte Datei nur, was ins Namensmuster passte
+
+### Prüfung
+* 185 Prüfungen, alle bestanden
+
 ## [1.8.0] – Aufnahmen im Archiv sichtbar
 
 ### Neu

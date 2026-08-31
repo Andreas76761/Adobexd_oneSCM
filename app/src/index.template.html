@@ -186,6 +186,19 @@
         <h2 class="abschnitt-titel">Ablage – wohin die Aufnahmen gehen</h2>
         <div class="ablage-ziele" id="ablage-ziele"></div>
         <p class="ablage-warnung" id="ablage-warnung" hidden></p>
+        <div class="beipack-zeile" id="beipack-zeile" hidden>
+          <label>
+            <input type="checkbox" id="ablage-beipack">
+            <span>Metadaten als <code>.json</code> daneben ablegen</span>
+          </label>
+          <span class="feld-hinweis" id="beipack-beispiel"></span>
+          <span class="feld-hinweis">
+            Ohne diesen Zettel trägt eine abgelegte Datei nur, was ins Namensmuster passt –
+            Titel, Kategorie, Begriffe, Notiz, Ausschnitt und Quelle blieben im Eingang zurück.
+            Beim Sichern als Einzeldatei bedeutet er eine zweite Bestätigung.
+          </span>
+        </div>
+
         <div class="feld">
           <label for="ablage-muster">Namensmuster</label>
           <input id="ablage-muster" type="text" autocomplete="off">

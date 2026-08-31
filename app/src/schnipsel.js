@@ -106,6 +106,14 @@ async function stelleOrdnerWiederHer() {
   }
 }
 
+/** Schreibt eine Datei in den gewählten Ordner. */
+async function schreibeInOrdner(name, blob) {
+  const dateiZugriff = await ordnerZugriff.getFileHandle(name, { create: true });
+  const schreiber = await dateiZugriff.createWritable();
+  await schreiber.write(blob);
+  await schreiber.close();
+}
+
 /** Liest die Bilder aus dem gewählten Ordner, neueste zuerst. */
 async function liesOrdnerBilder(grenze = 24) {
   if (!ordnerZugriff || typeof ordnerZugriff.values !== 'function') return [];
@@ -227,6 +235,13 @@ function zeichneZiele() {
 
 function zeichneSchnipsel() {
   zeichneZiele();
+  const beipack = $('#ablage-beipack');
+  if (beipack.checked !== Boolean(ablage.beipack)) beipack.checked = Boolean(ablage.beipack);
+  $('#beipack-zeile').hidden = !ablage.ordner && !ablage.datei;
+  $('#beipack-beispiel').textContent = ablage.beipack
+    ? 'Beispiel: ' + beipackzettelName(dateinameAus(ablage.muster, { datum: heute(), nummer: '001' }))
+    : '';
+
   const muster = $('#ablage-muster');
   if (muster.value !== ablage.muster) muster.value = ablage.muster;
   $('#muster-beispiel').textContent =
@@ -444,13 +459,25 @@ async function nimmSchnipsel() {
 
   if (ablage.ordner || ablage.datei) {
     const blob = await new Promise((fertig) => leinwand.toBlob(fertig, 'image/png'));
+    // Der Beipackzettel traegt, was der Dateiname nicht fassen kann.
+    const zettelName = beipackzettelName(name);
+    const zettel = baueBeipackzettel({
+      entwurf,
+      bildname: name,
+      ausschnitt: schnipselBereich,
+      quelle: schnipselQuelle,
+      erfasstAm: jetzt.toISOString(),
+      anwendung: DATEN.anwendung
+    });
+
     if (ablage.ordner && ordnerZugriff) {
       try {
-        const dateiZugriff = await ordnerZugriff.getFileHandle(name, { create: true });
-        const schreiber = await dateiZugriff.createWritable();
-        await schreiber.write(blob);
-        await schreiber.close();
+        await schreibeInOrdner(name, blob);
         wohin.push(`${ordnerZugriff.name}/${name}`);
+        if (ablage.beipack) {
+          await schreibeInOrdner(zettelName, new Blob([zettel], { type: 'application/json' }));
+          wohin.push(zettelName);
+        }
         zeigeOrdnerImArchiv();
       } catch (f) {
         fehler.push('In den Ordner ließ sich nicht schreiben: ' + (f && f.message ? f.message : 'unbekannter Grund'));
@@ -458,10 +485,17 @@ async function nimmSchnipsel() {
     } else if (ablage.ordner) {
       fehler.push('Es ist kein Ordner gewählt.');
     }
+
     if (ablage.datei) {
       const ergebnis = await uebergebeDatei(name, blob);
-      if (ergebnis.art === 'gesichert') wohin.push(name);
-      else if (ergebnis.art === 'fehler' && ergebnis.code === 'declined') fehler.push('Das Sichern wurde abgebrochen.');
+      if (ergebnis.art === 'gesichert') {
+        wohin.push(name);
+        if (ablage.beipack) {
+          const zweites = await uebergebeDatei(zettelName, zettel);
+          if (zweites.art === 'gesichert') wohin.push(zettelName);
+          else fehler.push('Der Beipackzettel wurde nicht gesichert.');
+        }
+      } else if (ergebnis.art === 'fehler' && ergebnis.code === 'declined') fehler.push('Das Sichern wurde abgebrochen.');
       else if (ergebnis.art !== 'gesichert') fehler.push('Die Datei ließ sich nicht ablegen.');
     }
   }
@@ -496,6 +530,11 @@ function verdrahteSchnipsel() {
   verdrahteSchnipselBuehne();
   $('#schnipsel-start').addEventListener('click', starteAusschneiden);
   $('#schnipsel-ende').addEventListener('click', () => beendeAusschneiden());
+  $('#ablage-beipack').addEventListener('change', (e) => {
+    ablage = { ...ablage, beipack: e.target.checked };
+    sichereAblage();
+    zeichneSchnipsel();
+  });
   $('#ablage-muster').addEventListener('input', (e) => {
     ablage = { ...ablage, muster: e.target.value };
     sichereAblage();

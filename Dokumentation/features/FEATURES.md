@@ -1,6 +1,6 @@
 # Feature-Katalog
 
-Stand: Anwendung **v1.8.0**, Datenbestand **1.0.0**.
+Stand: Anwendung **v1.9.0**, Datenbestand **1.0.0**.
 
 Jede Funktion hat eine feste Kennung. Sie bleibt bestehen, auch wenn sich die
 Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Änderung.
@@ -34,7 +34,7 @@ Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Ä
 | F-21 | Eingang mit Nachpflege | 1.1.0 | `core.mjs` → `filtereEingang`, `istVollstaendig`; `aufnahme.js` → `zeichneEingang` | Kernlogik: 6 Fälle · Aufnahme: 7 Fälle |
 | F-22 | Eingang als JSON sichern | 1.1.0 | `core.mjs` → `eingangAlsExport`; `aufnahme.js` → `sichereAlsDatei` | Kernlogik: 1 Fall · Aufnahme: „Sichern bietet … Ersatzweg“ |
 | F-27 | Aufnahmen und Ordner im Archiv sichtbar | 1.8.0 | `ui.js` → `zeichneEigeneAufnahmen`, `zeigeOrdnerImArchiv`; `schnipsel.js` → `liesOrdnerBilder` | Ausschneiden: 4 Fälle |
-| F-26 | Ausschneiden mit wählbarer Ablage | 1.7.0 | `core.mjs` → `dateinameAus`, `pruefeAblage`; `schnipsel.js` | Kernlogik: 6 Fälle · Ausschneiden: 15 Fälle |
+| F-26 | Ausschneiden mit wählbarer Ablage | 1.7.0, erweitert 1.9.0 | `core.mjs` → `dateinameAus`, `pruefeAblage`, `baueBeipackzettel`; `schnipsel.js` | Kernlogik: 10 Fälle · Ausschneiden: 22 Fälle |
 | F-25 | Bilderstapel | 1.6.0 | `aufnahme.js` → `quelleDateien`, `zeigeStapelbild` | Aufnahme: 5 Fälle |
 | F-24 | Kompakter Aufnahmemodus | 1.5.0 | `aufnahme.js` → `setzeKompakt`; `styles.css` → `body.kompakt` | Aufnahme: 9 Fälle |
 | F-23 | Kontaktbogen als eine Datei | 1.2.0 | `core.mjs` → `baueKontaktbogen`, `maskiereHtml`; `aufnahme.js` → `sichereKontaktbogen`, `uebergebeDatei` | Kernlogik: 8 Fälle · Aufnahme: 6 Fälle |
@@ -453,6 +453,14 @@ halten an und stoppen den Datenstrom.
 Ohne Ziel bleibt der Start gesperrt – eine Aufnahme ohne Ort wäre verloren.
 Der Ordnerzugriff gilt nur für die Sitzung; die übrigen Einstellungen bleiben
 gespeichert.
+
+**Beipackzettel** (ab 1.9.0) Neben jedes abgelegte Bild kommt eine gleichnamige
+`.json` mit allen Metadaten – ohne sie trüge die Datei nur, was ins
+Namensmuster passt. Feste Feldfolge, auch bei leeren Werten: Zettelversion,
+erzeugende Anwendung, Bildname, Erfassungszeitpunkt, Datum, Titel, Projekt,
+Seite, Kategorie, Status, Rolle, Begriffe, Notiz, Autor, Browser, Ausschnitt,
+Quelle. Abschaltbar; das Kästchen erscheint nur bei Ordner- oder Dateizielen
+und nennt die zweite Bestätigung beim Sichern als Einzeldatei.
 
 **Namensmuster** `{datum}` `{zeit}` `{nummer}` `{projekt}` `{titel}`
 `{kategorie}`, mit lebendem Beispiel. Namen werden entschärft: Umlaute

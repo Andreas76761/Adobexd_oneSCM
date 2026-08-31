@@ -227,11 +227,14 @@ s.test('der Schnipsel landet im gewählten Ordner', () =>
 
       await starteFreigabe(seite);
       await ziehe(seite, 40, 40, 300, 240);
-      await seite.waitForFunction(() => (window.__geschrieben || []).length === 1, null, { timeout: 5000 });
-      const [datei] = await seite.evaluate(() => window.__geschrieben);
+      // Bild und Beipackzettel: zwei Dateien je Schnipsel
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 2, null, { timeout: 5000 });
+      const [datei, zettel] = await seite.evaluate(() => window.__geschrieben);
       gleich(datei.name, 'schirm-001.png', 'der Dateiname folgt nicht dem Muster');
       gleich(datei.typ, 'image/png', 'in den Ordner wird kein PNG geschrieben');
       wahr(datei.groesse > 1000, 'die Datei ist verdächtig klein');
+      gleich(zettel.name, 'schirm-001.json', 'der Beipackzettel heißt nicht wie das Bild');
+      gleich(zettel.typ, 'application/json');
       wahr((await seite.locator('#schnipsel-zahl').innerText()).includes('Bildschirmfotos/schirm-001.png'), 'das Ziel wird nicht genannt');
     },
     { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
@@ -245,10 +248,11 @@ s.test('der Schnipsel lässt sich als einzelne Datei sichern', () =>
       await seite.uncheck('#ziel-eingang');
       await starteFreigabe(seite);
       await ziehe(seite, 50, 50, 350, 250);
-      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 5000 });
-      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 2, null, { timeout: 5000 });
+      const [datei, zettel] = await seite.evaluate(() => window.__abgelegt);
       gleich(datei.filename, 'einzeln-001.png');
       gleich(datei.typ, 'image/png');
+      gleich(zettel.filename, 'einzeln-001.json', 'der Beipackzettel fehlt beim Sichern');
       gleich((await eingangImSpeicher(seite)).length, 0, 'trotz abgewähltem Eingang wurde dort abgelegt');
     },
     { hash: SCHNEIDEN, initSkript: bildschirm + ablageNachbau }
@@ -264,7 +268,7 @@ s.test('mehrere Ziele zugleich', () =>
       await starteFreigabe(seite);
       await ziehe(seite, 40, 40, 320, 260);
       await seite.waitForFunction(
-        () => (window.__geschrieben || []).length === 1 && (window.__abgelegt || []).length === 1,
+        () => (window.__geschrieben || []).length === 2 && (window.__abgelegt || []).length === 2,
         null,
         { timeout: 5000 }
       );
@@ -316,6 +320,79 @@ s.test('das Ende der Freigabe von außen wird bemerkt', () =>
     { hash: SCHNEIDEN, initSkript: bildschirm }
   ));
 
+/* ------------------------------------------------------- Beipackzettel */
+
+s.test('der Beipackzettel trägt alle Metadaten', () =>
+  mitSeite(
+    async (seite) => {
+      // Metadaten kommen aus der Ansicht Aufnahme
+      await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+      await seite.fill('#feld-titel', 'Preisspalte zu schmal');
+      await seite.fill('#feld-projekt', 'Lieferanten-Cockpit');
+      await seite.fill('#feld-seite', '/cockpit/positionen');
+      await seite.fill('#feld-autor', 'M. Ackermann');
+      await seite.selectOption('#feld-kategorie', 'Layout');
+      await seite.fill('#feld-begriffe', '#Spaltenbreite, preis, SPALTENBREITE');
+      await seite.fill('#feld-notiz', 'Bei 1280 px abgeschnitten');
+      await seite.fill('#feld-datum', '2026-08-31');
+
+      await seite.click('.portal-nav button[data-ansicht="ausschneiden"]');
+      await seite.fill('#ablage-muster', 'beleg-{nummer}');
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 40, 340, 260);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 2, null, { timeout: 5000 });
+
+      const inhalt = await seite.evaluate(async () => {
+        const eintrag = window.__inhalt.find((e) => e.name.endsWith('.json'));
+        return await eintrag.blob.text();
+      });
+      const zettel = JSON.parse(inhalt);
+      gleich(zettel.bild, 'beleg-001.png', 'der Zettel nennt das Bild nicht');
+      gleich(zettel.titel, 'Preisspalte zu schmal');
+      gleich(zettel.projekt, 'Lieferanten-Cockpit');
+      gleich(zettel.seite, '/cockpit/positionen');
+      gleich(zettel.kategorie, 'Layout');
+      gleich(zettel.autor, 'M. Ackermann');
+      gleich(zettel.datum, '2026-08-31');
+      gleich(zettel.notiz, 'Bei 1280 px abgeschnitten');
+      gleich(zettel.begriffe.join(','), 'spaltenbreite,preis', 'Begriffe nicht vereinheitlicht');
+      gleich(zettel.quelle.art, 'bildschirm');
+      wahr(zettel.ausschnitt.breite > 100, 'die Ausschnittmaße fehlen');
+      wahr(String(zettel.erzeugt_von).startsWith('Screenarchiv 1.'), 'die Anwendung wird nicht genannt: ' + zettel.erzeugt_von);
+      wahr(String(zettel.erfasst_am).includes('T'), 'kein Zeitpunkt');
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
+s.test('ohne Beipackzettel bleibt es bei einer Datei', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      await seite.uncheck('#ablage-beipack');
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 40, 300, 240);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 1, null, { timeout: 5000 });
+      await seite.waitForTimeout(300);
+      gleich(await seite.evaluate(() => window.__geschrieben.length), 1, 'trotz Abwahl wurde ein Zettel geschrieben');
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
+s.test('die Zeile zum Beipackzettel erscheint nur bei Datei-Zielen', () =>
+  mitSeite(
+    async (seite) => {
+      gleich(await seite.locator('#beipack-zeile').isVisible(), false, 'die Zeile steht ohne Dateiziel da');
+      await seite.check('#ziel-datei');
+      await seite.waitForSelector('#beipack-zeile:not([hidden])');
+      gleich(await seite.locator('#ablage-beipack').isChecked(), true, 'der Zettel ist nicht voreingestellt');
+      wahr((await seite.locator('#beipack-beispiel').innerText()).endsWith('.json'), 'kein Beispielname');
+    },
+    { hash: SCHNEIDEN }
+  ));
+
 /* --------------------------------------------------- Sichtbarkeit im Archiv */
 
 s.test('aufgenommene Bilder erscheinen im Archiv als eigenes Band', () =>
@@ -354,9 +431,9 @@ s.test('das Archiv zeigt den Inhalt des gewählten Ordners', () =>
       await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
       await starteFreigabe(seite);
       await ziehe(seite, 40, 30, 300, 220);
-      await seite.waitForFunction(() => (window.__geschrieben || []).length === 1, null, { timeout: 5000 });
-      await ziehe(seite, 60, 60, 360, 300);
       await seite.waitForFunction(() => (window.__geschrieben || []).length === 2, null, { timeout: 5000 });
+      await ziehe(seite, 60, 60, 360, 300);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 4, null, { timeout: 5000 });
 
       await seite.click('.portal-nav button[data-ansicht="archiv"]');
       await seite.waitForSelector('#ordner-band:not([hidden])');

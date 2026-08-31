@@ -8,6 +8,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | --- | --- |
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [versionen/v1.9.0.md](versionen/v1.9.0.md) | Beipackzettel – Metadaten neben jedem abgelegten Bild |
 | [versionen/v1.8.0.md](versionen/v1.8.0.md) | Aufnahmen im Archiv sichtbar – und wohin sie gehen |
 | [versionen/v1.7.0.md](versionen/v1.7.0.md) | Ausschneiden – Schnipsel mit wählbarer Ablage |
 | [versionen/v1.6.0.md](versionen/v1.6.0.md) | Bilderstapel – der Weg ohne Zwischenablage |

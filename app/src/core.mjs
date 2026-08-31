@@ -760,8 +760,47 @@ export const ABLAGE_STANDARD = {
   eingang: true,
   ordner: false,
   datei: false,
+  beipack: true,
   muster: 'screenarchiv-{datum}-{nummer}'
 };
+
+export const BEIPACKZETTEL_VERSION = 1;
+
+/**
+ * Der Beipackzettel: alle Metadaten neben der Bilddatei, gleicher Name, Endung
+ * .json. Ohne ihn traegt eine abgelegte Datei nur, was ins Namensmuster passt.
+ * Feste Feldfolge, auch wenn Werte leer sind - so bleibt die Form vorhersagbar.
+ */
+export function baueBeipackzettel({ entwurf = {}, bildname, ausschnitt, quelle, erfasstAm, anwendung }) {
+  return JSON.stringify(
+    {
+      beipackzettel: BEIPACKZETTEL_VERSION,
+      erzeugt_von: `Screenarchiv ${anwendung || ''}`.trim(),
+      bild: bildname || '',
+      erfasst_am: erfasstAm || '',
+      datum: entwurf.datum || '',
+      titel: String(entwurf.titel || '').trim(),
+      projekt: String(entwurf.projekt || '').trim(),
+      seite: String(entwurf.seite || '').trim(),
+      kategorie: String(entwurf.kategorie || '').trim(),
+      status: entwurf.status || '',
+      rolle: entwurf.rolle || '',
+      begriffe: normalisiereBegriffe(entwurf.begriffe || []),
+      notiz: String(entwurf.notiz || '').trim(),
+      autor: String(entwurf.autor || '').trim(),
+      browser: String(entwurf.browser || '').trim(),
+      ausschnitt: ausschnitt ? { ...ausschnitt } : null,
+      quelle: quelle ? { art: quelle.art, name: quelle.name || '', breite: quelle.breite, hoehe: quelle.hoehe } : null
+    },
+    null,
+    2
+  );
+}
+
+/** Gleicher Name wie das Bild, andere Endung. */
+export function beipackzettelName(bildname) {
+  return String(bildname || '').replace(/\.[a-z0-9]+$/i, '') + '.json';
+}
 
 export const ABLAGE_ZIELE = [
   { id: 'eingang', label: 'Eingang in dieser Seite', hinweis: 'Bleibt im Browser, überlebt kein Löschen der Browserdaten.' },
@@ -831,6 +870,7 @@ export function leseAblage(text) {
       // nicht mitspeichern, er muss jedes Mal neu erlaubt werden.
       ordner: false,
       datei: Boolean(roh.datei),
+      beipack: roh.beipack !== false,
       muster: typeof roh.muster === 'string' && roh.muster.trim() ? roh.muster : ABLAGE_STANDARD.muster
     };
   } catch (fehler) {
@@ -840,7 +880,7 @@ export function leseAblage(text) {
 
 export function schreibeAblage(ablage) {
   const a = { ...ABLAGE_STANDARD, ...ablage };
-  return JSON.stringify({ eingang: a.eingang, datei: a.datei, muster: a.muster });
+  return JSON.stringify({ eingang: a.eingang, datei: a.datei, beipack: a.beipack, muster: a.muster });
 }
 
 /** Kurzfassung der gewaehlten Ziele fuer die Anzeige. */
