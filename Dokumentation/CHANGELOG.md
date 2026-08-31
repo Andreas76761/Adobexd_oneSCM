@@ -20,6 +20,27 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.7.0] – Ausschneiden
+
+### Neu
+* Vierter Eintrag in der Portalnavigation: **Ausschneiden**. Bildschirm
+  freigeben, Bereich aufziehen, beim Loslassen ist der Schnipsel gemacht und
+  abgelegt; die Freigabe bleibt für den nächsten Zug bestehen (F-26)
+* Ablage vorher festlegen: Eingang, Ordner auf dem Rechner, einzelne Datei –
+  einzeln oder gemeinsam. Ohne Ziel bleibt der Start gesperrt.
+* Namensmuster mit Bausteinen und lebendem Beispiel; Namen werden entschärft
+* Eingang bekommt JPEG, Ordner und Datei bekommen PNG
+
+### Behoben
+* Die Bühne wurde höher als das Fenster – die Ablage rutschte beim Ziehen aus
+  dem Blick; die Leinwand ist jetzt in der Höhe begrenzt
+* Die Maßangabe im Rahmen war durch eine geerbte Zeilenhöhe von 0 zerdrückt
+* Der Fokus auf die Bühne scrollte die Einstellungen weg (`preventScroll`)
+
+### Prüfung
+* 174 Prüfungen, alle bestanden. Ordnerwahl und Schreibzugriff werden
+  nachgebildet, sodass der ganze Weg bis in die Datei geprüft ist.
+
 ## [1.6.0] – Bilderstapel
 
 ### Neu

@@ -23,6 +23,7 @@
             <span class="portal-schild">Portal</span>
             <button type="button" data-ansicht="archiv">Archiv</button>
             <button type="button" data-ansicht="aufnahme">Aufnahme</button>
+            <button type="button" data-ansicht="ausschneiden">Ausschneiden</button>
             <button type="button" data-ansicht="eingang">Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
         </div>
@@ -152,6 +153,55 @@
     </div>
   </section>
 
+  <section id="schnipsel-ansicht" aria-label="Ausschneiden" hidden>
+    <div class="schnipsel-kopf">
+      <div class="ablage">
+        <h2 class="abschnitt-titel">Ablage – wohin die Aufnahmen gehen</h2>
+        <div class="ablage-ziele" id="ablage-ziele"></div>
+        <p class="ablage-warnung" id="ablage-warnung" hidden></p>
+        <div class="feld">
+          <label for="ablage-muster">Namensmuster</label>
+          <input id="ablage-muster" type="text" autocomplete="off">
+          <span class="feld-hinweis" id="muster-beispiel"></span>
+          <span class="feld-hinweis">
+            Bausteine: <code>{datum}</code> <code>{zeit}</code> <code>{nummer}</code>
+            <code>{projekt}</code> <code>{titel}</code> <code>{kategorie}</code> –
+            die Metadaten stammen aus der Ansicht Aufnahme.
+          </span>
+        </div>
+      </div>
+
+      <div class="schnipsel-start">
+        <p class="schnipsel-ziel-zeile">Ziel: <span class="kennung" id="schnipsel-ziel"></span></p>
+        <div class="schnipsel-knoepfe">
+          <button type="button" class="knopf knopf--haupt" id="schnipsel-start">Ausschneiden starten</button>
+          <button type="button" class="knopf" id="schnipsel-ende" hidden>Beenden (Esc)</button>
+        </div>
+        <p class="studio-meldung" id="schnipsel-meldung" role="status" aria-live="polite"></p>
+        <div class="letzte-aufnahme" id="schnipsel-letzte" hidden>
+          <img id="schnipsel-vorschau" alt="Zuletzt ausgeschnitten">
+          <div>
+            <span class="kennung" id="schnipsel-kennung"></span>
+            <span class="letzte-zahl" id="schnipsel-zahl"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="schnipsel-buehne" id="schnipsel-buehne" tabindex="0" role="application"
+         aria-label="Bereich zum Ausschneiden aufziehen">
+      <div class="schnipsel-flaeche" id="schnipsel-flaeche">
+        <canvas id="schnipsel-leinwand" hidden></canvas>
+        <div class="schnipsel-rahmen" id="schnipsel-rahmen" hidden><span class="schnipsel-masse" id="schnipsel-masse"></span></div>
+      </div>
+      <p class="quelle-leer" id="schnipsel-leer">
+        Ablage oben festlegen, dann <strong>Ausschneiden starten</strong>. Der Browser fragt,
+        welcher Bildschirm, welches Fenster oder welcher Tab freigegeben wird – die Anwendung
+        starten Sie selbst. Danach hier den Bereich aufziehen: beim Loslassen ist die Aufnahme gemacht.
+      </p>
+    </div>
+  </section>
+
   <section id="eingang-ansicht" aria-label="Eingang" hidden>
     <div class="eingang-kennzahlen" id="eingang-kennzahlen"></div>
     <div class="eingang-leiste">
@@ -215,5 +265,6 @@
   'use strict';
 /*%UI%*/
 /*%AUFNAHME%*/
+/*%SCHNIPSEL%*/
 })();
 </script>

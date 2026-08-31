@@ -209,6 +209,52 @@ s.test('die Ansicht steht in der Adresszeile', () => {
   gleich(kern.zustandZuQuery(kern.STANDARD_ZUSTAND), '', 'die Vorgabe steht unnötig in der Adresse');
 });
 
+/* ---------------------------------------------------------------- Ablage */
+
+s.test('Dateinamen entstehen aus dem Muster', () => {
+  gleich(kern.dateinameAus('screenarchiv-{datum}-{nummer}', { datum: '2026-08-28', nummer: '007' }), 'screenarchiv-2026-08-28-007.png');
+  gleich(kern.dateinameAus('{projekt}-{titel}', { projekt: 'oneSCM Portal', titel: 'Kopfzeile & Menü!' }), 'onescm-portal-kopfzeile-menue.png');
+  gleich(kern.dateinameAus('{kategorie}', { kategorie: 'Farbe & Kontrast' }), 'farbe-kontrast.png');
+  gleich(kern.dateinameAus('', {}), 'screenarchiv-.png'.replace('-.', '.'), 'leeres Muster fällt nicht auf die Vorgabe zurück');
+});
+
+s.test('Dateinamen bleiben unbedenklich', () => {
+  gleich(kern.bereinigeDateiname('../../etc/passwd'), 'etc-passwd', 'Pfadangaben werden nicht entschärft');
+  gleich(kern.bereinigeDateiname('Bild: "Kopf" <1>'), 'bild-kopf-1');
+  gleich(kern.bereinigeDateiname('   '), '');
+  gleich(kern.bereinigeDateiname('ÄÖÜ Straße'), 'aeoeue-strasse');
+  wahr(kern.bereinigeDateiname('x'.repeat(200)).length <= 60, 'der Name wird nicht begrenzt');
+  gleich(kern.dateinameAus('{titel}', { titel: '///' }), 'aufnahme.png', 'ohne brauchbaren Rest fehlt der Ersatzname');
+});
+
+s.test('ein unbekannter Baustein fällt im Namen auf', () => {
+  gleich(kern.dateinameAus('{schirm}-{datum}', { datum: '2026-08-28' }), 'schirm-2026-08-28.png');
+});
+
+s.test('ohne Ziel wird das Ausschneiden verweigert', () => {
+  gleich(kern.pruefeAblage(kern.ABLAGE_STANDARD).length, 0);
+  gleich(kern.pruefeAblage({ eingang: false, ordner: false, datei: false })[0].feld, 'ziel');
+  gleich(kern.pruefeAblage({ eingang: true, muster: '  ' })[0].feld, 'muster');
+  gleich(kern.pruefeAblage({ eingang: false, ordner: true, datei: false }).length, 0, 'ein Ordner allein reicht nicht');
+});
+
+s.test('die Ablage überlebt das Speichern – der Ordner bewusst nicht', () => {
+  const gewaehlt = { eingang: false, ordner: true, datei: true, muster: '{projekt}-{nummer}' };
+  const zurueck = kern.leseAblage(kern.schreibeAblage(gewaehlt));
+  gleich(zurueck.eingang, false);
+  gleich(zurueck.datei, true);
+  gleich(zurueck.muster, '{projekt}-{nummer}');
+  gleich(zurueck.ordner, false, 'der Zugriff auf einen Ordner lässt sich nicht mitspeichern');
+  tieferGleich(kern.leseAblage('{kaputt'), { ...kern.ABLAGE_STANDARD }, 'kaputter Speicher wirft');
+  gleich(kern.leseAblage(null).eingang, true);
+});
+
+s.test('die gewählten Ziele lassen sich in einem Satz nennen', () => {
+  gleich(kern.beschreibeAblage({ eingang: true, ordner: false, datei: false }), 'Eingang');
+  gleich(kern.beschreibeAblage({ eingang: true, ordner: true, datei: true }, 'Bilder'), 'Eingang + Ordner „Bilder“ + Datei');
+  gleich(kern.beschreibeAblage({ eingang: false, ordner: false, datei: false }), 'kein Ziel');
+});
+
 /* ---------------------------------------------------------- Kontaktbogen */
 
 const bogenProbe = () => [

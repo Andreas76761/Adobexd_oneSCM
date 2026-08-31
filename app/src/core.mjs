@@ -21,7 +21,7 @@ export const STANDARD_ZUSTAND = {
 export const ARCHIV_ANSICHTEN = ['aktiv', 'archiv', 'alle'];
 
 /** Hauptansichten der Seite (Navigation oben links). */
-export const ANSICHTEN = ['archiv', 'aufnahme', 'eingang'];
+export const ANSICHTEN = ['archiv', 'aufnahme', 'ausschneiden', 'eingang'];
 
 export const SORTIERUNGEN = [
   { id: 'datum-neu', label: 'Neueste zuerst' },
@@ -744,4 +744,111 @@ export function baueKontaktbogen(aufnahmen, angaben = {}) {
 </div>
 </body>
 </html>`;
+}
+
+/* =========================================================================
+   Ablage der Schnipsel (ab v1.7.0)
+
+   Vor dem Ausschneiden wird festgelegt, wohin die Bilder gehen. Drei Ziele
+   lassen sich einzeln oder gemeinsam waehlen; welche moeglich sind, entscheidet
+   der Browser und die umgebende Ansicht - nicht diese Datei.
+   ========================================================================= */
+
+export const ABLAGE_SCHLUESSEL = 'screenarchiv:ablage';
+
+export const ABLAGE_STANDARD = {
+  eingang: true,
+  ordner: false,
+  datei: false,
+  muster: 'screenarchiv-{datum}-{nummer}'
+};
+
+export const ABLAGE_ZIELE = [
+  { id: 'eingang', label: 'Eingang in dieser Seite', hinweis: 'Bleibt im Browser, überlebt kein Löschen der Browserdaten.' },
+  { id: 'ordner', label: 'Ordner auf dem Rechner', hinweis: 'Einmal wählen, danach schreibt die Seite jede Aufnahme still hinein.' },
+  { id: 'datei', label: 'Einzeln als Datei sichern', hinweis: 'Jede Aufnahme wird einzeln bestätigt.' }
+];
+
+export const MUSTER_FELDER = [
+  { feld: '{datum}', erklaerung: 'Aufnahmedatum, JJJJ-MM-TT' },
+  { feld: '{zeit}', erklaerung: 'Uhrzeit, SS-MM-SS' },
+  { feld: '{nummer}', erklaerung: 'laufende Nummer, dreistellig' },
+  { feld: '{projekt}', erklaerung: 'Projekt aus den Metadaten' },
+  { feld: '{titel}', erklaerung: 'Titel aus den Metadaten' },
+  { feld: '{kategorie}', erklaerung: 'Kategorie aus den Metadaten' }
+];
+
+/** Macht aus beliebigem Text einen unbedenklichen Dateinamensbestandteil. */
+export function bereinigeDateiname(text) {
+  return normalisiereLang(text)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+}
+
+/**
+ * Setzt das Muster in einen Dateinamen um. Ein unbekannter Platzhalter wird
+ * als Wort uebernommen ({schirm} -> "schirm") - so faellt ein Tippfehler im
+ * Dateinamen auf, statt still zu verschwinden.
+ */
+export function dateinameAus(muster, felder = {}, endung = 'png') {
+  const werte = {
+    '{datum}': felder.datum || '',
+    '{zeit}': felder.zeit || '',
+    '{nummer}': felder.nummer || '',
+    '{projekt}': felder.projekt || '',
+    '{titel}': felder.titel || '',
+    '{kategorie}': felder.kategorie || ''
+  };
+  let name = String(muster || ABLAGE_STANDARD.muster);
+  for (const [platzhalter, wert] of Object.entries(werte)) {
+    name = name.split(platzhalter).join(bereinigeDateiname(wert));
+  }
+  name = bereinigeDateiname(name) || 'aufnahme';
+  return `${name}.${endung}`;
+}
+
+/** Mindestens ein Ziel muss gewaehlt sein, sonst ginge die Aufnahme verloren. */
+export function pruefeAblage(ablage) {
+  const a = { ...ABLAGE_STANDARD, ...ablage };
+  const probleme = [];
+  if (!a.eingang && !a.ordner && !a.datei) {
+    probleme.push({ feld: 'ziel', text: 'Kein Ablageziel gewählt – die Aufnahme hätte keinen Ort.' });
+  }
+  if (!String(a.muster || '').trim()) {
+    probleme.push({ feld: 'muster', text: 'Das Namensmuster ist leer.' });
+  }
+  return probleme;
+}
+
+export function leseAblage(text) {
+  if (!text) return { ...ABLAGE_STANDARD };
+  try {
+    const roh = JSON.parse(text);
+    return {
+      eingang: roh.eingang !== false,
+      // Ein Ordner gilt nur fuer die Sitzung: der Zugriff darauf laesst sich
+      // nicht mitspeichern, er muss jedes Mal neu erlaubt werden.
+      ordner: false,
+      datei: Boolean(roh.datei),
+      muster: typeof roh.muster === 'string' && roh.muster.trim() ? roh.muster : ABLAGE_STANDARD.muster
+    };
+  } catch (fehler) {
+    return { ...ABLAGE_STANDARD };
+  }
+}
+
+export function schreibeAblage(ablage) {
+  const a = { ...ABLAGE_STANDARD, ...ablage };
+  return JSON.stringify({ eingang: a.eingang, datei: a.datei, muster: a.muster });
+}
+
+/** Kurzfassung der gewaehlten Ziele fuer die Anzeige. */
+export function beschreibeAblage(ablage, ordnername) {
+  const a = { ...ABLAGE_STANDARD, ...ablage };
+  const teile = [];
+  if (a.eingang) teile.push('Eingang');
+  if (a.ordner) teile.push(ordnername ? `Ordner „${ordnername}“` : 'Ordner');
+  if (a.datei) teile.push('Datei');
+  return teile.length ? teile.join(' + ') : 'kein Ziel';
 }

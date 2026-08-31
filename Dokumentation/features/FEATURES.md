@@ -1,6 +1,6 @@
 # Feature-Katalog
 
-Stand: Anwendung **v1.6.0**, Datenbestand **1.0.0**.
+Stand: Anwendung **v1.7.0**, Datenbestand **1.0.0**.
 
 Jede Funktion hat eine feste Kennung. Sie bleibt bestehen, auch wenn sich die
 Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Änderung.
@@ -26,13 +26,14 @@ Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Ä
 | F-13 | Reaktionsfähiges Layout | 1.0.0 | `styles.css`, `ui.js` → `richteSchub` | Oberfläche: „kein waagerechter Überlauf …“, „Filterleiste klappt …“ |
 | F-14 | Eingebettete Aufnahmen | 1.0.0 | `data/generator/`, `app/build/build.mjs` | Aufnahmen: 5 Fälle · Build: „lädt von außen nur erlaubte Schriftquellen“ |
 | F-15 | Gemerkte Vergleichsart | 1.0.0 | `ui.js` → `leseModus`, `merkeModus` | Oberfläche: „Vergleichsarten lassen sich umschalten“ |
-| F-16 | Portalnavigation | 1.1.0 | `ui.js` → `zeigeAnsicht` | Aufnahme: „Portalnavigation …“, „Ein Verweis öffnet …“ |
+| F-16 | Portalnavigation | 1.1.0, erweitert 1.7.0 | `ui.js` → `zeigeAnsicht` | Aufnahme: „Portalnavigation …“ · Ausschneiden: „Die Navigation führt …“ |
 | F-17 | Aufnahmestudio mit vier Quellen | 1.1.0, erweitert 1.3.0 und 1.4.0 | `aufnahme.js` → `quelleBildschirm`, `quelleZwischenablage`, `warteAufEinfuegen` | Aufnahme: 11 Fälle |
 | F-18 | Wahl des Bildschirmausschnitts | 1.1.0 | `core.mjs` → `begrenzeAusschnitt`, `presetAusschnitt`; `aufnahme.js` → `verdrahteBuehne` | Kernlogik: 2 Fälle · Aufnahme: 5 Fälle |
 | F-19 | Metadaten und Datum | 1.1.0 | `core.mjs` → `pruefeEntwurf`, `titelVorschlag`; `aufnahme.js` → `baueFormular` | Kernlogik: 5 Fälle · Aufnahme: 3 Fälle |
 | F-20 | Auslösen mit der Leertaste | 1.1.0, erweitert 1.4.0 | `aufnahme.js` → `loeseAus`, `schneideAus`, `sichereEingang` | Aufnahme: 8 Fälle |
 | F-21 | Eingang mit Nachpflege | 1.1.0 | `core.mjs` → `filtereEingang`, `istVollstaendig`; `aufnahme.js` → `zeichneEingang` | Kernlogik: 6 Fälle · Aufnahme: 7 Fälle |
 | F-22 | Eingang als JSON sichern | 1.1.0 | `core.mjs` → `eingangAlsExport`; `aufnahme.js` → `sichereAlsDatei` | Kernlogik: 1 Fall · Aufnahme: „Sichern bietet … Ersatzweg“ |
+| F-26 | Ausschneiden mit wählbarer Ablage | 1.7.0 | `core.mjs` → `dateinameAus`, `pruefeAblage`; `schnipsel.js` | Kernlogik: 6 Fälle · Ausschneiden: 15 Fälle |
 | F-25 | Bilderstapel | 1.6.0 | `aufnahme.js` → `quelleDateien`, `zeigeStapelbild` | Aufnahme: 5 Fälle |
 | F-24 | Kompakter Aufnahmemodus | 1.5.0 | `aufnahme.js` → `setzeKompakt`; `styles.css` → `body.kompakt` | Aufnahme: 9 Fälle |
 | F-23 | Kontaktbogen als eine Datei | 1.2.0 | `core.mjs` → `baueKontaktbogen`, `maskiereHtml`; `aufnahme.js` → `sichereKontaktbogen`, `uebergebeDatei` | Kernlogik: 8 Fälle · Aufnahme: 6 Fälle |
@@ -202,9 +203,10 @@ nicht verfügbar, gilt der Schieberegler als Vorgabe; ein Fehler entsteht nicht.
 
 ## F-16 · Portalnavigation
 
-Oben links, unter dem Titel, steht die Gruppe **Portal** mit drei Ansichten:
-**Archiv** (der Bestand), **Aufnahme** (aufnehmen) und **Eingang** (die
-aufgenommenen Bilder). Am Eingang zeigt eine Marke, wie viele Aufnahmen dort
+Oben links, unter dem Titel, steht die Gruppe **Portal** mit vier Ansichten:
+**Archiv** (der Bestand), **Aufnahme** (Quelle wählen und auslösen),
+**Ausschneiden** (Schnipsel vom geteilten Bildschirm, F-26) und **Eingang**
+(die aufgenommenen Bilder). Am Eingang zeigt eine Marke, wie viele Aufnahmen dort
 liegen. Die Ansicht steht in der Adresszeile (`#ans=aufnahme`) und lässt sich
 verlinken. Die Suche im Kopf gehört zum Archiv und tritt in den anderen
 Ansichten zurück; der Eingang hat seine eigene.
@@ -419,3 +421,39 @@ Beispielquelle – beendet den Stapel und blendet die Leiste aus.
 gezogenes Bild kommt nur als Verweis an, und die Seite darf nichts nachladen.
 Statt still nichts zu tun, nennt die App den Grund und die beiden Wege, die
 gehen – Datei speichern und ablegen, oder den Bildschirm freigeben.
+
+
+---
+
+## F-26 · Ausschneiden mit wählbarer Ablage
+
+**Zweck** Der Ablauf eines Ausschneidewerkzeugs, aber in der Seite: aufziehen,
+loslassen, fertig – ohne zweiten Tastendruck, ohne Bestätigung, und dorthin,
+wo es vorher festgelegt wurde.
+
+**Was die Seite nicht kann** Das Ausschneidewerkzeug des Betriebssystems
+starten. Kein Browser erlaubt einer Seite, eine fremde Anwendung zu öffnen.
+Browser und Anwendung startet die Person selbst und gibt sie frei.
+
+**Ablauf** Ablage festlegen → *Ausschneiden starten* (der Browser fragt nach
+Bildschirm, Fenster oder Tab) → Bereich aufziehen, der Rahmen zeigt die Maße
+mit → loslassen. Die Freigabe bleibt bestehen, der nächste Zug ist der nächste
+Schnipsel. `Esc`, *Beenden*, ein Ansichtswechsel oder das Ende der Freigabe
+halten an und stoppen den Datenstrom.
+
+**Ablageziele** (einzeln oder gemeinsam)
+
+| Ziel | Was passiert | Wo es geht |
+| --- | --- | --- |
+| Eingang in dieser Seite | JPEG im Browser, mit Kennung und Metadaten wie jede Aufnahme | überall |
+| Ordner auf dem Rechner | einmal wählen, danach schreibt die Seite jedes PNG still hinein | Chrome und Edge, wenn die umgebende Seite es zulässt |
+| Einzeln als Datei sichern | jedes PNG wird einzeln bestätigt | wo die Ablagefähigkeit besteht |
+
+Ohne Ziel bleibt der Start gesperrt – eine Aufnahme ohne Ort wäre verloren.
+Der Ordnerzugriff gilt nur für die Sitzung; die übrigen Einstellungen bleiben
+gespeichert.
+
+**Namensmuster** `{datum}` `{zeit}` `{nummer}` `{projekt}` `{titel}`
+`{kategorie}`, mit lebendem Beispiel. Namen werden entschärft: Umlaute
+aufgelöst, Sonderzeichen und Pfadangaben entfernt, auf 60 Zeichen begrenzt. Ein
+unbekannter Baustein wird als Wort übernommen, damit ein Tippfehler auffällt.

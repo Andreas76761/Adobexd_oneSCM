@@ -90,8 +90,7 @@ for (const { name, optionen, vorher } of ansichten) {
 
 /* Kompakter Aufnahmemodus. Die Bildschirmfreigabe wird durch einen
    Leinwand-Datenstrom nachgestellt - anders ist sie nicht zu zeigen. */
-{
-  const geteilterBildschirm = `
+const geteilterBildschirm = `
     const leinwand = document.createElement('canvas');
     leinwand.width = 1600; leinwand.height = 900;
     const stift = leinwand.getContext('2d');
@@ -114,6 +113,7 @@ for (const { name, optionen, vorher } of ansichten) {
       configurable: true, value: { getDisplayMedia: async () => window.__strom }
     });`;
 
+{
   for (const [name, thema] of [['kompakt', 'light'], ['kompakt-dunkel', 'dark']]) {
     const kontext = await browser.newContext({ viewport: { width: 1500, height: 940 }, colorScheme: thema });
     await kontext.addInitScript(geteilterBildschirm);
@@ -130,6 +130,45 @@ for (const { name, optionen, vorher } of ansichten) {
     await seite.click('#ausloesen');
     await seite.waitForTimeout(800);
     await seite.screenshot({ path: join(ziel, name + '.png') });
+    console.log(name + '.png');
+    await kontext.close();
+  }
+}
+
+/* Ausschneiden: Freigabe und Ordnerwahl nachgestellt, Zug im Gange. */
+{
+  const umgebung = geteilterBildschirm + `
+    window.__geschrieben = [];
+    window.showDirectoryPicker = async () => ({
+      name: 'Bildschirmfotos', queryPermission: async () => 'granted',
+      getFileHandle: async (name) => ({ createWritable: async () => ({
+        write: async (b) => window.__geschrieben.push({ name, groesse: b.size }), close: async () => {} }) })
+    });`;
+  for (const [name, thema, imZug] of [['ausschneiden', 'light', true], ['ausschneiden-dunkel', 'dark', false]]) {
+    const kontext = await browser.newContext({ viewport: { width: 1500, height: 980 }, colorScheme: thema });
+    await kontext.addInitScript(umgebung);
+    const seite = await kontext.newPage();
+    await seite.goto(adresse + '#ans=ausschneiden', { waitUntil: 'load' });
+    await seite.waitForSelector('html[data-bereit="ja"]');
+    await seite.fill('#ablage-muster', 'reklamation-{nummer}-{datum}');
+    await seite.click('#ordner-waehlen');
+    await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked);
+    await seite.click('#schnipsel-start');
+    await seite.waitForSelector('#schnipsel-leinwand:not([hidden])');
+    await seite.waitForTimeout(400);
+    const masse = await seite.locator('#schnipsel-leinwand').boundingBox();
+    await seite.mouse.move(masse.x + masse.width * 0.08, masse.y + masse.height * 0.22);
+    await seite.mouse.down();
+    await seite.mouse.move(masse.x + masse.width * 0.72, masse.y + masse.height * 0.72, { steps: 20 });
+    if (imZug) {
+      await seite.waitForTimeout(300);
+      await seite.screenshot({ path: join(ziel, name + '.png') });
+      await seite.mouse.up();
+    } else {
+      await seite.mouse.up();
+      await seite.waitForTimeout(900);
+      await seite.screenshot({ path: join(ziel, name + '.png') });
+    }
     console.log(name + '.png');
     await kontext.close();
   }

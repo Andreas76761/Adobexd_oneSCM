@@ -26,10 +26,12 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `03-aufnahmen.test.mjs` | erzeugte SVG-Aufnahmen: Vollständigkeit, Maße, Sauberkeit, Determinismus | 8 |
 | `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken, doppelte Selektoren | 15 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
-| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme und Eingang: Kennungen, Begriffe, Prüfregeln, Ausschnitt, Filter, Speicher, Kontaktbogen | 27 |
+| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage und Kontaktbogen | 33 |
 | `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Bilderstapel, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen | 59 |
 
-Summe: **153 Prüfungen**.
+| `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beenden | 15 |
+
+Summe: **174 Prüfungen**.
 
 ## Eigene Helfer
 
@@ -77,6 +79,10 @@ Summe: **153 Prüfungen**.
   Bildschirmfoto aus der Systemtaste – und prüft, dass daraus eine Quelle wird.
   Ein zweiter Fall stellt die gesperrte Richtlinie nach und verlangt, dass die
   Meldung Ursache **und** Ausweg nennt.
+* **Ordnerwahl und Schreibzugriff werden nachgebildet.** Der Test schiebt ein
+  `showDirectoryPicker` unter, das jeden Schreibvorgang festhält – so ist der
+  ganze Weg bis in die Datei geprüft, samt Dateiname aus dem Muster und PNG als
+  Format, ohne dass etwas auf die Platte gelangt.
 * **Die Bildschirmfreigabe wird durch einen Leinwand-Datenstrom vertreten.**
   `canvas.captureStream()` liefert einen echten `MediaStream`; damit laufen
   Video, laufende Vorschau, Ausschnitt, Serienauslösung und das Ende der
@@ -108,9 +114,10 @@ geschärft, nicht aufgeweicht.
 
 ## Was nicht geprüft wird
 
-Das Aussehen selbst. Dafür gibt es `npm run schuss`: das Skript legt elf
+Das Aussehen selbst. Dafür gibt es `npm run schuss`: das Skript legt dreizehn
 Bildschirmaufnahmen der fertigen Seite ab (Liste, Detailansicht, Telefon,
-Aufnahmestudio, Kompaktmodus, Eingang, Nachpflege – hell und dunkel) sowie
+Aufnahmestudio, Kompaktmodus, Ausschneiden, Eingang, Nachpflege – hell und
+dunkel) sowie
 einen echten Kontaktbogen samt Bild davon. Zum Ansehen, nicht zum automatischen
 Vergleichen: Automatisiert wird nur, was sich eindeutig entscheiden lässt.
 

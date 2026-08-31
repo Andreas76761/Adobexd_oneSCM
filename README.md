@@ -25,7 +25,7 @@ Einzeln:
 | --- | --- |
 | `npm run screens` | erzeugt aus `data/eintraege.json` die 40 Aufnahmen in `data/screens/` |
 | `npm run build` | setzt Daten, Aufnahmen, Logik, Stil und Oberfläche zu `dist/index.html` zusammen |
-| `npm test` | 153 Prüfungen: Daten, Kernlogik, Aufnahmen, Build, Oberfläche, Aufnahmemodus |
+| `npm test` | 174 Prüfungen: Daten, Kernlogik, Aufnahmen, Build, Oberfläche, Aufnahmemodus |
 | `npm run test:e2e` | nur die Browserprüfung |
 
 ## Aufbau
@@ -55,6 +55,10 @@ Bilddatei oder ganzer Bilderstapel, Beispiel), kompakter Aufnahmemodus für
 Serien vom geteilten Bildschirm,
 Ausschnitt per Maus, Ecken, Vorgabeformaten oder Pfeiltasten, Metadaten und
 Datum, Auslösen mit der Leertaste.
+
+**Ausschneiden** – Bildschirm freigeben, Bereich aufziehen, beim Loslassen ist
+der Schnipsel gemacht. Wohin er geht, wird vorher festgelegt: Eingang, ein
+Ordner auf dem Rechner oder eine einzelne Datei, mit eigenem Namensmuster.
 
 **Eingang** – Vorschau aller Aufnahmen, Marke für Unvollständiges, Nachtragen
 von Kategorie, Begriffen und übrigen Angaben, Suche, Filter, Sortierung.

@@ -450,19 +450,27 @@ function verdrahteBuehne() {
 
 /* -------------------------------------------------------------- Auslöser */
 
-function schneideAus() {
-  const hoechsteBreite = 1100;
-  const massstab = Math.min(1, hoechsteBreite / ausschnitt.breite);
-  const breite = Math.max(1, Math.round(ausschnitt.breite * massstab));
-  const hoehe = Math.max(1, Math.round(ausschnitt.hoehe * massstab));
+/**
+ * Schneidet einen Bereich aus einer Quelle und gibt die Leinwand zurueck.
+ * Auch das Ausschneiden (schnipsel.js) nutzt diesen Weg - so entsteht der
+ * Zuschnitt an einer einzigen Stelle.
+ */
+function schneideLeinwand(quelleObj, bereich, hoechsteBreite = 1100) {
+  const massstab = Math.min(1, hoechsteBreite / bereich.breite);
+  const breite = Math.max(1, Math.round(bereich.breite * massstab));
+  const hoehe = Math.max(1, Math.round(bereich.hoehe * massstab));
   const leinwand = document.createElement('canvas');
   leinwand.width = breite;
   leinwand.height = hoehe;
   const stift = leinwand.getContext('2d');
   stift.fillStyle = '#ffffff';
   stift.fillRect(0, 0, breite, hoehe);
-  stift.drawImage(quelle.element, ausschnitt.x, ausschnitt.y, ausschnitt.breite, ausschnitt.hoehe, 0, 0, breite, hoehe);
-  return leinwand.toDataURL('image/jpeg', 0.72);
+  stift.drawImage(quelleObj.element, bereich.x, bereich.y, bereich.breite, bereich.hoehe, 0, 0, breite, hoehe);
+  return leinwand;
+}
+
+function schneideAus() {
+  return schneideLeinwand(quelle, ausschnitt).toDataURL('image/jpeg', 0.72);
 }
 
 /** Nimmt auf. Rückgabe: die Kennung oder null, wenn etwas fehlt. */
@@ -1179,4 +1187,3 @@ function verdrahteAufnahme() {
 }
 
 verdrahteAufnahme();
-starte();

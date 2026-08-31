@@ -287,6 +287,7 @@ function zeichneRaster() {
 const ABSCHNITTE = {
   archiv: 'archiv-ansicht',
   aufnahme: 'aufnahme-ansicht',
+  ausschneiden: 'schnipsel-ansicht',
   eingang: 'eingang-ansicht'
 };
 
@@ -318,6 +319,8 @@ function zeichne() {
   }
   if (zustand.ansicht === 'aufnahme') zeichneStudio();
   else if (document.body.classList.contains('kompakt')) setzeKompakt(false);
+  if (zustand.ansicht === 'ausschneiden') zeichneSchnipsel();
+  else beendeAusschneiden(true);
   if (zustand.ansicht === 'eingang') zeichneEingang();
   zeigeAnsicht();
 }

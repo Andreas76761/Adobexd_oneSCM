@@ -780,3 +780,70 @@ body.kompakt .taste { font-size: 10px; }
   body.kompakt .aufnahme-raster { grid-template-columns: 1fr; }
   body.kompakt .buehne-quelle { min-height: 46vh; }
 }
+
+/* ------------------------------------------------------------ Ausschneiden */
+
+.schnipsel-kopf {
+  display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: clamp(16px, 2.5vw, 30px);
+  padding: 20px 0 14px; align-items: start;
+}
+@media (max-width: 900px) { .schnipsel-kopf { grid-template-columns: 1fr; } }
+
+.ablage {
+  background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--radius);
+  padding: 14px 16px 16px; display: grid; gap: 10px;
+}
+.ablage .abschnitt-titel { margin-bottom: 0; }
+.ablage-ziele { display: grid; gap: 7px; }
+.ablage-ziel {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 12px; align-items: center;
+  padding: 7px 10px; border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche-2);
+}
+.ablage-ziel--an { border-color: var(--akzent); background: var(--akzent-hauch); }
+.ablage-ziel label { display: flex; align-items: center; gap: 9px; font-size: 13.5px; cursor: pointer; }
+.ablage-ziel input { width: 15px; height: 15px; accent-color: var(--akzent); }
+.ablage-ziel .feld-hinweis { grid-column: 1 / 2; }
+.ablage-ordner { grid-row: 1 / 3; display: flex; align-items: center; gap: 8px; }
+.ablage-warnung { font-size: 13px; color: var(--warn); }
+.ablage-warnung[hidden] { display: none; }
+.ablage code {
+  font-family: var(--schrift-mono); font-size: 11px; background: var(--flaeche-3);
+  border-radius: 2px; padding: 1px 4px;
+}
+
+.schnipsel-start { display: grid; gap: 10px; align-content: start; }
+.schnipsel-ziel-zeile { font-size: 13px; color: var(--tinte-3); }
+.schnipsel-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.schnipsel-buehne {
+  position: relative; overflow: hidden; margin-bottom: 60px;
+  min-height: 340px; display: grid; place-items: center;
+  background: var(--flaeche-2); border: 1px solid var(--linie); border-radius: var(--radius);
+  touch-action: none;
+}
+.schnipsel-buehne.scharf { cursor: crosshair; border-color: var(--linie-stark); }
+/* Die Fläche umschließt die Leinwand genau - der Rahmen rechnet in Prozent
+   davon, und die Höhe bleibt so begrenzt, dass die Ablage sichtbar bleibt. */
+.schnipsel-flaeche { position: relative; display: block; line-height: 0; max-width: 100%; }
+.schnipsel-buehne canvas {
+  display: block; width: auto; max-width: 100%;
+  max-height: calc(100vh - 420px); height: auto;
+}
+.schnipsel-buehne canvas[hidden] { display: none; }
+.schnipsel-buehne.blitzt::after {
+  content: ''; position: absolute; inset: 0; background: #fff; opacity: 0;
+  animation: blitz .32s ease-out; pointer-events: none;
+}
+
+.schnipsel-rahmen {
+  position: absolute; border: 2px solid var(--akzent);
+  box-shadow: 0 0 0 9999px rgba(15, 19, 26, .48); pointer-events: none;
+}
+.schnipsel-rahmen[hidden] { display: none; }
+.schnipsel-masse {
+  /* Innen oben links - außerhalb wäre die Angabe bei einem Rahmen am oberen
+     Rand abgeschnitten. */
+  position: absolute; left: 3px; top: 3px; line-height: 1.5;
+  font-family: var(--schrift-mono); font-size: 11px; color: var(--auf-farbe);
+  background: var(--akzent); border-radius: 2px; padding: 1px 6px; white-space: nowrap;
+}

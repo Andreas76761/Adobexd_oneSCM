@@ -29,13 +29,14 @@ npm test          # muss vollständig grün sein
 
 ## Regeln
 
-* **Kernlogik gehört in `app/src/core.mjs`**, nicht in `ui.js` oder
-  `aufnahme.js`. Nur so ist sie ohne Browser testbar. `core.mjs` darf kein DOM
+* **Kernlogik gehört in `app/src/core.mjs`**, nicht in die Oberflächenmodule. Nur so ist sie ohne Browser testbar. `core.mjs` darf kein DOM
   anfassen.
-* **`ui.js` und `aufnahme.js` landen in einer gemeinsamen Klammer.** Sie teilen
-  sich dadurch `el`, `$`, `zustand` und `zeichne`. Der Start steht in `starte()`
-  (erklärt in `ui.js`) und wird in der letzten Zeile von `aufnahme.js`
-  aufgerufen – vorher stehen dortige `const`/`let` noch nicht bereit.
+* **`ui.js`, `aufnahme.js` und `schnipsel.js` landen in einer gemeinsamen
+  Klammer.** Sie teilen sich dadurch `el`, `$`, `zustand` und `zeichne`. Der
+  Start steht in `starte()` (erklärt in `ui.js`) und wird in der **letzten
+  Zeile der letzten Datei** aufgerufen – derzeit `schnipsel.js`. Kommt ein
+  weiteres Oberflächenmodul dazu, wandert der Aufruf ans neue Ende; vorher
+  stehen dortige `const`/`let` noch nicht bereit.
 * **Keine externen Ressourcen** in der Seite außer den Schriften von
   `fonts.googleapis.com` / `fonts.gstatic.com`. Bilder, Skripte und Daten
   werden eingebettet – alles andere blockiert die Inhaltsrichtlinie des
