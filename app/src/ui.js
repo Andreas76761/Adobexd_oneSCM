@@ -261,19 +261,98 @@ async function zeigeOrdnerImArchiv() {
   band.hidden = false;
   $('#ordner-name').textContent = ordnerZugriff.name;
   $('#ordner-stand').textContent = 'wird gelesen …';
+  verbergeZettel();
   const bilder = await liesOrdnerBilder(12);
   const gesamt = bilder.gesamt || bilder.length;
-  $('#ordner-stand').textContent = gesamt
-    ? `${gesamt} ${gesamt === 1 ? 'Bild' : 'Bilder'}${gesamt > bilder.length ? `, neueste ${bilder.length} gezeigt` : ''}`
-    : 'noch kein Bild abgelegt';
-  $('#ordner-streifen').replaceChildren(
-    ...bilder.map((b) =>
-      el('div', { klasse: 'streifen-bild', title: `${b.name} · ${formatiereBytes(b.groesse)}` }, [
-        el('img', { src: b.bild, alt: b.name, loading: 'lazy' }),
-        el('span', { klasse: 'kennung', text: b.name })
-      ])
-    )
+  const teile = [];
+  if (gesamt) {
+    teile.push(`${gesamt} ${gesamt === 1 ? 'Bild' : 'Bilder'}`);
+    if (gesamt > bilder.length) teile.push(`neueste ${bilder.length} gezeigt`);
+    const mitZettel = bilder.filter((b) => b.zettel).length;
+    teile.push(
+      mitZettel === bilder.length
+        ? bilder.length === 1
+          ? 'mit Beipackzettel'
+          : 'alle mit Beipackzettel'
+        : `${mitZettel} mit Beipackzettel`
+    );
+    const verwaist = (bilder.zettelOhneBild || []).length;
+    if (verwaist) teile.push(`${verwaist} Zettel ohne Bild`);
+  } else {
+    teile.push('noch kein Bild abgelegt');
+  }
+  $('#ordner-stand').textContent = teile.join(' · ');
+  $('#ordner-streifen').replaceChildren(...bilder.map(zeichneOrdnerBild));
+}
+
+/** Ein Bild im Ordnerband; mit Zettel wird die Kachel anklickbar. */
+function zeichneOrdnerBild(b) {
+  const marke = b.zettel
+    ? el('span', { klasse: 'zettel-marke', text: 'Zettel' })
+    : el('span', { klasse: 'zettel-marke zettel-marke--fehlt', text: 'kein Zettel' });
+  const kinder = [
+    el('img', { src: b.bild, alt: b.name, loading: 'lazy' }),
+    el('span', { klasse: 'kennung', text: b.name }),
+    marke
+  ];
+  const titel = `${b.name} · ${formatiereBytes(b.groesse)}`;
+  if (!b.zettel) {
+    return el(
+      'div',
+      { klasse: 'streifen-bild', title: `${titel} – kein Beipackzettel daneben` },
+      kinder
+    );
+  }
+  return el(
+    'button',
+    {
+      type: 'button',
+      klasse: 'streifen-bild',
+      title: `${titel} – Beipackzettel ${b.zettel.name} zeigen`,
+      onclick: () => zeigeZettel(b)
+    },
+    kinder
   );
+}
+
+/** Zeigt den Beipackzettel einer Ordnerdatei, gelesen aus der Datei daneben. */
+function zeigeZettel(b) {
+  const schau = $('#ordner-zettel');
+  const gelesen = leseBeipackzettel(b.zettel.text);
+  $('#zettel-datei').textContent = b.zettel.name;
+  $('#zettel-stand').textContent = gelesen.ok
+    ? `Zettelversion ${gelesen.version} · ${formatiereBytes(b.zettel.groesse)}`
+    : formatiereBytes(b.zettel.groesse);
+  const warnung = $('#zettel-warnung');
+  const hinweise = [];
+  if (!gelesen.ok) hinweise.push(gelesen.grund);
+  if (gelesen.kuenftig) {
+    hinweise.push(
+      `Der Zettel trägt Version ${gelesen.version}, diese Seite kennt ${BEIPACKZETTEL_VERSION} – es können Felder fehlen.`
+    );
+  }
+  if ((gelesen.fremd || []).length) {
+    hinweise.push(`Zusätzliche Felder in der Datei: ${gelesen.fremd.join(', ')}.`);
+  }
+  warnung.textContent = hinweise.join(' ');
+  warnung.hidden = hinweise.length === 0;
+  $('#zettel-liste').replaceChildren(
+    ...gelesen.zeilen.flatMap((zeile) => [
+      el('dt', { text: zeile.bezeichnung }),
+      el('dd', {
+        klasse: zeile.leer ? 'zettel-leer' : null,
+        text: zeile.leer ? '—' : zeile.wert
+      })
+    ])
+  );
+  $('#zettel-quelltext').textContent = b.zettel.text;
+  schau.hidden = false;
+  schau.scrollIntoView({ block: 'nearest' });
+}
+
+function verbergeZettel() {
+  const schau = $('#ordner-zettel');
+  if (schau) schau.hidden = true;
 }
 
 /* ----------------------------------------------------------- Raster */

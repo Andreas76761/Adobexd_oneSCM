@@ -20,6 +20,31 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.10.0] – Beipackzettel im Archiv
+
+### Neu
+* Im Archivband **Im Ordner** trägt jede Kachel, ob der Beipackzettel daneben
+  liegt: Marke `Zettel` oder `kein Zettel`. Die Zuordnung läuft über den
+  Dateinamen, also auch für Zettel aus früheren Sitzungen (F-27)
+* Ein Klick auf eine Kachel mit Zettel öffnet die Schau darunter: alle 16
+  Zeilen in der Folge der Datei, leere Felder als „—“, Ausschnitt und Quelle
+  lesbar gefasst, dazu die Datei im Original zum Aufklappen (F-26)
+* Der Stand neben dem Ordnernamen zählt die Zettel mit und nennt eine `.json`
+  ohne Bild eigens
+
+### Geändert
+* Das Ordnerband liest jetzt auch `.json`-Dateien, legt sie aber keinem
+  eigenen Platz im Streifen bei – sie gehören zu ihrem Bild
+
+### Kern
+* `leseBeipackzettel` und `BEIPACK_FELDER`: ein Zettel aus dem Dateisystem
+  kann von Hand geändert sein; kaputtes JSON, eine höhere Zettelversion,
+  fremde Felder und unbrauchbare Werte werden benannt statt verschluckt
+
+### Prüfung
+* 6 neue Prüfungen, zusammen 191, alle bestanden
+* Sichtprüfung: `archiv-zettel.png` und `archiv-zettel-dunkel.png`
+
 ## [1.9.0] – Beipackzettel
 
 ### Neu

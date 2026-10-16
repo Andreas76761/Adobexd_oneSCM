@@ -63,9 +63,24 @@
         <button type="button" class="knopf knopf--klein" id="ordner-auffrischen">Neu lesen</button>
       </div>
       <div class="streifen" id="ordner-streifen"></div>
+      <div class="zettel-schau" id="ordner-zettel" hidden>
+        <div class="band-kopf">
+          <h3 class="abschnitt-titel">Beipackzettel <span class="kennung" id="zettel-datei"></span></h3>
+          <span class="band-stand" id="zettel-stand"></span>
+          <button type="button" class="knopf knopf--klein" id="zettel-zu">Schließen</button>
+        </div>
+        <p class="zettel-warnung" id="zettel-warnung" hidden></p>
+        <dl class="zettel-liste" id="zettel-liste"></dl>
+        <details class="zettel-roh">
+          <summary>Datei im Original</summary>
+          <pre id="zettel-quelltext"></pre>
+        </details>
+      </div>
       <p class="band-hinweis">
         Gelesen aus dem Ordner, den die Ansicht Ausschneiden verwendet – das ist
-        der tatsächliche Inhalt, keine Aufstellung dieser Seite.
+        der tatsächliche Inhalt, keine Aufstellung dieser Seite. Ein Bild mit
+        <span class="zettel-marke">Zettel</span> führt die gleichnamige
+        <code>.json</code> daneben; ein Klick zeigt, was darin steht.
       </p>
     </div>
 

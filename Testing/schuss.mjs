@@ -201,5 +201,61 @@ const geteilterBildschirm = `
   await kontext.close();
 }
 
+/* Das Ordnerband im Archiv mit geoeffnetem Beipackzettel. */
+{
+  const umgebung = geteilterBildschirm + `
+    window.__inhalt = [];
+    const ordner = {
+      name: 'Bildschirmfotos', queryPermission: async () => 'granted',
+      getFileHandle: async (name) => ({ createWritable: async () => ({
+        write: async (b) => window.__inhalt.push({ name, blob: b, zeit: Date.now() + window.__inhalt.length }),
+        close: async () => {} }) }),
+      values: async function* () {
+        for (const e of window.__inhalt) {
+          yield { kind: 'file', name: e.name,
+            getFile: async () => new File([e.blob], e.name, { type: e.blob.type, lastModified: e.zeit }) };
+        }
+      }
+    };
+    window.showDirectoryPicker = async () => ordner;`;
+  for (const [name, thema] of [['archiv-zettel', 'light'], ['archiv-zettel-dunkel', 'dark']]) {
+    const kontext = await browser.newContext({ viewport: { width: 1500, height: 1040 }, colorScheme: thema });
+    await kontext.addInitScript(umgebung);
+    const seite = await kontext.newPage();
+    await seite.goto(adresse + '#ans=aufnahme', { waitUntil: 'load' });
+    await seite.waitForSelector('html[data-bereit="ja"]');
+    await seite.fill('#feld-titel', 'Positionsliste ohne Spaltenbreite');
+    await seite.fill('#feld-projekt', 'oneSCM Portal');
+    await seite.selectOption('#feld-kategorie', 'Layout');
+    await seite.fill('#feld-begriffe', 'tabelle, spalten');
+    await seite.fill('#feld-notiz', 'Bei 1280 px abgeschnitten');
+
+    await seite.click('.portal-nav button[data-ansicht="ausschneiden"]');
+    await seite.fill('#ablage-muster', 'reklamation-{nummer}-{datum}');
+    await seite.click('#ordner-waehlen');
+    await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked);
+    await seite.click('#schnipsel-start');
+    await seite.waitForSelector('#schnipsel-leinwand:not([hidden])');
+    await seite.waitForTimeout(400);
+    const masse = await seite.locator('#schnipsel-leinwand').boundingBox();
+    await seite.mouse.move(masse.x + masse.width * 0.08, masse.y + masse.height * 0.22);
+    await seite.mouse.down();
+    await seite.mouse.move(masse.x + masse.width * 0.72, masse.y + masse.height * 0.72, { steps: 20 });
+    await seite.mouse.up();
+    await seite.waitForFunction(() => (window.__inhalt || []).length === 2);
+
+    await seite.click('.portal-nav button[data-ansicht="archiv"]');
+    await seite.waitForSelector('#ordner-band:not([hidden])');
+    await seite.waitForFunction(() => document.querySelectorAll('#ordner-streifen .streifen-bild').length === 1);
+    await seite.click('#ordner-streifen .streifen-bild');
+    await seite.waitForSelector('#ordner-zettel:not([hidden])');
+    await seite.click('.zettel-roh summary');
+    await seite.waitForTimeout(300);
+    await seite.screenshot({ path: join(ziel, name + '.png') });
+    console.log(name + '.png');
+    await kontext.close();
+  }
+}
+
 await browser.close();
 console.log(`\nAufnahmen liegen in ${ziel}`);

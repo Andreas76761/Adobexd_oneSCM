@@ -48,7 +48,7 @@ const ordnerNachbau = `
         yield {
           kind: 'file',
           name: e.name,
-          getFile: async () => new File([e.blob], e.name, { type: 'image/png', lastModified: e.zeit })
+          getFile: async () => new File([e.blob], e.name, { type: e.blob.type, lastModified: e.zeit })
         };
       }
     }
@@ -445,6 +445,104 @@ s.test('das Archiv zeigt den Inhalt des gewählten Ordners', () =>
       wahr(
         (await seite.locator('#ordner-streifen img').first().getAttribute('src')).startsWith('data:image/png'),
         'die Vorschau kommt nicht aus der Datei'
+      );
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
+s.test('das Archiv zeigt den Beipackzettel der Ordnerdatei', () =>
+  mitSeite(
+    async (seite) => {
+      // Metadaten kommen aus der Ansicht Aufnahme
+      await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+      await seite.fill('#feld-titel', 'Kopfzeile ohne Kontrast');
+      await seite.fill('#feld-begriffe', 'kontrast, kopfzeile');
+      await seite.click('.portal-nav button[data-ansicht="ausschneiden"]');
+
+      await seite.fill('#ablage-muster', 'schirm-{nummer}');
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 30, 300, 220);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 2, null, { timeout: 5000 });
+
+      await seite.click('.portal-nav button[data-ansicht="archiv"]');
+      await seite.waitForSelector('#ordner-band:not([hidden])');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('#ordner-streifen .streifen-bild').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      const namen = await seite.locator('#ordner-streifen .kennung').allInnerTexts();
+      gleich(namen.join('|'), 'schirm-001.png', 'die .json darf keine eigene Kachel bekommen');
+      gleich(await seite.locator('#ordner-streifen .zettel-marke').innerText(), 'Zettel');
+      wahr(
+        (await seite.locator('#ordner-stand').innerText()).includes('Beipackzettel'),
+        'der Stand nennt den Zettel nicht'
+      );
+
+      gleich(await seite.locator('#ordner-zettel').isVisible(), false, 'der Zettel steht ungefragt offen');
+      await seite.click('#ordner-streifen .streifen-bild');
+      await seite.waitForSelector('#ordner-zettel:not([hidden])');
+      gleich(await seite.locator('#zettel-datei').innerText(), 'schirm-001.json');
+      gleich(await seite.locator('#zettel-warnung').isVisible(), false, 'ein eigener Zettel wird beanstandet');
+
+      const zeilen = await seite.evaluate(() => {
+        const paare = {};
+        const liste = document.getElementById('zettel-liste');
+        const dts = [...liste.querySelectorAll('dt')];
+        for (const dt of dts) paare[dt.textContent] = dt.nextElementSibling.textContent;
+        return paare;
+      });
+      gleich(zeilen.Bild, 'schirm-001.png');
+      gleich(zeilen.Titel, 'Kopfzeile ohne Kontrast');
+      gleich(zeilen.Begriffe, 'kontrast, kopfzeile');
+      wahr(/px ab /.test(zeilen.Ausschnitt), 'der Ausschnitt fehlt: ' + zeilen.Ausschnitt);
+      gleich(zeilen.Autor, '—', 'ein leeres Feld wird nicht als leer gezeigt');
+
+      // Das Original stammt aus der Datei, nicht aus dem Gedaechtnis der Seite.
+      await seite.click('.zettel-roh summary');
+      const roh = await seite.locator('#zettel-quelltext').innerText();
+      const geschrieben = await seite.evaluate(async () => {
+        const treffer = window.__inhalt.find((e) => e.name.endsWith('.json'));
+        return await treffer.blob.text();
+      });
+      gleich(JSON.parse(roh).titel, JSON.parse(geschrieben).titel);
+
+      await seite.click('#zettel-zu');
+      await seite.waitForFunction(() => document.getElementById('ordner-zettel').hidden, null, { timeout: 5000 });
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
+s.test('ein Bild ohne Zettel wird im Ordnerband als solches gezeigt', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.fill('#ablage-muster', 'schirm-{nummer}');
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      await seite.waitForSelector('#beipack-zeile:not([hidden])');
+      await seite.uncheck('#ablage-beipack');
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 30, 300, 220);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 1, null, { timeout: 5000 });
+
+      await seite.click('.portal-nav button[data-ansicht="archiv"]');
+      await seite.waitForSelector('#ordner-band:not([hidden])');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('#ordner-streifen .streifen-bild').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await seite.locator('#ordner-streifen .zettel-marke').innerText(), 'kein Zettel');
+      gleich(
+        await seite.evaluate(() => document.querySelector('#ordner-streifen .streifen-bild').tagName),
+        'DIV',
+        'ohne Zettel darf die Kachel nichts versprechen'
+      );
+      wahr(
+        (await seite.locator('#ordner-stand').innerText()).includes('0 mit Beipackzettel'),
+        'der Stand verschweigt den fehlenden Zettel'
       );
     },
     { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }

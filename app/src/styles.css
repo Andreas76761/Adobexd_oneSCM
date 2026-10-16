@@ -880,6 +880,43 @@ div.streifen-bild { cursor: default; }
   display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px;
 }
 
+/* Beipackzettel im Ordnerband: Marke an der Kachel, Schau darunter. */
+.zettel-marke {
+  justify-self: start; font-family: var(--schrift-mono); font-size: 9.5px;
+  letter-spacing: 0.04em; padding: 1px 5px; border-radius: 2px;
+  background: var(--akzent); color: var(--auf-farbe); line-height: 1.6;
+}
+.zettel-marke--fehlt { background: var(--flaeche-3); color: var(--tinte-3); }
+.band-hinweis .zettel-marke { display: inline-block; vertical-align: 1px; }
+
+.zettel-schau {
+  display: grid; gap: 10px; padding: 12px 14px;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche-2);
+}
+.zettel-schau[hidden] { display: none; }
+.zettel-schau .abschnitt-titel { font-size: 13px; }
+.zettel-warnung {
+  font-size: 12.5px; line-height: 1.5; color: var(--tinte); padding: 7px 9px;
+  border-left: 3px solid var(--warn); background: var(--warn-hauch);
+}
+.zettel-warnung[hidden] { display: none; }
+.zettel-liste {
+  margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 14px; font-size: 12.5px;
+}
+.zettel-liste dt { color: var(--tinte-3); font-size: 11.5px; }
+.zettel-liste dd {
+  margin: 0; color: var(--tinte); overflow-wrap: anywhere;
+  font-family: var(--schrift-mono); font-size: 11.5px;
+}
+.zettel-liste dd.zettel-leer { color: var(--tinte-3); font-family: var(--schrift-text); }
+.zettel-roh summary { font-size: 12.5px; color: var(--tinte-2); cursor: pointer; }
+.zettel-roh pre {
+  margin: 8px 0 0; max-height: 220px; overflow: auto; padding: 9px 10px;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche);
+  font-family: var(--schrift-mono); font-size: 11px; line-height: 1.55; color: var(--tinte-2);
+}
+
 .beipack-zeile {
   display: grid; gap: 3px;
   padding: 8px 10px; border: 1px solid var(--linie); border-radius: var(--radius);

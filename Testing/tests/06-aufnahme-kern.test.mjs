@@ -311,6 +311,76 @@ s.test('der Beipackzettel heißt wie sein Bild', () => {
   gleich(kern.beipackzettelName('ohne-endung'), 'ohne-endung.json');
 });
 
+s.test('ein gelesener Beipackzettel trägt alle Zeilen in fester Folge', () => {
+  const text = kern.baueBeipackzettel({
+    entwurf: {
+      datum: '2025-06-30',
+      titel: 'Kopfzeile ohne Kontrast',
+      projekt: 'oneSCM Portal',
+      kategorie: 'Kontrast',
+      begriffe: ['kontrast', 'kopfzeile'],
+      notiz: 'Vergleich mit 4.2'
+    },
+    bildname: 'schirm-001.png',
+    ausschnitt: { x: 12.4, y: 34.6, breite: 300, hoehe: 200 },
+    quelle: { art: 'bildschirm', name: 'Freigabe', breite: 1440, hoehe: 900 },
+    erfasstAm: '2025-06-30T09:12:00.000Z',
+    anwendung: '1.10.0'
+  });
+  const gelesen = kern.leseBeipackzettel(text);
+  gleich(gelesen.ok, true);
+  gleich(gelesen.version, kern.BEIPACKZETTEL_VERSION);
+  gleich(gelesen.kuenftig, false);
+  tieferGleich(gelesen.fremd, [], 'ein eigener Zettel darf keine fremden Felder melden');
+  gleich(gelesen.zeilen.length, kern.BEIPACK_FELDER.length);
+  const wert = (schluessel) => gelesen.zeilen.find((z) => z.schluessel === schluessel).wert;
+  gleich(wert('bild'), 'schirm-001.png');
+  gleich(wert('titel'), 'Kopfzeile ohne Kontrast');
+  gleich(wert('begriffe'), 'kontrast, kopfzeile');
+  gleich(wert('ausschnitt'), '300 × 200 px ab 12, 35', 'der Ausschnitt wird nicht lesbar gefasst');
+  gleich(wert('quelle'), 'Freigabe (bildschirm) · 1440 × 900 px');
+  gleich(wert('erzeugt_von'), 'Screenarchiv 1.10.0');
+  const leere = gelesen.zeilen.filter((z) => z.leer).map((z) => z.schluessel);
+  tieferGleich(
+    leere,
+    ['seite', 'status', 'rolle', 'autor', 'browser'],
+    'leere Felder werden falsch erkannt'
+  );
+});
+
+s.test('ein Zettel ohne Angaben zeigt jede Zeile als leer, nicht als Lücke', () => {
+  const gelesen = kern.leseBeipackzettel(kern.baueBeipackzettel({ bildname: 'a.png' }));
+  gleich(gelesen.ok, true);
+  gleich(gelesen.zeilen.length, kern.BEIPACK_FELDER.length);
+  gleich(gelesen.zeilen.filter((z) => z.leer).length, kern.BEIPACK_FELDER.length - 2, 'Bild und Erzeuger sind gefüllt');
+});
+
+s.test('ein beschädigter oder fremder Zettel wird benannt, nicht verschluckt', () => {
+  const kaputt = kern.leseBeipackzettel('{ kein json');
+  gleich(kaputt.ok, false);
+  wahr(/JSON/.test(kaputt.grund), 'der Grund nennt das Problem nicht: ' + kaputt.grund);
+  tieferGleich(kaputt.zeilen, []);
+  gleich(kern.leseBeipackzettel('[1,2]').ok, false, 'eine Liste ist kein Zettel');
+  gleich(kern.leseBeipackzettel('null').ok, false);
+
+  const fremd = kern.leseBeipackzettel(
+    JSON.stringify({ beipackzettel: 99, bild: 'a.png', eigenes_feld: 'x', zweites: 1 })
+  );
+  gleich(fremd.ok, true, 'ein fremder Zettel bleibt lesbar');
+  gleich(fremd.kuenftig, true, 'die höhere Zettelversion fällt nicht auf');
+  tieferGleich(fremd.fremd, ['eigenes_feld', 'zweites']);
+});
+
+s.test('unbrauchbare Werte im Zettel gelten als leer', () => {
+  const gelesen = kern.leseBeipackzettel(
+    JSON.stringify({ beipackzettel: 1, ausschnitt: { breite: 'x' }, quelle: {}, begriffe: 'a, b' })
+  );
+  const wert = (schluessel) => gelesen.zeilen.find((z) => z.schluessel === schluessel).wert;
+  gleich(wert('ausschnitt'), '', 'ein unvollständiger Ausschnitt wird erfunden');
+  gleich(wert('quelle'), '');
+  gleich(wert('begriffe'), 'a, b', 'Begriffe als Text müssen lesbar bleiben');
+});
+
 s.test('die Wahl des Beipackzettels wird gespeichert', () => {
   gleich(kern.ABLAGE_STANDARD.beipack, true, 'der Zettel ist nicht voreingestellt');
   gleich(kern.leseAblage(kern.schreibeAblage({ beipack: false })).beipack, false);

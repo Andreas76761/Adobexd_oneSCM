@@ -460,7 +460,8 @@ Namensmuster passt. Feste Feldfolge, auch bei leeren Werten: Zettelversion,
 erzeugende Anwendung, Bildname, Erfassungszeitpunkt, Datum, Titel, Projekt,
 Seite, Kategorie, Status, Rolle, Begriffe, Notiz, Autor, Browser, Ausschnitt,
 Quelle. Abschaltbar; das Kästchen erscheint nur bei Ordner- oder Dateizielen
-und nennt die zweite Bestätigung beim Sichern als Einzeldatei.
+und nennt die zweite Bestätigung beim Sichern als Einzeldatei. Im Archiv ist er
+seit 1.10.0 lesbar, ohne den Dateimanager zu öffnen – siehe F-27.
 
 **Namensmuster** `{datum}` `{zeit}` `{nummer}` `{projekt}` `{titel}`
 `{kategorie}`, mit lebendem Beispiel. Namen werden entschärft: Umlaute
@@ -488,6 +489,17 @@ zuerst, mit Dateinamen und Größe im Tooltip. Das ist bewusst keine Aufstellung
 aus dem Gedächtnis der Seite: es zeigt, was wirklich dort liegt, auch von
 früheren Sitzungen. „Neu lesen“ frischt auf. Gezeigt werden zwölf Bilder, die
 Gesamtzahl steht daneben.
+
+**Beipackzettel an der Kachel** (ab 1.10.0) Jede Kachel im Ordnerband trägt
+die Marke `Zettel` oder `kein Zettel` – gefunden über den gleichen Namen mit
+Endung `.json`, also auch für Zettel aus früheren Sitzungen oder von Hand
+dazugelegte. Ein Klick auf eine Kachel mit Zettel öffnet die Schau unter dem
+Streifen: alle 16 Zeilen in der Folge der Datei, leere Felder als „—“ statt als
+Lücke, Ausschnitt und Quelle lesbar gefasst, darunter die Datei im Original
+zum Aufklappen. Der Stand neben dem Ordnernamen zählt die Zettel mit und nennt
+eine `.json` ohne Bild eigens. Ein Zettel, der sich nicht lesen lässt, eine
+höhere Zettelversion, fremde Felder und unbrauchbare Werte werden benannt –
+die Datei liegt im Dateisystem und kann von Hand geändert worden sein.
 
 Beide Bänder bleiben verborgen, solange es nichts zu zeigen gibt.
 

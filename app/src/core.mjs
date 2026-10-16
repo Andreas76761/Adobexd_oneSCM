@@ -797,6 +797,90 @@ export function baueBeipackzettel({ entwurf = {}, bildname, ausschnitt, quelle, 
   );
 }
 
+/**
+ * Feldfolge und Bezeichnungen fuer die Anzeige eines gelesenen Beipackzettels.
+ * Gleiche Reihenfolge wie baueBeipackzettel - wer den Zettel in der Datei und
+ * in der Anzeige vergleicht, findet die Zeilen an derselben Stelle.
+ */
+export const BEIPACK_FELDER = [
+  ['bild', 'Bild'],
+  ['erfasst_am', 'Erfasst am'],
+  ['datum', 'Datum'],
+  ['titel', 'Titel'],
+  ['projekt', 'Projekt'],
+  ['seite', 'Seite'],
+  ['kategorie', 'Kategorie'],
+  ['status', 'Status'],
+  ['rolle', 'Rolle'],
+  ['begriffe', 'Begriffe'],
+  ['notiz', 'Notiz'],
+  ['autor', 'Autor'],
+  ['browser', 'Browser'],
+  ['ausschnitt', 'Ausschnitt'],
+  ['quelle', 'Quelle'],
+  ['erzeugt_von', 'Erzeugt von']
+];
+
+/** Ein Wert des Zettels als Text; zusammengesetzte Felder lesbar gefasst. */
+function beipackWert(schluessel, wert) {
+  if (wert === null || wert === undefined) return '';
+  if (schluessel === 'begriffe') {
+    return Array.isArray(wert) ? wert.join(', ') : String(wert).trim();
+  }
+  if (schluessel === 'ausschnitt') {
+    if (typeof wert !== 'object') return String(wert).trim();
+    const zahlen = ['breite', 'hoehe', 'x', 'y'].map((feld) => Number(wert[feld]));
+    if (!zahlen.every((zahl) => Number.isFinite(zahl))) return '';
+    const [breite, hoehe, x, y] = zahlen.map(Math.round);
+    return `${breite} \u00d7 ${hoehe} px ab ${x}, ${y}`;
+  }
+  if (schluessel === 'quelle') {
+    if (typeof wert !== 'object') return String(wert).trim();
+    const name = String(wert.name || '').trim();
+    const art = String(wert.art || '').trim();
+    const kopf = name && art ? `${name} (${art})` : name || art;
+    const breite = Number(wert.breite);
+    const hoehe = Number(wert.hoehe);
+    const mass =
+      Number.isFinite(breite) && Number.isFinite(hoehe) && breite && hoehe
+        ? `${Math.round(breite)} \u00d7 ${Math.round(hoehe)} px`
+        : '';
+    return [kopf, mass].filter(Boolean).join(' \u00b7 ');
+  }
+  return String(wert).trim();
+}
+
+/**
+ * Liest einen Beipackzettel zur Anzeige. Der Zettel kommt aus dem Dateisystem
+ * und kann von Hand geaendert worden sein - darum wird jeder Fehler benannt
+ * statt verschluckt, und fremde Felder werden gemeldet statt verworfen.
+ */
+export function leseBeipackzettel(text) {
+  let daten;
+  try {
+    daten = JSON.parse(String(text == null ? '' : text));
+  } catch (fehler) {
+    return { ok: false, grund: 'Die Datei ist kein lesbares JSON.', zeilen: [], fremd: [] };
+  }
+  if (!daten || typeof daten !== 'object' || Array.isArray(daten)) {
+    return { ok: false, grund: 'Die Datei enthaelt kein Objekt mit Feldern.', zeilen: [], fremd: [] };
+  }
+  const bekannt = BEIPACK_FELDER.map(([schluessel]) => schluessel).concat('beipackzettel');
+  const zeilen = BEIPACK_FELDER.map(([schluessel, bezeichnung]) => {
+    const wert = beipackWert(schluessel, daten[schluessel]);
+    return { schluessel, bezeichnung, wert, leer: wert === '' };
+  });
+  const version = Number(daten.beipackzettel);
+  return {
+    ok: true,
+    version: Number.isFinite(version) ? version : 0,
+    kuenftig: Number.isFinite(version) && version > BEIPACKZETTEL_VERSION,
+    fremd: Object.keys(daten).filter((schluessel) => !bekannt.includes(schluessel)),
+    zeilen,
+    daten
+  };
+}
+
 /** Gleicher Name wie das Bild, andere Endung. */
 export function beipackzettelName(bildname) {
   return String(bildname || '').replace(/\.[a-z0-9]+$/i, '') + '.json';

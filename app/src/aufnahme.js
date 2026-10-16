@@ -1167,6 +1167,7 @@ function verdrahteAufnahme() {
   $('#eingang-dialog-schliessen').addEventListener('click', () => $('#eingang-dialog').close());
   $('#zum-eingang').addEventListener('click', () => setze({ ansicht: 'eingang' }));
   $('#ordner-auffrischen').addEventListener('click', zeigeOrdnerImArchiv);
+  $('#zettel-zu').addEventListener('click', verbergeZettel);
 
   /* Eingefügte Bildschirmfotos: der Weg, der auch in einer eingebetteten
      Ansicht funktioniert. Text in Eingabefeldern bleibt unberührt, weil nur

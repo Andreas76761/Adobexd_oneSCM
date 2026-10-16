@@ -114,15 +114,36 @@ async function schreibeInOrdner(name, blob) {
   await schreiber.close();
 }
 
-/** Liest die Bilder aus dem gewählten Ordner, neueste zuerst. */
+/** Liest eine Datei als Text; der Beipackzettel ist reines JSON. */
+function liesAlsText(blob) {
+  return new Promise((fertig, scheitern) => {
+    const leser = new FileReader();
+    leser.onload = () => fertig(String(leser.result || ''));
+    leser.onerror = () => scheitern(leser.error);
+    leser.readAsText(blob);
+  });
+}
+
+/**
+ * Liest den Ordnerinhalt, neueste Bilder zuerst, und legt jedem Bild seinen
+ * Beipackzettel bei - gelesen aus der Datei daneben, nicht aus dem Gedächtnis
+ * dieser Seite. Zettel ohne Bild werden mitgezählt, damit eine verwaiste
+ * `.json` nicht unbemerkt bleibt.
+ */
 async function liesOrdnerBilder(grenze = 24) {
   if (!ordnerZugriff || typeof ordnerZugriff.values !== 'function') return [];
   const gefunden = [];
+  const zettel = new Map();
   try {
     for await (const eintrag of ordnerZugriff.values()) {
-      if (eintrag.kind !== 'file' || !/\.(png|jpe?g|webp|gif)$/i.test(eintrag.name)) continue;
-      const datei = await eintrag.getFile();
-      gefunden.push({ name: datei.name, groesse: datei.size, geaendert: datei.lastModified, datei });
+      if (eintrag.kind !== 'file') continue;
+      if (/\.(png|jpe?g|webp|gif)$/i.test(eintrag.name)) {
+        const datei = await eintrag.getFile();
+        gefunden.push({ name: datei.name, groesse: datei.size, geaendert: datei.lastModified, datei });
+      } else if (/\.json$/i.test(eintrag.name)) {
+        const datei = await eintrag.getFile();
+        zettel.set(datei.name.toLowerCase(), { name: datei.name, groesse: datei.size, datei });
+      }
     }
   } catch (fehler) {
     return [];
@@ -131,8 +152,24 @@ async function liesOrdnerBilder(grenze = 24) {
   const ausschnitt = gefunden.slice(0, grenze);
   for (const eintrag of ausschnitt) {
     eintrag.bild = await liesAlsDatenadresse(eintrag.datei);
+    const passend = zettel.get(beipackzettelName(eintrag.name).toLowerCase());
+    if (!passend) continue;
+    try {
+      eintrag.zettel = {
+        name: passend.name,
+        groesse: passend.groesse,
+        text: await liesAlsText(passend.datei)
+      };
+    } catch (fehler) {
+      eintrag.zettel = { name: passend.name, groesse: passend.groesse, text: '' };
+    }
   }
-  return Object.assign(ausschnitt, { gesamt: gefunden.length });
+  const belegt = new Set(gefunden.map((eintrag) => beipackzettelName(eintrag.name).toLowerCase()));
+  return Object.assign(ausschnitt, {
+    gesamt: gefunden.length,
+    zettelGesamt: zettel.size,
+    zettelOhneBild: [...zettel.values()].filter((z) => !belegt.has(z.name.toLowerCase())).map((z) => z.name)
+  });
 }
 
 /* ----------------------------------------------------------- Ablageziele */
