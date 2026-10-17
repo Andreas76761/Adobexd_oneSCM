@@ -20,6 +20,32 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.21.0] – Die Gliederung des Handbuchs
+
+### Neu
+* Die Gliederung aus `Gliederung_oneSCM12102026.xlsx` liegt in der Seite:
+  **1153 Stellen** – 23 Kapitel, 204 Unterkapitel, 919 Stellen auf der
+  dritten Ebene, dazu neun Anhänge und sieben Übergänge (F-36)
+* Neue Ansicht **Gliederung**: der Baum mit der Zahl der Bilder je Stelle –
+  eigene und die der Unterkapitel (`0 (3)`), dazu Kennzahlen, Suche über
+  Nummer und Thema und ein Filter „mit / ohne Bilder“
+* Im Editor ersetzt ein Feld **Stelle im Handbuch** die beiden Zahlen: tippen,
+  aus bis zu 60 Vorschlägen wählen; das Thema steht darunter, eine unbekannte
+  Nummer wird beanstandet
+* „Bilder zeigen“ an einer Stelle führt in den Eingang, gefiltert auf diese
+  Nummer
+
+### Geändert
+* `kapitelKennung` nimmt zuerst die Stelle im Handbuch; die beiden Zahlen aus
+  1.18.0 gelten weiter, wo keine Stelle gesetzt ist
+* Die Portalnavigation trägt sieben Einträge und darf die ganze Breite nehmen
+
+### Daten
+* `data/gliederung/gliederung.json` (82 kB) wird in den Build eingebettet
+
+### Prüfung
+* Neue Datei `11-gliederung.e2e.mjs`; 5 neue Prüfungen, zusammen 266
+
 ## [1.20.0] – Volle Auflösung und Rückgängig
 
 ### Neu

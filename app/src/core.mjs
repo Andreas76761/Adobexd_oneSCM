@@ -21,7 +21,7 @@ export const STANDARD_ZUSTAND = {
 export const ARCHIV_ANSICHTEN = ['aktiv', 'archiv', 'alle'];
 
 /** Hauptansichten der Seite (Navigation oben links). */
-export const ANSICHTEN = ['archiv', 'aufnahme', 'ausschneiden', 'markieren', 'strecke', 'eingang'];
+export const ANSICHTEN = ['archiv', 'aufnahme', 'ausschneiden', 'markieren', 'strecke', 'gliederung', 'eingang'];
 
 export const SORTIERUNGEN = [
   { id: 'datum-neu', label: 'Neueste zuerst' },
@@ -1353,6 +1353,107 @@ export function anzeigeBild(aufnahme = {}) {
   return (fassung && fassung.bild) || aufnahme.bild || '';
 }
 
+/* ----------------------------------------- Gliederung des Handbuchs */
+
+/**
+ * Die Gliederung kommt aus der Arbeitsmappe des Projekts: drei Ebenen,
+ * dazu "Uebergaenge" (T14-15), die zwischen zwei Kapiteln vermitteln und
+ * selbst keine Nummer in der Ordnung tragen.
+ */
+export function leseGliederung(roh = {}) {
+  const liste = Array.isArray(roh.eintraege) ? roh.eintraege : [];
+  return liste
+    .filter((e) => e && e.nummer && e.thema)
+    .map((e) => ({
+      nummer: String(e.nummer),
+      thema: String(e.thema),
+      ebene: Number(e.ebene) || 0,
+      art: e.art === 'uebergang' ? 'uebergang' : 'kapitel'
+    }));
+}
+
+/**
+ * Der Baum zur flachen Liste: jede Stelle kennt ihre Kinder. Fehlt eine
+ * Zwischenstufe - die Anhaenge A.1, B.1 fuehren kein eigenes "A" -, wird sie
+ * ergaenzt, damit nichts an der Wurzel haengt, wo es nicht hingehoert.
+ */
+export function gliederungBaum(eintraege = []) {
+  const knoten = new Map();
+  for (const eintrag of eintraege) {
+    if (eintrag.art === 'uebergang') continue;
+    knoten.set(eintrag.nummer, { ...eintrag, kinder: [] });
+  }
+  const ergaenze = (nummer) => {
+    if (knoten.has(nummer)) return knoten.get(nummer);
+    const istBuchstabe = /^[A-Z]+$/.test(nummer);
+    const knoten_ = {
+      nummer,
+      thema: istBuchstabe ? `Anhang ${nummer}` : `Kapitel ${nummer}`,
+      ebene: nummer.split('.').length,
+      art: 'gruppe',
+      kinder: []
+    };
+    knoten.set(nummer, knoten_);
+    return knoten_;
+  };
+  for (const eintrag of [...knoten.values()]) {
+    const teile = eintrag.nummer.split('.');
+    if (teile.length < 2) continue;
+    ergaenze(teile.slice(0, -1).join('.')).kinder.push(eintrag);
+  }
+  return [...knoten.values()].filter((k) => k.nummer.split('.').length === 1);
+}
+
+/** Gehoert eine Nummer zu einer Stelle oder darunter? 6.2 traegt 6.2.3. */
+export function gehoertZu(nummer, stelle) {
+  const a = String(nummer || '');
+  const b = String(stelle || '');
+  return a === b || a.startsWith(b + '.');
+}
+
+/**
+ * Zaehlt die Bilder je Stelle der Gliederung: eigene und die der
+ * Unterkapitel. Ohne Summe waere ein Kapitel immer leer - die Bilder haengen
+ * an der dritten Ebene.
+ */
+export function zaehleBilder(eintraege = [], aufnahmen = []) {
+  const eigene = new Map();
+  for (const aufnahme of aufnahmen) {
+    const stelle = String(aufnahme.gliederung || '').trim();
+    if (!stelle) continue;
+    eigene.set(stelle, (eigene.get(stelle) || 0) + 1);
+  }
+  const zahlen = new Map();
+  for (const eintrag of eintraege) {
+    if (eintrag.art === 'uebergang') continue;
+    let summe = 0;
+    for (const [stelle, zahl] of eigene) if (gehoertZu(stelle, eintrag.nummer)) summe += zahl;
+    zahlen.set(eintrag.nummer, { eigene: eigene.get(eintrag.nummer) || 0, gesamt: summe });
+  }
+  const ohneStelle = aufnahmen.filter((a) => !String(a.gliederung || '').trim()).length;
+  const unbekannt = [...eigene.keys()].filter((stelle) => !zahlen.has(stelle));
+  return { zahlen, ohneStelle, unbekannt };
+}
+
+/** Sucht in Nummer und Thema; ohne Suchtext kommt alles zurueck. */
+export function sucheGliederung(eintraege = [], text) {
+  const gesucht = normalisiereLang(String(text || ''));
+  if (!gesucht) return eintraege;
+  const teile = gesucht.split(/\s+/);
+  return eintraege.filter((e) => {
+    const heuhaufen = normalisiereLang(`${e.nummer} ${e.thema}`);
+    return teile.every((t) => heuhaufen.includes(t));
+  });
+}
+
+/** Die Stelle mit ihrem Thema, wie sie an einem Bild steht. */
+export function gliederungKennung(eintraege = [], nummer) {
+  const stelle = String(nummer || '').trim();
+  if (!stelle) return '';
+  const treffer = eintraege.find((e) => e.nummer === stelle);
+  return treffer ? `${treffer.nummer} ${treffer.thema}` : stelle;
+}
+
 /* --------------------------------- Nummerierung nach Kapitel und Zeit */
 
 /**
@@ -1361,6 +1462,10 @@ export function anzeigeBild(aufnahme = {}) {
  * und "2.4", unabhaengig davon, wann das Bild entstanden ist.
  */
 export function kapitelKennung(aufnahme = {}) {
+  // Seit 1.21.0 traegt eine Aufnahme ihre Stelle in der Gliederung des
+  // Handbuchs; die beiden Zahlen von 1.18.0 gelten weiter, wenn keine da ist.
+  const stelle = String(aufnahme.gliederung || '').trim();
+  if (stelle) return stelle;
   const kapitel = Number(aufnahme.kapitel);
   if (!Number.isFinite(kapitel) || kapitel <= 0) return '';
   const unter = Number(aufnahme.unterkapitel);

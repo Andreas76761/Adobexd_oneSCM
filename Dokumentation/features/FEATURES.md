@@ -765,3 +765,40 @@ Strecke nicht – der Schritt wird benannt und beim Zeichnen übergangen.
 **Ablage** Strecken liegen im Browser unter `screenarchiv:strecken` und
 überleben das Neuladen. Eine gelöschte Strecke lässt die Aufnahmen unberührt;
 sie verweist nur auf sie.
+
+
+---
+
+## F-36 · Gliederung des Handbuchs
+
+**Zweck** Die Bilder gehören in ein Handbuch mit fester Ordnung. Bis 1.20.0
+trug ein Bild zwei frei gewählte Zahlen; welche Stellen es überhaupt gibt,
+wusste die Seite nicht.
+
+**Die Quelle** `Gliederung_oneSCM12102026.xlsx` aus dem Projekt, eingelesen
+und als `data/gliederung/gliederung.json` in die Seite gebaut:
+
+| Ebene | Anzahl | Beispiel |
+| --- | --- | --- |
+| 1 Kapitel | 23 | `7 Zahlungsdaten, Dokumente und Unterschrift` |
+| 2 Unterkapitel | 204 | `7.5 Digitale Unterschrift` |
+| 3 Stellen | 919 | `7.5.2 Signaturergebnis` |
+| Anhänge | 9 Gruppen | `A.1 Glossar und Abkürzungen` |
+| Übergänge | 7 | `T7-8 Von Dokumenten und Signatur zur Aktivierungsprüfung` |
+
+Übergänge tragen keine Nummer in der Ordnung und erscheinen nicht im Baum.
+Fehlt eine Zwischenstufe – die Anhänge führen kein eigenes „A“ –, wird sie
+ergänzt, damit nichts an der Wurzel hängt, wo es nicht hingehört.
+
+**Die Ansicht** Der Baum zeigt je Stelle zwei Zahlen: die eigenen Bilder und
+die Summe mit allen Unterkapiteln (`0 (3)`). Darüber Kennzahlen – zugeordnete
+Bilder, belegte Stellen, Bilder ohne Stelle, unbekannte Nummern. Die Suche
+geht über Nummer und Thema und zeigt Treffer mit ihrem Zusammenhang; der
+Filter trennt belegte von leeren Stellen. „Bilder zeigen“ führt in den
+Eingang, gefiltert auf die Nummer.
+
+**Die Zuordnung** Im Editor steht das Feld **Stelle im Handbuch**: tippen,
+aus bis zu 60 Vorschlägen wählen. Das Thema steht darunter; eine Nummer, die
+es nicht gibt, wird benannt statt stillschweigend genommen. Die Stelle geht in
+die Bildunterschrift, auf die Karte im Eingang, in den Kontaktbogen und über
+`{kapitel}` in den Dateinamen.

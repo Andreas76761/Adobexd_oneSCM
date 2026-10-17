@@ -133,8 +133,9 @@ button { font: inherit; color: inherit; }
   justify-content: space-between; padding: 28px 0 20px;
 }
 
-/* Seit fünf Einträgen in der Portalnavigation braucht die Marke mehr Breite. */
-.marke { display: flex; gap: 16px; align-items: flex-start; max-width: 74ch; }
+/* Die Portalnavigation trägt sieben Einträge - der Text daneben bleibt schmal,
+   die Leiste darf die ganze Breite nehmen. */
+.marke { display: flex; gap: 16px; align-items: flex-start; max-width: none; }
 
 .stempel {
   flex: none;
@@ -1088,6 +1089,7 @@ div.streifen-bild { cursor: default; }
 
 .feld--schmal { min-width: 92px; max-width: 110px; }
 .gliederung { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
+.feld--stelle { min-width: 260px; flex: 1 1 260px; }
 .markier-schalter { display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer; }
 .markier-schalter input { width: 15px; height: 15px; accent-color: var(--akzent); }
 
@@ -1144,3 +1146,40 @@ div.streifen-bild { cursor: default; }
   border-radius: var(--radius); background: var(--flaeche);
 }
 #strecke-vorschau[hidden] { display: none; }
+
+/* --------------------------------------- Gliederung des Handbuchs (1.21) */
+
+.gliederung-kopf { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; padding: 18px 0 12px; }
+.gliederung-kennzahlen {
+  display: grid; gap: 1px; background: var(--linie);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  border: 1px solid var(--linie); border-radius: var(--radius); overflow: hidden; margin-bottom: 18px;
+}
+.gliederung-baum { display: grid; gap: 2px; padding-bottom: 60px; }
+
+.stelle-zeile {
+  display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
+  padding: 6px 10px; border: 1px solid transparent; border-radius: var(--radius);
+}
+.stelle-zeile:hover { background: var(--flaeche-2); border-color: var(--linie); }
+.stelle--ebene1 > .stelle-zeile { background: var(--flaeche); border-color: var(--linie); font-weight: 500; }
+.stelle--ebene2 > .stelle-zeile { margin-left: 18px; }
+.stelle--ebene3 > .stelle-zeile { margin-left: 36px; font-size: 13.5px; }
+.stelle-zeile--leer .stelle-thema { color: var(--tinte-3); }
+
+.stelle-schalter {
+  width: 22px; height: 22px; display: grid; place-items: center; flex: none;
+  background: none; border: none; cursor: pointer; color: var(--tinte-2); font-size: 11px;
+}
+.stelle-schalter--leer { color: var(--tinte-3); cursor: default; }
+.stelle-nummer {
+  font-family: var(--schrift-mono); font-size: 11.5px; color: var(--tinte-2);
+  min-width: 58px; flex: none;
+}
+.stelle-thema { flex: 1 1 320px; }
+.stelle-zahl {
+  font-family: var(--schrift-mono); font-size: 11px; padding: 1px 8px; border-radius: 10px;
+  background: var(--flaeche-3); color: var(--tinte-3); flex: none;
+}
+.stelle-zahl--voll { background: var(--akzent); color: var(--auf-farbe); }
+.stelle-kinder { display: grid; gap: 2px; }

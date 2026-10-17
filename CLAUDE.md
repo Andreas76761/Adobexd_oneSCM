@@ -11,7 +11,7 @@ Claude-eigene Ergänzungen (Skills, Einstellungen): `.claude/`.
 
 | Ordner | Rolle |
 | --- | --- |
-| `data/` | Inhalt und dessen Erzeugung. Kennt die Oberfläche nicht. |
+| `data/` | Inhalt und dessen Erzeugung, dazu die Gliederung des Handbuchs (`data/gliederung/`). Kennt die Oberfläche nicht. |
 | `app/` | Anwendung: Kernlogik, Oberfläche, Stil, Build. |
 | `dist/` | Ergebnis des Builds. **Nie von Hand bearbeiten.** |
 | `Dokumentation/` | Feature-Katalog, Versionen, Architektur, Testkonzept. |

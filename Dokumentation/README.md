@@ -9,6 +9,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [versionen/v1.21.0.md](versionen/v1.21.0.md) | Die Gliederung des Handbuchs – 1153 Stellen |
 | [versionen/v1.20.0.md](versionen/v1.20.0.md) | Volle Auflösung und Rückgängig |
 | [versionen/v1.19.0.md](versionen/v1.19.0.md) | Strecke – mehrere Screens als Folge und als ein Blatt |
 | [versionen/v1.18.0.md](versionen/v1.18.0.md) | Editor, Fassungen, Gliederung – Originale direkt bearbeiten |

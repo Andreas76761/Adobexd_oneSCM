@@ -106,6 +106,7 @@ function setze(aenderung, neuZeichnen = true) {
   // Editor und Strecke kennen den Eingang erst, wenn sie sichtbar sind.
   if (zustand.ansicht === 'markieren') zeichneMarkieren();
   if (zustand.ansicht === 'strecke') zeichneStrecke();
+  if (zustand.ansicht === 'gliederung') zeichneGliederung();
 }
 
 function schalte(dimension, wert) {
@@ -543,6 +544,7 @@ const ABSCHNITTE = {
   ausschneiden: 'schnipsel-ansicht',
   markieren: 'markieren-ansicht',
   strecke: 'strecke-ansicht',
+  gliederung: 'gliederung-ansicht',
   eingang: 'eingang-ansicht'
 };
 
@@ -857,6 +859,7 @@ zeichne();
 // gefüllt sein.
 if (zustand.ansicht === 'markieren') zeichneMarkieren();
 if (zustand.ansicht === 'strecke') zeichneStrecke();
+if (zustand.ansicht === 'gliederung') zeichneGliederung();
 if (zustand.auswahl) oeffneDetail(zustand.auswahl, false);
 document.documentElement.dataset.bereit = 'ja';
 }

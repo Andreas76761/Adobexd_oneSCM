@@ -26,6 +26,7 @@
             <button type="button" data-ansicht="ausschneiden">Ausschneiden</button>
             <button type="button" data-ansicht="markieren">Editor</button>
             <button type="button" data-ansicht="strecke">Strecke</button>
+            <button type="button" data-ansicht="gliederung">Gliederung</button>
             <button type="button" data-ansicht="eingang">Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
         </div>
@@ -284,6 +285,13 @@
         <select id="markier-stufe"></select>
       </div>
       <div class="gliederung">
+        <div class="feld feld--stelle">
+          <label for="markier-stelle">Stelle im Handbuch</label>
+          <input type="text" id="markier-stelle" list="gliederung-vorschlaege" autocomplete="off"
+                 placeholder="6.2.3 oder Thema suchen">
+          <datalist id="gliederung-vorschlaege"></datalist>
+          <span class="feld-hinweis" id="markier-stelle-thema"></span>
+        </div>
         <div class="feld feld--schmal">
           <label for="markier-kapitel">Kapitel</label>
           <input type="number" id="markier-kapitel" min="0" step="1" inputmode="numeric">
@@ -386,6 +394,24 @@
         <canvas id="strecke-vorschau"></canvas>
       </aside>
     </div>
+  </section>
+
+  <section id="gliederung-ansicht" aria-label="Gliederung" hidden>
+    <div class="gliederung-kopf">
+      <div class="suchfeld suchfeld--klein">
+        <span class="such-symbol" aria-hidden="true">⌕</span>
+        <label class="sprung" for="gliederung-suche">Gliederung durchsuchen</label>
+        <input id="gliederung-suche" type="search" placeholder="Kapitelnummer oder Thema …" autocomplete="off">
+      </div>
+      <div class="segment" id="gliederung-filter" role="group" aria-label="Anzeige">
+        <button type="button" data-zeigen="alle" aria-pressed="true">Alle</button>
+        <button type="button" data-zeigen="mitBildern" aria-pressed="false">Mit Bildern</button>
+        <button type="button" data-zeigen="ohneBilder" aria-pressed="false">Ohne Bilder</button>
+      </div>
+      <span class="band-stand" id="gliederung-stand"></span>
+    </div>
+    <div class="gliederung-kennzahlen" id="gliederung-kennzahlen"></div>
+    <div class="gliederung-baum" id="gliederung-baum"></div>
   </section>
 
   <section id="eingang-ansicht" aria-label="Eingang" hidden>

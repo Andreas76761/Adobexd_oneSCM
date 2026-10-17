@@ -35,7 +35,9 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `10-strecke.e2e.mjs` | Strecke im Browser: Folge anlegen, Reihenfolge, Blatt als Bild, Beständigkeit | 6 |
 
-Summe: **261 Prüfungen**.
+| `11-gliederung.e2e.mjs` | Gliederung im Browser: Baum, Suche, Zählung je Stelle, Zuordnung im Editor | 5 |
+
+Summe: **266 Prüfungen**.
 
 ## Eigene Helfer
 

@@ -17,6 +17,7 @@ const lies = (...teile) => readFileSync(join(wurzel, ...teile), 'utf8');
 const daten = JSON.parse(lies('data', 'eintraege.json'));
 const paket = JSON.parse(lies('package.json'));
 const manifest = JSON.parse(lies('data', 'screens', 'manifest.json'));
+const gliederung = JSON.parse(lies('data', 'gliederung', 'gliederung.json'));
 
 /* Aufnahmen einsammeln und dem jeweiligen Beleg zuordnen. */
 const aufnahmen = {};
@@ -44,6 +45,7 @@ const nutzlast = {
   anwendung: paket.version,
   vokabular: daten.vokabular,
   eintraege: daten.eintraege,
+  gliederung,
   aufnahmen
 };
 

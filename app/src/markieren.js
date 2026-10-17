@@ -19,6 +19,7 @@ let gewaehlteMarke = '';
 let markierBild = null; // HTMLImageElement der Originalaufnahme
 let markierUnterschrift = true; // Nummer und Zeitstempel ins Bild brennen
 let markierKapitel = { kapitel: '', unterkapitel: '' };
+let markierStelle = ''; // Nummer in der Gliederung des Handbuchs
 let markierVerlauf = []; // Stände vor jeder Änderung – für Rückgängig
 let markierZurueck = []; // zurückgenommene Stände – für Wiederholen
 let markierZug = null; // laufendes Aufziehen
@@ -159,7 +160,12 @@ function markierUnterschriftText() {
   const aufnahme = markierAufnahme();
   if (!aufnahme) return '';
   return bildunterschrift(
-    { ...aufnahme, kapitel: markierKapitel.kapitel, unterkapitel: markierKapitel.unterkapitel },
+    {
+      ...aufnahme,
+      gliederung: markierStelle,
+      kapitel: markierKapitel.kapitel,
+      unterkapitel: markierKapitel.unterkapitel
+    },
     aufnahme.erfasst_am
   );
 }
@@ -565,6 +571,9 @@ async function waehleMarkierAufnahme(kennung) {
   };
   $('#markier-kapitel').value = markierKapitel.kapitel;
   $('#markier-unterkapitel').value = markierKapitel.unterkapitel;
+  markierStelle = String(aufnahme.gliederung || '');
+  $('#markier-stelle').value = markierStelle;
+  zeigeStellenthema();
   try {
     // Immer das Original in voller Auflösung - gearbeitet wird am Besten,
     // was da ist, nicht an der Vorschau.
@@ -608,6 +617,7 @@ function sichereMarkierung() {
   legeVollbildAb(`${aufnahme.id}:${nummer}`, leinwand.toDataURL('image/png'));
   const gepflegt = {
     ...aufnahme,
+    gliederung: markierStelle || undefined,
     kapitel: Number(markierKapitel.kapitel) || undefined,
     unterkapitel: Number(markierKapitel.unterkapitel) || undefined,
     marken: markenAlsAblage(marken),
@@ -717,6 +727,17 @@ function verdrahteMarkieren() {
       $('#markier-sichern').disabled = !markierBild;
     });
   }
+  // Die Stelle im Handbuch: tippen und aus den Vorschlägen wählen.
+  $('#markier-stelle').addEventListener('input', (e) => {
+    const roh = String(e.target.value || '').trim();
+    // Aus "6.2.3 Thema" wird die Nummer; getippte Nummern bleiben, wie sie sind.
+    markierStelle = (roh.match(/^[0-9A-Z]+(\.[0-9]+)*/) || [''])[0];
+    fuelleStellenvorschlaege(roh);
+    zeigeStellenthema();
+    markierGesichert = false;
+    zeichneMarkierflaeche();
+    $('#markier-sichern').disabled = !markierBild;
+  });
   $('#markier-unterschrift').addEventListener('change', (e) => {
     markierUnterschrift = e.target.checked;
     markierGesichert = false;
@@ -752,6 +773,27 @@ function verdrahteMarkieren() {
   });
   $('#markier-rueckgaengig').addEventListener('click', machRueckgaengig);
   $('#markier-wiederher').addEventListener('click', machWiederher);
+}
+
+/** Höchstens 60 Vorschläge - eine Liste mit 1153 Einträgen hilft niemandem. */
+function fuelleStellenvorschlaege(text) {
+  const treffer = sucheGliederung(GLIEDERUNG, text).slice(0, 60);
+  $('#gliederung-vorschlaege').replaceChildren(
+    ...treffer.map((e) => el('option', { value: `${e.nummer} ${e.thema}` }))
+  );
+}
+
+/** Zeigt, welche Stelle gemeint ist - und sagt, wenn es sie nicht gibt. */
+function zeigeStellenthema() {
+  const zeile = $('#markier-stelle-thema');
+  if (!markierStelle) {
+    zeile.textContent = 'ohne Stelle – das Bild steht dann nur im Eingang';
+    zeile.className = 'feld-hinweis';
+    return;
+  }
+  const treffer = GLIEDERUNG.find((e) => e.nummer === markierStelle);
+  zeile.textContent = treffer ? treffer.thema : `${markierStelle} steht nicht in der Gliederung`;
+  zeile.className = 'feld-hinweis' + (treffer ? '' : ' zettel-meldung--warnung');
 }
 
 /** Öffnet den Editor mit einer bestimmten Aufnahme - aus jeder Ansicht. */
@@ -1126,6 +1168,143 @@ function verdrahteStrecke() {
 }
 
 verdrahteStrecke();
+
+
+/* =========================================================================
+   Gliederung – wo ein Bild im Handbuch steht.
+
+   Die Gliederung kommt aus der Arbeitsmappe des Projekts: 23 Kapitel, 204
+   Unterkapitel, 919 Stellen auf der dritten Ebene, dazu Anhänge und sieben
+   Übergänge zwischen Kapiteln. Jedes Bild bekommt eine Stelle; die Ansicht
+   zeigt, wo schon Bilder liegen und wo noch keine.
+   ========================================================================= */
+
+const GLIEDERUNG = leseGliederung(DATEN.gliederung || {});
+let gliederungSuche = '';
+let gliederungZeigen = 'alle';
+let gliederungOffen = new Set();
+
+/** Die Stellen, die nach Suche und Filter übrig bleiben. */
+function sichtbareStellen() {
+  const gesucht = sucheGliederung(GLIEDERUNG, gliederungSuche);
+  if (gliederungZeigen === 'alle') return gesucht;
+  const { zahlen } = zaehleBilder(GLIEDERUNG, eingang);
+  return gesucht.filter((e) => {
+    const zahl = (zahlen.get(e.nummer) || { gesamt: 0 }).gesamt;
+    return gliederungZeigen === 'mitBildern' ? zahl > 0 : zahl === 0;
+  });
+}
+
+function zeichneGliederung() {
+  if (document.getElementById('gliederung-ansicht').hidden) return;
+  const { zahlen, ohneStelle, unbekannt } = zaehleBilder(GLIEDERUNG, eingang);
+  const sichtbar = sichtbareStellen();
+  const sichtbareNummern = new Set(sichtbar.map((e) => e.nummer));
+  const kapitel = GLIEDERUNG.filter((e) => e.ebene === 1).length;
+  const mitBildern = GLIEDERUNG.filter((e) => (zahlen.get(e.nummer) || {}).eigene).length;
+
+  $('#gliederung-kennzahlen').replaceChildren(
+    ...[
+      ['Kapitel', String(kapitel), `${GLIEDERUNG.length} Stellen insgesamt`],
+      ['Bilder zugeordnet', String(eingang.length - ohneStelle), `von ${eingang.length} im Eingang`],
+      ['Stellen mit Bild', String(mitBildern), mitBildern ? 'belegt' : 'noch keine'],
+      ['Ohne Stelle', String(ohneStelle), ohneStelle ? 'im Editor zuordnen' : 'alles zugeordnet'],
+      ['Unbekannte Stellen', String(unbekannt.length), unbekannt.length ? unbekannt.slice(0, 3).join(', ') : 'keine']
+    ].map(([schild, wert, zusatz]) =>
+      el('div', { klasse: 'eingang-kachel' }, [
+        el('span', { klasse: 'kachel-schild', text: schild }),
+        el('span', { klasse: 'eingang-kachel-wert', text: wert }),
+        el('span', { klasse: 'kachel-zusatz', text: zusatz })
+      ])
+    )
+  );
+  $('#gliederung-stand').textContent = `${sichtbar.length} von ${GLIEDERUNG.length} Stellen`;
+
+  const baum = gliederungBaum(GLIEDERUNG);
+  $('#gliederung-baum').replaceChildren(
+    ...baum
+      .map((knoten) => zeichneStelle(knoten, zahlen, sichtbareNummern))
+      .filter(Boolean)
+  );
+}
+
+/** Eine Stelle mit ihren Kindern; Zweige ohne Treffer fallen weg. */
+function zeichneStelle(knoten, zahlen, sichtbar) {
+  const kinder = (knoten.kinder || [])
+    .map((kind) => zeichneStelle(kind, zahlen, sichtbar))
+    .filter(Boolean);
+  const selbstSichtbar = sichtbar.has(knoten.nummer);
+  if (!selbstSichtbar && !kinder.length) return null;
+
+  const zahl = zahlen.get(knoten.nummer) || { eigene: 0, gesamt: 0 };
+  const offen = gliederungOffen.has(knoten.nummer) || Boolean(gliederungSuche);
+  const zeile = el('div', { klasse: 'stelle-zeile' + (zahl.gesamt ? '' : ' stelle-zeile--leer') }, [
+    kinder.length
+      ? el('button', {
+          klasse: 'stelle-schalter',
+          type: 'button',
+          'aria-expanded': String(offen),
+          'data-stelle': knoten.nummer,
+          text: offen ? '▾' : '▸',
+          onclick: () => {
+            if (gliederungOffen.has(knoten.nummer)) gliederungOffen.delete(knoten.nummer);
+            else gliederungOffen.add(knoten.nummer);
+            zeichneGliederung();
+          }
+        })
+      : el('span', { klasse: 'stelle-schalter stelle-schalter--leer', text: '·' }),
+    el('span', { klasse: 'stelle-nummer', text: knoten.nummer }),
+    el('span', { klasse: 'stelle-thema', text: knoten.thema }),
+    el('span', {
+      klasse: 'stelle-zahl' + (zahl.gesamt ? ' stelle-zahl--voll' : ''),
+      text: zahl.eigene === zahl.gesamt ? String(zahl.gesamt) : `${zahl.eigene} (${zahl.gesamt})`,
+      title: `${zahl.eigene} Bilder an dieser Stelle, ${zahl.gesamt} mit Unterkapiteln`
+    }),
+    zahl.gesamt
+      ? el('button', {
+          klasse: 'knopf knopf--klein',
+          type: 'button',
+          'data-zeigen': knoten.nummer,
+          text: 'Bilder zeigen',
+          onclick: () => zeigeStelleImEingang(knoten.nummer)
+        })
+      : null
+  ].filter(Boolean));
+
+  return el('div', { klasse: `stelle stelle--ebene${Math.min(knoten.ebene, 3)}` }, [
+    zeile,
+    kinder.length && offen ? el('div', { klasse: 'stelle-kinder' }, kinder) : null
+  ].filter(Boolean));
+}
+
+/** Führt in den Eingang und filtert auf die Stelle. */
+function zeigeStelleImEingang(nummer) {
+  eingangAuswahl = { ...eingangAuswahl, suche: nummer };
+  setze({ ansicht: 'eingang' });
+  const feld = document.getElementById('eingang-suche');
+  if (feld) feld.value = nummer;
+  zeichneEingang();
+}
+
+function verdrahteGliederung() {
+  let takt = null;
+  $('#gliederung-suche').addEventListener('input', (e) => {
+    gliederungSuche = e.target.value;
+    clearTimeout(takt);
+    takt = setTimeout(zeichneGliederung, 180);
+  });
+  for (const knopf of document.querySelectorAll('#gliederung-filter button')) {
+    knopf.addEventListener('click', () => {
+      gliederungZeigen = knopf.dataset.zeigen;
+      for (const anderer of document.querySelectorAll('#gliederung-filter button')) {
+        anderer.setAttribute('aria-pressed', String(anderer === knopf));
+      }
+      zeichneGliederung();
+    });
+  }
+}
+
+verdrahteGliederung();
 
 // starte() steht in der letzten Zeile der letzten Datei (siehe CLAUDE.md).
 starte();
