@@ -99,6 +99,8 @@ ist der Sinn der Ansicht: schnell aufnehmen, später ordnen.
 | `sprache`, `rolle_label`, `sparte`, `markt`, `domaene`, `reiter`, `schritt_label` | 1.22.0 | Labels: feste Vokabulare für Sprache (21), Rolle (Dealer, Market, HQ, MO) und Sparte (Pkw, Van), freier Text für die übrigen |
 | `einfuhr` | 1.24.0 | Herkunft aus dem Import: `datei`, `art`, `bild`, `seite`, `uebernommen_am` |
 | `variante` | 1.30.0 | Kennung der Variantengruppe – dieselbe Maske in anderer Sprache, Rolle, Sparte oder Markt |
+| `version` | 1.35.0 | Fassung des Projekts, z. B. `2.4` – kommt aus dem angelegten Projekt |
+| `land` | 1.35.0 | Land des Projekts, z. B. `Germany` – kommt aus dem angelegten Projekt |
 
 Alle Felder sind freiwillig: eine Aufnahme ohne Labels ist eine Aufnahme ohne
 Labels, kein Fehler. Was fehlt, zählen die Agenten (F-43) und die
@@ -113,6 +115,7 @@ Deckungsmatrix (F-46).
 | `screenarchiv:design` | Einstellungen des Designstudios samt eigener Vorlagen |
 | `screenarchiv:verzeichnis` | Muster und Schalter der Ansicht Verzeichnis |
 | `screenarchiv:chat` | Lage, Größe und Zustand des Suchchats |
+| `screenarchiv:projekte` | angelegte Projekte: `{ version, projekte: [{ id, name, version, land, notiz, angelegt_am }] }` |
 
 Ein Streckenschritt trägt seit 1.25.0 eine **Liste** von Bildern (`aufnahmen`)
 und eine `art`: `schritt` oder `platzhalter`. Der alte Satz mit einem Bild je

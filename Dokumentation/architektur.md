@@ -128,6 +128,7 @@ Datensatz ergibt Byte-gleiche Dateien, was ein Test absichert.
 | `screenarchiv:design` | `localStorage` | Einstellungen des Designstudios |
 | `screenarchiv:verzeichnis` | `localStorage` | Muster und Schalter des Verzeichnisses |
 | `screenarchiv:chat` | `localStorage` | Lage und Größe des Suchchats |
+| `screenarchiv:projekte` | `localStorage` | angelegte Projekte: Name, Version, Land (seit 1.35.0) |
 | `screenarchiv` → `bilder` | IndexedDB | Bilder in voller Auflösung (`AUF-…`, `AUF-…:<Fassung>`) |
 | `screenarchiv` → `vorschauen` | IndexedDB | die Vorschauen je Aufnahme (seit 1.34.0) |
 | `screenarchiv` → `zugriffe` | IndexedDB | der gemerkte Ordnerzugriff |

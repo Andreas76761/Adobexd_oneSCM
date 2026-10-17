@@ -342,7 +342,10 @@ export function leereAufnahme(heute, vorlage = {}) {
     datum: vorlage.datum || heute,
     begriffe: [...(vorlage.begriffe || [])],
     notiz: '',
-    gliederung: String(vorlage.gliederung || '')
+    gliederung: String(vorlage.gliederung || ''),
+    // Das Projekt ist ein Dreiklang: Name, Version, Land.
+    version: String(vorlage.version || ''),
+    land: String(vorlage.land || '')
   };
   // Sprache, Rolle, Sparte und Markt gehoeren an die Aufnahme, nicht erst an
   // die Nachpflege: wer eine Reihe aufnimmt, nimmt sie in *einer* Sprache und
@@ -472,6 +475,8 @@ export function baueAufnahme({ entwurf, bild, ausschnitt, quelle, kennung, erfas
     bild,
     // Stelle und Labels, soweit schon bekannt - leere Felder bleiben leer.
     ...(String(entwurf.gliederung || '').trim() ? { gliederung: String(entwurf.gliederung).trim() } : {}),
+    ...(String(entwurf.version || '').trim() ? { version: String(entwurf.version).trim() } : {}),
+    ...(String(entwurf.land || '').trim() ? { land: String(entwurf.land).trim() } : {}),
     ...Object.fromEntries(
       LABEL_FELDER.map((feld) => [feld.id, String(entwurf[feld.id] || '').trim()]).filter(([, wert]) => wert)
     )
@@ -503,6 +508,8 @@ export function eingangSuchIndex(aufnahme) {
     aufnahme.id,
     aufnahme.titel,
     aufnahme.projekt,
+    aufnahme.version,
+    aufnahme.land,
     aufnahme.seite,
     aufnahme.kategorie,
     aufnahme.status,
@@ -1055,6 +1062,8 @@ export function baueBeipackzettel({ entwurf = {}, bildname, ausschnitt, quelle, 
       datum: entwurf.datum || '',
       titel: String(entwurf.titel || '').trim(),
       projekt: String(entwurf.projekt || '').trim(),
+      version: String(entwurf.version || '').trim(),
+      land: String(entwurf.land || '').trim(),
       seite: String(entwurf.seite || '').trim(),
       kategorie: String(entwurf.kategorie || '').trim(),
       status: entwurf.status || '',
@@ -1086,6 +1095,8 @@ export const BEIPACK_FELDER = [
   ['datum', 'Datum'],
   ['titel', 'Titel'],
   ['projekt', 'Projekt'],
+  ['version', 'Version'],
+  ['land', 'Land'],
   ['seite', 'Seite'],
   ['kategorie', 'Kategorie'],
   ['status', 'Status'],
@@ -4000,6 +4011,8 @@ export const VERZEICHNIS_FELDER = [
   { id: 'kennung', hinweis: 'AUF-2026-001' },
   { id: 'titel', hinweis: 'Titel, für Dateinamen bereinigt' },
   { id: 'projekt', hinweis: 'Projekt der Aufnahme' },
+  { id: 'version', hinweis: 'Version des Projekts, z. B. 2-4' },
+  { id: 'land', hinweis: 'Land des Projekts' },
   { id: 'kategorie', hinweis: 'Kategorie der Aufnahme' }
 ];
 
@@ -4063,6 +4076,8 @@ export function verzeichnisPfad(aufnahme = {}, muster = VERZEICHNIS_MUSTER, glie
     kennung: pfadTeil(aufnahme.id, 'ohne-kennung'),
     titel: pfadTeil(aufnahme.titel, 'ohne-titel'),
     projekt: pfadTeil(aufnahme.projekt, 'ohne-projekt'),
+    version: pfadTeil(aufnahme.version, 'ohne-version'),
+    land: pfadTeil(aufnahme.land, 'ohne-land'),
     kategorie: pfadTeil(aufnahme.kategorie, 'ohne-kategorie')
   };
   const ersetzt = String(muster || VERZEICHNIS_MUSTER).replace(/\{([a-z]+)\}/g, (ganz, name) =>
@@ -4141,6 +4156,8 @@ export function galerieIndex(eingang = [], plan = [], { stand = new Date().toISO
         fassung: datei ? datei.fassung : 0,
         titel: a.titel,
         projekt: a.projekt,
+        version: a.version || '',
+        land: a.land || '',
         kategorie: a.kategorie,
         datum: a.datum,
         erfasst_am: a.erfasst_am,
@@ -4162,7 +4179,10 @@ export function galerieIndex(eingang = [], plan = [], { stand = new Date().toISO
 
 /** Dieselbe Übersicht als CSV - zum Öffnen in einer Tabelle. */
 export function galerieCsv(index = {}) {
-  const spalten = ['id', 'datei', 'stelle', 'thema', 'titel', 'sprache', 'rolle', 'sparte', 'markt', 'datum', 'breite', 'hoehe', 'begriffe'];
+  const spalten = [
+    'id', 'datei', 'stelle', 'thema', 'titel', 'projekt', 'version', 'land',
+    'sprache', 'rolle', 'sparte', 'markt', 'datum', 'breite', 'hoehe', 'begriffe'
+  ];
   const zelle = (wert) => {
     const text = Array.isArray(wert) ? wert.join(' ') : String(wert ?? '');
     return /[";\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
@@ -4524,4 +4544,112 @@ ${abschnitte}
 <div class="fuss"><span>Screenarchiv ${m(anwendung)}</span><span>${m(hinweis)}</span></div>
 </div></body></html>
 `;
+}
+
+/* =========================================================================
+   Projekte – Name, Version, Land.
+
+   „oneSCM Portal" allein sagt zu wenig: dieselbe Maske sieht in Fassung 2.3
+   anders aus als in 2.4, und in Korea anders als in Deutschland. Ein Projekt
+   ist darum ein Dreiklang aus Name, Version und Land. Es wird angelegt, nicht
+   getippt - so heißt es in jedem Bild gleich.
+   ========================================================================= */
+
+export const PROJEKTE_SCHLUESSEL = 'screenarchiv:projekte';
+export const PROJEKTE_VERSION = 1;
+
+/** Ein Projekt in fester Form; ohne Namen gibt es keines. */
+export function projektSatz(roh = {}) {
+  const name = String(roh.name || '').trim();
+  if (!name) return null;
+  const version = String(roh.version || '').trim();
+  const land = String(roh.land || '').trim();
+  return {
+    id: String(roh.id || '').trim() || projektKennzeichen(name, version, land),
+    name,
+    version,
+    land,
+    notiz: String(roh.notiz || '').trim(),
+    angelegt_am: String(roh.angelegt_am || '') || new Date().toISOString()
+  };
+}
+
+/** Die Kennung aus den drei Teilen - zweimal dasselbe gibt dieselbe Kennung. */
+export function projektKennzeichen(name, version, land) {
+  return ['PRJ', bereinigeDateiname(name) || 'ohne-namen', bereinigeDateiname(version), bereinigeDateiname(land)]
+    .filter(Boolean)
+    .join('-');
+}
+
+/** Wie das Projekt in einer Zeile steht: „oneSCM Portal 2.4 · Germany". */
+export function projektKennung(satz) {
+  if (!satz) return '';
+  const kopf = [satz.name, satz.version].filter(Boolean).join(' ');
+  return [kopf, satz.land].filter(Boolean).join(' · ');
+}
+
+/** Was einem Projekt fehlt, bevor es angelegt werden kann. */
+export function pruefeProjekt(satz = {}, vorhandene = []) {
+  const probleme = [];
+  const name = String(satz.name || '').trim();
+  if (!name) probleme.push({ feld: 'name', text: 'Das Projekt braucht einen Namen.' });
+  if (String(satz.version || '').length > 20) {
+    probleme.push({ feld: 'version', text: 'Die Version ist zu lang – eine Nummer wie 2.4 genügt.' });
+  }
+  const kennzeichen = projektKennzeichen(name, satz.version, satz.land);
+  if (name && vorhandene.some((p) => p.id === kennzeichen && p.id !== satz.id)) {
+    probleme.push({
+      feld: 'name',
+      text: `„${projektKennung({ name, version: satz.version, land: satz.land })}" gibt es schon.`
+    });
+  }
+  return probleme;
+}
+
+export function leseProjekte(text) {
+  let inhalt = null;
+  try {
+    inhalt = JSON.parse(text || 'null');
+  } catch (fehler) {
+    return [];
+  }
+  const liste = Array.isArray(inhalt) ? inhalt : inhalt && Array.isArray(inhalt.projekte) ? inhalt.projekte : [];
+  const gesehen = new Set();
+  return liste
+    .map(projektSatz)
+    .filter(Boolean)
+    .filter((p) => (gesehen.has(p.id) ? false : gesehen.add(p.id)))
+    .sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version) || a.land.localeCompare(b.land));
+}
+
+export function schreibeProjekte(liste = []) {
+  return JSON.stringify({ version: PROJEKTE_VERSION, projekte: liste.map(projektSatz).filter(Boolean) });
+}
+
+/** Zählt, wie viele Bilder an jedem Projekt hängen. */
+export function zaehleJeProjekt(liste = [], aufnahmen = []) {
+  const zahlen = new Map(liste.map((p) => [p.id, 0]));
+  for (const aufnahme of aufnahmen) {
+    const kennzeichen = projektKennzeichen(aufnahme.projekt, aufnahme.version, aufnahme.land);
+    if (zahlen.has(kennzeichen)) zahlen.set(kennzeichen, zahlen.get(kennzeichen) + 1);
+  }
+  return zahlen;
+}
+
+/**
+ * Projekte, die an Bildern stehen, aber in der Liste fehlen. Wer aus einem
+ * aelteren Stand kommt oder von Hand getippt hat, soll seine Projekte
+ * wiederfinden - vorgeschlagen, nicht stillschweigend angelegt.
+ */
+export function projekteAusBestand(aufnahmen = [], vorhandene = []) {
+  const bekannt = new Set(vorhandene.map((p) => p.id));
+  const gefunden = new Map();
+  for (const aufnahme of aufnahmen) {
+    const name = String(aufnahme.projekt || '').trim();
+    if (!name) continue;
+    const satz = projektSatz({ name, version: aufnahme.version, land: aufnahme.land });
+    if (!satz || bekannt.has(satz.id) || gefunden.has(satz.id)) continue;
+    gefunden.set(satz.id, satz);
+  }
+  return [...gefunden.values()];
 }

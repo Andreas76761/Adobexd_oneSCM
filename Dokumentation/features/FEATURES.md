@@ -1272,3 +1272,41 @@ zeichnet in 227 ms.
 * `eingangSuchIndex` merkt sich den Suchtext je Satz (`WeakMap`); er verfällt
   von selbst, weil geänderte Aufnahmen neue Objekte sind. Filtern über 1000
   Aufnahmen: **2,4-mal** schneller.
+
+## F-51 · Projekte nach Version und Land
+
+**Seit** 1.35.0 · betrifft Aufnahme, Eingang, Verzeichnis, Beipackzettel
+
+**Das Problem** „oneSCM Portal“ allein sagt zu wenig. Dieselbe Maske sieht in
+Fassung 2.3 anders aus als in 2.4, und in Korea anders als in Deutschland. Wer
+den Projektnamen in jedes Bild tippt, hat am Ende „oneSCM Portal“,
+„oneSCM-Portal“ und „onescm portal“ im Bestand – und keine Möglichkeit, das
+Handbuch einer Fassung von dem einer anderen zu trennen.
+
+**Die Lösung** Ein Projekt ist ein Dreiklang aus **Name, Version und Land**. Es
+wird **angelegt**, nicht getippt: im Aufnahmeformular unter „Projekte“ stehen
+die drei Felder und darüber die Liste der angelegten Projekte. Ein Klick auf
+ein Projekt setzt alle drei Werte für die nächsten Aufnahmen; die Zeile nennt,
+wie viele Bilder daran hängen. Was beim Anlegen fehlt oder doppelt ist, wird
+benannt statt stillschweigend angenommen: ohne Namen kein Projekt, dieselben
+drei Teile gibt es nur einmal.
+
+Projekte, die an Bildern stehen, aber nicht angelegt sind – aus einem älteren
+Stand oder von Hand getippt –, werden als Vorschlag „aus dem Bestand“ gezeigt
+und auf Klick übernommen. Ein gelöschtes Projekt nimmt keine Bilder mit; es
+steht danach wieder als Vorschlag da.
+
+**Wo Version und Land auftauchen**
+
+| Ort | Form |
+| --- | --- |
+| Aufnahmeformular | zwei Felder neben Projekt und Seite |
+| Eingangsdialog | nachtragbar wie Titel und Seite |
+| Suche im Eingang | Teil des Suchtextes (`Korea` findet die koreanischen Bilder) |
+| Verzeichnis | Platzhalter `{version}` und `{land}` im Muster |
+| `index.json`, `index.csv` | eigene Spalten |
+| Beipackzettel | eigene Zeilen (Zettelversion unverändert) |
+
+**Kennung** `PRJ-<name>-<version>-<land>`, aus den bereinigten Teilen –
+zweimal dasselbe gibt dieselbe Kennung, und sie ist zugleich der Schlüssel der
+Zählung.

@@ -9,6 +9,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [versionen/v1.35.0.md](versionen/v1.35.0.md) | Projekte nach Version und Land – angelegt statt getippt |
 | [versionen/v1.34.0.md](versionen/v1.34.0.md) | Begehung aller Befehle, Vorschauen in der Datenbank – 10 800 statt 135 |
 | [versionen/v1.33.0.md](versionen/v1.33.0.md) | Labels ab der Aufnahme, Stelle zum Auswählen, Zeichen je Wert |
 | [versionen/v1.32.0.md](versionen/v1.32.0.md) | Das ganze Handbuch – die Gliederung in einem Dokument |

@@ -20,6 +20,40 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.35.0] – Projekte nach Version und Land
+
+### Neu
+* **Projekte anlegen** (F-51): ein Projekt ist ein Dreiklang aus Name,
+  Version und Land – angelegt, nicht getippt. Der Block „Projekte“ im
+  Aufnahmeformular zeigt die Liste, zählt die Bilder je Projekt, setzt mit
+  einem Klick alle drei Werte für die nächsten Aufnahmen und löscht ein
+  Projekt, ohne seine Bilder mitzunehmen
+* **Version und Land** als Felder im Aufnahmeformular und im Eingangsdialog;
+  beide sind Teil des Suchtextes
+* Projekte, die an Bildern stehen, aber nicht angelegt sind, werden als
+  Vorschlag „aus dem Bestand“ gezeigt und auf Klick übernommen
+* Beim Anlegen wird geprüft: ohne Namen kein Projekt, eine Version von mehr
+  als 20 Zeichen ist keine, und dieselben drei Teile gibt es nur einmal
+
+### Geändert
+* Das Verzeichnismuster kennt `{version}` und `{land}`; was fehlt, heißt
+  `ohne-version` bzw. `ohne-land`
+* `index.json` und `index.csv` führen beide Felder als eigene Spalten
+* Der Beipackzettel trägt zwei neue Zeilen (`version`, `land`) – 21 Felder
+  statt 19, die Zettelversion bleibt
+
+### Kern
+* `PROJEKTE_SCHLUESSEL`, `PROJEKTE_VERSION`, `projektSatz`,
+  `projektKennzeichen`, `projektKennung`, `pruefeProjekt`, `leseProjekte`,
+  `schreibeProjekte`, `zaehleJeProjekt`, `projekteAusBestand`
+* `version` und `land` in `leereAufnahme`, `baueAufnahme`,
+  `eingangSuchIndex`, `VERZEICHNIS_FELDER`, `verzeichnisPfad`,
+  `galerieIndex`, `galerieCsv`, `baueBeipackzettel`, `BEIPACK_FELDER`
+
+### Prüfung
+* Neue Datei `19-projekte.e2e.mjs` mit 7 Browserprüfungen; 5 neue
+  Kernprüfungen; zusammen 396
+
 ## [1.34.0] – Begehung und Leistung: die Decke steigt von 135 auf 10 800
 
 ### Neu

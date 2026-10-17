@@ -1528,3 +1528,23 @@ div.streifen-bild { cursor: default; }
 .bearbeiten-form .label-felder {
   display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
+
+/* ------------------------- Projekte nach Version und Land (1.35.0) */
+
+#projekt-verwaltung { margin-top: 4px; }
+.projekt-liste { display: grid; gap: 6px; margin: 10px 0; }
+.projekt-zeile {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center;
+  padding: 5px 8px; border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche);
+}
+.projekt-zeile--gewaehlt { border-color: var(--akzent); background: var(--akzent-hauch); }
+.projekt-zeile--offen { border-style: dashed; }
+.projekt-waehlen {
+  text-align: left; min-width: 0; padding: 2px 0; border: 0; background: none;
+  font: inherit; font-weight: 600; color: var(--tinte); cursor: pointer;
+}
+.projekt-zeile--offen .projekt-waehlen { font-weight: 400; color: var(--tinte-2); cursor: default; }
+.projekt-waehlen:hover { color: var(--akzent-tief); }
+.projekt-anlegen { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: end; }
+.projekt-anlegen .feld { flex: 1 1 160px; }
+.projekt-anlegen .feld--schmal { flex: 0 1 110px; }

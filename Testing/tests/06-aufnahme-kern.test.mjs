@@ -314,8 +314,8 @@ s.test('der Beipackzettel führt alle Felder in fester Folge', () => {
   gleich(zettel.rolle, 'vorher');
   tieferGleich(
     Object.keys(zettel),
-    ['beipackzettel', 'erzeugt_von', 'bild', 'erfasst_am', 'datum', 'titel', 'projekt', 'seite', 'kategorie',
-     'status', 'rolle', 'begriffe', 'notiz', 'autor', 'browser', 'ausschnitt', 'quelle',
+    ['beipackzettel', 'erzeugt_von', 'bild', 'erfasst_am', 'datum', 'titel', 'projekt', 'version', 'land',
+     'seite', 'kategorie', 'status', 'rolle', 'begriffe', 'notiz', 'autor', 'browser', 'ausschnitt', 'quelle',
      'unkenntlich_gemacht', 'marken'],
     'die Feldfolge ist nicht stabil'
   );
@@ -323,7 +323,7 @@ s.test('der Beipackzettel führt alle Felder in fester Folge', () => {
 
 s.test('der Beipackzettel bleibt auch ohne Angaben vollständig geformt', () => {
   const zettel = JSON.parse(kern.baueBeipackzettel({ bildname: 'a.png' }));
-  gleich(Object.keys(zettel).length, 19, 'Felder fehlen, wenn nichts eingetragen ist');
+  gleich(Object.keys(zettel).length, 21, 'Felder fehlen, wenn nichts eingetragen ist');
   gleich(zettel.titel, '');
   tieferGleich(zettel.begriffe, []);
   gleich(zettel.ausschnitt, null);
@@ -369,7 +369,7 @@ s.test('ein gelesener Beipackzettel trägt alle Zeilen in fester Folge', () => {
   const leere = gelesen.zeilen.filter((z) => z.leer).map((z) => z.schluessel);
   tieferGleich(
     leere,
-    ['seite', 'status', 'rolle', 'autor', 'browser', 'unkenntlich_gemacht', 'marken'],
+    ['version', 'land', 'seite', 'status', 'rolle', 'autor', 'browser', 'unkenntlich_gemacht', 'marken'],
     'leere Felder werden falsch erkannt'
   );
 });
@@ -2446,6 +2446,138 @@ s.test('der Suchtext einer Aufnahme wird nur einmal gerechnet', () => {
   const geaendert = { ...aufnahme, titel: 'Formular' };
   wahr(kern.eingangSuchIndex(geaendert).includes('formular'), 'der gemerkte Text bleibt am alten Satz hängen');
   wahr(!kern.eingangSuchIndex(geaendert).includes('vorlagenliste'));
+});
+
+/* ------------------------------- Projekte nach Version und Land (1.35.0) */
+
+s.test('ein Projekt ist ein Dreiklang aus Name, Version und Land', () => {
+  const satz = kern.projektSatz({ name: ' oneSCM Portal ', version: ' 2.4 ', land: 'Germany' });
+  gleich(satz.name, 'oneSCM Portal', 'die Leerzeichen bleiben hängen');
+  gleich(satz.version, '2.4');
+  gleich(satz.land, 'Germany');
+  gleich(satz.id, 'PRJ-onescm-portal-2-4-germany');
+  wahr(satz.angelegt_am.startsWith('20'), satz.angelegt_am);
+  gleich(kern.projektKennung(satz), 'oneSCM Portal 2.4 · Germany');
+
+  // Ohne Namen gibt es kein Projekt - Version und Land allein tragen nichts.
+  gleich(kern.projektSatz({ version: '2.4', land: 'Korea' }), null);
+  gleich(kern.projektSatz({}), null);
+
+  // Dieselbe Fassung in einem anderen Land ist ein anderes Projekt.
+  const korea = kern.projektSatz({ name: 'oneSCM Portal', version: '2.4', land: 'Korea' });
+  wahr(korea.id !== satz.id, 'Deutschland und Korea teilen sich eine Kennung');
+  // Dieselben drei Teile geben zweimal dieselbe Kennung.
+  gleich(kern.projektKennzeichen('oneSCM Portal', '2.4', 'Germany'), satz.id);
+  // Was fehlt, fehlt im Namen - ohne Land steht kein leerer Teil im Pfad.
+  gleich(kern.projektKennzeichen('oneSCM Portal', '', ''), 'PRJ-onescm-portal');
+  gleich(kern.projektKennung({ name: 'oneSCM Portal', version: '', land: '' }), 'oneSCM Portal');
+});
+
+s.test('vor dem Anlegen wird geprüft: Name, Länge, Dublette', () => {
+  const vorhandene = [kern.projektSatz({ name: 'oneSCM Portal', version: '2.4', land: 'Germany' })];
+  gleich(kern.pruefeProjekt({ name: 'oneSCM Portal', version: '2.4', land: 'Korea' }, vorhandene).length, 0);
+
+  const ohneNamen = kern.pruefeProjekt({ version: '2.4' }, vorhandene);
+  gleich(ohneNamen.length, 1);
+  gleich(ohneNamen[0].feld, 'name');
+
+  const zuLang = kern.pruefeProjekt({ name: 'X', version: '2.4.1-release-candidate-7' }, vorhandene);
+  gleich(zuLang.length, 1);
+  gleich(zuLang[0].feld, 'version');
+
+  const doppelt = kern.pruefeProjekt({ name: 'oneSCM Portal', version: '2.4', land: 'Germany' }, vorhandene);
+  gleich(doppelt.length, 1);
+  wahr(doppelt[0].text.includes('gibt es schon'), doppelt[0].text);
+});
+
+s.test('die Projektliste überlebt das Speichern und bleibt sortiert', () => {
+  const liste = [
+    { name: 'oneSCM Portal', version: '2.4', land: 'Korea' },
+    { name: 'oneSCM Portal', version: '2.3', land: 'Germany' },
+    { name: 'Admin-Konsole', version: '1.0', land: 'Germany' },
+    { name: '   ' }, // ohne Namen - fällt weg
+    { name: 'oneSCM Portal', version: '2.4', land: 'Korea' } // Dublette - fällt weg
+  ];
+  const gelesen = kern.leseProjekte(kern.schreibeProjekte(liste));
+  tieferGleich(
+    gelesen.map(kern.projektKennung),
+    ['Admin-Konsole 1.0 · Germany', 'oneSCM Portal 2.3 · Germany', 'oneSCM Portal 2.4 · Korea']
+  );
+  gleich(JSON.parse(kern.schreibeProjekte(gelesen)).version, kern.PROJEKTE_VERSION);
+
+  // Kaputter oder leerer Speicher wirft die Seite nicht um.
+  tieferGleich(kern.leseProjekte('{kaputt'), []);
+  tieferGleich(kern.leseProjekte(''), []);
+  tieferGleich(kern.leseProjekte(null), []);
+  // Eine nackte Liste aus einem älteren Stand wird auch gelesen.
+  gleich(kern.leseProjekte(JSON.stringify([{ name: 'A', version: '1', land: 'DE' }])).length, 1);
+});
+
+s.test('Projekte zählen ihre Bilder und werden aus dem Bestand vorgeschlagen', () => {
+  const projekte = kern.leseProjekte(
+    kern.schreibeProjekte([
+      { name: 'oneSCM Portal', version: '2.4', land: 'Germany' },
+      { name: 'oneSCM Portal', version: '2.3', land: 'Germany' }
+    ])
+  );
+  const aufnahmen = [
+    { id: 'A1', projekt: 'oneSCM Portal', version: '2.4', land: 'Germany' },
+    { id: 'A2', projekt: 'oneSCM Portal', version: '2.4', land: 'Germany' },
+    { id: 'A3', projekt: 'oneSCM Portal', version: '2.3', land: 'Germany' },
+    { id: 'A4', projekt: 'oneSCM Portal', version: '2.4', land: 'Korea' }, // nicht angelegt
+    { id: 'A5', projekt: '' } // ohne Projekt
+  ];
+  const zahlen = kern.zaehleJeProjekt(projekte, aufnahmen);
+  gleich(zahlen.get('PRJ-onescm-portal-2-4-germany'), 2);
+  gleich(zahlen.get('PRJ-onescm-portal-2-3-germany'), 1);
+
+  // Was an Bildern steht und fehlt, wird vorgeschlagen - einmal, nicht viermal.
+  const offen = kern.projekteAusBestand(aufnahmen, projekte);
+  gleich(offen.length, 1);
+  gleich(kern.projektKennung(offen[0]), 'oneSCM Portal 2.4 · Korea');
+  tieferGleich(kern.projekteAusBestand(aufnahmen, [...projekte, ...offen]), []);
+});
+
+s.test('Version und Land wandern vom Entwurf ins Bild, in den Pfad und in die Übersicht', () => {
+  const entwurf = {
+    ...gueltigerEntwurf(),
+    titel: 'Vorlagenliste',
+    version: ' 2.4 ',
+    land: ' Korea '
+  };
+  const gebaut = kern.baueAufnahme({
+    entwurf,
+    bild: 'data:,x',
+    ausschnitt: { x: 0, y: 0, breite: 400, hoehe: 300 },
+    quelle,
+    kennung: 'AUF-2026-009',
+    erfasstAm: '2026-10-17T08:00:00.000Z'
+  });
+  gleich(gebaut.version, '2.4', 'die Version bleibt am Bild');
+  gleich(gebaut.land, 'Korea');
+  wahr(kern.eingangSuchIndex(gebaut).includes('korea'), 'nach dem Land lässt sich nicht suchen');
+
+  // Der Pfad kennt beide als eigene Abschnitte.
+  const pfad = kern.verzeichnisPfad(gebaut, '{projekt}/{version}/{land}/{kennung}', kern.leseGliederung({ eintraege: [] }));
+  tieferGleich(pfad.ordner, ['onescm-portal', '2-4', 'korea']);
+  // Was fehlt, wird benannt statt weggelassen.
+  const ohne = kern.verzeichnisPfad({ id: 'AUF-2026-010' }, '{version}/{land}/{kennung}', kern.leseGliederung({ eintraege: [] }));
+  tieferGleich(ohne.ordner, ['ohne-version', 'ohne-land']);
+
+  // Beipackzettel und CSV führen beide Felder.
+  const zettel = JSON.parse(kern.baueBeipackzettel({ entwurf: gebaut, bildname: 'x.png', anwendung: '1.35.0' }));
+  gleich(zettel.version, '2.4');
+  gleich(zettel.land, 'Korea');
+  wahr(kern.BEIPACK_FELDER.some(([id]) => id === 'version'), 'die Version fehlt im Zettel');
+  wahr(kern.BEIPACK_FELDER.some(([id]) => id === 'land'), 'das Land fehlt im Zettel');
+
+  const plan = kern.verzeichnisPlan([gebaut], {}, kern.leseGliederung({ eintraege: [] }), []);
+  const csv = kern.galerieCsv(kern.galerieIndex([gebaut], plan, { anwendung: '1.35.0' }));
+  const zeilen = csv.trim().split('\n');
+  const spalten = zeilen[0].split(';');
+  wahr(spalten.includes('version') && spalten.includes('land'), zeilen[0]);
+  gleich(zeilen[1].split(';')[spalten.indexOf('version')], '2.4');
+  gleich(zeilen[1].split(';')[spalten.indexOf('land')], 'Korea');
 });
 
 export default s;

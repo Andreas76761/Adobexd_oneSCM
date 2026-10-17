@@ -14,6 +14,23 @@ const heute = () => new Date().toISOString().slice(0, 10);
 
 let eingang = leseEingangAusSpeicher();
 let entwurfslabelsOffen = false; // der Labelblock im Aufnahmeformular
+let projekte = leseProjekteAusSpeicher(); // angelegte Projekte: Name, Version, Land
+
+function leseProjekteAusSpeicher() {
+  try {
+    return leseProjekte(localStorage.getItem(PROJEKTE_SCHLUESSEL));
+  } catch (fehler) {
+    return [];
+  }
+}
+
+function sichereProjekte() {
+  try {
+    localStorage.setItem(PROJEKTE_SCHLUESSEL, schreibeProjekte(projekte));
+  } catch (fehler) {
+    // Ohne Speicher gelten die Projekte nur für diese Sitzung.
+  }
+}
 let entwurf = leereAufnahme(heute(), { browser: erkenneBrowser() });
 let quelle = null; // { art, name, breite, hoehe, element, strom }
 let ausschnitt = null; // in Bildpunkten der Quelle
@@ -58,6 +75,8 @@ function sichereEingang() {
         if (gelungen) for (const [kennung] of offen) abgelegteVorschauen.add(kennung);
       });
     }
+    // Die Projektliste zählt die Bilder je Projekt - sie gehört mit.
+    zeichneProjekte();
     const weg = [...abgelegteVorschauen].filter((kennung) => !eingang.some((a) => a.id === kennung));
     if (weg.length) {
       entferneVorschauen(weg);
@@ -819,7 +838,11 @@ function baueFormular() {
       ]
     );
 
-  const projektListe = el('datalist', { id: 'projektliste' }, VOKABULAR.projekte.map((p) => el('option', { value: p })));
+  const projektListe = el(
+    'datalist',
+    { id: 'projektliste' },
+    [...new Set([...projekte.map((p) => p.name), ...VOKABULAR.projekte])].map((p) => el('option', { value: p }))
+  );
 
   form.replaceChildren(
     el('h2', { klasse: 'abschnitt-titel', text: 'Metadaten für die nächste Aufnahme' }),
@@ -842,6 +865,11 @@ function baueFormular() {
       null
     ),
     projektListe,
+    el('div', { klasse: 'feld-paar' }, [
+      feldGruppe('version', 'Version', eingabe('version', '2.4'), null),
+      feldGruppe('land', 'Land', eingabe('land', 'Germany'), null)
+    ]),
+    projektVerwaltung(),
     feldGruppe('seite', 'Seite', eingabe('seite', '/portal/bestellungen'), null),
     el('div', { klasse: 'feld-paar' }, [
       feldGruppe('datum', 'Datum', eingabe('datum', '', 'date'), null),
@@ -960,6 +988,163 @@ function zeichneEntwurfslabels() {
   ]);
 }
 
+/**
+ * Projekte anlegen und wählen. „oneSCM Portal" allein sagt zu wenig:
+ * dieselbe Maske sieht in Fassung 2.3 anders aus als in 2.4 und in Korea
+ * anders als in Deutschland. Ein Projekt ist darum ein Dreiklang aus Name,
+ * Version und Land - angelegt, nicht getippt, damit es in jedem Bild gleich
+ * heißt.
+ */
+function projektVerwaltung() {
+  return el('details', { klasse: 'labels', id: 'projekt-verwaltung', ontoggle: zeichneProjekte }, [
+    el('summary', {}, [
+      el('span', { text: 'Projekte' }),
+      el('span', { klasse: 'kennung', id: 'projekt-stand', text: projektStandText() })
+    ]),
+    el('div', { klasse: 'projekt-liste', id: 'projekt-liste' }),
+    el('div', { klasse: 'projekt-anlegen' }, [
+      el('div', { klasse: 'feld' }, [
+        el('label', { for: 'projekt-neu-name', text: 'Name' }),
+        el('input', { type: 'text', id: 'projekt-neu-name', placeholder: 'oneSCM Portal', autocomplete: 'off' })
+      ]),
+      el('div', { klasse: 'feld feld--schmal' }, [
+        el('label', { for: 'projekt-neu-version', text: 'Version' }),
+        el('input', { type: 'text', id: 'projekt-neu-version', placeholder: '2.4', autocomplete: 'off' })
+      ]),
+      el('div', { klasse: 'feld feld--schmal' }, [
+        el('label', { for: 'projekt-neu-land', text: 'Land' }),
+        el('input', { type: 'text', id: 'projekt-neu-land', placeholder: 'Germany', autocomplete: 'off' })
+      ]),
+      el('button', {
+        klasse: 'knopf knopf--klein',
+        type: 'button',
+        id: 'projekt-anlegen',
+        text: 'Projekt anlegen',
+        onclick: legeProjektAn
+      })
+    ]),
+    el('p', { klasse: 'feld-hinweis', id: 'projekt-meldung' })
+  ]);
+}
+
+const projektStandText = () =>
+  projekte.length ? `${projekte.length} angelegt` : 'noch keins angelegt';
+
+/** Die Liste der Projekte: wählen, zählen, löschen. */
+function zeichneProjekte() {
+  const kasten = document.getElementById('projekt-liste');
+  if (!kasten) return;
+  const stand = document.getElementById('projekt-stand');
+  if (stand) stand.textContent = projektStandText();
+  // Gezählt wird nur für eine offene Liste; zugeklappt kostet jedes Sichern
+  // sonst einen Durchlauf über den ganzen Bestand.
+  const block = document.getElementById('projekt-verwaltung');
+  if (block && !block.open) return;
+  const zahlen = zaehleJeProjekt(projekte, eingang);
+  const offen = projekteAusBestand(eingang, projekte);
+
+  kasten.replaceChildren(
+    ...(projekte.length
+      ? projekte.map((satz) => {
+          const gewaehlt =
+            String(entwurf.projekt || '') === satz.name &&
+            String(entwurf.version || '') === satz.version &&
+            String(entwurf.land || '') === satz.land;
+          return el('div', { klasse: 'projekt-zeile' + (gewaehlt ? ' projekt-zeile--gewaehlt' : '') }, [
+            el('button', {
+              klasse: 'projekt-waehlen',
+              type: 'button',
+              text: projektKennung(satz),
+              title: 'Für die nächsten Aufnahmen verwenden',
+              onclick: () => {
+                entwurf.projekt = satz.name;
+                entwurf.version = satz.version;
+                entwurf.land = satz.land;
+                fuelleFormular();
+                zeichneProjekte();
+                zeichneStudio();
+                meldeStudio(`Projekt „${projektKennung(satz)}" gilt für die nächsten Aufnahmen.`, 'gut');
+              }
+            }),
+            el('span', {
+              klasse: 'kennung',
+              text: `${zahlen.get(satz.id) || 0} ${zahlen.get(satz.id) === 1 ? 'Bild' : 'Bilder'}`
+            }),
+            el('button', {
+              klasse: 'knopf knopf--klein',
+              type: 'button',
+              text: 'Löschen',
+              title: 'Nur das Projekt – die Bilder bleiben',
+              onclick: () => {
+                projekte = projekte.filter((p) => p.id !== satz.id);
+                sichereProjekte();
+                zeichneProjekte();
+                meldeProjekt(`„${projektKennung(satz)}" gelöscht. Die Bilder bleiben.`, 'neutral');
+              }
+            })
+          ]);
+        })
+      : [
+          el('p', {
+            klasse: 'feld-hinweis',
+            text: 'Noch kein Projekt angelegt. Name, Version und Land unten eintragen.'
+          })
+        ]),
+    // Was an Bildern steht, aber nicht angelegt ist, wird vorgeschlagen.
+    ...offen.map((satz) =>
+      el('div', { klasse: 'projekt-zeile projekt-zeile--offen' }, [
+        el('span', { klasse: 'projekt-waehlen', text: projektKennung(satz) }),
+        el('span', { klasse: 'kennung', text: 'aus dem Bestand' }),
+        el('button', {
+          klasse: 'knopf knopf--klein',
+          type: 'button',
+          text: 'Übernehmen',
+          onclick: () => {
+            projekte = leseProjekte(schreibeProjekte([...projekte, satz]));
+            sichereProjekte();
+            zeichneProjekte();
+            meldeProjekt(`„${projektKennung(satz)}" angelegt.`, 'gut');
+          }
+        })
+      ])
+    )
+  );
+}
+
+function meldeProjekt(text, art = 'neutral') {
+  const zeile = document.getElementById('projekt-meldung');
+  if (!zeile) return;
+  zeile.textContent = text;
+  zeile.className = 'feld-hinweis' + (art === 'warnung' ? ' zettel-meldung--warnung' : '');
+}
+
+function legeProjektAn() {
+  const satz = {
+    name: $('#projekt-neu-name').value,
+    version: $('#projekt-neu-version').value,
+    land: $('#projekt-neu-land').value
+  };
+  const probleme = pruefeProjekt(satz, projekte);
+  if (probleme.length) {
+    meldeProjekt(probleme[0].text, 'warnung');
+    const feld = document.getElementById('projekt-neu-' + probleme[0].feld);
+    if (feld) feld.focus({ preventScroll: true });
+    return;
+  }
+  const angelegt = projektSatz(satz);
+  projekte = leseProjekte(schreibeProjekte([...projekte, angelegt]));
+  sichereProjekte();
+  // Das neue Projekt gilt sofort - wer es anlegt, will damit arbeiten.
+  entwurf.projekt = angelegt.name;
+  entwurf.version = angelegt.version;
+  entwurf.land = angelegt.land;
+  for (const feld of ['name', 'version', 'land']) $('#projekt-neu-' + feld).value = '';
+  fuelleFormular();
+  zeichneProjekte();
+  zeichneStudio();
+  meldeProjekt(`„${projektKennung(angelegt)}" angelegt und gewählt.`, 'gut');
+}
+
 /** Schreibt den Entwurf in das Formular zurück (nach dem Auslösen). */
 function fuelleFormular() {
   const setzeWert = (kennung, wert) => {
@@ -968,6 +1153,8 @@ function fuelleFormular() {
   };
   setzeWert('titel', entwurf.titel);
   setzeWert('projekt', entwurf.projekt);
+  setzeWert('version', entwurf.version || '');
+  setzeWert('land', entwurf.land || '');
   setzeWert('seite', entwurf.seite);
   setzeWert('datum', entwurf.datum);
   setzeWert('kategorie', entwurf.kategorie);
@@ -1138,6 +1325,8 @@ function zeichneEingang() {
   $('#eingang-kontaktbogen').disabled = gefiltert.length === 0;
   $('#eingang-sichern').disabled = gefiltert.length === 0;
   $('#eingang-leeren').disabled = eingang.length === 0;
+  // Die Projektliste zählt die Bilder je Projekt - sie gehört mit aktualisiert.
+  zeichneProjekte();
 }
 
 /* ----------------------------------------------- Werkbank: Beleg bilden */
@@ -1511,6 +1700,12 @@ function oeffneEingangDialog(kennung) {
     el('form', { klasse: 'bearbeiten-form', id: 'bearbeiten-form' }, [
       feld('Titel', text('titel')),
       el('div', { klasse: 'feld-paar' }, [feld('Projekt', text('projekt', 'oneSCM Portal')), feld('Seite', text('seite', '/portal/…'))]),
+      // Version und Land gehören zum Projekt: dieselbe Maske sieht in 2.3
+      // anders aus als in 2.4 und in Korea anders als in Deutschland.
+      el('div', { klasse: 'feld-paar' }, [
+        feld('Version', text('version', '2.4')),
+        feld('Land', text('land', 'Germany'))
+      ]),
       el('div', { klasse: 'feld-paar' }, [
         feld('Kategorie', auswahl('kategorie', VOKABULAR.kategorien, 'ohne Kategorie')),
         feld('Status', auswahl('status', VOKABULAR.status, null))
@@ -1749,6 +1944,7 @@ function zeigeErsatzausgabe(hinweis, inhalt) {
 
 function verdrahteAufnahme() {
   baueFormular();
+  zeichneProjekte();
   verdrahteBuehne();
 
   $('#quelle-bildschirm').addEventListener('click', quelleBildschirm);

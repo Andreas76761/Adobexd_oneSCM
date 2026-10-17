@@ -53,6 +53,28 @@ const ansichten = [
   { name: 'aufnahme', optionen: { hash: '#ans=aufnahme' }, vorher: fuelleEingang },
   { name: 'aufnahme-dunkel', optionen: { hash: '#ans=aufnahme', thema: 'dark' }, vorher: fuelleEingang },
   {
+    name: 'projekte',
+    optionen: { hash: '#ans=aufnahme' },
+    vorher: async (seite) => {
+      await fuelleEingang(seite);
+      await seite.evaluate(() => {
+        document.getElementById('projekt-verwaltung').open = true;
+      });
+      for (const [name, version, land] of [
+        ['oneSCM Portal', '2.4', 'Germany'],
+        ['oneSCM Portal', '2.3', 'Korea']
+      ]) {
+        await seite.fill('#projekt-neu-name', name);
+        await seite.fill('#projekt-neu-version', version);
+        await seite.fill('#projekt-neu-land', land);
+        await seite.click('#projekt-anlegen');
+        await seite.waitForTimeout(120);
+      }
+      await seite.locator('#projekt-verwaltung').scrollIntoViewIfNeeded();
+      await seite.waitForTimeout(200);
+    }
+  },
+  {
     name: 'eingang',
     optionen: { hash: '#ans=aufnahme' },
     vorher: async (seite) => {
