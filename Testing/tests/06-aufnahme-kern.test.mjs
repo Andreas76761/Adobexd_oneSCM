@@ -2786,4 +2786,181 @@ s.test('ohne Blatt gibt es kein PDF, und kaputte Blätter fallen weg', () => {
   gleich((alsText(gemischt).match(/\/Type\/Page[^s]/g) || []).length, 1);
 });
 
+/* ------------------------------- ZIP, Word, PowerPoint (1.39.0) */
+
+s.test('ein geschriebenes ZIP lässt sich wieder lesen', () => {
+  const bild = jpegBlock(0x43, 64);
+  const archiv = kern.zipSchreiben([
+    { name: 'eins.txt', daten: 'Prüfung mit Umlaut' },
+    { name: 'ordner/zwei.bin', daten: bild }
+  ]);
+  // Gelesen wird mit demselben Werkzeug, das die Einfuhr benutzt.
+  const verzeichnis = kern.leseZipVerzeichnis(archiv);
+  tieferGleich(verzeichnis.map((e) => e.name), ['eins.txt', 'ordner/zwei.bin']);
+  gleich(verzeichnis[0].verfahren, 0, 'gespeichert, nicht gepackt');
+  gleich(verzeichnis[1].roh, bild.length);
+  gleich(kern.zipSchreiben([]), null);
+  gleich(kern.zipSchreiben(), null);
+});
+
+s.test('die Word-Datei trägt jedes Blatt als Bild', () => {
+  const seiten = [
+    { daten: jpegBlock(0x41), breite: 2480, hoehe: 3508, typ: 'jpeg' },
+    { daten: jpegBlock(0x42), breite: 2480, hoehe: 3508, typ: 'jpeg' }
+  ];
+  const docx = kern.docxAusSeiten(seiten, { titel: 'Quick Guide – Prüfung', anwendung: '1.39.0' });
+  const namen = kern.leseZipVerzeichnis(docx).map((e) => e.name);
+  for (const teil of ['[Content_Types].xml', '_rels/.rels', 'word/document.xml', 'word/_rels/document.xml.rels', 'word/media/blatt1.jpeg', 'word/media/blatt2.jpeg']) {
+    wahr(namen.includes(teil), `${teil} fehlt: ` + namen.join(', '));
+  }
+  const text = alsText(docx);
+  gleich((text.match(/<w:drawing>/g) || []).length, 2);
+  wahr(text.includes('w:pgSz w:w="11906" w:h="16838"'), 'A4 hoch fehlt');
+  wahr(!text.includes('w:br w:type="page"'), 'ein eingefügter Umbruch erzeugt leere Seiten');
+  // Gelesen wird hier Byte für Byte; der Titel steht als UTF-8 im Archiv.
+  const titelAusDocx = Buffer.from(docx).toString('utf8').match(/<dc:title>([^<]*)<\/dc:title>/)[1];
+  gleich(titelAusDocx, 'Quick Guide – Prüfung');
+
+  // Ein quer liegendes Blatt dreht die Seite.
+  const quer = kern.docxAusSeiten([{ daten: jpegBlock(), breite: 3508, hoehe: 2480, typ: 'jpeg' }], {});
+  wahr(alsText(quer).includes('w:orient="landscape"'), 'quer wird nicht quer');
+  gleich(kern.docxAusSeiten([]), null);
+});
+
+s.test('die PowerPoint-Datei hat eine Folie je Blatt', () => {
+  const seiten = [
+    { daten: jpegBlock(0x41), breite: 2480, hoehe: 3508, typ: 'jpeg' },
+    { daten: jpegBlock(0x42), breite: 2480, hoehe: 3508, typ: 'jpeg' },
+    { daten: jpegBlock(0x44), breite: 2480, hoehe: 3508, typ: 'jpeg' }
+  ];
+  const pptx = kern.pptxAusSeiten(seiten, { titel: 'Quick Guide', anwendung: '1.39.0' });
+  const namen = kern.leseZipVerzeichnis(pptx).map((e) => e.name);
+  // Das Gerüst, ohne das PowerPoint die Datei nicht öffnet.
+  for (const teil of [
+    '[Content_Types].xml',
+    'ppt/presentation.xml',
+    'ppt/_rels/presentation.xml.rels',
+    'ppt/theme/theme1.xml',
+    'ppt/slideMasters/slideMaster1.xml',
+    'ppt/slideLayouts/slideLayout1.xml',
+    'ppt/slides/slide3.xml',
+    'ppt/slides/_rels/slide3.xml.rels',
+    'ppt/media/blatt3.jpeg'
+  ]) {
+    wahr(namen.includes(teil), `${teil} fehlt`);
+  }
+  const text = alsText(pptx);
+  gleich((text.match(/<p:sldId /g) || []).length, 3);
+  // 2480 Bildpunkte bei 300 dpi sind 7 559 040 EMU.
+  // 2480 × 3508 Bildpunkte bei 300 dpi: das Folienmaß folgt dem Blatt.
+  const masse = text.match(/<p:sldSz cx="(\d+)" cy="(\d+)"\/>/);
+  gleich(Number(masse[1]), Math.round((2480 / 300) * 914400));
+  gleich(Number(masse[2]), Math.round((3508 / 300) * 914400));
+  gleich(kern.pptxAusSeiten([]), null);
+});
+
+/* ------------------------------- Der Plan des Registers Output (1.39.0) */
+
+const outputBestand = [
+  { id: 'B1', titel: 'Liste de', gliederung: '6.2', sprache: 'de', rolle_label: 'dealer' },
+  { id: 'B2', titel: 'Liste en', gliederung: '6.2', sprache: 'en', rolle_label: 'dealer' },
+  { id: 'B3', titel: 'Formular de', gliederung: '6.3', sprache: 'de', rolle_label: 'dealer' }
+];
+const outputGliederung = kern.leseGliederung({
+  eintraege: [
+    { nummer: '6', thema: 'Markt', ebene: 1 },
+    { nummer: '6.2', thema: 'Market Settings', ebene: 2 },
+    { nummer: '6.3', thema: 'Vorlagen', ebene: 2 }
+  ]
+});
+
+s.test('aus Vorlage × Inhalt × Variante entsteht je ein Dokument', () => {
+  const plan = kern.ausgabePlan(
+    outputBestand,
+    [],
+    outputGliederung,
+    { vorlagen: ['quickguide', 'onepager'], inhalte: ['kapitel:6.2', 'kapitel:6.3'], achse: 'sprache', werte: ['de', 'en'], formate: ['pdf'] },
+    kern.VORLAGEN
+  );
+  gleich(plan.length, 8, '2 Vorlagen × 2 Inhalte × 2 Sprachen');
+  const quickDe62 = plan.find((a) => a.vorlage === 'quickguide' && a.inhalt === 'kapitel:6.2' && a.wert === 'de');
+  gleich(quickDe62.bilder, 1);
+  gleich(quickDe62.titel, '6.2 Market Settings · Deutsch');
+  gleich(kern.ausgabeDateiname(quickDe62, 'pdf'), 'quickguide-6-2-market-settings-de.pdf');
+  tieferGleich(kern.ausgabeOrdner(quickDe62), ['output', 'de', 'quickguide']);
+
+  // 6.3 gibt es nicht auf Englisch - der Auftrag bleibt als Lücke stehen.
+  const leer = plan.find((a) => a.vorlage === 'quickguide' && a.inhalt === 'kapitel:6.3' && a.wert === 'en');
+  gleich(leer.bilder, 0);
+
+  const umfang = kern.ausgabeUmfang(plan, ['pdf', 'docx']);
+  gleich(umfang.dokumente, 8);
+  gleich(umfang.leer, 2, '6.3 auf Englisch – je Vorlage einmal');
+  gleich(umfang.dateien, 12, '6 Dokumente mit Bild × 2 Formate');
+
+  // Ohne Achse ein Dokument je Vorlage und Inhalt.
+  const ohne = kern.ausgabePlan(outputBestand, [], outputGliederung, {
+    vorlagen: ['quickguide'],
+    inhalte: ['kapitel:6.2'],
+    achse: '',
+    werte: []
+  }, kern.VORLAGEN);
+  gleich(ohne.length, 1);
+  gleich(ohne[0].bilder, 2, 'ohne Achse zählen beide Sprachen');
+  gleich(ohne[0].variante, '');
+
+  // Ohne Vorlage oder ohne Inhalt gibt es keinen Plan.
+  gleich(kern.ausgabePlan(outputBestand, [], outputGliederung, { vorlagen: [], inhalte: ['kapitel:6.2'] }, kern.VORLAGEN).length, 0);
+  gleich(kern.ausgabePlan(outputBestand, [], outputGliederung, { vorlagen: ['quickguide'], inhalte: [] }, kern.VORLAGEN).length, 0);
+});
+
+s.test('eine Strecke als Inhalt folgt der Variante, nicht dem Filter', () => {
+  const strecken = [
+    { id: 'STR-1', name: 'Vorlage anlegen', schritte: [{ art: 'schritt', aufnahmen: ['B1'], text: 'Liste öffnen' }] }
+  ];
+  // Ohne Variantengruppe bleibt das Bild stehen - umgestellt wird nur, was
+  // verbunden ist.
+  const bilder = kern.ausgabeBilder(outputBestand, strecken, 'strecke:STR-1', 'sprache', 'en');
+  tieferGleich(bilder.map((a) => a.id), ['B1']);
+  gleich(kern.ausgabeInhaltName('strecke:STR-1', strecken, outputGliederung), 'Vorlage anlegen');
+  gleich(kern.ausgabeInhaltName('kapitel:6.2', strecken, outputGliederung), '6.2 Market Settings');
+  tieferGleich(kern.ausgabeBilder(outputBestand, strecken, 'kapitel:6', '', ''), [outputBestand[0], outputBestand[1], outputBestand[2]]);
+});
+
+/* ------------------------------- Die Lupe: Rezept und Kapitelweg (1.39.0) */
+
+s.test('die Lupe nennt Weg, Rezept und Schritte eines Bildes', () => {
+  const aufnahme = {
+    id: 'AUF-2026-007',
+    titel: 'Vorlagenliste',
+    gliederung: '6.2',
+    autor: 'M. Arndt',
+    browser: 'Chrome 141',
+    quelle: { art: 'bildschirm', name: 'Freigabe', breite: 1440, hoehe: 900 },
+    ausschnitt: { x: 12, y: 35, breite: 300, hoehe: 200 },
+    einfuhr: { datei: 'handbuch.pptx', seite: 4 }
+  };
+  const strecken = [
+    { id: 'STR-1', name: 'Vorlage anlegen', schritte: [
+      { art: 'schritt', aufnahmen: ['X'], text: 'erster' },
+      { art: 'schritt', aufnahmen: ['AUF-2026-007'], text: 'Liste öffnen' }
+    ] }
+  ];
+  const rezept = kern.bildRezept(aufnahme, strecken, outputGliederung);
+  tieferGleich(rezept.pfad, ['6 Markt', '6.2 Market Settings']);
+  const schild = (name) => (rezept.zeilen.find((z) => z.schild === name) || {}).wert;
+  gleich(schild('Quelle'), 'Bildschirm: Freigabe · 1440 × 900 px');
+  gleich(schild('Ausschnitt'), '300 × 200 px ab 12, 35');
+  gleich(schild('Eingeführt'), 'handbuch.pptx · Seite 4');
+  gleich(schild('Erfasst von'), 'M. Arndt');
+  tieferGleich(rezept.schritte, [{ strecke: 'Vorlage anlegen', nummer: 2, text: 'Liste öffnen' }]);
+
+  // Ein Bild ohne alles nennt nichts – und stürzt nicht ab.
+  const karg = kern.bildRezept({ id: 'A' }, [], outputGliederung);
+  tieferGleich(karg.pfad, []);
+  tieferGleich(karg.schritte, []);
+  // Eine unbekannte Stelle steht trotzdem im Weg.
+  tieferGleich(kern.kapitelPfad(outputGliederung, '9.9'), ['9.9']);
+});
+
 export default s;

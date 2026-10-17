@@ -1422,3 +1422,53 @@ im Bild.
 
 Das ganze Handbuch bleibt HTML – dort ist Text Text und soll es bleiben. Das
 PDF entsteht aus den gerenderten Blättern.
+
+## F-56 · Register Output – fertige Dokumente in jeder Variante
+
+**Seit** 1.39.0 · betrifft Output, Design, Verzeichnis
+
+**Das Problem** Das Designstudio rechnet *ein* Blatt nach dem anderen: eine
+Vorlage, ein Inhalt, eine Variante. Ein Handbuch für drei Sprachen und zwei
+Rollen heißt aber sechsmal dasselbe von Hand – und am Ende liegen die Dateien
+irgendwo.
+
+**Die Lösung** Ein eigenes Register. Ein Dokument ist dort ein Dreiklang aus
+**Vorlage × Inhalt × Variante**; aus zwei Inhalten und drei Sprachen werden
+sechs Dokumente, mit drei Formaten achtzehn Dateien.
+
+* **Inhalte nach Kapiteln geordnet**: Strecken zuerst, danach je Kapitel seine
+  Stellen mit Bildern – eine flache Liste mit 1153 Stellen wäre keine Auswahl.
+* **Achse** ist jedes Labelfeld: Sprache, Rolle, Sparte, Markt, Version, Land.
+  Die Werte stehen mit ihrer Bildzahl daneben.
+* **Vorschau** je Dokument: die gerechneten Blätter, die Bilder einzeln (jedes
+  mit der Lupe), dazu Kapitel und gemeinsame Labels.
+* **Formate**: PDF, Word (`.docx`), PowerPoint (`.pptx`) und HTML. Word und
+  PowerPoint sind ZIP-Archive mit XML – beide baut die Seite selbst, ohne
+  fremde Bibliothek, mit einem Blatt je Seite bzw. Folie im Format des Blattes.
+* **In den Ordner schreiben** legt alles unter `output/<Variante>/<Vorlage>/`
+  ab; dieselbe Ordnerwahl wie im Register Verzeichnis.
+
+Ein Auftrag ohne Bild bleibt in der Liste und wird als leer ausgewiesen: wer
+drei Sprachen erwartet und zwei bekommt, soll die Lücke sehen.
+
+## F-57 · Die Lupe – ein Bild groß, mit allem, was dazugehört
+
+**Seit** 1.39.0 · betrifft Eingang, Suchchat, Editor, Output
+
+**Das Problem** Die Karten im Eingang sind Briefmarken. Ob ein Screenshot
+wirklich die richtige Maske in der richtigen Fassung zeigt, lässt sich daran
+nicht entscheiden – und die Angaben dazu stehen in vier verschiedenen
+Ansichten.
+
+**Die Lösung** Ein Knopf mit der Lupe auf jeder Bildkarte öffnet ein eigenes
+Fenster: links das Bild groß (die jüngste Fassung in voller Auflösung, bis sie
+geladen ist die Vorschau), rechts vier Abschnitte:
+
+| Abschnitt | Inhalt |
+| --- | --- |
+| **Text** | Titel, Notiz, Seite, Begriffe, Projekt mit Version und Land |
+| **Kapitel** | der Weg von oben (7 › 7.5 › 7.5.2) und der Sprung in die Gliederung |
+| **Labels** | jedes gesetzte Label mit seinem Zeichen |
+| **Rezept** | Quelle, Ausschnitt, Einfuhr, Bearbeitungen, Fassungen, Erfasser – und in welchem Schritt welcher Strecke das Bild steht |
+
+Dazu zwei Wege hinaus: in den Editor oder in den Eingangsdialog.

@@ -21,6 +21,12 @@
     <symbol id="sym-markt" viewBox="0 0 24 24">
       <path d="M6 21V4M6 4h11l-2.2 3.4L17 11H6"/>
     </symbol>
+    <symbol id="sym-lupe" viewBox="0 0 24 24">
+      <circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4 20 20M8 10.5h5M10.5 8v5"/>
+    </symbol>
+    <symbol id="sym-nav-output" viewBox="0 0 24 24">
+      <path d="M4 4.5h10l6 6v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M14 4.5v6h6M9 14.5h6M12 11.5v6"/>
+    </symbol>
     <symbol id="sym-version" viewBox="0 0 24 24">
       <path d="M4 7h16M4 12h16M4 17h9"/><circle cx="17.5" cy="17" r="2.5"/>
     </symbol>
@@ -127,6 +133,7 @@
             <button type="button" data-ansicht="gliederung"><svg class="symbol" aria-hidden="true"><use href="#sym-kapitel"/></svg>Gliederung</button>
             <button type="button" data-ansicht="pruefung"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-pruefung"/></svg>Prüfung</button>
             <button type="button" data-ansicht="verzeichnis"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-verzeichnis"/></svg>Verzeichnis</button>
+            <button type="button" data-ansicht="output"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-output"/></svg>Output</button>
             <button type="button" data-ansicht="eingang"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-eingang"/></svg>Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
           <div class="projektleiste">
@@ -827,6 +834,52 @@
     </div>
   </section>
 
+  <section id="output-ansicht" aria-label="Output" hidden>
+    <div class="output-kopf">
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--haupt" id="output-erzeugen" disabled>Dokumente erzeugen</button>
+        <button type="button" class="knopf" id="output-sichern" disabled>Alle sichern</button>
+        <button type="button" class="knopf" id="output-ordner" disabled>In den Ordner schreiben</button>
+      </div>
+      <span class="band-stand" id="output-umfang"></span>
+    </div>
+
+    <p class="band-hinweis">
+      Hier entstehen die fertigen Unterlagen: eine Vorlage, ein oder mehrere
+      Inhalte, eine Achse (Sprache, Rolle, Sparte …) – daraus wird je Wert ein
+      eigenes Dokument. Die Blätter rechnet dasselbe Studio wie im Register
+      <b>Design</b>; hier kommen Vorschau, Word, PDF und PowerPoint dazu.
+      <b>In den Ordner schreiben</b> legt alles unter <code>output/</code> ab,
+      nach Variante und Vorlage getrennt.
+    </p>
+    <p class="studio-meldung" id="output-meldung" role="status" aria-live="polite"></p>
+
+    <div class="output-wahl">
+      <div class="feld">
+        <span class="feld-schild">Vorlagen</span>
+        <div class="output-kaestchen" id="output-vorlagen"></div>
+      </div>
+      <div class="feld">
+        <label for="output-inhalte">Inhalte</label>
+        <select id="output-inhalte" multiple size="6"></select>
+      </div>
+      <div class="feld">
+        <label for="output-achse">Achse</label>
+        <select id="output-achse"></select>
+        <div class="output-kaestchen" id="output-werte"></div>
+      </div>
+      <div class="feld">
+        <span class="feld-schild">Formate</span>
+        <div class="output-kaestchen" id="output-formate"></div>
+      </div>
+    </div>
+
+    <div class="output-raster">
+      <div class="output-liste" id="output-liste"></div>
+      <div class="output-schau" id="output-schau"></div>
+    </div>
+  </section>
+
   <section id="verzeichnis-ansicht" aria-label="Verzeichnis" hidden>
     <div class="verzeichnis-kopf">
       <div class="verzeichnis-ordner" id="verzeichnis-ordner"></div>
@@ -973,6 +1026,17 @@
   <div class="eingang-dialog-koerper" id="eingang-dialog-inhalt"></div>
 </dialog>
 
+<dialog class="detail lupe-dialog" id="lupe-dialog" aria-labelledby="lupe-titel">
+  <div class="detail-kopf">
+    <h2 id="lupe-titel">Bild</h2>
+    <button type="button" class="schliessen" id="lupe-schliessen" aria-label="Schließen">×</button>
+  </div>
+  <div class="lupe-koerper">
+    <div class="lupe-bild" id="lupe-bild"></div>
+    <aside class="lupe-angaben" id="lupe-angaben"></aside>
+  </div>
+</dialog>
+
 <script>
 /*%KERN%*/
 /*%DATEN%*/
@@ -987,5 +1051,6 @@
 /*%CHAT%*/
 /*%PRUEFUNG%*/
 /*%ABLAGE%*/
+/*%OUTPUT%*/
 })();
 </script>

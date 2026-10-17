@@ -95,6 +95,9 @@ const eingangImSpeicher = (seite) =>
 
 /** Gibt frei und zieht einen Bereich auf; das Loslassen schneidet aus. */
 async function ziehe(seite, x1, y1, x2, y2) {
+  // Die Leinwand muss im Bild stehen, sonst gehen die Mausereignisse ins
+  // Leere - der Kopf der Seite ist seit 1.36.0 eine Zeile höher.
+  await seite.locator('#schnipsel-leinwand').scrollIntoViewIfNeeded();
   const m = await seite.locator('#schnipsel-leinwand').boundingBox();
   await seite.mouse.move(m.x + x1, m.y + y1);
   await seite.mouse.down();

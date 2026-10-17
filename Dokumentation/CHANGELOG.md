@@ -20,6 +20,37 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.39.0] – Register Output und die Lupe
+
+### Neu
+* **Register Output** (F-56): Vorlage × Inhalt × Variante ergibt je ein
+  Dokument – mit Vorschau, Kapitel, Labels und den Formaten PDF, Word,
+  PowerPoint und HTML; „In den Ordner schreiben“ legt alles unter
+  `output/<Variante>/<Vorlage>/` ab
+* Die Inhalte stehen **nach Kapiteln geordnet** zur Wahl; die Achse ist jedes
+  Labelfeld samt Bildzahl je Wert
+* **Die Lupe** (F-57) auf jeder Bildkarte: ein eigenes Fenster mit dem Bild in
+  voller Auflösung und vier Abschnitten – Text, Kapitel (mit dem Weg von
+  oben), Labels und Rezept (Quelle, Ausschnitt, Einfuhr, Bearbeitungen,
+  Schritte in Strecken)
+
+### Kern
+* `zipSchreiben`, `docxAusSeiten`, `pptxAusSeiten`
+* `ausgabePlan`, `ausgabeBilder`, `ausgabeInhaltName`, `ausgabeDateiname`,
+  `ausgabeOrdner`, `ausgabeUmfang`, `AUSGABE_FORMATE`
+* `bildRezept`, `kapitelPfad`, `QUELLEN_NAMEN`; `ANSICHTEN` kennt `output`
+
+### Geändert
+* Neues Oberflächenmodul `output.js`; der Start steht jetzt in dessen letzter
+  Zeile (vorher `ablage.js`)
+* Die Prüfung der externen Quellen lässt die XML-Namensräume von Word und
+  PowerPoint zu – Namen, keine Adressen
+
+### Prüfung
+* Neue Datei `20-output.e2e.mjs` (7 Fälle), 7 neue Kernprüfungen; zusammen 426
+* Das Ziehen im Schnipsel-Modus scrollt die Leinwand ins Bild: der Kopf ist
+  seit 1.36.0 eine Zeile höher
+
 ## [1.38.0] – PDF aus den Blättern
 
 ### Neu

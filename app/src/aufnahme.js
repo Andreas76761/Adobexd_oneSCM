@@ -1315,6 +1315,7 @@ function eingangKarte(aufnahme) {
         // Die Karte zeigt die bearbeitete Fassung, wenn es eine gibt - sonst
         // sähe man im Eingang noch, was längst abgedeckt sein soll.
         el('img', { src: anzeigeBild(aufnahme), alt: aufnahme.titel, loading: 'lazy' }),
+        lupenKnopf(aufnahme.id),
         vollstaendig ? null : el('span', { klasse: 'offen-marke', text: 'unvollständig' }),
         leseFassungen(aufnahme).length
           ? el('span', { klasse: 'markiert-marke', text: `Fassung ${neuesteFassung(aufnahme).nummer}` })

@@ -80,6 +80,7 @@ function chatTreffer(aufnahme) {
         zeigeChat(false);
       }
     }, el('img', { src: anzeigeBild(aufnahme), alt: aufnahme.titel, loading: 'lazy' })),
+    lupenKnopf(aufnahme.id),
     el('figcaption', {}, [
       el('span', { klasse: 'chat-treffer-titel', text: aufnahme.titel }),
       el('span', { klasse: 'kennung', text: `${kapitelKennung(aufnahme) || 'ohne Stelle'} · ${aufnahme.id}` }),

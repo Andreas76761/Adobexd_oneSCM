@@ -111,6 +111,7 @@ function setze(aenderung, neuZeichnen = true) {
   if (zustand.ansicht === 'import') zeichneImport();
   if (zustand.ansicht === 'pruefung') zeichnePruefung();
   if (zustand.ansicht === 'verzeichnis') zeichneVerzeichnis();
+  if (zustand.ansicht === 'output') zeichneOutput();
 }
 
 function schalte(dimension, wert) {
@@ -553,6 +554,7 @@ const ABSCHNITTE = {
   gliederung: 'gliederung-ansicht',
   pruefung: 'pruefung-ansicht',
   verzeichnis: 'verzeichnis-ansicht',
+  output: 'output-ansicht',
   eingang: 'eingang-ansicht'
 };
 
@@ -858,7 +860,163 @@ const richteSchub = () => {
 };
 breit.addEventListener('change', richteSchub);
 
-/** Startet die Seite. Wird am Ende von aufnahme.js aufgerufen, damit dort
+/* ------------------------------------------------------------- Die Lupe */
+
+/**
+ * Ein Bild groß, mit allem, was dazugehört: Text, Rezept, Labels und die
+ * Stelle im Handbuch samt ihrem Weg von oben. Gezeigt wird die jüngste
+ * Fassung in voller Auflösung - die Vorschau genügt zum Prüfen nicht.
+ */
+async function zeigeLupe(kennung) {
+  const aufnahme = (typeof eingang !== 'undefined' ? eingang : []).find((a) => a.id === kennung);
+  if (!aufnahme) return;
+  const fenster = $('#lupe-dialog');
+  $('#lupe-titel').textContent = aufnahme.titel || aufnahme.id;
+
+  const bild = el('img', { src: anzeigeBild(aufnahme), alt: aufnahme.titel || aufnahme.id });
+  $('#lupe-bild').replaceChildren(bild, el('p', { klasse: 'kennung', id: 'lupe-stand', text: 'Vorschau – das volle Bild wird geholt …' }));
+  zeichneLupeAngaben(aufnahme);
+  if (!fenster.open) fenster.showModal();
+
+  // Das volle Bild kommt aus der Browserdatenbank; bis dahin steht die
+  // Vorschau da, damit das Fenster nicht leer aufgeht.
+  try {
+    const fassung = (neuesteFassung(aufnahme) || {}).nummer;
+    const voll = await bestesBild(aufnahme, fassung);
+    if (voll && fenster.open) {
+      bild.src = voll;
+      const stand = document.getElementById('lupe-stand');
+      if (stand) {
+        stand.textContent = `${aufnahme.id}${fassung ? ` · Fassung ${fassung}` : ''}${
+          aufnahme.breite ? ` · ${aufnahme.breite} × ${aufnahme.hoehe} px` : ''
+        }`;
+      }
+    }
+  } catch (fehler) {
+    const stand = document.getElementById('lupe-stand');
+    if (stand) stand.textContent = 'Das volle Bild liegt nicht vor – gezeigt wird die Vorschau.';
+  }
+}
+
+/** Die Spalte neben dem Bild: Text, Rezept, Labels, Kapitel. */
+function zeichneLupeAngaben(aufnahme) {
+  const rezept = bildRezept(aufnahme, strecken, GLIEDERUNG);
+  const labels = labelListe(aufnahme);
+  const abschnitt = (titel, kinder) =>
+    kinder && kinder.length
+      ? el('section', { klasse: 'lupe-abschnitt' }, [el('h3', { text: titel }), ...kinder])
+      : null;
+
+  $('#lupe-angaben').replaceChildren(
+    ...[
+      abschnitt('Text', [
+        el('p', { klasse: 'lupe-titel', text: aufnahme.titel || 'ohne Titel' }),
+        aufnahme.notiz ? el('p', { text: aufnahme.notiz }) : null,
+        aufnahme.seite ? el('p', { klasse: 'kennung', text: aufnahme.seite }) : null,
+        (aufnahme.begriffe || []).length
+          ? el('p', { klasse: 'kennung', text: (aufnahme.begriffe || []).join(', ') })
+          : null,
+        el('p', {
+          klasse: 'kennung',
+          text: [aufnahme.projekt, aufnahme.version, aufnahme.land].filter(Boolean).join(' · ') || 'ohne Projekt'
+        })
+      ].filter(Boolean)),
+      abschnitt(
+        'Kapitel',
+        rezept.pfad.length
+          ? [
+              el('ol', { klasse: 'lupe-pfad' }, rezept.pfad.map((teil) => el('li', { text: teil }))),
+              el('button', {
+                klasse: 'knopf knopf--klein',
+                type: 'button',
+                text: 'In der Gliederung zeigen',
+                onclick: () => {
+                  $('#lupe-dialog').close();
+                  setze({ ansicht: 'gliederung' });
+                }
+              })
+            ]
+          : [el('p', { klasse: 'feld-hinweis', text: 'Noch keiner Stelle zugeordnet.' })]
+      ),
+      abschnitt(
+        'Labels',
+        labels.length
+          ? [
+              el(
+                'ul',
+                { klasse: 'lupe-labels' },
+                labels.map((l) =>
+                  el('li', {}, [symbol(symbolZuLabel(l.feld, l.wert) || l.symbol), el('span', { text: `${l.bezeichnung}: ${l.wert}` })])
+                )
+              )
+            ]
+          : [el('p', { klasse: 'feld-hinweis', text: 'Noch kein Label gesetzt.' })]
+      ),
+      abschnitt('Rezept', [
+        ...(rezept.zeilen.length
+          ? [
+              el(
+                'dl',
+                { klasse: 'lupe-rezept' },
+                rezept.zeilen.flatMap((z) => [el('dt', { text: z.schild }), el('dd', { text: z.wert })])
+              )
+            ]
+          : [el('p', { klasse: 'feld-hinweis', text: 'Keine Angaben zur Entstehung.' })]),
+        ...(rezept.schritte.length
+          ? [
+              el('h4', { text: 'In Strecken' }),
+              el(
+                'ul',
+                { klasse: 'lupe-schritte' },
+                rezept.schritte.map((s) =>
+                  el('li', { text: `${s.strecke} · Schritt ${s.nummer}${s.text ? ': ' + s.text : ''}` })
+                )
+              )
+            ]
+          : [])
+      ]),
+      el('div', { klasse: 'lupe-aktionen' }, [
+        el('button', {
+          klasse: 'knopf knopf--klein',
+          type: 'button',
+          text: 'Im Editor öffnen',
+          onclick: () => {
+            $('#lupe-dialog').close();
+            oeffneEditor(aufnahme.id);
+          }
+        }),
+        el('button', {
+          klasse: 'knopf knopf--klein',
+          type: 'button',
+          text: 'Im Eingang bearbeiten',
+          onclick: () => {
+            $('#lupe-dialog').close();
+            setze({ ansicht: 'eingang' });
+            oeffneEingangDialog(aufnahme.id);
+          }
+        })
+      ])
+    ].filter(Boolean)
+  );
+}
+
+/** Der Knopf, der die Lupe öffnet - überall gleich. */
+function lupenKnopf(kennung) {
+  return el('button', {
+    klasse: 'lupe-knopf',
+    type: 'button',
+    title: 'Groß ansehen – mit Text, Rezept, Labels und Kapitel',
+    'aria-label': 'Groß ansehen',
+    onclick: (e) => {
+      e.stopPropagation();
+      zeigeLupe(kennung);
+    }
+  }, symbol('lupe'));
+}
+
+$('#lupe-schliessen').addEventListener('click', () => $('#lupe-dialog').close());
+
+/** Startet die Seite. Wird am Ende der letzten Datei aufgerufen, damit dort
   angelegte Zustaende bereits stehen. */
 function starte() {
 richteSchub();
@@ -872,6 +1030,7 @@ if (zustand.ansicht === 'design') zeichneDesign();
 if (zustand.ansicht === 'import') zeichneImport();
 if (zustand.ansicht === 'pruefung') zeichnePruefung();
 if (zustand.ansicht === 'verzeichnis') zeichneVerzeichnis();
+if (zustand.ansicht === 'output') zeichneOutput();
 if (zustand.auswahl) oeffneDetail(zustand.auswahl, false);
 document.documentElement.dataset.bereit = 'ja';
 }

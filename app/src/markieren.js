@@ -489,7 +489,12 @@ function zeichneVarianten() {
   liste.replaceChildren(
     ...geschwister.map((a) =>
       el('div', { klasse: 'varianten-zeile' + (a.id === aufnahme.id ? ' varianten-zeile--selbst' : '') }, [
-        el('img', { src: anzeigeBild(a), alt: a.titel, loading: 'lazy' }),
+        el('button', {
+          klasse: 'varianten-bild',
+          type: 'button',
+          title: 'Groß ansehen',
+          onclick: () => zeigeLupe(a.id)
+        }, el('img', { src: anzeigeBild(a), alt: a.titel, loading: 'lazy' })),
         el('div', { klasse: 'varianten-text' }, [
           el('span', { text: a.titel }),
           el('span', { klasse: 'kennung', text: `${a.id} · ${labelKette(a) || 'ohne Labels'}` })

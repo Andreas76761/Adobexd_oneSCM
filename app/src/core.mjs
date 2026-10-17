@@ -32,6 +32,7 @@ export const ANSICHTEN = [
   'gliederung',
   'pruefung',
   'verzeichnis',
+  'output',
   'eingang'
 ];
 
@@ -4546,6 +4547,632 @@ ${abschnitte}
 <div class="fuss"><span>Screenarchiv ${m(anwendung)}</span><span>${m(hinweis)}</span></div>
 </div></body></html>
 `;
+}
+
+/* =========================================================================
+   ZIP, Word und PowerPoint – die Blätter in fremden Formaten.
+
+   Ein .docx und ein .pptx sind ZIP-Archive mit XML darin. Geschrieben wird
+   ohne Kompression (`gespeichert`): die Bilder sind schon JPEG, ein zweites
+   Verpacken brächte nichts und bräuchte einen Packer, den die Seite nicht
+   hat. Word und PowerPoint lesen gespeicherte Archive ebenso.
+   ========================================================================= */
+
+// Die Pruefsumme eines ZIP-Eintrags ist dieselbe wie die eines PNG-Blocks -
+// `crc32` steht schon weiter oben.
+
+const TEXT_ZU_BYTES = (text) => new TextEncoder().encode(String(text));
+
+function schreibeU16(wert) {
+  return new Uint8Array([wert & 0xff, (wert >>> 8) & 0xff]);
+}
+
+function schreibeU32(wert) {
+  return new Uint8Array([wert & 0xff, (wert >>> 8) & 0xff, (wert >>> 16) & 0xff, (wert >>> 24) & 0xff]);
+}
+
+/**
+ * Ein ZIP aus benannten Dateien, ohne Kompression.
+ * `dateien`: [{ name, daten: Uint8Array | string }]
+ */
+export function zipSchreiben(dateien = []) {
+  const eintraege = dateien
+    .filter((d) => d && d.name)
+    .map((d) => ({
+      name: TEXT_ZU_BYTES(d.name),
+      daten: typeof d.daten === 'string' ? TEXT_ZU_BYTES(d.daten) : d.daten || new Uint8Array()
+    }));
+  if (!eintraege.length) return null;
+
+  const teile = [];
+  let laenge = 0;
+  const schreibe = (stueck) => {
+    teile.push(stueck);
+    laenge += stueck.length;
+  };
+
+  const verzeichnis = [];
+  for (const eintrag of eintraege) {
+    const pruefsumme = crc32(eintrag.daten);
+    const ab = laenge;
+    // Lokaler Kopf: Version 2.0, keine Merkmale, Verfahren 0 (gespeichert).
+    schreibe(schreibeU32(0x04034b50));
+    schreibe(schreibeU16(20));
+    schreibe(schreibeU16(0));
+    schreibe(schreibeU16(0));
+    schreibe(schreibeU16(0)); // Uhrzeit
+    schreibe(schreibeU16(0x21)); // Datum: 1.1.1980 – gleicher Inhalt, gleiche Datei
+    schreibe(schreibeU32(pruefsumme));
+    schreibe(schreibeU32(eintrag.daten.length));
+    schreibe(schreibeU32(eintrag.daten.length));
+    schreibe(schreibeU16(eintrag.name.length));
+    schreibe(schreibeU16(0));
+    schreibe(eintrag.name);
+    schreibe(eintrag.daten);
+    verzeichnis.push({ ...eintrag, pruefsumme, ab });
+  }
+
+  const verzeichnisAb = laenge;
+  for (const eintrag of verzeichnis) {
+    schreibe(schreibeU32(0x02014b50));
+    schreibe(schreibeU16(20)); // erzeugt von
+    schreibe(schreibeU16(20)); // benötigt
+    schreibe(schreibeU16(0));
+    schreibe(schreibeU16(0));
+    schreibe(schreibeU16(0));
+    schreibe(schreibeU16(0x21));
+    schreibe(schreibeU32(eintrag.pruefsumme));
+    schreibe(schreibeU32(eintrag.daten.length));
+    schreibe(schreibeU32(eintrag.daten.length));
+    schreibe(schreibeU16(eintrag.name.length));
+    schreibe(schreibeU16(0));
+    schreibe(schreibeU16(0));
+    schreibe(schreibeU16(0));
+    schreibe(schreibeU16(0));
+    schreibe(schreibeU32(0));
+    schreibe(schreibeU32(eintrag.ab));
+    schreibe(eintrag.name);
+  }
+
+  // Die Groesse des Verzeichnisses steht fest, bevor der Schluss geschrieben
+  // wird - sonst zaehlte er sich selbst mit.
+  const verzeichnisGroesse = laenge - verzeichnisAb;
+  schreibe(schreibeU32(0x06054b50));
+  schreibe(schreibeU16(0));
+  schreibe(schreibeU16(0));
+  schreibe(schreibeU16(verzeichnis.length));
+  schreibe(schreibeU16(verzeichnis.length));
+  schreibe(schreibeU32(verzeichnisGroesse));
+  schreibe(schreibeU32(verzeichnisAb));
+  schreibe(schreibeU16(0));
+
+  const ganz = new Uint8Array(laenge);
+  let stelle = 0;
+  for (const stueck of teile) {
+    ganz.set(stueck, stelle);
+    stelle += stueck.length;
+  }
+  return ganz;
+}
+
+/** XML-sicher: fünf Zeichen, die in keinem Wert stehen dürfen. */
+function maskiereXml(text) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+const XML_KOPF = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+
+/** Bildpunkte bei 300 dpi in EMU – das Maß, in dem Office rechnet. */
+const emu = (punkte, dpi = 300) => Math.round((punkte / dpi) * 914400);
+
+const bildEndung = (typ) => (typ === 'jpeg' || typ === 'jpg' ? 'jpeg' : 'png');
+
+/**
+ * Die Blätter als Word-Datei: ein Bild je Seite, Ränder auf null, das
+ * Seitenformat aus dem ersten Blatt. Word setzt nichts um - es zeigt, was
+ * das Studio gerechnet hat.
+ *
+ * `seiten`: [{ daten: Uint8Array, breite, hoehe, typ: 'png' | 'jpeg' }]
+ */
+export function docxAusSeiten(seiten = [], { titel = '', anwendung = '', dpi = 300 } = {}) {
+  const gueltig = seiten.filter((s) => s && s.daten && s.daten.length && s.breite > 0 && s.hoehe > 0);
+  if (!gueltig.length) return null;
+  const quer = gueltig[0].breite > gueltig[0].hoehe;
+  // A4 in Twips (1/20 Punkt), gedreht, wenn das Blatt quer liegt.
+  const blattBreite = quer ? 16838 : 11906;
+  const blattHoehe = quer ? 11906 : 16838;
+  const breiteEmu = Math.round((blattBreite / 20) * 12700);
+  const hoeheEmu = Math.round((blattHoehe / 20) * 12700);
+
+  // Das Blatt wird eingepasst, nicht gestreckt - und bleibt knapp unter der
+  // Seite: ein Bild, das sie ganz ausfüllt, schiebt den Absatz dahinter auf
+  // eine leere Folgeseite.
+  const bilder = gueltig.map((seite, i) => {
+    const massstab =
+      Math.min(breiteEmu / emu(seite.breite, dpi), hoeheEmu / emu(seite.hoehe, dpi)) * 0.985;
+    return {
+      name: `blatt${i + 1}.${bildEndung(seite.typ)}`,
+      bezug: `rId${i + 1}`,
+      daten: seite.daten,
+      breite: Math.round(emu(seite.breite, dpi) * massstab),
+      hoehe: Math.round(emu(seite.hoehe, dpi) * massstab)
+    };
+  });
+
+  // Die Schriftgröße 1 pt gilt nur dem Absatzzeichen - es soll keine Zeile
+  // kosten, auf der das Blatt dann nicht mehr Platz hat.
+  const absatz = (bild, i) =>
+    `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/>` +
+    `<w:rPr><w:sz w:val="2"/></w:rPr></w:pPr>` +
+    `<w:r><w:rPr><w:sz w:val="2"/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">` +
+    `<wp:extent cx="${bild.breite}" cy="${bild.hoehe}"/><wp:docPr id="${i + 1}" name="${maskiereXml(bild.name)}"/>` +
+    `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">` +
+    `<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:nvPicPr><pic:cNvPr id="${i + 1}" name="${maskiereXml(bild.name)}"/><pic:cNvPicPr/></pic:nvPicPr>` +
+    `<pic:blipFill><a:blip r:embed="${bild.bezug}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
+    `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${bild.breite}" cy="${bild.hoehe}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic>` +
+    `</wp:inline></w:drawing></w:r></w:p>`;
+
+  // Kein eingefügter Seitenumbruch: jedes Blatt füllt die Seite fast ganz,
+  // zwei passen nie zusammen auf eine. Ein Umbruch dazwischen ergäbe leere
+  // Seiten.
+  const koerper = bilder.map(absatz).join('');
+
+  const dokument =
+    XML_KOPF +
+    `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ` +
+    `xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ` +
+    `xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${koerper}` +
+    `<w:sectPr><w:pgSz w:w="${blattBreite}" w:h="${blattHoehe}"${quer ? ' w:orient="landscape"' : ''}/>` +
+    `<w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0" w:header="0" w:footer="0" w:gutter="0"/>` +
+    `</w:sectPr></w:body></w:document>`;
+
+  const bezuege =
+    XML_KOPF +
+    `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+    bilder
+      .map(
+        (bild) =>
+          `<Relationship Id="${bild.bezug}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${bild.name}"/>`
+      )
+      .join('') +
+    `</Relationships>`;
+
+  const typen =
+    XML_KOPF +
+    `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+    `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+    `<Default Extension="xml" ContentType="application/xml"/>` +
+    `<Default Extension="png" ContentType="image/png"/>` +
+    `<Default Extension="jpeg" ContentType="image/jpeg"/>` +
+    `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>` +
+    `<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>` +
+    `</Types>`;
+
+  const wurzelBezuege =
+    XML_KOPF +
+    `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+    `<Relationship Id="rIdDok" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>` +
+    `<Relationship Id="rIdKern" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>` +
+    `</Relationships>`;
+
+  const kern =
+    XML_KOPF +
+    `<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" ` +
+    `xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" ` +
+    `xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">` +
+    `<dc:title>${maskiereXml(titel)}</dc:title>` +
+    `<dc:creator>${maskiereXml(`Screenarchiv ${anwendung}`.trim())}</dc:creator>` +
+    `<cp:lastModifiedBy>${maskiereXml(`Screenarchiv ${anwendung}`.trim())}</cp:lastModifiedBy>` +
+    `</cp:coreProperties>`;
+
+  return zipSchreiben([
+    { name: '[Content_Types].xml', daten: typen },
+    { name: '_rels/.rels', daten: wurzelBezuege },
+    { name: 'docProps/core.xml', daten: kern },
+    { name: 'word/document.xml', daten: dokument },
+    { name: 'word/_rels/document.xml.rels', daten: bezuege },
+    ...bilder.map((bild) => ({ name: `word/media/${bild.name}`, daten: bild.daten }))
+  ]);
+}
+
+/* Das Gerüst, das PowerPoint verlangt: Master, Layout, Thema. Es trägt
+   nichts bei - ohne diese Teile öffnet die Datei aber nicht. */
+const PPT_THEMA =
+  XML_KOPF +
+  '<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Screenarchiv">' +
+  '<a:themeElements><a:clrScheme name="Screenarchiv">' +
+  '<a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>' +
+  '<a:dk2><a:srgbClr val="1F2933"/></a:dk2><a:lt2><a:srgbClr val="F3F4F6"/></a:lt2>' +
+  '<a:accent1><a:srgbClr val="00677F"/></a:accent1><a:accent2><a:srgbClr val="1E7A5A"/></a:accent2>' +
+  '<a:accent3><a:srgbClr val="8A6110"/></a:accent3><a:accent4><a:srgbClr val="9B2C2C"/></a:accent4>' +
+  '<a:accent5><a:srgbClr val="4C5B6B"/></a:accent5><a:accent6><a:srgbClr val="6B7280"/></a:accent6>' +
+  '<a:hlink><a:srgbClr val="00677F"/></a:hlink><a:folHlink><a:srgbClr val="6B7280"/></a:folHlink></a:clrScheme>' +
+  '<a:fontScheme name="Screenarchiv">' +
+  '<a:majorFont><a:latin typeface="Arial"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>' +
+  '<a:minorFont><a:latin typeface="Arial"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme>' +
+  '<a:fmtScheme name="Screenarchiv">' +
+  '<a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill>' +
+  '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst>' +
+  '<a:lnStyleLst>' +
+  '<a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln>' +
+  '<a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln>' +
+  '<a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln></a:lnStyleLst>' +
+  '<a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle>' +
+  '<a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst>' +
+  '<a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill>' +
+  '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst>' +
+  '</a:fmtScheme></a:themeElements></a:theme>';
+
+const PPT_LAYOUT =
+  XML_KOPF +
+  '<p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+  'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+  'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1">' +
+  '<p:cSld name="Leer"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>' +
+  '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>' +
+  '</p:spTree></p:cSld><p:clrMapOvr><a:overrideClrMapping bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" ' +
+  'accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>' +
+  '</p:clrMapOvr></p:sldLayout>';
+
+const PPT_MASTER =
+  XML_KOPF +
+  '<p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+  'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+  'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">' +
+  '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>' +
+  '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>' +
+  '</p:spTree></p:cSld>' +
+  '<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" ' +
+  'accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>' +
+  '<p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst></p:sldMaster>';
+
+/**
+ * Die Blätter als PowerPoint: eine Folie je Blatt, das Bild füllt sie ganz.
+ * Das Folienmaß folgt dem ersten Blatt, damit nichts beschnitten wird.
+ */
+export function pptxAusSeiten(seiten = [], { titel = '', anwendung = '', dpi = 300 } = {}) {
+  const gueltig = seiten.filter((s) => s && s.daten && s.daten.length && s.breite > 0 && s.hoehe > 0);
+  if (!gueltig.length) return null;
+  const folieBreite = emu(gueltig[0].breite, dpi);
+  const folieHoehe = emu(gueltig[0].hoehe, dpi);
+
+  const folien = gueltig.map((seite, i) => {
+    const name = `blatt${i + 1}.${bildEndung(seite.typ)}`;
+    // Das Bild wird eingepasst, nicht verzerrt: Seitenverhältnis bleibt.
+    const massstab = Math.min(folieBreite / emu(seite.breite, dpi), folieHoehe / emu(seite.hoehe, dpi));
+    const breite = Math.round(emu(seite.breite, dpi) * massstab);
+    const hoehe = Math.round(emu(seite.hoehe, dpi) * massstab);
+    const xml =
+      XML_KOPF +
+      '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+      'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+      'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">' +
+      '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>' +
+      '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>' +
+      `<p:pic><p:nvPicPr><p:cNvPr id="${i + 2}" name="${maskiereXml(name)}"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>` +
+      '<p:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>' +
+      `<p:spPr><a:xfrm><a:off x="${Math.round((folieBreite - breite) / 2)}" y="${Math.round(
+        (folieHoehe - hoehe) / 2
+      )}"/><a:ext cx="${breite}" cy="${hoehe}"/></a:xfrm>` +
+      '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>' +
+      '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
+    const bezuege =
+      XML_KOPF +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${name}"/>` +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>' +
+      '</Relationships>';
+    return { nummer: i + 1, name, daten: seite.daten, xml, bezuege };
+  });
+
+  const praesentation =
+    XML_KOPF +
+    '<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+    'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">' +
+    '<p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst>' +
+    '<p:sldIdLst>' +
+    folien.map((f) => `<p:sldId id="${255 + f.nummer}" r:id="rId${f.nummer + 1}"/>`).join('') +
+    '</p:sldIdLst>' +
+    `<p:sldSz cx="${folieBreite}" cy="${folieHoehe}"/><p:notesSz cx="${folieHoehe}" cy="${folieBreite}"/>` +
+    '</p:presentation>';
+
+  const praesentationBezuege =
+    XML_KOPF +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>' +
+    folien
+      .map(
+        (f) =>
+          `<Relationship Id="rId${f.nummer + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${f.nummer}.xml"/>`
+      )
+      .join('') +
+    `<Relationship Id="rIdThema" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>` +
+    '</Relationships>';
+
+  const typen =
+    XML_KOPF +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Default Extension="png" ContentType="image/png"/>' +
+    '<Default Extension="jpeg" ContentType="image/jpeg"/>' +
+    '<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>' +
+    '<Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>' +
+    '<Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>' +
+    '<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' +
+    '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
+    folien
+      .map(
+        (f) =>
+          `<Override PartName="/ppt/slides/slide${f.nummer}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`
+      )
+      .join('') +
+    '</Types>';
+
+  const kern =
+    XML_KOPF +
+    '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" ' +
+    'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" ' +
+    'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
+    `<dc:title>${maskiereXml(titel)}</dc:title>` +
+    `<dc:creator>${maskiereXml(`Screenarchiv ${anwendung}`.trim())}</dc:creator>` +
+    `<cp:lastModifiedBy>${maskiereXml(`Screenarchiv ${anwendung}`.trim())}</cp:lastModifiedBy>` +
+    '</cp:coreProperties>';
+
+  return zipSchreiben([
+    { name: '[Content_Types].xml', daten: typen },
+    {
+      name: '_rels/.rels',
+      daten:
+        XML_KOPF +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>' +
+        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>' +
+        '</Relationships>'
+    },
+    { name: 'docProps/core.xml', daten: kern },
+    { name: 'ppt/presentation.xml', daten: praesentation },
+    { name: 'ppt/_rels/presentation.xml.rels', daten: praesentationBezuege },
+    { name: 'ppt/theme/theme1.xml', daten: PPT_THEMA },
+    { name: 'ppt/slideMasters/slideMaster1.xml', daten: PPT_MASTER },
+    {
+      name: 'ppt/slideMasters/_rels/slideMaster1.xml.rels',
+      daten:
+        XML_KOPF +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>' +
+        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>' +
+        '</Relationships>'
+    },
+    { name: 'ppt/slideLayouts/slideLayout1.xml', daten: PPT_LAYOUT },
+    {
+      name: 'ppt/slideLayouts/_rels/slideLayout1.xml.rels',
+      daten:
+        XML_KOPF +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/>' +
+        '</Relationships>'
+    },
+    ...folien.map((f) => ({ name: `ppt/slides/slide${f.nummer}.xml`, daten: f.xml })),
+    ...folien.map((f) => ({ name: `ppt/slides/_rels/slide${f.nummer}.xml.rels`, daten: f.bezuege })),
+    ...folien.map((f) => ({ name: `ppt/media/${f.name}`, daten: f.daten }))
+  ]);
+}
+
+/* =========================================================================
+   Die Lupe – ein Bild groß, mit allem, was dazugehört.
+
+   Im Großformat ist die Frage nicht mehr „welches Bild ist das", sondern
+   „stimmt es noch". Dafür braucht es neben dem Bild: den Text, das Rezept
+   (woher es kommt und wie es entstanden ist), die Labels und die Stelle im
+   Handbuch samt ihrem Weg von oben.
+   ========================================================================= */
+
+/** Der Weg einer Stelle von oben: 6 Market Settings › 6.2 Vorlagen. */
+export function kapitelPfad(gliederung = [], nummer = '') {
+  const stelle = String(nummer || '').trim();
+  if (!stelle) return [];
+  const teile = stelle.split('.');
+  const pfad = [];
+  for (let i = 1; i <= teile.length; i++) {
+    const bis = teile.slice(0, i).join('.');
+    const eintrag = gliederung.find((e) => e.nummer === bis);
+    if (eintrag) pfad.push(`${eintrag.nummer} ${eintrag.thema}`);
+    else if (i === teile.length) pfad.push(bis);
+  }
+  return pfad;
+}
+
+/**
+ * Das Rezept eines Bildes: woher es kommt, was daran gemacht wurde und in
+ * welchem Schritt welcher Strecke es steht. Keine Erfindung - alles steht
+ * am Bild oder in den Strecken.
+ */
+export const QUELLEN_NAMEN = {
+  bildschirm: 'Bildschirm',
+  datei: 'Datei',
+  beispiel: 'Beispiel',
+  zwischenablage: 'Zwischenablage',
+  einfuhr: 'Import'
+};
+
+export function bildRezept(aufnahme = {}, strecken = [], gliederung = []) {
+  const zeilen = [];
+  const quelle = aufnahme.quelle || {};
+  if (quelle.art) {
+    zeilen.push({
+      schild: 'Quelle',
+      wert: `${QUELLEN_NAMEN[quelle.art] || 'Quelle'}${quelle.name ? ': ' + quelle.name : ''}${
+        quelle.breite ? ` · ${quelle.breite} × ${quelle.hoehe} px` : ''
+      }`
+    });
+  }
+  const schnitt = aufnahme.ausschnitt;
+  if (schnitt && schnitt.breite) {
+    zeilen.push({
+      schild: 'Ausschnitt',
+      wert: `${schnitt.breite} × ${schnitt.hoehe} px ab ${schnitt.x}, ${schnitt.y}`
+    });
+  }
+  if (aufnahme.einfuhr && aufnahme.einfuhr.datei) {
+    zeilen.push({
+      schild: 'Eingeführt',
+      wert: `${aufnahme.einfuhr.datei}${aufnahme.einfuhr.seite ? ` · Seite ${aufnahme.einfuhr.seite}` : ''}`
+    });
+  }
+  const marken = markenZusammenfassung(leseMarken(aufnahme.marken));
+  if (marken.gesamt) {
+    const teile = [];
+    if (marken.unkenntlich) teile.push(`${marken.unkenntlich}× unkenntlich`);
+    if (marken.rahmen) teile.push(`${marken.rahmen} Rahmen`);
+    if (marken.schritte) teile.push(`${marken.schritte} Schritte`);
+    zeilen.push({ schild: 'Bearbeitet', wert: teile.join(' · ') || `${marken.gesamt} Marken` });
+  }
+  const fassungen = leseFassungen(aufnahme);
+  if (fassungen.length) {
+    zeilen.push({ schild: 'Fassungen', wert: `${fassungen.length} · gezeigt wird die jüngste` });
+  }
+  if (aufnahme.autor) zeilen.push({ schild: 'Erfasst von', wert: aufnahme.autor });
+  if (aufnahme.browser) zeilen.push({ schild: 'Browser', wert: aufnahme.browser });
+
+  // In welchem Schritt welcher Strecke steht das Bild - mit seinem Text.
+  const schritte = [];
+  for (const strecke of strecken) {
+    (strecke.schritte || []).forEach((schritt, i) => {
+      if ((schritt.aufnahmen || []).includes(aufnahme.id)) {
+        schritte.push({
+          strecke: strecke.name || 'Klickstrecke',
+          nummer: i + 1,
+          text: String(schritt.text || '').trim()
+        });
+      }
+    });
+  }
+  return { zeilen, schritte, pfad: kapitelPfad(gliederung, aufnahme.gliederung) };
+}
+
+/* =========================================================================
+   Output – fertige Dokumente in mehreren Sprachen, Rollen und Sparten.
+
+   Ein Dokument ist ein Dreiklang: eine Vorlage (Quick Guide, One Pager,
+   Releaseletter, Handbuchseite), ein Inhalt (eine Strecke oder ein Kapitel)
+   und eine Variante (eine Sprache, eine Rolle, eine Sparte …). Aus drei
+   Sprachen und zwei Inhalten werden sechs Dokumente - und mit drei Formaten
+   achtzehn Dateien. Dieser Teil rechnet den Plan; gezeichnet wird im Studio.
+   ========================================================================= */
+
+export const AUSGABE_FORMATE = [
+  { id: 'pdf', label: 'PDF', endung: 'pdf', typ: 'application/pdf' },
+  { id: 'docx', label: 'Word', endung: 'docx', typ: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+  { id: 'pptx', label: 'PowerPoint', endung: 'pptx', typ: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
+  { id: 'html', label: 'HTML', endung: 'html', typ: 'text/html' }
+];
+
+/** Die Bilder eines Inhalts in einer Variante - dieselbe Regel wie im Studio. */
+export function ausgabeBilder(aufnahmen = [], strecken = [], inhalt = '', feld = '', wert = '') {
+  if (String(inhalt).startsWith('strecke:')) {
+    const gefunden = strecken.find((s) => 'strecke:' + s.id === inhalt);
+    if (!gefunden) return [];
+    const strecke = feld && wert ? streckeInVariante(gefunden, aufnahmen, feld, wert).strecke : gefunden;
+    return streckeMitAufnahmen(strecke, aufnahmen)
+      .filter((s) => s.aufnahme)
+      .map((s) => s.aufnahme);
+  }
+  if (String(inhalt).startsWith('kapitel:')) {
+    const stelle = inhalt.slice(8);
+    return sortiereNachKapitel(
+      aufnahmen.filter(
+        (a) => gehoertZu(String(a.gliederung || ''), stelle) && (!feld || String(a[feld] || '') === wert)
+      )
+    );
+  }
+  return [];
+}
+
+/** Wie ein Inhalt heißt, wenn er in einer Liste steht. */
+export function ausgabeInhaltName(inhalt = '', strecken = [], gliederung = []) {
+  if (String(inhalt).startsWith('strecke:')) {
+    const gefunden = strecken.find((s) => 'strecke:' + s.id === inhalt);
+    return gefunden ? gefunden.name || 'Klickstrecke' : inhalt;
+  }
+  if (String(inhalt).startsWith('kapitel:')) {
+    const stelle = inhalt.slice(8);
+    const eintrag = gliederung.find((e) => e.nummer === stelle);
+    return eintrag ? `${eintrag.nummer} ${eintrag.thema}` : stelle;
+  }
+  return inhalt;
+}
+
+/**
+ * Der Plan: ein Auftrag je Vorlage × Inhalt × Variante. Aufträge ohne Bild
+ * bleiben in der Liste und werden als leer ausgewiesen - wer drei Sprachen
+ * erwartet und zwei bekommt, soll die Lücke sehen.
+ */
+export function ausgabePlan(aufnahmen = [], strecken = [], gliederung = [], wahl = {}, vorlagen = []) {
+  const gewaehlteVorlagen = (wahl.vorlagen || []).filter(Boolean);
+  const inhalte = (wahl.inhalte || []).filter(Boolean);
+  const achse = String(wahl.achse || '');
+  const werte = achse ? (wahl.werte || []).filter((w) => String(w).length) : [''];
+  if (!gewaehlteVorlagen.length || !inhalte.length || !werte.length) return [];
+
+  const auftraege = [];
+  for (const vorlageId of gewaehlteVorlagen) {
+    const satz = vorlagen.find((v) => v.id === vorlageId) || vorlage(vorlageId);
+    for (const inhalt of inhalte) {
+      for (const wert of werte) {
+        const bilder = ausgabeBilder(aufnahmen, strecken, inhalt, achse, wert);
+        const inhaltName = ausgabeInhaltName(inhalt, strecken, gliederung);
+        const variante = achse && wert ? labelWert(achse, wert) : '';
+        auftraege.push({
+          id: `${vorlageId}|${inhalt}|${achse}:${wert}`,
+          vorlage: vorlageId,
+          vorlageLabel: satz ? satz.label : vorlageId,
+          inhalt,
+          inhaltName,
+          achse,
+          wert,
+          variante,
+          titel: variante ? `${inhaltName} · ${variante}` : inhaltName,
+          bilder: bilder.length,
+          kennungen: bilder.map((a) => a.id)
+        });
+      }
+    }
+  }
+  return auftraege;
+}
+
+/** Der Dateiname eines Auftrags: Vorlage, Inhalt, Variante, Endung. */
+export function ausgabeDateiname(auftrag = {}, endung = 'pdf') {
+  const teile = [auftrag.vorlage, auftrag.inhaltName, auftrag.wert]
+    .map((t) => bereinigeDateiname(t))
+    .filter(Boolean);
+  return `${teile.join('-') || 'dokument'}.${endung}`;
+}
+
+/** Der Ordner eines Auftrags unterhalb des gewählten Verzeichnisses. */
+export function ausgabeOrdner(auftrag = {}) {
+  return ['output', bereinigeDateiname(auftrag.wert) || 'ohne-variante', bereinigeDateiname(auftrag.vorlage) || 'vorlage'];
+}
+
+/** Was der Plan insgesamt bedeutet: Dokumente, Dateien, Lücken. */
+export function ausgabeUmfang(plan = [], formate = []) {
+  const mitBild = plan.filter((a) => a.bilder > 0);
+  return {
+    dokumente: plan.length,
+    leer: plan.length - mitBild.length,
+    dateien: mitBild.length * Math.max(formate.length, 0),
+    bilder: mitBild.reduce((summe, a) => summe + a.bilder, 0)
+  };
 }
 
 /* =========================================================================
