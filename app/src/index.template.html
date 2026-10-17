@@ -24,7 +24,7 @@
             <button type="button" data-ansicht="archiv">Archiv</button>
             <button type="button" data-ansicht="aufnahme">Aufnahme</button>
             <button type="button" data-ansicht="ausschneiden">Ausschneiden</button>
-            <button type="button" data-ansicht="markieren">Markieren</button>
+            <button type="button" data-ansicht="markieren">Editor</button>
             <button type="button" data-ansicht="eingang">Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
         </div>
@@ -194,6 +194,7 @@
           <div>
             <span class="kennung" id="letzte-kennung"></span>
             <span class="letzte-zahl" id="letzte-zahl"></span>
+            <button type="button" class="knopf knopf--klein" id="letzte-editor">Im Editor öffnen</button>
           </div>
         </div>
         <form class="metadaten" id="metadaten" autocomplete="off" onsubmit="return false"></form>
@@ -281,8 +282,22 @@
         <label for="markier-stufe">Stärke des Rasters</label>
         <select id="markier-stufe"></select>
       </div>
+      <div class="gliederung">
+        <div class="feld feld--schmal">
+          <label for="markier-kapitel">Kapitel</label>
+          <input type="number" id="markier-kapitel" min="0" step="1" inputmode="numeric">
+        </div>
+        <div class="feld feld--schmal">
+          <label for="markier-unterkapitel">Unterkapitel</label>
+          <input type="number" id="markier-unterkapitel" min="0" step="1" inputmode="numeric">
+        </div>
+        <label class="markier-schalter">
+          <input type="checkbox" id="markier-unterschrift" checked>
+          <span>Nummer und Zeitstempel ins Bild</span>
+        </label>
+      </div>
       <div class="markier-knoepfe">
-        <button type="button" class="knopf knopf--haupt" id="markier-sichern" disabled>Fassung sichern</button>
+        <button type="button" class="knopf knopf--haupt" id="markier-sichern" disabled>Als neue Fassung sichern</button>
         <button type="button" class="knopf" id="markier-datei" disabled>Als Datei sichern</button>
         <button type="button" class="knopf" id="markier-zuruecksetzen" disabled>Alle Marken entfernen</button>
       </div>
@@ -307,6 +322,8 @@
       </div>
 
       <aside class="markier-liste-spalte">
+        <h2 class="abschnitt-titel">Fassungen</h2>
+        <div class="fassungen" id="markier-fassungen"></div>
         <h2 class="abschnitt-titel">Marken <span class="kennung" id="markier-stand"></span></h2>
         <p class="studio-meldung" id="markier-meldung" role="status" aria-live="polite"></p>
         <div class="markier-liste" id="markier-liste"></div>

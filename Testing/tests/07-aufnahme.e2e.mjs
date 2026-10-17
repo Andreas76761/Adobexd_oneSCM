@@ -78,7 +78,7 @@ s.test('die Portalnavigation führt zu den fünf Ansichten', () =>
     gleich(await seite.locator('.portal-nav button').count(), 5);
     gleich(
       (await seite.locator('.portal-nav button').allInnerTexts()).map((t) => t.split('\n')[0].trim()).join('|'),
-      'Archiv|Aufnahme|Ausschneiden|Markieren|Eingang'
+      'Archiv|Aufnahme|Ausschneiden|Editor|Eingang'
     );
     gleich(await seite.locator('.portal-nav button[aria-current="page"]').innerText(), 'Archiv');
     gleich(await seite.locator('#archiv-ansicht').isVisible(), true);

@@ -146,10 +146,13 @@ s.test('die gesicherte Fassung liegt neben dem Original, nicht darüber', () =>
       );
       const [nachher] = await eingangImSpeicher(seite);
       gleich(nachher.bild, vorher.bild, 'das Original wurde überschrieben');
-      wahr(nachher.bild_markiert && nachher.bild_markiert !== nachher.bild, 'die Fassung fehlt');
-      gleich(nachher.marken.length, 1);
-      gleich(nachher.marken[0].art, 'unkenntlich');
-      wahr(String(nachher.markiert_am).includes('T'), 'der Zeitpunkt fehlt');
+      gleich(nachher.fassungen.length, 1, 'die Fassung fehlt');
+      const [fassung] = nachher.fassungen;
+      gleich(fassung.nummer, 1);
+      wahr(fassung.bild && fassung.bild !== nachher.bild, 'die Fassung trägt kein eigenes Bild');
+      gleich(fassung.marken.length, 1);
+      gleich(fassung.marken[0].art, 'unkenntlich');
+      wahr(String(fassung.erstellt_am).includes('T'), 'der Zeitpunkt fehlt');
       wahr(
         (await seite.locator('#markier-meldung').innerText()).includes('Original'),
         'die Meldung verschweigt, dass das Original bleibt'
@@ -209,7 +212,8 @@ s.test('„Alle Marken entfernen“ führt zurück zum Original', () =>
       );
       const [aufnahme] = await eingangImSpeicher(seite);
       gleich(aufnahme.marken.length, 0);
-      gleich(aufnahme.bild_markiert, undefined, 'die Fassung bleibt liegen');
+      gleich(aufnahme.fassungen.length, 2, 'die leere Fassung wird nicht als Stufe geführt');
+      gleich(aufnahme.fassungen[1].marken.length, 0, 'die zweite Fassung trägt noch Marken');
       wahr(aufnahme.bild.startsWith('data:image/'), 'das Original fehlt');
     },
     { hash: AUFNAHME }
@@ -254,20 +258,21 @@ s.test('Eingang und Kontaktbogen zeigen die bearbeitete Fassung', () =>
       );
 
       await seite.click('.portal-nav button[data-ansicht="eingang"]');
-      gleich(await seite.locator('.markiert-marke').innerText(), '1× abgedeckt · 1 Schritte');
+      gleich(await seite.locator('.markiert-marke').innerText(), 'Fassung 1');
       const [aufnahme] = await eingangImSpeicher(seite);
+      const fassung = aufnahme.fassungen[aufnahme.fassungen.length - 1];
       gleich(
         await seite.locator('.eingang-karte img').first().getAttribute('src'),
-        aufnahme.bild_markiert,
+        fassung.bild,
         'die Karte zeigt noch das Original'
       );
 
       await seite.click('#eingang-kontaktbogen');
       await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 5000 });
       const [datei] = await seite.evaluate(() => window.__abgelegt);
-      wahr(datei.data.includes(aufnahme.bild_markiert.slice(-60)), 'der Bogen trägt nicht die Fassung');
+      wahr(datei.data.includes(fassung.bild.slice(-60)), 'der Bogen trägt nicht die Fassung');
       wahr(!datei.data.includes(aufnahme.bild.slice(-60)), 'der Bogen trägt das Original');
-      wahr(/bearbeitet . 1 Stelle abgedeckt/.test(datei.data), 'der Bogen verschweigt die Bearbeitung');
+      wahr(/Fassung 1 . 1 Stelle abgedeckt/.test(datei.data), 'der Bogen verschweigt die Bearbeitung');
     },
     {
       hash: AUFNAHME,
@@ -275,6 +280,128 @@ s.test('Eingang und Kontaktbogen zeigen die bearbeitete Fassung', () =>
         window.claude = { use: async (n) => n !== 'downloads' ? null : {
           save: async (a) => { window.__abgelegt.push({ filename: a.filename, data: String(a.data) }); return { status: 'saved' }; } } };`
     }
+  ));
+
+s.test('jede Bearbeitung legt eine weitere Fassung an', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      await ziehe(seite, 60, 80, 300, 115);
+      await seite.click('#markier-sichern');
+      await seite.waitForFunction(
+        () => /Fassung 1/.test(document.getElementById('markier-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+      await seite.click('#markier-werkzeuge button[data-werkzeug="rahmen"]');
+      await ziehe(seite, 320, 200, 520, 250);
+      await seite.click('#markier-sichern');
+      await seite.waitForFunction(
+        () => /Fassung 2/.test(document.getElementById('markier-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+
+      const [aufnahme] = await eingangImSpeicher(seite);
+      gleich(aufnahme.fassungen.length, 2, 'die zweite Bearbeitung ersetzt die erste');
+      gleich(aufnahme.fassungen[0].marken.length, 1, 'die erste Fassung hat ihre Marken verloren');
+      gleich(aufnahme.fassungen[1].marken.length, 2);
+      wahr(aufnahme.fassungen[0].bild !== aufnahme.fassungen[1].bild, 'beide Fassungen zeigen dasselbe Bild');
+      wahr(aufnahme.bild !== aufnahme.fassungen[1].bild, 'das Original wurde überschrieben');
+
+      // Die erste Fassung lässt sich wieder öffnen und weiterbearbeiten.
+      await seite.click('#fassung-laden-1');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      wahr(
+        /Fassung 1 geöffnet/.test(await seite.locator('#markier-meldung').innerText()),
+        'das Öffnen wird nicht gemeldet'
+      );
+      // Und verwerfen lässt sie sich auch.
+      await seite.click('#fassung-weg-1');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('[id^="fassung-laden-"]').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      const [danach] = await eingangImSpeicher(seite);
+      gleich(danach.fassungen.length, 1);
+      gleich(danach.fassungen[0].nummer, 2, 'verworfen wurde die falsche Fassung');
+      wahr(danach.bild.startsWith('data:image/'), 'das Original ist weg');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('Nummer und Zeitstempel stehen unter dem Bild', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      const hoch = () => seite.evaluate(() => document.getElementById('markier-leinwand').height);
+      const ohne = await seite.evaluate(() => {
+        document.getElementById('markier-unterschrift').click();
+        return null;
+      });
+      await seite.waitForTimeout(200);
+      const ohneHoehe = await hoch();
+      await seite.click('#markier-unterschrift');
+      await seite.waitForTimeout(200);
+      const mitHoehe = await hoch();
+      wahr(mitHoehe > ohneHoehe, 'der Streifen unter dem Bild fehlt');
+
+      await seite.fill('#markier-kapitel', '2');
+      await seite.fill('#markier-unterkapitel', '3');
+      await seite.waitForTimeout(200);
+      await seite.click('#markier-sichern');
+      await seite.waitForFunction(
+        () => /Fassung 1/.test(document.getElementById('markier-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+      const [aufnahme] = await eingangImSpeicher(seite);
+      gleich(aufnahme.kapitel, 2);
+      gleich(aufnahme.unterkapitel, 3);
+
+      // Die Gliederung steht danach auch im Eingang an der Karte.
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      wahr(
+        (await seite.locator('.eingang-karte .kennung').first().innerText()).startsWith('2.3 ·'),
+        'die Gliederungsnummer fehlt auf der Karte'
+      );
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('der Editor lässt sich aus Aufnahme und Eingang direkt öffnen', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-beispiel');
+      await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+      await seite.fill('#feld-titel', 'Vorlagenliste');
+      await seite.fill('#feld-projekt', 'oneSCM Portal');
+      await seite.click('#ausloesen');
+      await seite.waitForSelector('#letzte-aufnahme:not([hidden])');
+
+      // Aus der Aufnahme heraus - ohne Umweg über die Auswahl.
+      await seite.click('#letzte-editor');
+      await seite.waitForSelector('#markieren-ansicht:not([hidden])');
+      await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden, null, { timeout: 5000 });
+      gleich(await seite.locator('#markier-wahl').inputValue(), 'AUF-2026-001');
+
+      // Und aus der Karte im Eingang.
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.click('[data-editor="AUF-2026-001"]');
+      await seite.waitForSelector('#markieren-ansicht:not([hidden])');
+      gleich(await seite.locator('#markier-wahl').inputValue(), 'AUF-2026-001');
+      gleich(
+        await seite.locator('#eingang-dialog').evaluate((d) => d.open),
+        false,
+        'der Bearbeiten-Knopf öffnet zusätzlich den Dialog'
+      );
+    },
+    { hash: AUFNAHME }
   ));
 
 s.test('Browser wieder schließen', () => schliessen());

@@ -211,7 +211,11 @@ const geteilterBildschirm = `
     await ziehe(120, 300, 320, 348);
     zeile = await seite.locator('.marke-zeile').last().getAttribute('data-marke');
     await seite.fill('#marke-text-' + zeile, 'Lieferant auswählen');
-    await seite.waitForTimeout(300);
+    await seite.fill('#markier-kapitel', '2');
+    await seite.fill('#markier-unterkapitel', '3');
+    await seite.waitForTimeout(200);
+    await seite.click('#markier-sichern');
+    await seite.waitForTimeout(400);
     await seite.screenshot({ path: join(ziel, name + '.png') });
     console.log(name + '.png');
     await kontext.close();

@@ -20,6 +20,35 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.18.0] – Editor, Fassungen, Gliederung
+
+### Neu
+* Der Editor ist von überall erreichbar: **Im Editor öffnen** an der zuletzt
+  gemachten Aufnahme, **Im Editor bearbeiten** auf jeder Karte im Eingang.
+  Die Portalnavigation heißt dort jetzt **Editor** (F-33)
+* **Fassungen statt einer Kopie**: jedes Sichern legt eine weitere Fassung
+  neben das Original – mit Nummer, Zeitpunkt und den Marken, aus denen sie
+  entstand. Jede lässt sich wieder öffnen, weiterbearbeiten oder verwerfen
+  (F-33)
+* **Gliederung und Zeitstempel** (F-34): jedes Bild bekommt Kapitel und
+  Unterkapitel (2.3) und einen Zeitstempel. Beides wird als Streifen unter
+  das Bild gebrannt – abschaltbar – und steht auf der Karte im Eingang, im
+  Kontaktbogen und über `{kapitel}` im Namensmuster
+
+### Geändert
+* Eingangskarte und Kontaktbogen zeigen die jüngste Fassung und nennen sie
+  („Fassung 2 – 1 Stelle abgedeckt“)
+* Eine Aufnahme aus älterem Stand (`bild_markiert`) wird als Fassung 1
+  gelesen; es geht nichts verloren
+
+### Kern
+* `leseFassungen`, `neuesteFassung`, `baueFassung`, `naechsteFassungsnummer`,
+  `anzeigeBild`, `kapitelKennung`, `naechsteUnterkapitelnummer`,
+  `sortiereNachKapitel`, `formatiereZeitpunkt`, `bildunterschrift`
+
+### Prüfung
+* 7 neue Prüfungen, zusammen 247
+
 ## [1.17.0] – Markieren: unkenntlich machen und erklären
 
 ### Neu

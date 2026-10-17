@@ -17,6 +17,8 @@ let markierWerkzeug = 'unkenntlich';
 let markierStufe = 'mittel';
 let gewaehlteMarke = '';
 let markierBild = null; // HTMLImageElement der Originalaufnahme
+let markierUnterschrift = true; // Nummer und Zeitstempel ins Bild brennen
+let markierKapitel = { kapitel: '', unterkapitel: '' };
 let markierZug = null; // laufendes Aufziehen
 let markierGesichert = true;
 
@@ -103,12 +105,39 @@ function zeichneBeschriftung(stift, marke, massstab, text, nebenNummer, bildbrei
   stift.restore();
 }
 
-/** Zeichnet Bild und Marken in eine Leinwand in Originalgröße. */
+/**
+ * Die Bildunterschrift: Gliederungsnummer, Titel, Zeitstempel. Sie wird unten
+ * angesetzt, nicht über das Bild gelegt - verdeckt wäre sie unbrauchbar, und
+ * verdecken soll hier nur, was unkenntlich gemacht wurde.
+ */
+function zeichneUnterschrift(stift, breite, oben, hoehe, text) {
+  stift.save();
+  stift.fillStyle = token('--tinte', '#141A24');
+  stift.fillRect(0, oben, breite, hoehe);
+  stift.fillStyle = token('--grund', '#EDEFF3');
+  stift.font = `500 ${Math.round(hoehe * 0.42)}px ${token('--schrift-mono', 'monospace')}`;
+  stift.textAlign = 'left';
+  stift.textBaseline = 'middle';
+  stift.beginPath();
+  stift.rect(0, oben, breite, hoehe);
+  stift.clip();
+  stift.fillText(text, Math.round(hoehe * 0.5), oben + hoehe / 2);
+  stift.restore();
+}
+
+/** Die Höhe des Streifens unter dem Bild; ohne Unterschrift ist sie null. */
+function unterschriftHoehe() {
+  if (!markierUnterschrift || !markierBild) return 0;
+  return Math.max(26, Math.round(markierBild.naturalHeight * 0.045));
+}
+
+/** Zeichnet Bild, Marken und Unterschrift in eine Leinwand in Originalgröße. */
 function baueMarkierteLeinwand(mitAuswahl = false) {
   if (!markierBild) return null;
+  const streifen = unterschriftHoehe();
   const leinwand = document.createElement('canvas');
   leinwand.width = markierBild.naturalWidth;
-  leinwand.height = markierBild.naturalHeight;
+  leinwand.height = markierBild.naturalHeight + streifen;
   const stift = leinwand.getContext('2d');
   stift.drawImage(markierBild, 0, 0);
   const massstab = 1;
@@ -116,8 +145,21 @@ function baueMarkierteLeinwand(mitAuswahl = false) {
     if (marke.art === 'unkenntlich') machUnkenntlich(stift, markierBild, marke);
     else zeichneRahmen(stift, marke, massstab, leinwand.width);
   }
+  if (streifen) {
+    zeichneUnterschrift(stift, leinwand.width, markierBild.naturalHeight, streifen, markierUnterschriftText());
+  }
   if (mitAuswahl) zeichneAuswahl(stift);
   return leinwand;
+}
+
+/** Der Text des Streifens - aus der Aufnahme und den Feldern im Kopf. */
+function markierUnterschriftText() {
+  const aufnahme = markierAufnahme();
+  if (!aufnahme) return '';
+  return bildunterschrift(
+    { ...aufnahme, kapitel: markierKapitel.kapitel, unterkapitel: markierKapitel.unterkapitel },
+    aufnahme.erfasst_am
+  );
 }
 
 /** Die gewählte Marke bekommt eine gestrichelte Hülle - nur auf dem Schirm. */
@@ -237,6 +279,7 @@ function zeichneMarkieren() {
   fuelleMarkierWahl();
   zeichneMarkierflaeche();
   zeichneMarkenliste();
+  zeichneFassungen();
   zeichneKlickstrecke();
   const zusammen = markenZusammenfassung(marken);
   $('#markier-stand').textContent = marken.length
@@ -349,6 +392,97 @@ function zeichneMarkenliste() {
   );
 }
 
+/**
+ * Die Fassungen einer Aufnahme: das Original zuerst, dann jede Stufe. Jede
+ * laesst sich oeffnen - die Marken kommen mit - oder verwerfen.
+ */
+function zeichneFassungen() {
+  const kasten = $('#markier-fassungen');
+  const aufnahme = markierAufnahme();
+  if (!aufnahme) {
+    kasten.replaceChildren(el('p', { klasse: 'feld-hinweis', text: 'Keine Aufnahme gewählt.' }));
+    return;
+  }
+  const fassungen = leseFassungen(aufnahme);
+  const zeilen = [
+    el('div', { klasse: 'fassung-zeile' }, [
+      el('span', { klasse: 'marke-art', text: 'Original' }),
+      el('span', { klasse: 'kennung', text: formatiereZeitpunkt(aufnahme.erfasst_am) }),
+      el('button', {
+        klasse: 'knopf knopf--klein',
+        type: 'button',
+        id: 'fassung-original',
+        text: 'Marken leeren',
+        onclick: () => entferneAlleMarken()
+      })
+    ]),
+    ...fassungen.map((fassung) =>
+      el('div', { klasse: 'fassung-zeile' }, [
+        el('span', { klasse: 'marke-art', text: `Fassung ${fassung.nummer}` }),
+        el('span', {
+          klasse: 'kennung',
+          text: `${formatiereZeitpunkt(fassung.erstellt_am)} · ${markenZusammenfassung(fassung.marken).gesamt} Marken`
+        }),
+        el('button', {
+          klasse: 'knopf knopf--klein',
+          type: 'button',
+          id: 'fassung-laden-' + fassung.nummer,
+          text: 'Öffnen',
+          onclick: () => ladeFassung(fassung.nummer)
+        }),
+        el('button', {
+          klasse: 'knopf knopf--klein',
+          type: 'button',
+          id: 'fassung-weg-' + fassung.nummer,
+          text: 'Verwerfen',
+          onclick: () => verwirfFassung(fassung.nummer)
+        })
+      ])
+    ),
+    // replaceChildren macht aus einem null die Zeichenfolge "null" - anders
+    // als el(), das leere Kinder weglaesst. Darum wird hier gefiltert.
+    fassungen.length
+      ? null
+      : el('p', { klasse: 'feld-hinweis', text: 'Noch keine Fassung – das Original steht für sich.' })
+  ].filter(Boolean);
+  kasten.replaceChildren(...zeilen);
+}
+
+/** Holt die Marken einer Fassung zurück auf die Arbeitsfläche. */
+function ladeFassung(nummer) {
+  const aufnahme = markierAufnahme();
+  const fassung = leseFassungen(aufnahme).find((f) => f.nummer === nummer);
+  if (!fassung) return;
+  marken = fassung.marken.map((m) => ({ ...m }));
+  gewaehlteMarke = '';
+  markierGesichert = true;
+  meldeMarkieren(`Fassung ${nummer} geöffnet – ${marken.length} Marken. Das Original liegt darunter.`, 'neutral');
+  zeichneMarkieren();
+}
+
+function verwirfFassung(nummer) {
+  const aufnahme = markierAufnahme();
+  if (!aufnahme) return;
+  const bleibt = leseFassungen(aufnahme).filter((f) => f.nummer !== nummer);
+  speichereAufnahme({ ...aufnahme, fassungen: bleibt, bild_markiert: undefined, markiert_am: undefined });
+  meldeMarkieren(`Fassung ${nummer} verworfen. Das Original bleibt.`, 'neutral');
+  zeichneMarkieren();
+  zeichneEingang();
+}
+
+/** Schreibt eine geänderte Aufnahme in den Eingang zurück. */
+function speichereAufnahme(gepflegt) {
+  const vorher = eingang;
+  eingang = eingang.map((a) => (a.id === gepflegt.id ? gepflegt : a));
+  const ergebnis = sichereEingang();
+  if (!ergebnis.ok && ergebnis.voll) {
+    eingang = vorher;
+    meldeMarkieren(ergebnis.text, 'warnung');
+    return false;
+  }
+  return true;
+}
+
 function zeichneKlickstrecke() {
   const kasten = $('#klickstrecke');
   const text = klickstreckeAlsText(marken);
@@ -379,6 +513,18 @@ async function waehleMarkierAufnahme(kennung) {
   }
   marken = leseMarken(aufnahme.marken);
   markierGesichert = true;
+  // Ohne eigene Nummer bekommt die Aufnahme die naechste freie im Kapitel 1 -
+  // vorgeschlagen, nicht gesetzt: geaendert wird sie im Kopf.
+  const kapitel = Number(aufnahme.kapitel) || 1;
+  markierKapitel = {
+    kapitel: String(kapitel),
+    unterkapitel: String(
+      Number(aufnahme.unterkapitel) ||
+        naechsteUnterkapitelnummer(eingang.filter((a) => a.id !== aufnahme.id), kapitel)
+    )
+  };
+  $('#markier-kapitel').value = markierKapitel.kapitel;
+  $('#markier-unterkapitel').value = markierKapitel.unterkapitel;
   try {
     const geladen = await ladeBild(aufnahme.bild, 'eingang', aufnahme.titel);
     markierBild = geladen.element;
@@ -397,29 +543,36 @@ async function waehleMarkierAufnahme(kennung) {
 
 /* ------------------------------------------------------------- Sichern */
 
-/** Legt die bearbeitete Fassung neben das Original - beide bleiben. */
+/**
+ * Legt eine weitere Fassung neben das Original. Nichts wird ersetzt: jede
+ * Bearbeitung ist eine eigene Stufe mit Nummer und Zeitpunkt, und das
+ * Original bleibt unberuehrt darunter liegen.
+ */
 function sichereMarkierung() {
   const aufnahme = markierAufnahme();
   if (!aufnahme || !markierBild) return;
-  const leinwand = baueMarkierteLeinwand(false);
-  const fassung = leinwand.toDataURL('image/jpeg', 0.78);
+  const vorhandene = leseFassungen(aufnahme);
+  const nummer = naechsteFassungsnummer(vorhandene);
+  const fassung = baueFassung({
+    nummer,
+    bild: baueMarkierteLeinwand(false).toDataURL('image/jpeg', 0.78),
+    marken,
+    notiz: markierUnterschrift ? 'mit Bildunterschrift' : ''
+  });
   const gepflegt = {
     ...aufnahme,
+    kapitel: Number(markierKapitel.kapitel) || undefined,
+    unterkapitel: Number(markierKapitel.unterkapitel) || undefined,
     marken: markenAlsAblage(marken),
-    bild_markiert: marken.length ? fassung : undefined,
-    markiert_am: marken.length ? new Date().toISOString() : undefined
+    fassungen: [...vorhandene.map((f) => ({ ...f, marken: markenAlsAblage(f.marken) })), fassung],
+    bild_markiert: undefined,
+    markiert_am: undefined
   };
-  eingang = eingang.map((a) => (a.id === aufnahme.id ? gepflegt : a));
-  const ergebnis = sichereEingang();
-  if (!ergebnis.ok && ergebnis.voll) {
-    eingang = eingang.map((a) => (a.id === aufnahme.id ? aufnahme : a));
-    meldeMarkieren(ergebnis.text, 'warnung');
-    return;
-  }
+  if (!speichereAufnahme(gepflegt)) return;
   markierGesichert = true;
   const offen = pruefeMarken(marken);
   meldeMarkieren(
-    `Fassung zu ${aufnahme.id} gesichert – das Original bleibt daneben.` +
+    `Fassung ${nummer} zu ${aufnahme.id} gesichert – das Original bleibt daneben.` +
       (offen.length ? ` Offen: ${offen.map((p) => p.text).join(' ')}` : ''),
     offen.length ? 'warnung' : 'gut'
   );
@@ -434,6 +587,7 @@ async function sichereMarkierteDatei() {
   const leinwand = baueMarkierteLeinwand(false);
   const blob = await new Promise((fertig) => leinwand.toBlob(fertig, 'image/png'));
   const name = markiertName(dateinameAus(ablage.muster, {
+    kapitel: kapitelKennung({ kapitel: markierKapitel.kapitel, unterkapitel: markierKapitel.unterkapitel }),
     datum: aufnahme.datum,
     nummer: String(aufnahme.id).slice(-3),
     projekt: aufnahme.projekt,
@@ -506,6 +660,19 @@ function verdrahteMarkieren() {
     markierStufe = e.target.value;
   });
   $('#markier-wahl').addEventListener('change', (e) => waehleMarkierAufnahme(e.target.value));
+  for (const [feld, schluessel] of [['#markier-kapitel', 'kapitel'], ['#markier-unterkapitel', 'unterkapitel']]) {
+    $(feld).addEventListener('input', (e) => {
+      markierKapitel = { ...markierKapitel, [schluessel]: e.target.value };
+      markierGesichert = false;
+      zeichneMarkierflaeche();
+      $('#markier-sichern').disabled = !markierBild;
+    });
+  }
+  $('#markier-unterschrift').addEventListener('change', (e) => {
+    markierUnterschrift = e.target.checked;
+    markierGesichert = false;
+    zeichneMarkieren();
+  });
   $('#markier-sichern').addEventListener('click', sichereMarkierung);
   $('#markier-datei').addEventListener('click', sichereMarkierteDatei);
   $('#markier-zuruecksetzen').addEventListener('click', entferneAlleMarken);
@@ -524,6 +691,12 @@ function verdrahteMarkieren() {
       entferneMarke(gewaehlteMarke);
     }
   });
+}
+
+/** Öffnet den Editor mit einer bestimmten Aufnahme - aus jeder Ansicht. */
+function oeffneEditor(kennung) {
+  setze({ ansicht: 'markieren' });
+  waehleMarkierAufnahme(kennung);
 }
 
 verdrahteMarkieren();

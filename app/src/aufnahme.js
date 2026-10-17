@@ -933,15 +933,15 @@ function eingangKarte(aufnahme) {
       el('div', { klasse: 'eingang-bild' }, [
         // Die Karte zeigt die bearbeitete Fassung, wenn es eine gibt - sonst
         // sähe man im Eingang noch, was längst abgedeckt sein soll.
-        el('img', { src: aufnahme.bild_markiert || aufnahme.bild, alt: aufnahme.titel, loading: 'lazy' }),
+        el('img', { src: anzeigeBild(aufnahme), alt: aufnahme.titel, loading: 'lazy' }),
         vollstaendig ? null : el('span', { klasse: 'offen-marke', text: 'unvollständig' }),
-        (aufnahme.marken || []).length
-          ? el('span', { klasse: 'markiert-marke', text: markenKurz(aufnahme.marken) })
+        leseFassungen(aufnahme).length
+          ? el('span', { klasse: 'markiert-marke', text: `Fassung ${neuesteFassung(aufnahme).nummer}` })
           : null
       ]),
       el('div', { klasse: 'eingang-text' }, [
         el('div', { klasse: 'zeile-meta' }, [
-          el('span', { klasse: 'kennung', text: aufnahme.id }),
+          el('span', { klasse: 'kennung', text: kapitelKennung(aufnahme) ? `${kapitelKennung(aufnahme)} · ${aufnahme.id}` : aufnahme.id }),
           el('span', { klasse: 'kennung', text: formatiereDatum(aufnahme.datum) })
         ]),
         el('h3', { text: aufnahme.titel }),
@@ -953,6 +953,18 @@ function eingangKarte(aufnahme) {
           ...(aufnahme.begriffe.length
             ? aufnahme.begriffe.slice(0, 4).map((b) => el('span', { text: '#' + b }))
             : [el('span', { klasse: 'marke-fehlt', text: 'keine Begriffe' })])
+        ]),
+        el('div', { klasse: 'eingang-karte-knoepfe' }, [
+          el('button', {
+            klasse: 'knopf knopf--klein',
+            type: 'button',
+            'data-editor': aufnahme.id,
+            text: 'Im Editor bearbeiten',
+            onclick: (e) => {
+              e.stopPropagation();
+              oeffneEditor(aufnahme.id);
+            }
+          })
         ])
       ])
     ]
@@ -1679,6 +1691,9 @@ function verdrahteAufnahme() {
   $('#beleg-oeffnen').addEventListener('click', oeffneWerkbank);
   $('#beleg-zu').addEventListener('click', schliesseWerkbank);
   $('#beleg-sichern').addEventListener('click', sichereBelegentwurf);
+  $('#letzte-editor').addEventListener('click', () => {
+    if (letzte && letzte.id) oeffneEditor(letzte.id);
+  });
   $('#zettel-zu').addEventListener('click', () => verbergeZettel(true));
   $('#zettel-uebernehmen').addEventListener('click', uebernimmAusOrdner);
   // Esc schliesst die Schau, solange der Fokus darin steht.

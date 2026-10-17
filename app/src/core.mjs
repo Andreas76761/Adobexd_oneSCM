@@ -661,14 +661,15 @@ dd { margin: 0; }
  * steht dabei: ein stillschweigend verändertes Bild waere unredlich.
  */
 function fassungZeile(aufnahme) {
-  if (!aufnahme.bild_markiert) return '';
-  const z = markenZusammenfassung(leseMarken(aufnahme.marken));
+  const juengste = neuesteFassung(aufnahme);
+  if (!juengste) return '';
+  const z = markenZusammenfassung(juengste.marken);
   const teile = [
     z.unkenntlich ? `${z.unkenntlich} ${z.unkenntlich === 1 ? 'Stelle' : 'Stellen'} abgedeckt` : '',
     z.rahmen ? `${z.rahmen} ${z.rahmen === 1 ? 'Rahmen' : 'Rahmen'}` : '',
     z.schritte ? `${z.schritte} Schritte` : ''
   ].filter(Boolean);
-  return `bearbeitet – ${teile.join(', ') || 'ohne Marken'}`;
+  return `Fassung ${juengste.nummer} – ${teile.join(', ') || 'ohne Marken'}`;
 }
 
 function kontaktbogenSatz(aufnahme) {
@@ -681,10 +682,10 @@ function kontaktbogenSatz(aufnahme) {
   const a = aufnahme.ausschnitt || {};
   return `
       <article class="satz">
-        <div><img src="${m(aufnahme.bild_markiert || aufnahme.bild)}" alt="${m(aufnahme.titel)}"></div>
+        <div><img src="${m(anzeigeBild(aufnahme))}" alt="${m(aufnahme.titel)}"></div>
         <div>
           <div class="satz-kopf">
-            <span class="kennung">${m(aufnahme.id)}</span>
+            <span class="kennung">${m(kapitelKennung(aufnahme) ? `${kapitelKennung(aufnahme)} · ${aufnahme.id}` : aufnahme.id)}</span>
             <span class="kennung">${m(formatiereDatum(aufnahme.datum))}</span>
             ${istVollstaendig(aufnahme) ? '' : '<span class="offen">unvollständig</span>'}
           </div>
@@ -1121,6 +1122,126 @@ export function leseBeipackzettel(text) {
 /** Gleicher Name wie das Bild, andere Endung. */
 export function beipackzettelName(bildname) {
   return String(bildname || '').replace(/\.[a-z0-9]+$/i, '') + '.json';
+}
+
+/* ----------------------------- Fassungen: das Original und seine Stufen */
+
+/**
+ * Eine Aufnahme hat ein Original und beliebig viele Fassungen. Das Original
+ * wird nie ueberschrieben; jede Bearbeitung legt eine weitere Fassung daneben,
+ * mit eigener Nummer, eigenem Zeitpunkt und den Marken, aus denen sie
+ * entstanden ist. So laesst sich jede Stufe wieder oeffnen, weiterbearbeiten
+ * oder verwerfen.
+ */
+export function naechsteFassungsnummer(fassungen = []) {
+  return fassungen.reduce((hoechste, f) => Math.max(hoechste, Number(f.nummer) || 0), 0) + 1;
+}
+
+export function baueFassung({ nummer, bild, marken = [], notiz = '', erstelltAm }) {
+  return {
+    nummer,
+    bild,
+    marken: markenAlsAblage(marken),
+    notiz: String(notiz || '').trim(),
+    erstellt_am: erstelltAm || new Date().toISOString()
+  };
+}
+
+/**
+ * Liest die Fassungen einer Aufnahme. Aeltere Staende kannten nur eine
+ * einzelne bearbeitete Fassung (`bild_markiert`) - die wird als Fassung 1
+ * gelesen, damit nichts verlorengeht.
+ */
+export function leseFassungen(aufnahme = {}) {
+  const roh = Array.isArray(aufnahme.fassungen) ? aufnahme.fassungen : [];
+  const gelesen = roh
+    .filter((f) => f && typeof f.bild === 'string' && f.bild.startsWith('data:image/'))
+    .map((f, i) => ({
+      nummer: Number(f.nummer) || i + 1,
+      bild: f.bild,
+      marken: leseMarken(f.marken),
+      notiz: String(f.notiz || ''),
+      erstellt_am: String(f.erstellt_am || '')
+    }));
+  if (gelesen.length) return gelesen.sort((a, b) => a.nummer - b.nummer);
+  if (typeof aufnahme.bild_markiert === 'string' && aufnahme.bild_markiert.startsWith('data:image/')) {
+    return [
+      {
+        nummer: 1,
+        bild: aufnahme.bild_markiert,
+        marken: leseMarken(aufnahme.marken),
+        notiz: 'aus einer früheren Fassung übernommen',
+        erstellt_am: String(aufnahme.markiert_am || '')
+      }
+    ];
+  }
+  return [];
+}
+
+/** Die juengste Fassung, sonst null. */
+export function neuesteFassung(aufnahme = {}) {
+  const fassungen = leseFassungen(aufnahme);
+  return fassungen.length ? fassungen[fassungen.length - 1] : null;
+}
+
+/** Was gezeigt wird: die juengste Fassung, sonst das Original. */
+export function anzeigeBild(aufnahme = {}) {
+  const fassung = neuesteFassung(aufnahme);
+  return (fassung && fassung.bild) || aufnahme.bild || '';
+}
+
+/* --------------------------------- Nummerierung nach Kapitel und Zeit */
+
+/**
+ * Jedes Bild bekommt eine Stelle in der Gliederung: Kapitel und Unterkapitel.
+ * Die Nummer traegt die Ordnung einer Anleitung - "2.3" steht zwischen "2.2"
+ * und "2.4", unabhaengig davon, wann das Bild entstanden ist.
+ */
+export function kapitelKennung(aufnahme = {}) {
+  const kapitel = Number(aufnahme.kapitel);
+  if (!Number.isFinite(kapitel) || kapitel <= 0) return '';
+  const unter = Number(aufnahme.unterkapitel);
+  return Number.isFinite(unter) && unter > 0 ? `${kapitel}.${unter}` : String(kapitel);
+}
+
+/** Die naechste freie Unterkapitelnummer in einem Kapitel. */
+export function naechsteUnterkapitelnummer(liste = [], kapitel) {
+  const zahl = Number(kapitel);
+  if (!Number.isFinite(zahl) || zahl <= 0) return 1;
+  return (
+    liste
+      .filter((a) => Number(a.kapitel) === zahl)
+      .reduce((hoechste, a) => Math.max(hoechste, Number(a.unterkapitel) || 0), 0) + 1
+  );
+}
+
+/** Sortiert nach Gliederung; was keine Nummer hat, steht hinten. */
+export function sortiereNachKapitel(liste = []) {
+  const schluessel = (a) => [Number(a.kapitel) || 9999, Number(a.unterkapitel) || 9999];
+  return [...liste].sort((a, b) => {
+    const [ka, ua] = schluessel(a);
+    const [kb, ub] = schluessel(b);
+    return ka - kb || ua - ub || String(a.id).localeCompare(String(b.id));
+  });
+}
+
+/** Zeitstempel in der Schreibweise dieser Seite: 17.10.2026, 08:14. */
+export function formatiereZeitpunkt(iso) {
+  const text = String(iso || '');
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(text)) return formatiereDatum(text.slice(0, 10));
+  const [tag, zeit] = text.split('T');
+  return `${formatiereDatum(tag)}, ${zeit.slice(0, 5)}`;
+}
+
+/**
+ * Die Bildunterschrift, die in das Bild gebrannt wird: Gliederungsnummer,
+ * Titel und Zeitpunkt. Ohne Nummer bleibt die Nummer weg, nicht die Zeile -
+ * der Zeitpunkt ist der eigentliche Beleg.
+ */
+export function bildunterschrift(aufnahme = {}, zeitpunkt) {
+  const nummer = kapitelKennung(aufnahme);
+  const zeit = formatiereZeitpunkt(zeitpunkt || aufnahme.erfasst_am || aufnahme.datum);
+  return [nummer, String(aufnahme.titel || '').trim(), zeit].filter(Boolean).join('  ·  ');
 }
 
 /* ------------------------------------- Marken: unkenntlich und erklaert */
@@ -1601,6 +1722,7 @@ export const ABLAGE_ZIELE = [
 ];
 
 export const MUSTER_FELDER = [
+  { feld: '{kapitel}', erklaerung: 'Gliederungsnummer, etwa 2-3' },
   { feld: '{datum}', erklaerung: 'Aufnahmedatum, JJJJ-MM-TT' },
   { feld: '{zeit}', erklaerung: 'Uhrzeit, SS-MM-SS' },
   { feld: '{nummer}', erklaerung: 'laufende Nummer, dreistellig' },
@@ -1624,6 +1746,9 @@ export function bereinigeDateiname(text) {
  */
 export function dateinameAus(muster, felder = {}, endung = 'png') {
   const werte = {
+    // Die Gliederungsnummer traegt einen Punkt, der im Dateinamen nichts zu
+    // suchen hat - aus 2.3 wird 2-3.
+    '{kapitel}': String(felder.kapitel || '').replace(/\./g, '-'),
     '{datum}': felder.datum || '',
     '{zeit}': felder.zeit || '',
     '{nummer}': felder.nummer || '',

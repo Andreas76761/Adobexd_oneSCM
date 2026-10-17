@@ -676,3 +676,56 @@ Herauskopieren. Ein Schritt ohne Text wird beim Sichern benannt.
 die Liste rechts zeigt Maße, Text und Raster. Die Marken liegen in
 Bildpunkten des Originals, nicht in Bildschirmpunkten – die Fassung stimmt
 auch dann, wenn die Ansicht kleiner skaliert ist.
+
+
+---
+
+## F-33 · Editor und Fassungen
+
+**Zweck** Bis 1.17.0 führte der Weg zum Bearbeiten immer über die Auswahl in
+der Markieransicht, und jede Bearbeitung ersetzte die vorige. Wer zwei Stände
+brauchte – einen für intern, einen für außen –, hatte Pech.
+
+**Von überall hinein** **Im Editor öffnen** steht an der zuletzt gemachten
+Aufnahme, **Im Editor bearbeiten** auf jeder Karte im Eingang; die
+Portalnavigation heißt **Editor**. Geladen wird immer das **Original**, nie
+eine Fassung – bearbeitet wird vom unberührten Stand aus.
+
+**Fassungen** Jedes Sichern legt eine weitere Fassung an:
+
+| Feld | Inhalt |
+| --- | --- |
+| `nummer` | 1, 2, 3 … fortlaufend je Aufnahme |
+| `bild` | die gerechnete Fassung als JPEG |
+| `marken` | die Marken, aus denen sie entstand |
+| `erstellt_am` | Zeitpunkt der Bearbeitung |
+
+Die Liste im Editor zeigt das Original und jede Fassung mit Zeitpunkt und
+Markenzahl. **Öffnen** holt die Marken einer Fassung zurück auf die
+Arbeitsfläche, **Verwerfen** entfernt sie. Das Original bleibt immer.
+
+**Wo die jüngste Fassung erscheint** Karte im Eingang und Kontaktbogen zeigen
+sie und nennen sie beim Namen („Fassung 2 – 1 Stelle abgedeckt“). Ein
+Stand aus einer früheren Programmfassung (`bild_markiert`) wird als Fassung 1
+gelesen.
+
+---
+
+## F-34 · Gliederung und Zeitstempel
+
+**Zweck** Wer eine Anleitung aus Bildern baut, braucht Ordnung und Beleg:
+welche Stelle im Ablauf, und wann aufgenommen. Beides stand bisher nur in den
+Metadaten, nicht im Bild – und ein weitergereichtes Bild verlor es.
+
+**Die Nummer** Kapitel und Unterkapitel stehen als Felder im Editor; die Seite
+schlägt die nächste freie Unternummer im Kapitel vor, gesetzt wird sie von
+Hand. Daraus wird `2.3`.
+
+**Der Streifen** Unter dem Bild – nicht darüber gelegt – steht
+`2.3 · Titel · 17.10.2026, 08:14`. Er wird in die Fassung gebrannt und
+verlässt damit die Seite mit dem Bild. Abschaltbar über das Kästchen
+**Nummer und Zeitstempel ins Bild**.
+
+**Wo die Nummer sonst steht** Auf der Karte im Eingang vor der Kennung, im
+Kontaktbogen in der Kopfzeile des Satzes und über den Baustein `{kapitel}` im
+Namensmuster (aus `2.3` wird dort `2-3`).

@@ -573,6 +573,82 @@ s.test('jede fehlende Fähigkeit nennt einen Weg, der statt dessen geht', () => 
   wahr(/Telefon/.test(amTelefon.text) && /Bild öffnen/.test(amTelefon.text), 'am Telefon fehlt der Ausweg');
 });
 
+/* ------------------------------------------ Fassungen und Gliederung */
+
+s.test('jede Bearbeitung ist eine eigene Fassung, das Original bleibt', () => {
+  const original = { id: 'AUF-2026-001', bild: 'data:image/jpeg;base64,ORIGINAL', erfasst_am: '2026-03-01T08:00:00.000Z' };
+  gleich(kern.leseFassungen(original).length, 0);
+  gleich(kern.anzeigeBild(original), 'data:image/jpeg;base64,ORIGINAL', 'ohne Fassung gilt das Original');
+  gleich(kern.naechsteFassungsnummer([]), 1);
+
+  const eins = kern.baueFassung({
+    nummer: 1,
+    bild: 'data:image/jpeg;base64,EINS',
+    marken: [{ id: 'a', art: 'unkenntlich', x: 1, y: 1, breite: 9, hoehe: 9, stufe: 'grob' }],
+    erstelltAm: '2026-03-02T08:00:00.000Z'
+  });
+  const zwei = kern.baueFassung({ nummer: 2, bild: 'data:image/jpeg;base64,ZWEI', marken: [] });
+  const mit = { ...original, fassungen: [eins, zwei] };
+  gleich(kern.naechsteFassungsnummer(kern.leseFassungen(mit)), 3);
+  gleich(kern.neuesteFassung(mit).nummer, 2, 'die jüngste Fassung ist nicht die letzte');
+  gleich(kern.anzeigeBild(mit), 'data:image/jpeg;base64,ZWEI');
+  gleich(mit.bild, 'data:image/jpeg;base64,ORIGINAL', 'das Original wurde angefasst');
+  gleich(kern.leseFassungen(mit)[0].marken.length, 1, 'die Marken der Fassung fehlen');
+});
+
+s.test('eine Aufnahme aus älterem Stand verliert ihre Bearbeitung nicht', () => {
+  const alt = {
+    id: 'AUF-2026-001',
+    bild: 'data:image/jpeg;base64,ORIGINAL',
+    bild_markiert: 'data:image/jpeg;base64,ALT',
+    marken: [{ id: 'a', art: 'rahmen', x: 1, y: 1, breite: 9, hoehe: 9 }],
+    markiert_am: '2026-02-01T08:00:00.000Z'
+  };
+  const gelesen = kern.leseFassungen(alt);
+  gleich(gelesen.length, 1, 'die frühere Bearbeitung geht verloren');
+  gleich(gelesen[0].nummer, 1);
+  gleich(gelesen[0].bild, 'data:image/jpeg;base64,ALT');
+  gleich(gelesen[0].marken.length, 1);
+  gleich(kern.anzeigeBild(alt), 'data:image/jpeg;base64,ALT');
+  // Eine unbrauchbare Fassung wird nicht mitgezählt.
+  gleich(kern.leseFassungen({ fassungen: [{ nummer: 1, bild: 'kein Bild' }] }).length, 0);
+});
+
+s.test('die Gliederungsnummer ordnet, der Zeitstempel belegt', () => {
+  gleich(kern.kapitelKennung({ kapitel: 2, unterkapitel: 3 }), '2.3');
+  gleich(kern.kapitelKennung({ kapitel: 2 }), '2', 'ohne Unterkapitel bleibt die Kapitelnummer');
+  gleich(kern.kapitelKennung({}), '', 'ohne Nummer wird keine erfunden');
+  gleich(kern.naechsteUnterkapitelnummer([{ kapitel: 2, unterkapitel: 3 }, { kapitel: 2, unterkapitel: 7 }], 2), 8);
+  gleich(kern.naechsteUnterkapitelnummer([{ kapitel: 2, unterkapitel: 3 }], 5), 1, 'ein neues Kapitel fängt bei 1 an');
+
+  const reihe = kern.sortiereNachKapitel([
+    { id: 'c', kapitel: 2, unterkapitel: 10 },
+    { id: 'a', kapitel: 1, unterkapitel: 2 },
+    { id: 'd' },
+    { id: 'b', kapitel: 2, unterkapitel: 2 }
+  ]);
+  gleich(reihe.map((a) => a.id).join(''), 'abcd', 'die Gliederung sortiert falsch');
+
+  gleich(kern.formatiereZeitpunkt('2026-10-17T08:14:09.000Z'), '17.10.2026, 08:14');
+  gleich(
+    kern.bildunterschrift({ titel: 'Vorlagenliste', kapitel: 2, unterkapitel: 3, erfasst_am: '2026-10-17T08:14:09.000Z' }),
+    '2.3  ·  Vorlagenliste  ·  17.10.2026, 08:14'
+  );
+  wahr(
+    !kern.bildunterschrift({ titel: 'Ohne Nummer', erfasst_am: '2026-10-17T08:14:09.000Z' }).startsWith('·'),
+    'ohne Nummer bleibt ein führender Punkt stehen'
+  );
+});
+
+s.test('die Gliederungsnummer passt auch in einen Dateinamen', () => {
+  gleich(
+    kern.dateinameAus('{kapitel}-{titel}', { kapitel: '2.3', titel: 'Vorlagen' }),
+    '2-3-vorlagen.png',
+    'der Punkt der Gliederung gehört nicht in den Dateinamen'
+  );
+  wahr(kern.MUSTER_FELDER.some((f) => f.feld === '{kapitel}'), 'der Baustein wird nicht angeboten');
+});
+
 /* ------------------------------------------------------------- Marken */
 
 s.test('eine neue Marke sitzt im Bild und zählt die Schritte weiter', () => {
