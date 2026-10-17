@@ -8,6 +8,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | --- | --- |
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [versionen/v1.15.0.md](versionen/v1.15.0.md) | Metadaten im Bild – der Zettel steckt in der PNG-Datei |
 | [versionen/v1.14.0.md](versionen/v1.14.0.md) | Beleg bilden in der Seite – aus zwei Aufnahmen ein Entwurf |
 | [versionen/v1.13.0.md](versionen/v1.13.0.md) | Das Ordnerband wird brauchbar – Filter, verwaiste Zettel, Tastatur |
 | [versionen/v1.12.0.md](versionen/v1.12.0.md) | Nachpflegen bis in die Datei – der Zettel wird neu geschrieben |

@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { suite, wahr, gleich } from '../hilfen/pruefe.mjs';
 import { erzeugeBrowserHelfer } from '../hilfen/browser.mjs';
 import { erzeugePng } from '../hilfen/bild.mjs';
+import { legeTextInPng, pngTexte, baueBeipackzettel } from '../../app/src/core.mjs';
 
 const wurzel = join(import.meta.dirname, '..', '..');
 const { mitSeite, schliessen } = erzeugeBrowserHelfer(join(wurzel, 'dist', 'index.html'));
@@ -27,6 +28,33 @@ const stapelPfade = [
   writeFileSync(pfad, erzeugePng(breite, hoehe, (x, y) => [(x * 2) % 256, breite % 256, (y * 3) % 256]));
   return pfad;
 });
+
+/* Ein abgelegtes Bild, wie es die Seite selbst schreibt: mit Zettel im PNG. */
+const zettelBildPfad = join(bildOrdner, 'mit-zettel.png');
+writeFileSync(
+  zettelBildPfad,
+  legeTextInPng(
+    new Uint8Array(erzeugePng(700, 420, (x, y) => [(x * 2) % 256, 120, (y * 2) % 256])),
+    pngTexte(
+      baueBeipackzettel({
+        entwurf: {
+          titel: 'Preisspalte zu schmal',
+          projekt: 'Lieferanten-Cockpit',
+          seite: '/cockpit/positionen',
+          kategorie: 'Layout',
+          begriffe: ['spaltenbreite', 'preis'],
+          notiz: 'Bei 1280 px abgeschnitten',
+          autor: 'M. Ackermann',
+          datum: '2026-08-31'
+        },
+        bildname: 'mit-zettel.png',
+        erfasstAm: '2026-08-31T09:00:00.000Z',
+        anwendung: '1.15.0'
+      }),
+      '1.15.0'
+    )
+  )
+);
 
 const AUFNAHME = '#ans=aufnahme';
 const heute = () => new Date().toISOString().slice(0, 10);
@@ -1259,6 +1287,59 @@ s.test('das dunkle Thema trägt auch die Aufnahme', () =>
       wahr(kontrast >= 4.5, `Der Auslöser hat nur ${kontrast.toFixed(1)}:1 Kontrast`);
     },
     { hash: AUFNAHME, thema: 'dark' }
+  ));
+
+s.test('ein Bild mit Beipackzettel füllt die leeren Felder', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.setInputFiles('#datei-eingabe', zettelBildPfad);
+      await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+      await seite.waitForFunction(
+        () => document.getElementById('feld-titel').value.length > 0,
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await seite.locator('#feld-titel').inputValue(), 'Preisspalte zu schmal');
+      gleich(await seite.locator('#feld-projekt').inputValue(), 'Lieferanten-Cockpit');
+      gleich(await seite.locator('#feld-seite').inputValue(), '/cockpit/positionen');
+      gleich(await seite.locator('#feld-kategorie').inputValue(), 'Layout');
+      gleich(await seite.locator('#feld-begriffe').inputValue(), 'spaltenbreite, preis');
+      gleich(await seite.locator('#feld-datum').inputValue(), '2026-08-31');
+      wahr(
+        /Aus dem Bild übernommen/.test(await seite.locator('#aufnahme-meldung').innerText()),
+        'die Übernahme wird verschwiegen'
+      );
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('ein ausgefülltes Feld wird vom Bild nicht überschrieben', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.fill('#feld-titel', 'Von Hand getippt');
+      await seite.setInputFiles('#datei-eingabe', zettelBildPfad);
+      await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+      await seite.waitForFunction(
+        () => document.getElementById('feld-projekt').value.length > 0,
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await seite.locator('#feld-titel').inputValue(), 'Von Hand getippt', 'der getippte Titel wurde überschrieben');
+      gleich(await seite.locator('#feld-projekt').inputValue(), 'Lieferanten-Cockpit', 'das leere Feld blieb leer');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('ein Bild ohne Zettel bringt nichts mit und sagt auch nichts', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.setInputFiles('#datei-eingabe', bildPfad);
+      await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+      gleich(await seite.locator('#feld-titel').inputValue(), '');
+      const meldung = await seite.locator('#aufnahme-meldung').innerText();
+      gleich(/Aus dem Bild übernommen/.test(meldung), false, 'ohne Zettel wird eine Übernahme behauptet: ' + meldung);
+    },
+    { hash: AUFNAHME }
   ));
 
 /* ----------------------------------------------- Werkbank: Beleg bilden */

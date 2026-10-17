@@ -544,7 +544,7 @@ async function nimmSchnipsel() {
   }
 
   if (ablage.ordner || ablage.datei) {
-    const blob = await new Promise((fertig) => leinwand.toBlob(fertig, 'image/png'));
+    let blob = await new Promise((fertig) => leinwand.toBlob(fertig, 'image/png'));
     // Der Beipackzettel traegt, was der Dateiname nicht fassen kann.
     const zettelName = beipackzettelName(name);
     const zettel = baueBeipackzettel({
@@ -555,6 +555,18 @@ async function nimmSchnipsel() {
       erfasstAm: jetzt.toISOString(),
       anwendung: DATEN.anwendung
     });
+    // Dieselben Angaben wandern in die PNG-Datei selbst: wer nur das Bild
+    // weiterreicht, gibt sie damit mit. Der Zettel daneben bleibt, weil ihn
+    // jedes Werkzeug lesen kann - ein PNG-Abschnitt nicht.
+    if (ablage.beipack) {
+      try {
+        blob = new Blob([legeTextInPng(new Uint8Array(await blob.arrayBuffer()), pngTexte(zettel, DATEN.anwendung))], {
+          type: 'image/png'
+        });
+      } catch (f) {
+        // Ein Bild ohne eingelegten Text ist besser als kein Bild.
+      }
+    }
 
     if (ablage.ordner && ordnerZugriff) {
       try {

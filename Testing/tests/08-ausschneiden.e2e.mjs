@@ -3,7 +3,8 @@
  * freigeben, Bereich aufziehen, beim Loslassen ablegen.
  */
 import { join } from 'node:path';
-import { suite, wahr, gleich } from '../hilfen/pruefe.mjs';
+import { liesTextAusPng, PNG_SCHLUESSEL } from '../../app/src/core.mjs';
+import { suite, wahr, gleich, tieferGleich } from '../hilfen/pruefe.mjs';
 import { erzeugeBrowserHelfer } from '../hilfen/browser.mjs';
 
 const wurzel = join(import.meta.dirname, '..', '..');
@@ -362,6 +363,58 @@ s.test('der Beipackzettel trägt alle Metadaten', () =>
       wahr(zettel.ausschnitt.breite > 100, 'die Ausschnittmaße fehlen');
       wahr(String(zettel.erzeugt_von).startsWith('Screenarchiv 1.'), 'die Anwendung wird nicht genannt: ' + zettel.erzeugt_von);
       wahr(String(zettel.erfasst_am).includes('T'), 'kein Zeitpunkt');
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
+s.test('die abgelegte PNG-Datei trägt die Metadaten in sich', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+      await seite.fill('#feld-titel', 'Preisspalte zu schmal');
+      await seite.fill('#feld-projekt', 'Lieferanten-Cockpit');
+      await seite.selectOption('#feld-kategorie', 'Layout');
+      await seite.fill('#feld-begriffe', 'spaltenbreite, preis');
+      await seite.fill('#feld-datum', '2026-08-31');
+      await seite.click('.portal-nav button[data-ansicht="ausschneiden"]');
+      await seite.fill('#ablage-muster', 'beleg-{nummer}');
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 40, 340, 260);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 2, null, { timeout: 5000 });
+
+      const bytes = await seite.evaluate(async () => {
+        const treffer = window.__inhalt.find((e) => e.name.endsWith('.png'));
+        return Array.from(new Uint8Array(await treffer.blob.arrayBuffer()));
+      });
+      const texte = liesTextAusPng(new Uint8Array(bytes));
+      wahr(texte.Description.includes('Preisspalte zu schmal'), 'die lesbare Zeile fehlt: ' + texte.Description);
+      wahr(/^Screenarchiv 1\./.test(texte.Software), 'die Anwendung fehlt: ' + texte.Software);
+      const zettel = JSON.parse(texte[PNG_SCHLUESSEL]);
+      gleich(zettel.titel, 'Preisspalte zu schmal');
+      gleich(zettel.kategorie, 'Layout');
+      gleich(zettel.begriffe.join(','), 'spaltenbreite,preis');
+      gleich(zettel.bild, 'beleg-001.png', 'die Datei kennt ihren eigenen Namen nicht');
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
+s.test('ohne Zettel bleibt auch die PNG-Datei ohne Metadaten', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      await seite.waitForSelector('#beipack-zeile:not([hidden])');
+      await seite.uncheck('#ablage-beipack');
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 40, 300, 240);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 1, null, { timeout: 5000 });
+      const bytes = await seite.evaluate(async () => {
+        const treffer = window.__inhalt.find((e) => e.name.endsWith('.png'));
+        return Array.from(new Uint8Array(await treffer.blob.arrayBuffer()));
+      });
+      tieferGleich(liesTextAusPng(new Uint8Array(bytes)), {}, 'trotz Abwahl steht Text im Bild');
     },
     { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
   ));

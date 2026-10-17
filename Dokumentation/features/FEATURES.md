@@ -542,6 +542,16 @@ Ordner, Datei, Zettel, Zeitpunkt). Daran wird die Datei wiedererkannt – über
 Ordner und Namen, Groß- und Kleinschreibung egal, auch nach einem Neuladen.
 Die Kachel trägt dann die Kennung, und der Knopf heißt **Im Eingang zeigen**.
 
+**Im Bild selbst** (ab 1.15.0) Dieselben Angaben stehen zusätzlich in der
+PNG-Datei: ein `iTXt`-Abschnitt `screenarchiv` mit dem ganzen Zettel, eine
+lesbare Zeile unter `Description` und die Anwendung unter `Software`. `iTXt`
+statt `tEXt`, weil nur der UTF-8 kann – `tEXt` verstümmelte „Prüfung“. Die
+Bilddaten werden nicht neu kodiert, der Abschnitt wird vor `IEND`
+eingeschoben. Wird ein solches Bild in der Aufnahme geöffnet, füllt es die
+**leeren** Felder; ausgefüllte bleiben unberührt, und die Meldung nennt, was
+zurückkam. Der Zettel daneben bleibt trotzdem: ihn kann jedes Werkzeug lesen,
+einen PNG-Abschnitt nicht.
+
 **Nachpflegen bis in die Datei** (ab 1.12.0) Kategorie und Begriffe entstehen
 oft erst später. Im Eingangsdialog steht darum bei jeder Aufnahme aus einer
 Ordnerdatei **Zettel ⟨name⟩ neu schreiben** – der gepflegte Stand geht damit

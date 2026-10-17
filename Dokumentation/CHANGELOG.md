@@ -20,6 +20,25 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.15.0] – Metadaten im Bild
+
+### Neu
+* Die abgelegte PNG-Datei trägt den Beipackzettel jetzt **in sich**: ein
+  `iTXt`-Abschnitt mit dem ganzen Zettel, dazu eine lesbare Zeile
+  (`Description`) und die erzeugende Anwendung (`Software`) (F-26)
+* Wird ein solches Bild in der Aufnahme geöffnet, kommen die Angaben in die
+  **leeren** Felder zurück – ausgefüllte bleiben unberührt, und die Meldung
+  nennt, was übernommen wurde
+* Beides hängt am selben Kästchen wie der Zettel daneben
+
+### Kern
+* `legeTextInPng`, `liesTextAusPng`, `pngTexte`, `PNG_SCHLUESSEL`: eigener
+  PNG-Abschnittsleser, UTF-8 über `iTXt`; die Bilddaten werden nicht neu
+  kodiert, nur ein Abschnitt vor `IEND` eingeschoben
+
+### Prüfung
+* 8 neue Prüfungen, zusammen 222, alle bestanden
+
 ## [1.14.0] – Beleg bilden in der Seite
 
 ### Neu

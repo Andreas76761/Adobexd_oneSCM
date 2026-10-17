@@ -1083,6 +1083,162 @@ export function beipackzettelName(bildname) {
   return String(bildname || '').replace(/\.[a-z0-9]+$/i, '') + '.json';
 }
 
+/* ------------------------------------------- Metadaten in der PNG-Datei */
+
+/**
+ * PNG traegt Text in eigenen Abschnitten. Geschrieben wird `iTXt`: nur der
+ * kann UTF-8, und der Beipackzettel steckt voller Umlaute. `tEXt` waere auf
+ * Latin-1 beschraenkt und verstuemmelte „Prüfung“ zu „PrÃ¼fung“.
+ */
+export const PNG_SCHLUESSEL = 'screenarchiv';
+
+const PNG_KENNUNG = [137, 80, 78, 71, 13, 10, 26, 10];
+
+/* Tabelle nach der PNG-Spezifikation; einmal gerechnet, danach nachgeschlagen. */
+const CRC_TABELLE = (() => {
+  const tabelle = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    tabelle[n] = c >>> 0;
+  }
+  return tabelle;
+})();
+
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABELLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+const istPng = (bytes) => bytes && bytes.length > 8 && PNG_KENNUNG.every((b, i) => bytes[i] === b);
+
+function zahlAus(bytes, ab) {
+  return ((bytes[ab] << 24) | (bytes[ab + 1] << 16) | (bytes[ab + 2] << 8) | bytes[ab + 3]) >>> 0;
+}
+
+function baueAbschnitt(typ, daten) {
+  const kopf = new TextEncoder().encode(typ);
+  const abschnitt = new Uint8Array(12 + daten.length);
+  const sicht = new DataView(abschnitt.buffer);
+  sicht.setUint32(0, daten.length);
+  abschnitt.set(kopf, 4);
+  abschnitt.set(daten, 8);
+  const pruefbereich = new Uint8Array(4 + daten.length);
+  pruefbereich.set(kopf, 0);
+  pruefbereich.set(daten, 4);
+  sicht.setUint32(8 + daten.length, crc32(pruefbereich));
+  return abschnitt;
+}
+
+/** Ein iTXt-Abschnitt: Schlüssel, unkomprimiert, ohne Sprache, Text in UTF-8. */
+function baueITXt(schluessel, text) {
+  const kodierer = new TextEncoder();
+  const name = kodierer.encode(String(schluessel).slice(0, 79));
+  const inhalt = kodierer.encode(String(text));
+  const daten = new Uint8Array(name.length + 5 + inhalt.length);
+  daten.set(name, 0);
+  // name \0 komprimiert(0) verfahren(0) sprache \0 uebersetzterName \0 text
+  daten[name.length] = 0;
+  daten[name.length + 1] = 0;
+  daten[name.length + 2] = 0;
+  daten[name.length + 3] = 0;
+  daten[name.length + 4] = 0;
+  daten.set(inhalt, name.length + 5);
+  return baueAbschnitt('iTXt', daten);
+}
+
+/**
+ * Legt Texte in eine PNG-Datei, unmittelbar vor `IEND`. Die Bilddaten bleiben
+ * unberuehrt - es wird nichts neu kodiert, nur ein Abschnitt eingeschoben.
+ * Ist das keine PNG-Datei, kommt sie unveraendert zurueck.
+ */
+export function legeTextInPng(bytes, texte = []) {
+  const quelle = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  if (!istPng(quelle) || !texte.length) return quelle;
+  let ab = 8;
+  let vorIend = -1;
+  while (ab + 8 <= quelle.length) {
+    const laenge = zahlAus(quelle, ab);
+    const typ = String.fromCharCode(quelle[ab + 4], quelle[ab + 5], quelle[ab + 6], quelle[ab + 7]);
+    if (typ === 'IEND') {
+      vorIend = ab;
+      break;
+    }
+    ab += 12 + laenge;
+  }
+  if (vorIend < 0) return quelle;
+  const neue = texte
+    .filter((t) => t && t.schluessel && String(t.text || '').length)
+    .map((t) => baueITXt(t.schluessel, t.text));
+  if (!neue.length) return quelle;
+  const zusatz = neue.reduce((summe, a) => summe + a.length, 0);
+  const ergebnis = new Uint8Array(quelle.length + zusatz);
+  ergebnis.set(quelle.subarray(0, vorIend), 0);
+  let schreibAb = vorIend;
+  for (const abschnitt of neue) {
+    ergebnis.set(abschnitt, schreibAb);
+    schreibAb += abschnitt.length;
+  }
+  ergebnis.set(quelle.subarray(vorIend), schreibAb);
+  return ergebnis;
+}
+
+/**
+ * Liest die Texte einer PNG-Datei: `iTXt` (UTF-8) und `tEXt` (Latin-1), damit
+ * auch Dateien aus anderen Werkzeugen gelesen werden. Komprimierte Texte
+ * werden uebergangen statt falsch geraten.
+ */
+export function liesTextAusPng(bytes) {
+  const quelle = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+  const gefunden = {};
+  if (!istPng(quelle)) return gefunden;
+  const leser = new TextDecoder('utf-8');
+  let ab = 8;
+  while (ab + 8 <= quelle.length) {
+    const laenge = zahlAus(quelle, ab);
+    const typ = String.fromCharCode(quelle[ab + 4], quelle[ab + 5], quelle[ab + 6], quelle[ab + 7]);
+    const daten = quelle.subarray(ab + 8, ab + 8 + laenge);
+    if (typ === 'IEND') break;
+    if (typ === 'iTXt' || typ === 'tEXt') {
+      const trenner = daten.indexOf(0);
+      if (trenner > 0) {
+        const schluessel = leser.decode(daten.subarray(0, trenner));
+        if (typ === 'tEXt') {
+          gefunden[schluessel] = new TextDecoder('latin1').decode(daten.subarray(trenner + 1));
+        } else if (daten[trenner + 1] === 0) {
+          // unkomprimiert: Sprache und uebersetzter Name sind zwei weitere Nullen
+          let lauf = trenner + 3;
+          let nullen = 0;
+          while (lauf < daten.length && nullen < 2) {
+            if (daten[lauf] === 0) nullen++;
+            lauf++;
+          }
+          gefunden[schluessel] = leser.decode(daten.subarray(lauf));
+        }
+      }
+    }
+    ab += 12 + laenge;
+  }
+  return gefunden;
+}
+
+/** Die Texte, die neben die Bilddaten gehoeren: lesbare Zeile und ganzer Zettel. */
+export function pngTexte(zettel, anwendung) {
+  let daten = {};
+  try {
+    daten = JSON.parse(zettel) || {};
+  } catch (fehler) {
+    daten = {};
+  }
+  const zeile = [daten.titel, daten.projekt, daten.seite, daten.datum].filter(Boolean).join(' · ');
+  return [
+    { schluessel: 'Description', text: zeile },
+    { schluessel: 'Software', text: `Screenarchiv ${anwendung || ''}`.trim() },
+    { schluessel: PNG_SCHLUESSEL, text: zettel }
+  ];
+}
+
 /* --------------------------------------------- Uebernahme aus dem Ordner */
 
 /**

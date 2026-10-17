@@ -1,6 +1,7 @@
 /** Kernlogik von Aufnahme und Eingang - ohne Browser. */
 import { suite, wahr, gleich, tieferGleich } from '../hilfen/pruefe.mjs';
 import * as kern from '../../app/src/core.mjs';
+import { erzeugePng } from '../hilfen/bild.mjs';
 
 const s = suite('Aufnahme – Kernlogik');
 
@@ -549,6 +550,50 @@ s.test('die Wahl des Beipackzettels wird gespeichert', () => {
   gleich(kern.ABLAGE_STANDARD.beipack, true, 'der Zettel ist nicht voreingestellt');
   gleich(kern.leseAblage(kern.schreibeAblage({ beipack: false })).beipack, false);
   gleich(kern.leseAblage('{}').beipack, true, 'ohne Angabe fehlt die Vorgabe');
+});
+
+/* -------------------------------------------- Metadaten in der PNG-Datei */
+
+const probePng = () => new Uint8Array(erzeugePng(8, 8, (x, y) => [x * 30, y * 30, 120]));
+
+s.test('der Beipackzettel überlebt den Weg in die PNG-Datei', () => {
+  const zettel = kern.baueBeipackzettel({
+    entwurf: { titel: 'Prüfung grün', projekt: 'oneSCM Portal', datum: '2026-03-01', begriffe: ['kontrast'] },
+    bildname: 'a.png',
+    erfasstAm: '2026-03-01T08:00:00.000Z',
+    anwendung: '1.15.0'
+  });
+  const roh = probePng();
+  const mit = kern.legeTextInPng(roh, kern.pngTexte(zettel, '1.15.0'));
+  wahr(mit.length > roh.length, 'die Datei ist nicht gewachsen');
+  const gelesen = kern.liesTextAusPng(mit);
+  gleich(gelesen.Description, 'Prüfung grün · oneSCM Portal · 2026-03-01', 'die lesbare Zeile fehlt');
+  gleich(gelesen.Software, 'Screenarchiv 1.15.0');
+  gleich(JSON.parse(gelesen[kern.PNG_SCHLUESSEL]).titel, 'Prüfung grün', 'Umlaute überleben den Weg nicht');
+  gleich(JSON.parse(gelesen[kern.PNG_SCHLUESSEL]).begriffe.join(','), 'kontrast');
+});
+
+s.test('die Bilddaten bleiben beim Einlegen unberührt', () => {
+  const roh = probePng();
+  const mit = kern.legeTextInPng(roh, [{ schluessel: 'a', text: 'b' }]);
+  // Alles bis zum ersten Abschnitt nach den Bilddaten steht unveraendert vorn.
+  const bisIdat = roh.length - 12; // IEND ist zwölf Byte lang
+  tieferGleich(
+    Array.from(mit.subarray(0, bisIdat)),
+    Array.from(roh.subarray(0, bisIdat)),
+    'die Bilddaten wurden angefasst'
+  );
+  // Und IEND steht weiterhin am Ende.
+  gleich(String.fromCharCode(...mit.subarray(mit.length - 8, mit.length - 4)), 'IEND');
+});
+
+s.test('was keine PNG-Datei ist, kommt unverändert zurück', () => {
+  const kein = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  tieferGleich(Array.from(kern.legeTextInPng(kein, [{ schluessel: 'a', text: 'b' }])), Array.from(kein));
+  tieferGleich(kern.liesTextAusPng(kein), {});
+  tieferGleich(kern.liesTextAusPng(probePng()), {}, 'ein frisches Bild trägt keinen Text');
+  const roh = probePng();
+  tieferGleich(Array.from(kern.legeTextInPng(roh, [])), Array.from(roh), 'ohne Texte wird nichts geschrieben');
 });
 
 /* ------------------------------------------------------------ Belegentwurf */

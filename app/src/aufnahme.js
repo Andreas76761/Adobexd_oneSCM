@@ -365,6 +365,47 @@ function ladeBild(adresse, art, name) {
 }
 
 /** Uebernimmt ein Bild aus Datei, Ablegen oder Zwischenablage als Quelle. */
+/**
+ * Traegt die PNG-Datei einen Beipackzettel, werden daraus die *leeren* Felder
+ * gefuellt - nie die ausgefuellten. Wer gerade tippt, soll nicht ueberschrieben
+ * werden; was zurueckkommt, wird genannt.
+ */
+async function uebernimmBildzettel(blob) {
+  if (!blob || blob.type !== 'image/png') return [];
+  let daten;
+  try {
+    const texte = liesTextAusPng(new Uint8Array(await blob.arrayBuffer()));
+    if (!texte[PNG_SCHLUESSEL]) return [];
+    daten = JSON.parse(texte[PNG_SCHLUESSEL]);
+  } catch (fehler) {
+    return [];
+  }
+  if (!daten || typeof daten !== 'object') return [];
+  const uebernommen = [];
+  const setzeLeeres = (feld, wert, name) => {
+    const text = String(wert || '').trim();
+    if (!text || String(entwurf[feld] || '').trim()) return;
+    entwurf[feld] = text;
+    uebernommen.push(name);
+  };
+  setzeLeeres('titel', daten.titel, 'Titel');
+  setzeLeeres('projekt', daten.projekt, 'Projekt');
+  setzeLeeres('seite', daten.seite, 'Seite');
+  setzeLeeres('kategorie', daten.kategorie, 'Kategorie');
+  setzeLeeres('notiz', daten.notiz, 'Notiz');
+  setzeLeeres('autor', daten.autor, 'Autor');
+  if (istGueltigesDatum(daten.datum) && daten.datum !== heute()) {
+    entwurf.datum = daten.datum;
+    uebernommen.push('Datum');
+  }
+  if (!entwurf.begriffe.length && (daten.begriffe || []).length) {
+    entwurf.begriffe = normalisiereBegriffe(daten.begriffe);
+    uebernommen.push('Begriffe');
+  }
+  if (uebernommen.length) fuelleFormular();
+  return uebernommen;
+}
+
 async function uebernimmBild(blob, art, name) {
   if (!blob || !String(blob.type || '').startsWith('image/')) {
     meldeStudio('Das ist kein Bild.', 'warnung');
@@ -372,10 +413,12 @@ async function uebernimmBild(blob, art, name) {
   }
   try {
     setzeQuelle(await ladeBild(await liesAlsDatenadresse(blob), art, name));
+    const uebernommen = await uebernimmBildzettel(blob);
     meldeStudio(
-      art === 'zwischenablage'
+      (art === 'zwischenablage'
         ? 'Bild aus der Zwischenablage übernommen. Ausschnitt ziehen und mit der Leertaste aufnehmen.'
-        : `„${name}“ geöffnet. Ausschnitt ziehen und mit der Leertaste aufnehmen.`,
+        : `„${name}“ geöffnet. Ausschnitt ziehen und mit der Leertaste aufnehmen.`) +
+        (uebernommen.length ? ` Aus dem Bild übernommen: ${uebernommen.join(', ')}.` : ''),
       'gut'
     );
     return true;
