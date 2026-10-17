@@ -71,3 +71,13 @@ Ebenso übergangen werden **EMF** und **WMF** aus Office-Dateien – der Browser
 zeigt diese Vektorformate nicht. Sie werden namentlich genannt, nicht still
 weggelassen. Und `.ppt`, `.doc`, `.xls` sind keine ZIP-Archive: ein Speichern
 als `.pptx` bzw. `.docx` genügt.
+
+## Das Verzeichnis braucht Chromium
+
+Die Galerie in einen lokalen Ordner zu schreiben (ab 1.29.0) setzt den
+Ordnerzugriff des Browsers voraus – den gibt es in Chrome und Edge, nicht in
+Firefox und Safari. Die Ansicht sagt das, statt stumm zu bleiben, und nennt
+den Weg über „Als JSON sichern“ im Eingang. In einen Ordner, der mit
+SharePoint oder OneDrive synchronisiert wird, darf geschrieben werden – das
+Hochladen macht dann der Synchronisationsdienst, nicht die Seite. Die Seite
+selbst erreicht kein Netz.

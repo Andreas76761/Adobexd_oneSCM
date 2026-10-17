@@ -1078,3 +1078,48 @@ dieselbe Vorlage erneut gespeichert wird geändert, nicht verdoppelt.
 `screenarchiv:design` – Vorlage, Format, Texte, Labels, Deckblatt, Zeilen,
 Titel, Untertitel, Hinweis und die eigenen Vorlagen. Eine Vorlage, die man
 einmal einrichtet, findet man wieder.
+
+---
+
+## F-45 · Verzeichnis: die Galerie auf die Platte
+
+**Seit** 1.29.0 · **Ansicht** Verzeichnis
+
+**Zweck** Der Eingang liegt im Browser – wer die Browserdaten löscht, löscht
+ihn. Dauerhaft wird eine Aufnahme erst als Datei. Diese Ansicht schreibt die
+ganze Galerie samt Zusatzdaten in ein lokales Verzeichnis.
+
+**Was geschrieben wird**
+
+| Datei | Inhalt |
+| --- | --- |
+| `…/<name>.png` | das Bild in voller Auflösung, mit Beipackzettel im PNG |
+| `…/<name>.json` | der Beipackzettel daneben (abschaltbar) |
+| `index.json` | Übersicht: Datei, Stelle, Thema, Labels, Maße, Einfuhr |
+| `index.csv` | dieselbe Übersicht für eine Tabelle (Semikolon getrennt) |
+| `strecken.json` | alle Strecken im Format der Seite |
+| `prozesse/<name>.bpmn` | je Strecke der Prozess (F-41) |
+
+**Die Ordnung ist das Muster** Vorgabe
+`{sparte}/{sprache}/{kapitel}/{rolle}/{datum}_{kennung}_{titel}` – also
+Datum, Sprache, Kapitel und Rolle, die Ordnung, in der später gesucht wird.
+Platzhalter: `sparte, sprache, rolle, markt, kapitel, thema, datum, jahr,
+monat, kennung, titel, projekt, kategorie`. Ein Schrägstrich macht einen
+Ordner; Unterordner entstehen beim Schreiben. Was an einem Bild fehlt, wird
+benannt (`ohne-sprache`) statt weggelassen – sonst lägen ungelabelte Bilder
+zwischen den gelabelten. Ein unbekannter Platzhalter bleibt als Text stehen,
+damit ein Tippfehler im Muster auffällt.
+
+**Erst der Plan, dann die Datei** Die Vorschau zeigt jede Datei mit ihrem
+Pfad, bevor eine entsteht. Gleiche Pfade bekommen eine Nummer – zwei Bilder
+dürfen sich nicht gegenseitig überschreiben.
+
+**Jüngste Fassung** Zuschaltbar (Vorgabe): geschrieben wird die jüngste
+Fassung – also mit abgedeckten Stellen und Marken – statt des Originals.
+
+**Fehler halten nicht auf** Eine Datei, die scheitert, stoppt die übrigen
+nicht; am Ende steht, was liegt und was fehlte. Eine halbe Galerie auf der
+Platte ist mehr wert als keine.
+
+**Grenze** Ordnerzugriff gibt es nur in Chromium (Chrome, Edge). Fehlt er,
+sagt die Ansicht es und nennt den Weg über „Als JSON sichern“ im Eingang.

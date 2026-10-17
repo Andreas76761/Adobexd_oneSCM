@@ -271,7 +271,12 @@ s.test('Eingang und Kontaktbogen zeigen die bearbeitete Fassung', () =>
       await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 5000 });
       const [datei] = await seite.evaluate(() => window.__abgelegt);
       wahr(datei.data.includes(fassung.bild.slice(-60)), 'der Bogen trägt nicht die Fassung');
-      wahr(!datei.data.includes(aufnahme.bild.slice(-60)), 'der Bogen trägt das Original');
+      // Zum Unterscheiden dient ein Stück aus der Mitte: die letzten Zeichen
+      // zweier JPEG-Vorschauen desselben Bildschirms können gleich ausfallen,
+      // die Mitte nicht - dort liegt die abgedeckte Stelle.
+      const mitte = (bild) => bild.slice(Math.floor(bild.length / 2), Math.floor(bild.length / 2) + 200);
+      wahr(mitte(aufnahme.bild) !== mitte(fassung.bild), 'Original und Fassung sind nicht zu unterscheiden');
+      wahr(!datei.data.includes(mitte(aufnahme.bild)), 'der Bogen trägt das Original');
       wahr(/Fassung 1 . 1 Stelle abgedeckt/.test(datei.data), 'der Bogen verschweigt die Bearbeitung');
     },
     {

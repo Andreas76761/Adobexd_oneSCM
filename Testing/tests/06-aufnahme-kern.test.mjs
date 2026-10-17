@@ -1932,4 +1932,144 @@ s.test('gemeinsame Labels werden genannt, Unterschiede gezählt', () => {
   gleich(kern.gemeinsameLabels([{}]), '');
 });
 
+/* ------------------------------------------------------------ Verzeichnis */
+
+const verzeichnisGliederung = kern.leseGliederung({
+  eintraege: [{ nummer: '6.2', thema: 'Market Settings', ebene: 2 }]
+});
+
+const verzeichnisEingang = [
+  {
+    id: 'AUF-2026-001',
+    titel: 'Vorlagenliste öffnen',
+    gliederung: '6.2',
+    sprache: 'de',
+    rolle_label: 'dealer',
+    sparte: 'pkw',
+    datum: '2026-10-17',
+    kapitel: 6,
+    unterkapitel: 2,
+    breite: 1920,
+    hoehe: 1080,
+    begriffe: ['vorlage']
+  },
+  {
+    id: 'AUF-2026-002',
+    titel: 'Vorlagenliste öffnen',
+    gliederung: '6.2',
+    sprache: 'de',
+    rolle_label: 'dealer',
+    sparte: 'pkw',
+    datum: '2026-10-17',
+    kapitel: 6,
+    unterkapitel: 2,
+    begriffe: []
+  },
+  { id: 'AUF-2026-003', titel: 'Ohne alles', begriffe: [] }
+];
+
+s.test('der Pfad eines Bildes entsteht aus dem Muster', () => {
+  const eins = kern.verzeichnisPfad(verzeichnisEingang[0], kern.VERZEICHNIS_MUSTER, verzeichnisGliederung);
+  tieferGleich(eins.ordner, ['pkw', 'de', '6-2', 'dealer']);
+  gleich(eins.name, '2026-10-17-auf-2026-001-vorlagenliste-oeffnen');
+
+  // Was fehlt, wird benannt statt weggelassen - ein Bild ohne Sprache landet
+  // in „ohne-sprache", nicht neben den deutschen.
+  const karg = kern.verzeichnisPfad(verzeichnisEingang[2], kern.VERZEICHNIS_MUSTER, verzeichnisGliederung);
+  tieferGleich(karg.ordner, ['ohne-sparte', 'ohne-sprache', 'ohne-kapitel', 'ohne-rolle']);
+
+  // Ein eigenes Muster, ein Thema aus der Gliederung, ein Tippfehler.
+  const eigen = kern.verzeichnisPfad(
+    verzeichnisEingang[0],
+    '{jahr}/{monat}/{thema}/{quatsch}-{kennung}',
+    verzeichnisGliederung
+  );
+  tieferGleich(eigen.ordner, ['2026', '10', 'market-settings']);
+  wahr(eigen.name.startsWith('quatsch'), 'ein unbekannter Platzhalter verschwindet stumm: ' + eigen.name);
+
+  // Ein leeres Muster gibt dennoch einen Dateinamen.
+  gleich(kern.verzeichnisPfad(verzeichnisEingang[0], '///', verzeichnisGliederung).name, 'auf-2026-001');
+});
+
+s.test('der Plan nennt jede Datei und lässt keine überschreiben', () => {
+  const strecken = [
+    {
+      id: 'STR-1',
+      name: 'Weg A',
+      schritte: [
+        { art: 'schritt', aufnahmen: ['AUF-2026-001'], text: 'eins' },
+        { art: 'schritt', aufnahmen: ['AUF-2026-002'], text: 'zwei' }
+      ]
+    }
+  ];
+  const plan = kern.verzeichnisPlan(verzeichnisEingang, {}, verzeichnisGliederung, strecken);
+  const pfade = plan.map((d) => [...d.ordner, d.name].join('/'));
+  gleich(plan.filter((d) => d.art === 'bild').length, 3);
+  gleich(plan.filter((d) => d.art === 'zettel').length, 3);
+  wahr(pfade.includes('index.json') && pfade.includes('index.csv'), pfade.join(' | '));
+  wahr(pfade.includes('strecken.json'));
+  wahr(pfade.includes('prozesse/weg-a.bpmn'), 'der Prozess fehlt');
+  // Zwei Bilder mit gleichem Titel am gleichen Tag: der zweite bekommt eine
+  // Nummer, sonst überschrieben sie sich gegenseitig.
+  gleich(new Set(pfade).size, pfade.length, 'zwei Dateien teilen sich einen Pfad');
+
+  // Die Schalter wirken.
+  const karg = kern.verzeichnisPlan(
+    verzeichnisEingang,
+    { zettel: false, index: false, strecken: false },
+    verzeichnisGliederung,
+    strecken
+  );
+  gleich(karg.length, 3, karg.map((d) => d.name).join(', '));
+  gleich(kern.verzeichnisPlan([], {}, verzeichnisGliederung, []).filter((d) => d.art === 'bild').length, 0);
+});
+
+s.test('die Übersicht trägt Datei, Stelle und Labels – als JSON und als CSV', () => {
+  const plan = kern.verzeichnisPlan(verzeichnisEingang, {}, verzeichnisGliederung, []);
+  const index = kern.galerieIndex(verzeichnisEingang, plan, {
+    stand: '2026-10-17T10:00:00Z',
+    anwendung: '1.29.0',
+    gliederung: verzeichnisGliederung
+  });
+  gleich(index.anzahl, 3);
+  gleich(index.erzeugt_von, 'Screenarchiv 1.29.0');
+  gleich(index.bilder[0].id, 'AUF-2026-001');
+  gleich(index.bilder[0].thema, 'Market Settings');
+  wahr(index.bilder[0].datei.endsWith('.png'), index.bilder[0].datei);
+
+  const csv = kern.galerieCsv(index);
+  const zeilen = csv.trim().split('\n');
+  gleich(zeilen.length, 4, 'Kopfzeile und drei Bilder');
+  wahr(zeilen[0].startsWith('id;datei;stelle;thema;titel'), zeilen[0]);
+  wahr(zeilen[1].includes('6.2;Market Settings'));
+  // Ein Semikolon im Titel darf die Spalten nicht verschieben.
+  const heikel = kern.galerieCsv({ bilder: [{ id: 'X', titel: 'a;b', begriffe: ['c'] }] });
+  wahr(heikel.includes('"a;b"'), heikel);
+});
+
+s.test('die Wahl des Verzeichnisses überlebt das Ablegen', () => {
+  const vorgabe = kern.leereVerzeichnisWahl();
+  gleich(vorgabe.muster, kern.VERZEICHNIS_MUSTER);
+  gleich(vorgabe.zettel, true);
+  const zurueck = kern.leseVerzeichnisWahl(
+    kern.schreibeVerzeichnisWahl({ muster: '{kennung}', zettel: false, index: false })
+  );
+  gleich(zurueck.muster, '{kennung}');
+  gleich(zurueck.zettel, false);
+  gleich(zurueck.index, false);
+  gleich(zurueck.fassung, true);
+  gleich(kern.leseVerzeichnisWahl('kein json').muster, kern.VERZEICHNIS_MUSTER);
+  gleich(kern.leseVerzeichnisWahl(JSON.stringify({ muster: '   ' })).muster, kern.VERZEICHNIS_MUSTER);
+});
+
+s.test('der Bericht sagt, was liegt – und was fehlte', () => {
+  const plan = kern.verzeichnisPlan(verzeichnisEingang, {}, verzeichnisGliederung, []);
+  const ganz = kern.verzeichnisBericht(plan, [], 'Screens');
+  wahr(ganz.startsWith('In „Screens" liegen nun: 3 Bilder, 3 Beipackzettel'), ganz);
+  wahr(ganz.includes('Übersicht'));
+  const halb = kern.verzeichnisBericht(plan.slice(0, 2), ['pkw/de/x.png (kein Bild vorhanden)'], 'Screens');
+  wahr(halb.includes('Nicht geschrieben wurden 1'), halb);
+  wahr(halb.includes('kein Bild vorhanden'));
+});
+
 export default s;

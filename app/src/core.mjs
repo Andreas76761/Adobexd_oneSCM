@@ -31,6 +31,7 @@ export const ANSICHTEN = [
   'design',
   'gliederung',
   'pruefung',
+  'verzeichnis',
   'eingang'
 ];
 
@@ -3826,4 +3827,219 @@ export function gemeinsameLabels(aufnahmen = []) {
     else if (werte.length > 1) teile.push(`${werte.length} ${LABEL_FELDER.find((f) => f.id === feld).label}n`);
   }
   return teile.join(' · ');
+}
+
+/* =========================================================================
+   Verzeichnis – die Galerie auf die Platte.
+
+   Der Eingang liegt im Browser; dauerhaft wird eine Aufnahme erst als Datei.
+   Hier entsteht der Plan dafür: ein Pfad je Bild, gebaut aus Datum, Sprache,
+   Kapitel, Rolle und Sparte – genau die Ordnung, in der später gesucht wird.
+   Geschrieben wird in der Oberfläche; der Plan selbst ist DOM-frei und damit
+   prüfbar, bevor eine einzige Datei entsteht.
+   ========================================================================= */
+
+export const VERZEICHNIS_SCHLUESSEL = 'screenarchiv:verzeichnis';
+
+/** Die Vorgabe: Sparte, Sprache, Kapitel, Rolle - und dann der Dateiname. */
+export const VERZEICHNIS_MUSTER = '{sparte}/{sprache}/{kapitel}/{rolle}/{datum}_{kennung}_{titel}';
+
+export const VERZEICHNIS_FELDER = [
+  { id: 'sparte', hinweis: 'Pkw, Van oder „ohne-sparte"' },
+  { id: 'sprache', hinweis: 'de, en … oder „ohne-sprache"' },
+  { id: 'rolle', hinweis: 'dealer, market, hq, mo' },
+  { id: 'markt', hinweis: 'Markt des Bildes' },
+  { id: 'kapitel', hinweis: 'Nummer der Stelle, z. B. 6-2' },
+  { id: 'thema', hinweis: 'Thema der Stelle aus der Gliederung' },
+  { id: 'datum', hinweis: 'Datum der Aufnahme, 2026-10-17' },
+  { id: 'jahr', hinweis: 'Jahr der Aufnahme' },
+  { id: 'monat', hinweis: 'Monat der Aufnahme' },
+  { id: 'kennung', hinweis: 'AUF-2026-001' },
+  { id: 'titel', hinweis: 'Titel, für Dateinamen bereinigt' },
+  { id: 'projekt', hinweis: 'Projekt der Aufnahme' },
+  { id: 'kategorie', hinweis: 'Kategorie der Aufnahme' }
+];
+
+export function leereVerzeichnisWahl() {
+  return {
+    muster: VERZEICHNIS_MUSTER,
+    zettel: true, // Beipackzettel je Bild
+    fassung: true, // die jüngste Fassung statt des Originals
+    index: true, // index.json und index.csv
+    strecken: true // strecken.json und die Prozesse als BPMN
+  };
+}
+
+export function leseVerzeichnisWahl(text) {
+  const vorgabe = leereVerzeichnisWahl();
+  let inhalt = null;
+  try {
+    inhalt = JSON.parse(text || 'null');
+  } catch (fehler) {
+    return vorgabe;
+  }
+  if (!inhalt || typeof inhalt !== 'object') return vorgabe;
+  return {
+    muster: String(inhalt.muster || '').trim() || vorgabe.muster,
+    zettel: inhalt.zettel !== false,
+    fassung: inhalt.fassung !== false,
+    index: inhalt.index !== false,
+    strecken: inhalt.strecken !== false
+  };
+}
+
+export function schreibeVerzeichnisWahl(wahl = {}) {
+  return JSON.stringify(leseVerzeichnisWahl(JSON.stringify(wahl)));
+}
+
+/** Ein Teil eines Pfades: ohne Schrägstriche, ohne Leerzeichen, nie leer. */
+function pfadTeil(wert, ersatz) {
+  const sauber = bereinigeDateiname(wert);
+  return sauber || ersatz;
+}
+
+/**
+ * Der Pfad eines Bildes aus dem Muster. Unbekannte Platzhalter bleiben
+ * stehen *als Text* - stillschweigend zu verschwinden wäre schlimmer, denn
+ * dann fiele ein Tippfehler im Muster nie auf.
+ */
+export function verzeichnisPfad(aufnahme = {}, muster = VERZEICHNIS_MUSTER, gliederung = []) {
+  const stelle = String(aufnahme.gliederung || '').trim();
+  const eintrag = gliederung.find((e) => e.nummer === stelle);
+  const datum = String(aufnahme.datum || aufnahme.erfasst_am || '').slice(0, 10);
+  const werte = {
+    sparte: pfadTeil(labelWert('sparte', aufnahme.sparte), 'ohne-sparte'),
+    sprache: pfadTeil(aufnahme.sprache, 'ohne-sprache'),
+    rolle: pfadTeil(aufnahme.rolle_label, 'ohne-rolle'),
+    markt: pfadTeil(aufnahme.markt, 'ohne-markt'),
+    kapitel: pfadTeil(stelle, 'ohne-kapitel'),
+    thema: pfadTeil(eintrag ? eintrag.thema : '', 'ohne-thema'),
+    datum: pfadTeil(datum, 'ohne-datum'),
+    jahr: pfadTeil(datum.slice(0, 4), 'ohne-jahr'),
+    monat: pfadTeil(datum.slice(5, 7), 'ohne-monat'),
+    kennung: pfadTeil(aufnahme.id, 'ohne-kennung'),
+    titel: pfadTeil(aufnahme.titel, 'ohne-titel'),
+    projekt: pfadTeil(aufnahme.projekt, 'ohne-projekt'),
+    kategorie: pfadTeil(aufnahme.kategorie, 'ohne-kategorie')
+  };
+  const ersetzt = String(muster || VERZEICHNIS_MUSTER).replace(/\{([a-z]+)\}/g, (ganz, name) =>
+    Object.prototype.hasOwnProperty.call(werte, name) ? werte[name] : pfadTeil(ganz, 'unbekannt')
+  );
+  // Leere Abschnitte fallen weg; ein Pfad mit „//" wäre nicht schreibbar.
+  const teile = ersetzt
+    .split('/')
+    .map((t) => pfadTeil(t, ''))
+    .filter(Boolean);
+  if (!teile.length) return { ordner: [], name: pfadTeil(aufnahme.id, 'bild') };
+  return { ordner: teile.slice(0, -1), name: teile[teile.length - 1] };
+}
+
+/**
+ * Der Plan für das ganze Verzeichnis: je Bild eine PNG-Datei, dazu auf Wunsch
+ * der Beipackzettel, und am Ende die Übersichten. Gleiche Pfade bekommen eine
+ * Nummer - zwei Bilder dürfen sich nicht gegenseitig überschreiben.
+ */
+export function verzeichnisPlan(eingang = [], wahl = {}, gliederung = [], strecken = []) {
+  const w = leseVerzeichnisWahl(JSON.stringify({ ...leereVerzeichnisWahl(), ...wahl }));
+  const belegt = new Set();
+  const dateien = [];
+  for (const aufnahme of sortiereNachKapitel(eingang)) {
+    const { ordner, name } = verzeichnisPfad(aufnahme, w.muster, gliederung);
+    let endgueltig = name;
+    let zaehler = 2;
+    while (belegt.has([...ordner, endgueltig].join('/'))) endgueltig = `${name}-${zaehler++}`;
+    belegt.add([...ordner, endgueltig].join('/'));
+    const fassung = w.fassung ? neuesteFassung(aufnahme) : null;
+    dateien.push({
+      art: 'bild',
+      aufnahme: aufnahme.id,
+      ordner,
+      name: endgueltig + '.png',
+      fassung: fassung ? fassung.nummer : 0
+    });
+    if (w.zettel) {
+      dateien.push({ art: 'zettel', aufnahme: aufnahme.id, ordner, name: endgueltig + '.json' });
+    }
+  }
+  if (w.index) {
+    dateien.push({ art: 'index', ordner: [], name: 'index.json' });
+    dateien.push({ art: 'tabelle', ordner: [], name: 'index.csv' });
+  }
+  if (w.strecken && strecken.length) {
+    dateien.push({ art: 'strecken', ordner: [], name: 'strecken.json' });
+    for (const strecke of strecken) {
+      dateien.push({
+        art: 'bpmn',
+        strecke: strecke.id,
+        ordner: ['prozesse'],
+        name: (bereinigeDateiname(strecke.name) || strecke.id.toLowerCase()) + '.bpmn'
+      });
+    }
+  }
+  return dateien;
+}
+
+/** Die Übersicht als JSON: was abgelegt wurde, in welcher Ordnung. */
+export function galerieIndex(eingang = [], plan = [], { stand = new Date().toISOString(), anwendung = '', muster = VERZEICHNIS_MUSTER, gliederung = [] } = {}) {
+  const nachKennung = new Map(plan.filter((d) => d.art === 'bild').map((d) => [d.aufnahme, d]));
+  return {
+    galerie: 1,
+    erzeugt_von: `Screenarchiv ${anwendung}`.trim(),
+    erzeugt_am: stand,
+    muster,
+    anzahl: eingang.length,
+    bilder: sortiereNachKapitel(eingang).map((a) => {
+      const datei = nachKennung.get(a.id);
+      const stelle = String(a.gliederung || '').trim();
+      const eintrag = gliederung.find((e) => e.nummer === stelle) || null;
+      return {
+        id: a.id,
+        datei: datei ? [...datei.ordner, datei.name].join('/') : '',
+        fassung: datei ? datei.fassung : 0,
+        titel: a.titel,
+        projekt: a.projekt,
+        kategorie: a.kategorie,
+        datum: a.datum,
+        erfasst_am: a.erfasst_am,
+        stelle,
+        thema: eintrag ? eintrag.thema : '',
+        sprache: a.sprache || '',
+        rolle: a.rolle_label || '',
+        sparte: a.sparte || '',
+        markt: a.markt || '',
+        begriffe: a.begriffe || [],
+        notiz: a.notiz || '',
+        breite: a.breite || 0,
+        hoehe: a.hoehe || 0,
+        einfuhr: a.einfuhr || null
+      };
+    })
+  };
+}
+
+/** Dieselbe Übersicht als CSV - zum Öffnen in einer Tabelle. */
+export function galerieCsv(index = {}) {
+  const spalten = ['id', 'datei', 'stelle', 'thema', 'titel', 'sprache', 'rolle', 'sparte', 'markt', 'datum', 'breite', 'hoehe', 'begriffe'];
+  const zelle = (wert) => {
+    const text = Array.isArray(wert) ? wert.join(' ') : String(wert ?? '');
+    return /[";\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+  const zeilen = [spalten.join(';')];
+  for (const bild of index.bilder || []) zeilen.push(spalten.map((s) => zelle(bild[s])).join(';'));
+  return zeilen.join('\n') + '\n';
+}
+
+/** Der Bericht nach dem Schreiben: was liegt wo, und was fehlte. */
+export function verzeichnisBericht(geschrieben = [], fehler = [], ordnername = '') {
+  const zahl = (art) => geschrieben.filter((d) => d.art === art).length;
+  const teile = [
+    `${zahl('bild')} Bild${zahl('bild') === 1 ? '' : 'er'}`,
+    zahl('zettel') ? `${zahl('zettel')} Beipackzettel` : '',
+    zahl('bpmn') ? `${zahl('bpmn')} Prozess${zahl('bpmn') === 1 ? '' : 'e'}` : '',
+    zahl('index') || zahl('tabelle') ? 'Übersicht' : '',
+    zahl('strecken') ? 'Strecken' : ''
+  ].filter(Boolean);
+  const kopf = ordnername ? `In „${ordnername}" liegen nun: ${teile.join(', ')}.` : `Abgelegt: ${teile.join(', ')}.`;
+  if (!fehler.length) return kopf;
+  return `${kopf} Nicht geschrieben wurden ${fehler.length}: ${fehler.slice(0, 5).join('; ')}${fehler.length > 5 ? ' …' : ''}`;
 }

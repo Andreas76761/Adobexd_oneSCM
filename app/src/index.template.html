@@ -64,6 +64,7 @@
             <button type="button" data-ansicht="design">Design</button>
             <button type="button" data-ansicht="gliederung">Gliederung</button>
             <button type="button" data-ansicht="pruefung">Prüfung</button>
+            <button type="button" data-ansicht="verzeichnis">Verzeichnis</button>
             <button type="button" data-ansicht="eingang">Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
         </div>
@@ -700,6 +701,57 @@
     <div class="pruef-agenten" id="pruef-agenten"></div>
   </section>
 
+  <section id="verzeichnis-ansicht" aria-label="Verzeichnis" hidden>
+    <div class="verzeichnis-kopf">
+      <div class="verzeichnis-ordner" id="verzeichnis-ordner"></div>
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--haupt" id="verzeichnis-schreiben" disabled>
+          Galerie in den Ordner schreiben
+        </button>
+      </div>
+    </div>
+
+    <p class="band-hinweis">
+      Der Eingang liegt im Browser – dauerhaft wird eine Aufnahme erst als
+      Datei. Hier wandert die ganze Galerie in ein Verzeichnis: jedes Bild in
+      voller Auflösung, daneben sein Beipackzettel, dazu die Übersicht als JSON
+      und CSV, die Strecken und ihre Prozesse. Die Ordner entstehen nach einem
+      Muster – Sparte, Sprache, Kapitel, Rolle –, also in der Ordnung, in der
+      später gesucht wird. Ordnerzugriff gibt es nur in Chrome und Edge.
+    </p>
+
+    <div class="verzeichnis-raster">
+      <div class="verzeichnis-wahl">
+        <div class="feld">
+          <label for="verzeichnis-muster">Muster für Ordner und Dateinamen</label>
+          <input type="text" id="verzeichnis-muster" autocomplete="off" spellcheck="false">
+        </div>
+        <p class="feld-hinweis" id="verzeichnis-felder"></p>
+        <label class="markier-schalter">
+          <input type="checkbox" id="verzeichnis-zettel" checked>
+          <span>Beipackzettel je Bild (.json)</span>
+        </label>
+        <label class="markier-schalter">
+          <input type="checkbox" id="verzeichnis-fassung" checked>
+          <span>jüngste Fassung statt des Originals</span>
+        </label>
+        <label class="markier-schalter">
+          <input type="checkbox" id="verzeichnis-index" checked>
+          <span>Übersicht: index.json und index.csv</span>
+        </label>
+        <label class="markier-schalter">
+          <input type="checkbox" id="verzeichnis-strecken" checked>
+          <span>strecken.json und Prozesse als BPMN</span>
+        </label>
+        <p class="studio-meldung" id="verzeichnis-meldung" role="status" aria-live="polite"></p>
+      </div>
+      <aside class="verzeichnis-vorschau">
+        <h2 class="abschnitt-titel">Was geschrieben wird</h2>
+        <pre id="verzeichnis-plan"></pre>
+      </aside>
+    </div>
+  </section>
+
 <section class="chat-fenster" id="chat-fenster" aria-label="Bilder suchen" hidden>
   <header class="chat-kopf" id="chat-griff">
     <h2 id="chat-titel">Bilder suchen</h2>
@@ -746,5 +798,6 @@
 /*%IMPORT%*/
 /*%CHAT%*/
 /*%PRUEFUNG%*/
+/*%ABLAGE%*/
 })();
 </script>

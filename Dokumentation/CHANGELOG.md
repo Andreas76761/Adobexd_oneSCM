@@ -20,6 +20,33 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.29.0] – Verzeichnis: die Galerie auf die Platte
+
+### Neu
+* Neue Ansicht **Verzeichnis** (F-45): die ganze Galerie in einen lokalen
+  Ordner – Bilder in voller Auflösung (mit Beipackzettel im PNG), Zettel
+  daneben, `index.json`, `index.csv`, `strecken.json` und je Strecke der
+  Prozess als BPMN unter `prozesse/`
+* Die Ordnung entsteht aus einem **Muster**:
+  `{sparte}/{sprache}/{kapitel}/{rolle}/{datum}_{kennung}_{titel}` – dazu
+  `markt, thema, jahr, monat, projekt, kategorie`. Unterordner entstehen beim
+  Schreiben; was fehlt, heißt `ohne-sprache` statt zu verschwinden
+* **Erst der Plan, dann die Datei**: die Vorschau zeigt jeden Pfad, bevor
+  etwas entsteht; gleiche Pfade bekommen eine Nummer
+* Zuschaltbar: jüngste Fassung statt Original, Zettel, Übersicht, Strecken
+* Eine Datei, die scheitert, hält die übrigen nicht auf – der Bericht nennt,
+  was liegt und was fehlte
+
+### Kern
+* `VERZEICHNIS_SCHLUESSEL`, `VERZEICHNIS_MUSTER`, `VERZEICHNIS_FELDER`,
+  `leereVerzeichnisWahl`, `leseVerzeichnisWahl`, `schreibeVerzeichnisWahl`,
+  `verzeichnisPfad`, `verzeichnisPlan`, `galerieIndex`, `galerieCsv`,
+  `verzeichnisBericht`
+
+### Prüfung
+* Neue Datei `16-verzeichnis.e2e.mjs` mit nachgebildetem Ordnerzugriff samt
+  Unterordnern; 5 neue Kernprüfungen, 6 Browserprüfungen, zusammen 353
+
 ## [1.28.0] – Designstudio vollständig
 
 ### Neu

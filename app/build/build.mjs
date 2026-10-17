@@ -59,7 +59,17 @@ const alsSkript = JSON.stringify(nutzlast)
    sind kein Fehler fuer den Browser - die spaetere Erklaerung gewinnt stumm,
    und die frueheren Aufrufe laufen in die falsche Funktion. Darum hier ein
    Riegel: der Build bricht ab, bevor so etwas in die Seite kommt. */
-const MODULE = ['ui.js', 'aufnahme.js', 'schnipsel.js', 'markieren.js', 'design.js', 'import.js', 'chat.js', 'pruefung.js'];
+const MODULE = [
+  'ui.js',
+  'aufnahme.js',
+  'schnipsel.js',
+  'markieren.js',
+  'design.js',
+  'import.js',
+  'chat.js',
+  'pruefung.js',
+  'ablage.js'
+];
 const erklaerungen = new Map();
 for (const modul of MODULE) {
   const quelle = lies('app', 'src', modul);
@@ -89,6 +99,7 @@ const seite = lies('app', 'src', 'index.template.html')
   .replace('/*%IMPORT%*/', () => lies('app', 'src', 'import.js'))
   .replace('/*%CHAT%*/', () => lies('app', 'src', 'chat.js'))
   .replace('/*%PRUEFUNG%*/', () => lies('app', 'src', 'pruefung.js'))
+  .replace('/*%ABLAGE%*/', () => lies('app', 'src', 'ablage.js'))
   .replace('/*%STAND%*/', daten.stand.split('-').reverse().join('.'))
   .replace('/*%ANZAHL%*/', String(daten.eintraege.length))
   .replace('/*%AUFNAHMEN%*/', String(manifest.anzahl))
