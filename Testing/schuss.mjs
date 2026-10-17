@@ -234,6 +234,9 @@ const geteilterBildschirm = `
     await seite.fill('#ablage-muster', 'reklamation-{nummer}-{datum}');
     await seite.click('#ordner-waehlen');
     await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked);
+    // Nur in den Ordner - so zeigt das Bild die Uebernahme, nicht den Weg
+    // zurueck zu einer Aufnahme, die ohnehin schon im Eingang laege.
+    await seite.uncheck('#ziel-eingang');
     await seite.click('#schnipsel-start');
     await seite.waitForSelector('#schnipsel-leinwand:not([hidden])');
     await seite.waitForTimeout(400);

@@ -20,6 +20,33 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.13.0] – Das Ordnerband wird brauchbar
+
+### Neu
+* Ein Beipackzettel **ohne Bild** steht jetzt als eigene Kachel im Streifen
+  (`{ }`, Marke „ohne Bild“) und lässt sich lesen – bisher wurde er nur gezählt
+  (F-27)
+* Filterfeld für Dateinamen und **Mehr zeigen**: das Band ist nicht mehr auf
+  zwölf Bilder festgelegt, der Stand nennt „4 von 14 Bildern gefiltert“
+* Das Archiv liest den Ordner beim Betreten neu – es behauptet, den
+  tatsächlichen Inhalt zu zeigen
+
+### Barrierefreiheit
+* Die Zettelschau nimmt beim Öffnen den Fokus (`role="region"`), **Esc**
+  schließt sie und gibt den Fokus an die Kachel zurück
+
+### Behoben
+* Ein spätes Neulesen schloss eine gerade geöffnete Zettelschau. Sie bleibt
+  jetzt stehen und zeigt den frisch gelesenen Stand; nur eine verschwundene
+  Datei schließt sie
+
+### Kern
+* `passtDateiname`: Teiltreffer im Dateinamen, Umlaute auf beiden Seiten
+  aufgelöst – abgelegte Namen sind entschärft (`gruen-…`), getippt wird `grün`
+
+### Prüfung
+* 4 neue Prüfungen, zusammen 204, alle bestanden
+
 ## [1.12.0] – Nachpflegen bis in die Datei
 
 ### Neu

@@ -889,6 +889,19 @@ div.streifen-bild { cursor: default; }
 .zettel-marke--fehlt { background: var(--flaeche-3); color: var(--tinte-3); }
 .band-hinweis .zettel-marke { display: inline-block; vertical-align: 1px; }
 
+.ordner-suche {
+  font: inherit; font-size: 12.5px; padding: 4px 9px; width: 190px; color: var(--tinte);
+  background: var(--flaeche); border: 1px solid var(--linie-stark); border-radius: var(--radius);
+}
+.ordner-suche::placeholder { color: var(--tinte-3); }
+.zettel-marke--allein { background: var(--warn-hauch); color: var(--warn); }
+.streifen-bild--zettel .zettel-platzhalter {
+  display: grid; place-items: center; width: 132px; height: 84px;
+  border: 1px dashed var(--linie-stark); border-radius: var(--radius); background: var(--flaeche-2);
+  font-family: var(--schrift-mono); font-size: 17px; color: var(--tinte-3); line-height: 1;
+}
+.streifen-bild--zettel:hover .zettel-platzhalter { border-color: var(--akzent); color: var(--akzent); }
+
 .zettel-schau {
   display: grid; gap: 10px; padding: 12px 14px;
   border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche-2);

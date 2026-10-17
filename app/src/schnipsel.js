@@ -127,10 +127,13 @@ function liesAlsText(blob) {
 /**
  * Liest den Ordnerinhalt, neueste Bilder zuerst, und legt jedem Bild seinen
  * Beipackzettel bei - gelesen aus der Datei daneben, nicht aus dem Gedächtnis
- * dieser Seite. Zettel ohne Bild werden mitgezählt, damit eine verwaiste
+ * dieser Seite. Zettel ohne Bild kommen eigens zurück, damit eine verwaiste
  * `.json` nicht unbemerkt bleibt.
+ *
+ * Gelesen wird nur, was gezeigt wird: die Verzeichnisliste läuft über alle
+ * Dateien, Bilddaten und Zetteltexte aber nur für den sichtbaren Ausschnitt.
  */
-async function liesOrdnerBilder(grenze = 24) {
+async function liesOrdnerBilder({ grenze = 12, suche = '' } = {}) {
   if (!ordnerZugriff || typeof ordnerZugriff.values !== 'function') return [];
   const gefunden = [];
   const zettel = new Map();
@@ -142,34 +145,50 @@ async function liesOrdnerBilder(grenze = 24) {
         gefunden.push({ name: datei.name, groesse: datei.size, geaendert: datei.lastModified, datei });
       } else if (/\.json$/i.test(eintrag.name)) {
         const datei = await eintrag.getFile();
-        zettel.set(datei.name.toLowerCase(), { name: datei.name, groesse: datei.size, datei });
+        zettel.set(datei.name.toLowerCase(), {
+          name: datei.name,
+          groesse: datei.size,
+          geaendert: datei.lastModified,
+          datei
+        });
       }
     }
   } catch (fehler) {
     return [];
   }
   gefunden.sort((a, b) => b.geaendert - a.geaendert);
-  const ausschnitt = gefunden.slice(0, grenze);
+  const passend = gefunden.filter((eintrag) => passtDateiname(eintrag.name, suche));
+  const ausschnitt = passend.slice(0, grenze);
   for (const eintrag of ausschnitt) {
     eintrag.bild = await liesAlsDatenadresse(eintrag.datei);
-    const passend = zettel.get(beipackzettelName(eintrag.name).toLowerCase());
-    if (!passend) continue;
-    try {
-      eintrag.zettel = {
-        name: passend.name,
-        groesse: passend.groesse,
-        text: await liesAlsText(passend.datei)
-      };
-    } catch (fehler) {
-      eintrag.zettel = { name: passend.name, groesse: passend.groesse, text: '' };
-    }
+    const treffer = zettel.get(beipackzettelName(eintrag.name).toLowerCase());
+    if (treffer) eintrag.zettel = await lieszettel(treffer);
   }
+
   const belegt = new Set(gefunden.map((eintrag) => beipackzettelName(eintrag.name).toLowerCase()));
+  const verwaist = [...zettel.values()]
+    .filter((z) => !belegt.has(z.name.toLowerCase()))
+    .filter((z) => passtDateiname(z.name, suche))
+    .sort((a, b) => b.geaendert - a.geaendert);
+  const gezeigteVerwaiste = [];
+  for (const z of verwaist.slice(0, 6)) gezeigteVerwaiste.push(await lieszettel(z));
+
   return Object.assign(ausschnitt, {
     gesamt: gefunden.length,
+    passend: passend.length,
     zettelGesamt: zettel.size,
-    zettelOhneBild: [...zettel.values()].filter((z) => !belegt.has(z.name.toLowerCase())).map((z) => z.name)
+    verwaistGesamt: verwaist.length,
+    zettelOhneBild: gezeigteVerwaiste
   });
+}
+
+/** Ein Zettel samt Text; ein Lesefehler macht ihn leer, nicht unsichtbar. */
+async function lieszettel(eintrag) {
+  try {
+    return { name: eintrag.name, groesse: eintrag.groesse, text: await liesAlsText(eintrag.datei) };
+  } catch (fehler) {
+    return { name: eintrag.name, groesse: eintrag.groesse, text: '' };
+  }
 }
 
 /**

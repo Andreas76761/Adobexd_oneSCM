@@ -19,6 +19,8 @@ let zustand = queryZuZustand(location.hash);
 let sichtbar = [];
 let ordnerInhalt = []; // zuletzt gelesener Ordnerinhalt samt Beipackzetteln
 let zettelOffen = null; // Ordnerdatei, deren Beipackzettel gerade offen steht
+let ordnerGrenze = 12; // wie viele Bilder das Band zeigt
+let ordnerSuche = ''; // Filter auf den Dateinamen
 let modus = leseModus();
 
 /* ------------------------------------------------------------ Helfer */
@@ -94,9 +96,13 @@ window.addEventListener('hashchange', () => {
 });
 
 function setze(aenderung, neuZeichnen = true) {
+  const vorher = zustand.ansicht;
   zustand = { ...zustand, ...aenderung };
   schreibeHash();
   if (neuZeichnen) zeichne();
+  // Das Ordnerband behauptet, den tatsaechlichen Inhalt zu zeigen - beim
+  // Betreten des Archivs wird er darum frisch gelesen, nicht erinnert.
+  if (zustand.ansicht === 'archiv' && vorher !== 'archiv' && ordnerZugriff) zeigeOrdnerImArchiv();
 }
 
 function schalte(dimension, wert) {
@@ -263,29 +269,49 @@ async function zeigeOrdnerImArchiv() {
   band.hidden = false;
   $('#ordner-name').textContent = ordnerZugriff.name;
   $('#ordner-stand').textContent = 'wird gelesen …';
-  verbergeZettel();
-  const bilder = await liesOrdnerBilder(12);
-  const gesamt = bilder.gesamt || bilder.length;
+  // Welcher Zettel offen steht, wird gemerkt: das Lesen dauert, und in der
+  // Zwischenzeit kann jemand eine Kachel geöffnet haben.
+  const offen = zettelOffen ? zettelOffen.name : '';
+  const inhalt = await liesOrdnerBilder({ grenze: ordnerGrenze, suche: ordnerSuche });
+  $('#ordner-stand').textContent = beschreibeOrdnerstand(inhalt);
+  $('#ordner-mehr').hidden = (inhalt.passend || 0) <= inhalt.length;
+  ordnerInhalt = inhalt;
+  zeichneOrdnerStreifen();
+  if (!offen) return;
+  // Dieselbe Datei wieder zeigen - mit dem Stand von eben gelesen, nicht mit
+  // dem alten. Ist sie verschwunden, wird die Schau geschlossen.
+  const wieder =
+    inhalt.find((b) => b.name === offen && b.zettel) ||
+    (inhalt.zettelOhneBild || []).filter((z) => z.name === offen).map((z) => ({ name: z.name, zettel: z }))[0];
+  if (wieder) zeigeZettel(wieder);
+  else verbergeZettel();
+}
+
+/** Der Stand neben dem Ordnernamen: was liegt da, was davon ist zu sehen. */
+function beschreibeOrdnerstand(inhalt) {
+  const gesamt = inhalt.gesamt || 0;
+  const passend = inhalt.passend === undefined ? gesamt : inhalt.passend;
+  if (!gesamt && !(inhalt.zettelGesamt || 0)) return 'noch nichts abgelegt';
   const teile = [];
-  if (gesamt) {
+  if (ordnerSuche) {
+    teile.push(`${passend} von ${gesamt} ${gesamt === 1 ? 'Bild' : 'Bildern'} gefiltert`);
+  } else {
     teile.push(`${gesamt} ${gesamt === 1 ? 'Bild' : 'Bilder'}`);
-    if (gesamt > bilder.length) teile.push(`neueste ${bilder.length} gezeigt`);
-    const mitZettel = bilder.filter((b) => b.zettel).length;
+  }
+  if (passend > inhalt.length) teile.push(`neueste ${inhalt.length} gezeigt`);
+  if (inhalt.length) {
+    const mitZettel = inhalt.filter((b) => b.zettel).length;
     teile.push(
-      mitZettel === bilder.length
-        ? bilder.length === 1
+      mitZettel === inhalt.length
+        ? inhalt.length === 1
           ? 'mit Beipackzettel'
           : 'alle mit Beipackzettel'
         : `${mitZettel} mit Beipackzettel`
     );
-    const verwaist = (bilder.zettelOhneBild || []).length;
-    if (verwaist) teile.push(`${verwaist} Zettel ohne Bild`);
-  } else {
-    teile.push('noch kein Bild abgelegt');
   }
-  $('#ordner-stand').textContent = teile.join(' · ');
-  ordnerInhalt = bilder;
-  zeichneOrdnerStreifen();
+  const verwaist = inhalt.verwaistGesamt || 0;
+  if (verwaist) teile.push(`${verwaist} Zettel ohne Bild`);
+  return teile.join(' · ');
 }
 
 /**
@@ -293,7 +319,33 @@ async function zeigeOrdnerImArchiv() {
  * erneut zu lesen, damit eine offene Zettelschau stehen bleibt.
  */
 function zeichneOrdnerStreifen() {
-  $('#ordner-streifen').replaceChildren(...ordnerInhalt.map(zeichneOrdnerBild));
+  $('#ordner-streifen').replaceChildren(
+    ...ordnerInhalt.map(zeichneOrdnerBild),
+    ...(ordnerInhalt.zettelOhneBild || []).map(zeichneVerwaistenZettel)
+  );
+}
+
+/**
+ * Ein Zettel ohne Bild. Er wird gezeigt, nicht verschwiegen: meist ist das
+ * Bild von Hand verschoben oder umbenannt worden, und der Zettel traegt
+ * trotzdem die Arbeit.
+ */
+function zeichneVerwaistenZettel(zettel) {
+  return el(
+    'button',
+    {
+      type: 'button',
+      klasse: 'streifen-bild streifen-bild--zettel',
+      'data-datei': zettel.name,
+      title: `${zettel.name} · ${formatiereBytes(zettel.groesse)} – Zettel ohne Bild`,
+      onclick: () => zeigeZettel({ name: zettel.name, zettel })
+    },
+    [
+      el('span', { klasse: 'zettel-platzhalter', text: '{ }' }),
+      el('span', { klasse: 'kennung', text: zettel.name }),
+      el('span', { klasse: 'zettel-marke zettel-marke--allein', text: 'ohne Bild' })
+    ]
+  );
 }
 
 /** Die schon uebernommene Aufnahme zu einer Ordnerdatei, sonst null. */
@@ -319,7 +371,7 @@ function zeichneOrdnerBild(b) {
   if (!b.zettel) {
     return el(
       'div',
-      { klasse: 'streifen-bild', title: `${titel} – kein Beipackzettel daneben` },
+      { klasse: 'streifen-bild', 'data-datei': b.name, title: `${titel} – kein Beipackzettel daneben` },
       kinder
     );
   }
@@ -328,6 +380,7 @@ function zeichneOrdnerBild(b) {
     {
       type: 'button',
       klasse: 'streifen-bild',
+      'data-datei': b.name,
       title: `${titel} – Beipackzettel ${b.zettel.name} zeigen`,
       onclick: () => zeigeZettel(b)
     },
@@ -366,10 +419,15 @@ function zeigeZettel(b) {
     ])
   );
   $('#zettel-quelltext').textContent = b.zettel.text;
+  const warOffen = Boolean(zettelOffen) && zettelOffen.name === b.name;
   zettelOffen = b;
   ruesteUebernahme(b, gelesen);
   schau.hidden = false;
+  if (warOffen) return;
   schau.scrollIntoView({ block: 'nearest' });
+  // Die Schau erscheint weit unter der Kachel - ohne Fokus fände die Tastatur
+  // sie erst nach dem ganzen Streifen.
+  schau.focus({ preventScroll: true });
 }
 
 /**
@@ -380,7 +438,8 @@ function zeigeZettel(b) {
 function ruesteUebernahme(b, gelesen) {
   const knopf = $('#zettel-uebernehmen');
   const schon = uebernahmeZu(b);
-  knopf.hidden = !gelesen.ok;
+  // Ohne Bild gibt es nichts zu uebernehmen - ein Zettel allein ist keine Aufnahme.
+  knopf.hidden = !gelesen.ok || !b.bild;
   knopf.textContent = schon ? `Im Eingang zeigen (${schon.id})` : 'In den Eingang übernehmen';
   meldeZettel(
     schon
@@ -397,10 +456,15 @@ function meldeZettel(text, art = 'neutral') {
   zeile.hidden = !text;
 }
 
-function verbergeZettel() {
+function verbergeZettel(fokusZurueck = false) {
   const schau = $('#ordner-zettel');
   if (schau) schau.hidden = true;
+  const name = zettelOffen ? zettelOffen.name : '';
   zettelOffen = null;
+  if (!fokusZurueck || !name) return;
+  // Der Fokus gehört zurück an die Kachel, von der die Schau ausging.
+  const kachel = document.querySelector(`#ordner-streifen [data-datei="${CSS.escape(name)}"]`);
+  if (kachel && typeof kachel.focus === 'function') kachel.focus({ preventScroll: true });
 }
 
 /* ----------------------------------------------------------- Raster */

@@ -535,6 +535,16 @@ s.test('der nachgeschriebene Zettel trägt den gepflegten Stand', () => {
   gleich(zettel.herkunft, undefined, 'die Herkunft gehört nicht in den Zettel');
 });
 
+s.test('die Ordnersuche trifft Teile des Namens, unabhängig von Schreibweise', () => {
+  wahr(kern.passtDateiname('Reklamation-001-2026.png', 'reklamation'));
+  wahr(kern.passtDateiname('Reklamation-001-2026.png', 'REKL 2026'), 'mehrere Teile müssen alle passen');
+  wahr(kern.passtDateiname('schirm-001.png', ''), 'ohne Suchtext passt jeder Name');
+  wahr(kern.passtDateiname('gruen-pruefung.png', 'grün'), 'Umlaute trennen die Suche');
+  wahr(kern.passtDateiname('Grün-Prüfung.png', 'gruen'), 'Umlaute trennen die Suche andersherum');
+  gleich(kern.passtDateiname('schirm-001.png', 'beleg'), false);
+  gleich(kern.passtDateiname('schirm-001.png', 'schirm beleg'), false);
+});
+
 s.test('die Wahl des Beipackzettels wird gespeichert', () => {
   gleich(kern.ABLAGE_STANDARD.beipack, true, 'der Zettel ist nicht voreingestellt');
   gleich(kern.leseAblage(kern.schreibeAblage({ beipack: false })).beipack, false);

@@ -703,6 +703,129 @@ s.test('ein Bild ohne Zettel wird im Ordnerband als solches gezeigt', () =>
     { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
   ));
 
+s.test('ein Zettel ohne Bild wird im Band gezeigt, nicht verschwiegen', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.fill('#ablage-muster', 'schirm-{nummer}');
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 30, 300, 220);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 2, null, { timeout: 5000 });
+      // Das Bild verschwindet - von Hand verschoben, wie es im Alltag vorkommt.
+      await seite.evaluate(() => {
+        window.__inhalt = window.__inhalt.filter((e) => !e.name.endsWith('.png'));
+      });
+
+      await seite.click('.portal-nav button[data-ansicht="archiv"]');
+      await seite.waitForSelector('#ordner-band:not([hidden])');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('#ordner-streifen .streifen-bild--zettel').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await seite.locator('#ordner-streifen .kennung').innerText(), 'schirm-001.json');
+      gleich(await seite.locator('#ordner-streifen .zettel-marke--allein').innerText(), 'ohne Bild');
+      wahr(
+        (await seite.locator('#ordner-stand').innerText()).includes('1 Zettel ohne Bild'),
+        'der Stand nennt den verwaisten Zettel nicht'
+      );
+      await seite.click('#ordner-streifen .streifen-bild--zettel');
+      await seite.waitForSelector('#ordner-zettel:not([hidden])');
+      gleich(await seite.locator('#zettel-datei').innerText(), 'schirm-001.json');
+      gleich(
+        await seite.locator('#zettel-uebernehmen').isVisible(),
+        false,
+        'ein Zettel ohne Bild darf keine Übernahme versprechen'
+      );
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
+s.test('die Zettelschau nimmt den Fokus, Esc gibt ihn zurück', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.fill('#ablage-muster', 'schirm-{nummer}');
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 30, 300, 220);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 2, null, { timeout: 5000 });
+
+      await seite.click('.portal-nav button[data-ansicht="archiv"]');
+      await seite.waitForSelector('#ordner-band:not([hidden])');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('#ordner-streifen .streifen-bild').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      await seite.click('#ordner-streifen .streifen-bild');
+      await seite.waitForSelector('#ordner-zettel:not([hidden])');
+      gleich(
+        await seite.evaluate(() => document.activeElement.id),
+        'ordner-zettel',
+        'die Schau nimmt den Fokus nicht'
+      );
+      await seite.keyboard.press('Escape');
+      await seite.waitForFunction(() => document.getElementById('ordner-zettel').hidden, null, { timeout: 5000 });
+      gleich(
+        await seite.evaluate(() => document.activeElement.dataset.datei),
+        'schirm-001.png',
+        'der Fokus kommt nicht an die Kachel zurück'
+      );
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
+s.test('das Ordnerband filtert und zeigt auf Wunsch mehr', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      // 14 Bilder unterschiedlichen Namens direkt in den Ordner legen.
+      await seite.evaluate(() => {
+        const bild = new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' });
+        for (let i = 1; i <= 14; i++) {
+          const name = (i <= 4 ? 'beleg-' : 'schirm-') + String(i).padStart(3, '0') + '.png';
+          window.__inhalt.push({ name, blob: bild, zeit: Date.now() + i });
+        }
+      });
+      await seite.click('.portal-nav button[data-ansicht="archiv"]');
+      await seite.waitForSelector('#ordner-band:not([hidden])');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('#ordner-streifen .streifen-bild').length === 12,
+        null,
+        { timeout: 5000 }
+      );
+      wahr((await seite.locator('#ordner-stand').innerText()).includes('14 Bilder'), 'der Stand zählt falsch');
+      wahr(
+        (await seite.locator('#ordner-stand').innerText()).includes('neueste 12 gezeigt'),
+        'der Stand verschweigt die Begrenzung'
+      );
+      gleich(await seite.locator('#ordner-mehr').isVisible(), true, 'ohne Knopf bleibt der Rest unerreichbar');
+
+      await seite.click('#ordner-mehr');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('#ordner-streifen .streifen-bild').length === 14,
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await seite.locator('#ordner-mehr').isVisible(), false, 'der Knopf bleibt, obwohl alles gezeigt wird');
+
+      await seite.fill('#ordner-suche', 'beleg');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('#ordner-streifen .streifen-bild').length === 4,
+        null,
+        { timeout: 5000 }
+      );
+      wahr(
+        (await seite.locator('#ordner-stand').innerText()).includes('4 von 14'),
+        'der Stand nennt die Filterung nicht'
+      );
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
 s.test('ohne gewählten Ordner bleibt das Ordnerband weg', () =>
   mitSeite(async (seite) => {
     gleich(await seite.locator('#ordner-band').isVisible(), false);

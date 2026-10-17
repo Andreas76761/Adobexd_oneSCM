@@ -1285,8 +1285,25 @@ function verdrahteAufnahme() {
   $('#eingang-dialog-schliessen').addEventListener('click', () => $('#eingang-dialog').close());
   $('#zum-eingang').addEventListener('click', () => setze({ ansicht: 'eingang' }));
   $('#ordner-auffrischen').addEventListener('click', zeigeOrdnerImArchiv);
-  $('#zettel-zu').addEventListener('click', verbergeZettel);
+  $('#zettel-zu').addEventListener('click', () => verbergeZettel(true));
   $('#zettel-uebernehmen').addEventListener('click', uebernimmAusOrdner);
+  // Esc schliesst die Schau, solange der Fokus darin steht.
+  $('#ordner-zettel').addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    e.stopPropagation();
+    verbergeZettel(true);
+  });
+  $('#ordner-mehr').addEventListener('click', () => {
+    ordnerGrenze += 12;
+    zeigeOrdnerImArchiv();
+  });
+  let suchTakt = null;
+  $('#ordner-suche').addEventListener('input', (e) => {
+    ordnerSuche = e.target.value;
+    ordnerGrenze = 12;
+    clearTimeout(suchTakt);
+    suchTakt = setTimeout(zeigeOrdnerImArchiv, 180);
+  });
 
   /* Eingefügte Bildschirmfotos: der Weg, der auch in einer eingebetteten
      Ansicht funktioniert. Text in Eingabefeldern bleibt unberührt, weil nur

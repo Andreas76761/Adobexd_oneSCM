@@ -962,6 +962,18 @@ export function aufnahmeAusZettel({ daten = {}, bild, kennung, ordner, datei, ze
 }
 
 /**
+ * Passt ein Dateiname zur Ordnersuche? Ohne Suchtext passt jeder. Gesucht wird
+ * mit aufgeloesten Umlauten auf beiden Seiten - abgelegte Namen sind
+ * entschaerft (`gruen-...`), getippt wird aber `grün`.
+ */
+export function passtDateiname(name, suche) {
+  const gesucht = normalisiereLang(String(suche || ''));
+  if (!gesucht) return true;
+  const kleiner = normalisiereLang(String(name || ''));
+  return gesucht.split(/\s+/).every((teil) => kleiner.includes(teil));
+}
+
+/**
  * Kann der Beipackzettel dieser Aufnahme im Ordner nachgeschrieben werden?
  * Jede Absage nennt ihren Grund - "geht nicht" allein hilft niemandem weiter.
  */

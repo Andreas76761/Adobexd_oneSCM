@@ -60,10 +60,13 @@
       <div class="band-kopf">
         <h2 class="abschnitt-titel">Im Ordner <span class="kennung" id="ordner-name"></span></h2>
         <span class="band-stand" id="ordner-stand"></span>
+        <label class="sprung" for="ordner-suche">Dateien im Ordner filtern</label>
+        <input type="search" class="ordner-suche" id="ordner-suche" placeholder="Dateiname filtern …" autocomplete="off">
+        <button type="button" class="knopf knopf--klein" id="ordner-mehr" hidden>Mehr zeigen</button>
         <button type="button" class="knopf knopf--klein" id="ordner-auffrischen">Neu lesen</button>
       </div>
       <div class="streifen" id="ordner-streifen"></div>
-      <div class="zettel-schau" id="ordner-zettel" hidden>
+      <div class="zettel-schau" id="ordner-zettel" tabindex="-1" role="region" aria-label="Beipackzettel" hidden>
         <div class="band-kopf">
           <h3 class="abschnitt-titel">Beipackzettel <span class="kennung" id="zettel-datei"></span></h3>
           <span class="band-stand" id="zettel-stand"></span>

@@ -501,6 +501,15 @@ eine `.json` ohne Bild eigens. Ein Zettel, der sich nicht lesen lässt, eine
 höhere Zettelversion, fremde Felder und unbrauchbare Werte werden benannt –
 die Datei liegt im Dateisystem und kann von Hand geändert worden sein.
 
+**Filter, Umfang, Tastatur** (ab 1.13.0) Ein Filterfeld sucht im Dateinamen
+(Teiltreffer, Umlaute aufgelöst), **Mehr zeigen** holt je zwölf weitere Bilder
+nach. Der Stand sagt, was davon zu sehen ist: „4 von 14 Bildern gefiltert ·
+neueste 12 gezeigt“. Ein Zettel ohne Bild steht als eigene Kachel (`{ }`,
+Marke „ohne Bild“) und lässt sich lesen – übernehmen nicht, dazu fehlt das
+Bild. Die Zettelschau nimmt beim Öffnen den Fokus, **Esc** schließt sie und
+gibt ihn an die Kachel zurück. Beim Betreten des Archivs wird der Ordner neu
+gelesen; eine offene Schau bleibt dabei stehen und zeigt den neuen Stand.
+
 Beide Bänder bleiben verborgen, solange es nichts zu zeigen gibt.
 
 **Ordner über Sitzungen** Der Zugriff liegt in der Browserdatenbank
