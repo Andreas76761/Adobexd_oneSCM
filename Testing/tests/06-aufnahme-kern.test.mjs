@@ -2580,4 +2580,64 @@ s.test('Version und Land wandern vom Entwurf ins Bild, in den Pfad und in die Ü
   gleich(zeilen[1].split(';')[spalten.indexOf('land')], 'Korea');
 });
 
+/* ------------------------------- Arbeitsmenge und Variantenachse (1.36.0) */
+
+const mengeBestand = [
+  { id: 'A1', projekt: 'oneSCM Portal', version: '2.4', land: 'Germany', gliederung: '6.2', sprache: 'de' },
+  { id: 'A2', projekt: 'oneSCM Portal', version: '2.4', land: 'Germany', gliederung: '6.3', sprache: 'de' },
+  { id: 'A3', projekt: 'oneSCM Portal', version: '2.3', land: 'Germany', gliederung: '6.2', sprache: 'de' },
+  { id: 'A4', projekt: '', version: '', land: '', gliederung: '6.2', sprache: 'de' }
+];
+
+s.test('die Arbeitsmenge schneidet den Bestand, ohne ihn zu ändern', () => {
+  // Ohne Wahl ist alles die Arbeitsmenge - und zwar dieselbe Liste.
+  gleich(kern.projektFilter(mengeBestand, ''), mengeBestand);
+  gleich(kern.projektFilter(mengeBestand).length, 4);
+
+  const zweiVier = kern.projektFilter(mengeBestand, 'PRJ-onescm-portal-2-4-germany');
+  tieferGleich(zweiVier.map((a) => a.id), ['A1', 'A2']);
+  tieferGleich(kern.projektFilter(mengeBestand, 'PRJ-onescm-portal-2-3-germany').map((a) => a.id), ['A3']);
+  tieferGleich(kern.projektFilter(mengeBestand, 'ohne').map((a) => a.id), ['A4']);
+  // Eine Wahl, die niemand hat, zeigt nichts - sie zeigt nicht alles.
+  tieferGleich(kern.projektFilter(mengeBestand, 'PRJ-gibt-es-nicht'), []);
+  gleich(mengeBestand.length, 4, 'der Bestand wurde verändert');
+});
+
+s.test('die Arbeitsmenge überlebt neben den Projekten im Speicher', () => {
+  const projekte = [{ name: 'oneSCM Portal', version: '2.4', land: 'Germany' }];
+  const text = kern.schreibeProjekte(projekte, 'PRJ-onescm-portal-2-4-germany');
+  gleich(kern.leseProjektwahl(text), 'PRJ-onescm-portal-2-4-germany');
+  gleich(kern.leseProjekte(text).length, 1, 'die Liste darf darüber nicht verloren gehen');
+  // Ohne Wahl, ohne Speicher, mit kaputtem Speicher: immer „alles".
+  gleich(kern.leseProjektwahl(kern.schreibeProjekte(projekte)), '');
+  gleich(kern.leseProjektwahl('{kaputt'), '');
+  gleich(kern.leseProjektwahl(null), '');
+});
+
+s.test('die Arbeitsmenge hat einen Namen – auch wenn das Projekt gelöscht ist', () => {
+  const projekte = kern.leseProjekte(kern.schreibeProjekte([{ name: 'oneSCM Portal', version: '2.4', land: 'Germany' }]));
+  gleich(kern.projektWahlText('', projekte), 'alle Projekte');
+  gleich(kern.projektWahlText('ohne', projekte), 'ohne Projekt');
+  gleich(kern.projektWahlText('PRJ-onescm-portal-2-4-germany', projekte), 'oneSCM Portal 2.4 · Germany');
+  gleich(kern.projektWahlText('PRJ-weg', projekte), 'PRJ-weg', 'eine verwaiste Wahl muss sichtbar bleiben');
+});
+
+s.test('Version und Land sind Labelfelder und eine Achse der Deckung', () => {
+  for (const feld of ['version', 'land']) {
+    wahr(kern.LABEL_FELDER.some((f) => f.id === feld), `${feld} fehlt unter den Labelfeldern`);
+    wahr(kern.VARIANTEN_FELDER.includes(feld), `${feld} fehlt als Variantenachse`);
+  }
+  const gliederung = kern.leseGliederung({
+    eintraege: [{ nummer: '6.2', thema: 'Market Settings', ebene: 2 }, { nummer: '6.3', thema: 'Vorlagen', ebene: 2 }]
+  });
+  // Welche Stelle gibt es in 2.4 und welche nur in 2.3 - das ist die Frage
+  // vor einem Releaseletter.
+  const matrix = kern.deckungsMatrix(gliederung, mengeBestand, 'version');
+  tieferGleich(matrix.spalten.map((s2) => s2.wert), ['2.3', '2.4']);
+  const zeile = matrix.zeilen.find((z) => z.nummer === '6.3');
+  gleich(zeile.zellen.find((c) => c.wert === '2.3').zahl, 0, '6.3 gibt es in 2.3 nicht');
+  gleich(zeile.zellen.find((c) => c.wert === '2.4').zahl, 1);
+  gleich(matrix.zeilen.find((z) => z.nummer === '6.2').ohne, 1, 'das Bild ohne Version fehlt in der Spalte „ohne"');
+});
+
 export default s;

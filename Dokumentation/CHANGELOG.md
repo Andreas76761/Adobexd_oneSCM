@@ -20,6 +20,36 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.36.0] – Die Arbeitsmenge: in einem Projekt arbeiten
+
+### Neu
+* **Arbeitsmenge im Kopf** (F-52): ein Auswahlfeld neben der Navigation mit
+  „alle Projekte“, jedem Projekt samt Bildzahl und „ohne Projekt“. Die Wahl
+  gilt in Eingang, Gliederung, Editor, Strecke, Design, Prüfung, Verzeichnis
+  und Suchchat – gezeigt wird weniger, gelöscht wird nichts
+* „Nur dieses“ in der Projektliste schaltet direkt um; die Wahl überlebt das
+  Neuladen und bleibt sichtbar, auch wenn das Projekt gelöscht wurde
+* **Version und Land als Labelfeld und Variantenachse** (F-53): beide stehen
+  im Labelblock des Editors, sind Spaltenachse der Deckungsmatrix („welche
+  Stelle gibt es in 2.4, welche nur in 2.3?“) und wählbare Variante im
+  Designstudio
+
+### Geändert
+* Die Kachel „Bilder zugeordnet“ in der Gliederung zählt die Arbeitsmenge und
+  sagt das auch („von 2 in der Arbeitsmenge“)
+* Der leere Eingang und der leere Verzeichnisplan nennen die Arbeitsmenge als
+  Grund, statt „keine Aufnahme“ zu behaupten
+* Das im Editor offene Bild bleibt in seiner Auswahlliste, auch wenn es nicht
+  zur Arbeitsmenge gehört
+
+### Kern
+* `projektFilter`, `leseProjektwahl`, `projektWahlText`; `schreibeProjekte`
+  nimmt die Wahl als zweiten Wert
+* `version` und `land` in `LABEL_FELDER` und `VARIANTEN_FELDER`
+
+### Prüfung
+* 4 neue Kernprüfungen, 4 neue Browserprüfungen; zusammen 404
+
 ## [1.35.0] – Projekte nach Version und Land
 
 ### Neu

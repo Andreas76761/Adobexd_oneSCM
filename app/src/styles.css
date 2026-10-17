@@ -1534,7 +1534,7 @@ div.streifen-bild { cursor: default; }
 #projekt-verwaltung { margin-top: 4px; }
 .projekt-liste { display: grid; gap: 6px; margin: 10px 0; }
 .projekt-zeile {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 8px; align-items: center;
   padding: 5px 8px; border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche);
 }
 .projekt-zeile--gewaehlt { border-color: var(--akzent); background: var(--akzent-hauch); }
@@ -1548,3 +1548,16 @@ div.streifen-bild { cursor: default; }
 .projekt-anlegen { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: end; }
 .projekt-anlegen .feld { flex: 1 1 160px; }
 .projekt-anlegen .feld--schmal { flex: 0 1 110px; }
+
+/* ------------------------- Arbeitsmenge im Kopf (1.36.0) */
+
+.projektleiste {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-top: 8px; font-size: 12.5px; color: var(--tinte-2);
+}
+.projektleiste label { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
+.projektleiste select {
+  max-width: 320px; padding: 3px 6px; border: 1px solid var(--linie); border-radius: var(--radius);
+  background: var(--flaeche); color: var(--tinte); font: inherit;
+}
+.projektleiste .kennung { text-transform: none; letter-spacing: 0; }

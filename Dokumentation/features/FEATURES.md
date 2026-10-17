@@ -1310,3 +1310,57 @@ steht danach wieder als Vorschlag da.
 **Kennung** `PRJ-<name>-<version>-<land>`, aus den bereinigten Teilen –
 zweimal dasselbe gibt dieselbe Kennung, und sie ist zugleich der Schlüssel der
 Zählung.
+
+## F-52 · Die Arbeitsmenge: in einem Projekt arbeiten
+
+**Seit** 1.36.0 · betrifft Kopf, Eingang, Gliederung, Editor, Strecke, Design,
+Prüfung, Verzeichnis, Suchchat
+
+**Das Problem** Mit Projekten (F-51) liegen die Bilder mehrerer Fassungen und
+Länder im selben Eingang. Wer das Handbuch für **2.4 in Deutschland** baut,
+bekam bis dahin die koreanischen Bilder mitgezählt, mitgeprüft, mitgeschrieben
+– und in jeder Auswahlliste angeboten.
+
+**Die Lösung** Eine **Arbeitsmenge** im Seitenkopf, neben der Navigation: ein
+Auswahlfeld mit „alle Projekte“, jedem angelegten Projekt samt Bildzahl und
+„ohne Projekt“. Die Wahl gilt für jede Ansicht:
+
+| Ansicht | was die Arbeitsmenge dort tut |
+| --- | --- |
+| Eingang | Karten, Kennzahlen, „Als JSON sichern“ und Kontaktbogen |
+| Gliederung | Zählung je Stelle, Kacheln, Deckungsmatrix |
+| Editor | die Auswahlliste der Bilder |
+| Strecke | die Auswahlliste der Bilder |
+| Design | Quellen, Kapitelbilder, Variantenwahl, Handbuchumfang |
+| Prüfung | alle drei Agenten |
+| Verzeichnis | Plan, Index und was geschrieben wird |
+| Suchchat | die durchsuchten Bilder |
+
+Was nicht zur Arbeitsmenge gehört, wird **nicht gelöscht und nicht
+verschoben** – es wird nur nicht gezeigt. Zwei Ausnahmen, damit nichts unter
+der Hand verschwindet: das Bild, das im Editor gerade offen ist, bleibt in
+seiner Liste, und eine Strecke behält ihre Schritte.
+
+Die Zeile im Kopf nennt den Schnitt (`2 von 3 Bildern`), die Projektliste
+schaltet mit **„Nur dieses“** direkt um, und die Wahl überlebt das Neuladen
+(sie liegt bei den Projekten in `screenarchiv:projekte`). Eine Wahl, deren
+Projekt gelöscht wurde, bleibt sichtbar, statt stumm auf „alles“ zu springen.
+
+## F-53 · Version und Land als Labelfeld und Variantenachse
+
+**Seit** 1.36.0 · betrifft Editor, Gliederung, Design
+
+**Das Problem** Version und Land standen am Bild (F-51), aber nicht dort, wo
+mit Labels gearbeitet wird: nicht im Labelblock des Editors, nicht als Achse
+der Deckungsmatrix, nicht als Variante.
+
+**Die Lösung** Beide sind jetzt gewöhnliche Labelfelder mit eigenem Zeichen –
+frei getippt wie der Markt – und Teil der Variantenachsen. Daraus folgt
+unmittelbar:
+
+* Die **Deckungsmatrix** kennt „Version“ und „Land“ als Spaltenachse: welche
+  Stelle gibt es in 2.4, welche nur in 2.3?
+* Der **Variantenblock** im Editor nennt die fehlende Fassung („Version: 2.3“)
+  genauso wie die fehlende Sprache.
+* Das **Designstudio** kann dieselbe Strecke in der Variante einer anderen
+  Version ausgeben – die Grundlage eines Releaseletters.

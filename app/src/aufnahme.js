@@ -15,6 +15,13 @@ const heute = () => new Date().toISOString().slice(0, 10);
 let eingang = leseEingangAusSpeicher();
 let entwurfslabelsOffen = false; // der Labelblock im Aufnahmeformular
 let projekte = leseProjekteAusSpeicher(); // angelegte Projekte: Name, Version, Land
+let projektwahl = leseProjektwahlAusSpeicher(); // '' alle, 'ohne', sonst die Kennung
+
+/**
+ * Die Bilder der gewählten Arbeitsmenge. Jede Ansicht, die zählt, prüft,
+ * ablegt oder sucht, fragt hier - der Eingang selbst bleibt vollständig.
+ */
+const imProjekt = (liste = eingang) => projektFilter(liste, projektwahl);
 
 function leseProjekteAusSpeicher() {
   try {
@@ -24,9 +31,17 @@ function leseProjekteAusSpeicher() {
   }
 }
 
+function leseProjektwahlAusSpeicher() {
+  try {
+    return leseProjektwahl(localStorage.getItem(PROJEKTE_SCHLUESSEL));
+  } catch (fehler) {
+    return '';
+  }
+}
+
 function sichereProjekte() {
   try {
-    localStorage.setItem(PROJEKTE_SCHLUESSEL, schreibeProjekte(projekte));
+    localStorage.setItem(PROJEKTE_SCHLUESSEL, schreibeProjekte(projekte, projektwahl));
   } catch (fehler) {
     // Ohne Speicher gelten die Projekte nur für diese Sitzung.
   }
@@ -1032,6 +1047,8 @@ const projektStandText = () =>
 
 /** Die Liste der Projekte: wählen, zählen, löschen. */
 function zeichneProjekte() {
+  // Die Wahl im Kopf gehört zum selben Stand wie die Liste.
+  zeichneProjektwahl();
   const kasten = document.getElementById('projekt-liste');
   if (!kasten) return;
   const stand = document.getElementById('projekt-stand');
@@ -1073,6 +1090,13 @@ function zeichneProjekte() {
             el('button', {
               klasse: 'knopf knopf--klein',
               type: 'button',
+              text: projektwahl === satz.id ? 'Alle zeigen' : 'Nur dieses',
+              title: 'Arbeitsmenge: nur die Bilder dieses Projekts',
+              onclick: () => setzeProjektwahl(projektwahl === satz.id ? '' : satz.id)
+            }),
+            el('button', {
+              klasse: 'knopf knopf--klein',
+              type: 'button',
               text: 'Löschen',
               title: 'Nur das Projekt – die Bilder bleiben',
               onclick: () => {
@@ -1109,6 +1133,46 @@ function zeichneProjekte() {
       ])
     )
   );
+}
+
+/**
+ * Die Arbeitsmenge im Kopf: welche Bilder gezählt, geprüft, gesucht und
+ * abgelegt werden. Sie steht über allen Ansichten, weil sie für alle gilt.
+ */
+function zeichneProjektwahl() {
+  const wahl = document.getElementById('projekt-wahl');
+  if (!wahl) return;
+  const bekannt = [...projekte, ...projekteAusBestand(eingang, projekte)];
+  const zahlen = zaehleJeProjekt(bekannt, eingang);
+  const ohne = eingang.filter((a) => !String(a.projekt || '').trim()).length;
+  // Eine Wahl, deren Projekt nicht mehr da ist, bleibt wählbar - sonst stünde
+  // im Kopf ein Projekt, das die Liste nicht kennt.
+  const fehlt = projektwahl && projektwahl !== 'ohne' && !bekannt.some((p) => p.id === projektwahl);
+
+  wahl.replaceChildren(
+    el('option', { value: '', text: `alle Projekte (${eingang.length})` }),
+    ...bekannt.map((satz) =>
+      el('option', { value: satz.id, text: `${projektKennung(satz)} (${zahlen.get(satz.id) || 0})` })
+    ),
+    ...(ohne ? [el('option', { value: 'ohne', text: `ohne Projekt (${ohne})` })] : []),
+    ...(fehlt ? [el('option', { value: projektwahl, text: projektwahl })] : [])
+  );
+  wahl.value = projektwahl;
+  const stand = document.getElementById('projekt-wahl-stand');
+  if (stand) {
+    const gezeigt = imProjekt().length;
+    stand.textContent = projektwahl ? `${gezeigt} von ${eingang.length} Bildern` : '';
+  }
+}
+
+/** Setzt die Arbeitsmenge und zeichnet die sichtbare Ansicht damit neu. */
+function setzeProjektwahl(wert) {
+  projektwahl = String(wert || '');
+  sichereProjekte();
+  zeichneProjektwahl();
+  zeichneProjekte();
+  // setze() zeichnet die sichtbare Ansicht - jede rechnet mit imProjekt().
+  setze({});
 }
 
 function meldeProjekt(text, art = 'neutral') {
@@ -1289,8 +1353,10 @@ function eingangKarte(aufnahme) {
 }
 
 function zeichneEingang() {
-  const gefiltert = sortiereEingang(filtereEingang(eingang, eingangAuswahl), eingangAuswahl.sortierung);
-  const k = eingangKennzahlen(eingang);
+  // Gezeigt wird die Arbeitsmenge; der Eingang selbst bleibt vollständig.
+  const menge = imProjekt();
+  const gefiltert = sortiereEingang(filtereEingang(menge, eingangAuswahl), eingangAuswahl.sortierung);
+  const k = eingangKennzahlen(menge);
 
   $('#eingang-kennzahlen').replaceChildren(
     ...[
@@ -1312,16 +1378,18 @@ function zeichneEingang() {
   }
   $('#eingang-sortierung').value = eingangAuswahl.sortierung;
   $('#eingang-treffer').textContent =
-    gefiltert.length === eingang.length
+    gefiltert.length === menge.length
       ? `${gefiltert.length} ${gefiltert.length === 1 ? 'Aufnahme' : 'Aufnahmen'}`
-      : `${gefiltert.length} von ${eingang.length} Aufnahmen`;
+      : `${gefiltert.length} von ${menge.length} Aufnahmen`;
 
   $('#eingang-raster').replaceChildren(...gefiltert.map(eingangKarte));
   $('#eingang-leer').hidden = gefiltert.length > 0;
   $('#eingang-leer-text').textContent =
     eingang.length === 0
       ? 'Der Eingang ist leer. In der Ansicht „Aufnahme“ eine Quelle wählen, den Ausschnitt ziehen und die Leertaste drücken.'
-      : 'Keine Aufnahme passt zu dieser Auswahl.';
+      : menge.length === 0
+        ? `Keine Aufnahme gehört zu „${projektWahlText(projektwahl, projekte)}“ – im Kopf eine andere Arbeitsmenge wählen.`
+        : 'Keine Aufnahme passt zu dieser Auswahl.';
   $('#eingang-kontaktbogen').disabled = gefiltert.length === 0;
   $('#eingang-sichern').disabled = gefiltert.length === 0;
   $('#eingang-leeren').disabled = eingang.length === 0;
@@ -1845,7 +1913,7 @@ function auswahlText() {
 
 /** Die sichtbare Auswahl - gesichert wird, was man sieht. */
 const sichtbareAufnahmen = () =>
-  sortiereEingang(filtereEingang(eingang, eingangAuswahl), eingangAuswahl.sortierung);
+  sortiereEingang(filtereEingang(imProjekt(), eingangAuswahl), eingangAuswahl.sortierung);
 
 /**
  * Übergibt eine Datei an die Ablagefähigkeit des Artifacts.
@@ -1945,6 +2013,7 @@ function zeigeErsatzausgabe(hinweis, inhalt) {
 function verdrahteAufnahme() {
   baueFormular();
   zeichneProjekte();
+  $('#projekt-wahl').addEventListener('change', (e) => setzeProjektwahl(e.target.value));
   verdrahteBuehne();
 
   $('#quelle-bildschirm').addEventListener('click', quelleBildschirm);

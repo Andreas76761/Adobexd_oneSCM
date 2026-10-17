@@ -41,12 +41,14 @@ function meldeVerzeichnis(text, art = 'neutral') {
 
 /** Der Plan, wie er gleich geschrieben würde - höchstens 40 Zeilen. */
 function zeichneVerzeichnisplan() {
-  const plan = verzeichnisPlan(eingang, verzeichnisWahl, GLIEDERUNG, strecken);
+  const plan = verzeichnisPlan(imProjekt(), verzeichnisWahl, GLIEDERUNG, strecken);
   const zeilen = plan.slice(0, 40).map((d) => [...d.ordner, d.name].join('/'));
   if (plan.length > 40) zeilen.push(`… und ${plan.length - 40} weitere`);
-  $('#verzeichnis-plan').textContent = eingang.length
+  $('#verzeichnis-plan').textContent = imProjekt().length
     ? zeilen.join('\n')
-    : 'Noch keine Aufnahme im Eingang – es gibt nichts zu schreiben.';
+    : eingang.length
+      ? 'Die gewählte Arbeitsmenge ist leer – im Kopf ein anderes Projekt wählen.'
+      : 'Noch keine Aufnahme im Eingang – es gibt nichts zu schreiben.';
   return plan;
 }
 
@@ -104,7 +106,7 @@ function zeichneVerzeichnis() {
   }
 
   const plan = zeichneVerzeichnisplan();
-  $('#verzeichnis-schreiben').disabled = verzeichnisLaeuft || !ordnerZugriff || !eingang.length;
+  $('#verzeichnis-schreiben').disabled = verzeichnisLaeuft || !ordnerZugriff || !imProjekt().length;
   $('#verzeichnis-schreiben').textContent = verzeichnisLaeuft
     ? 'schreibt …'
     : `${plan.length} Datei${plan.length === 1 ? '' : 'en'} in den Ordner schreiben`;
@@ -162,12 +164,12 @@ function zettelFuer(aufnahme) {
  */
 async function schreibeGalerie() {
   if (!ordnerZugriff || verzeichnisLaeuft) return;
-  const plan = verzeichnisPlan(eingang, verzeichnisWahl, GLIEDERUNG, strecken);
+  const plan = verzeichnisPlan(imProjekt(), verzeichnisWahl, GLIEDERUNG, strecken);
   if (!plan.length) return;
   verzeichnisLaeuft = true;
   zeichneVerzeichnis();
 
-  const index = galerieIndex(eingang, plan, {
+  const index = galerieIndex(imProjekt(), plan, {
     anwendung: DATEN.anwendung,
     muster: verzeichnisWahl.muster,
     gliederung: GLIEDERUNG

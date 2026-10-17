@@ -2185,6 +2185,8 @@ export const LABEL_FELDER = [
   { id: 'rolle_label', label: 'Rolle', symbol: 'rolle', werte: ROLLEN_LABEL },
   { id: 'sparte', label: 'Sparte', symbol: 'sparte', werte: SPARTEN },
   { id: 'markt', label: 'Markt', symbol: 'markt', frei: true },
+  { id: 'version', label: 'Version', symbol: 'version', frei: true },
+  { id: 'land', label: 'Land', symbol: 'land', frei: true },
   { id: 'domaene', label: 'Domäne', symbol: 'domaene', frei: true },
   { id: 'reiter', label: 'Reiter', symbol: 'reiter', frei: true },
   { id: 'schritt_label', label: 'Schritt', symbol: 'schritt', frei: true }
@@ -4221,7 +4223,7 @@ export function verzeichnisBericht(geschrieben = [], fehler = [], ordnername = '
    ========================================================================= */
 
 /** Die Felder, in denen sich Varianten unterscheiden dürfen. */
-export const VARIANTEN_FELDER = ['sprache', 'rolle_label', 'sparte', 'markt'];
+export const VARIANTEN_FELDER = ['sprache', 'rolle_label', 'sparte', 'markt', 'version', 'land'];
 
 /** Eine neue Gruppenkennung; die Zeit macht sie eindeutig genug. */
 export function neueVariantengruppe(zeit = Date.now()) {
@@ -4622,8 +4624,43 @@ export function leseProjekte(text) {
     .sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version) || a.land.localeCompare(b.land));
 }
 
-export function schreibeProjekte(liste = []) {
-  return JSON.stringify({ version: PROJEKTE_VERSION, projekte: liste.map(projektSatz).filter(Boolean) });
+export function schreibeProjekte(liste = [], wahl = '') {
+  return JSON.stringify({
+    version: PROJEKTE_VERSION,
+    wahl: String(wahl || ''),
+    projekte: liste.map(projektSatz).filter(Boolean)
+  });
+}
+
+/** Die gewählte Arbeitsmenge: '' heißt alles, 'ohne' die Bilder ohne Projekt. */
+export function leseProjektwahl(text) {
+  try {
+    const inhalt = JSON.parse(text || 'null');
+    return inhalt && typeof inhalt.wahl === 'string' ? inhalt.wahl : '';
+  } catch (fehler) {
+    return '';
+  }
+}
+
+/**
+ * Die Bilder der gewählten Arbeitsmenge. Wer am Handbuch für 2.4 in
+ * Deutschland arbeitet, will die koreanischen Bilder nicht gezählt, nicht
+ * geprüft und nicht abgelegt bekommen - gelöscht werden sie deswegen nicht.
+ */
+export function projektFilter(aufnahmen = [], wahl = '') {
+  const gewaehlt = String(wahl || '');
+  if (!gewaehlt) return aufnahmen;
+  if (gewaehlt === 'ohne') return aufnahmen.filter((a) => !String(a.projekt || '').trim());
+  return aufnahmen.filter((a) => projektKennzeichen(a.projekt, a.version, a.land) === gewaehlt);
+}
+
+/** Wie die Wahl in einer Zeile heißt - auch wenn das Projekt gelöscht wurde. */
+export function projektWahlText(wahl, projekte = []) {
+  const gewaehlt = String(wahl || '');
+  if (!gewaehlt) return 'alle Projekte';
+  if (gewaehlt === 'ohne') return 'ohne Projekt';
+  const satz = projekte.find((p) => p.id === gewaehlt);
+  return satz ? projektKennung(satz) : gewaehlt;
 }
 
 /** Zählt, wie viele Bilder an jedem Projekt hängen. */

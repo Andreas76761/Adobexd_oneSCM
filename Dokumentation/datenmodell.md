@@ -115,7 +115,7 @@ Deckungsmatrix (F-46).
 | `screenarchiv:design` | Einstellungen des Designstudios samt eigener Vorlagen |
 | `screenarchiv:verzeichnis` | Muster und Schalter der Ansicht Verzeichnis |
 | `screenarchiv:chat` | Lage, Größe und Zustand des Suchchats |
-| `screenarchiv:projekte` | angelegte Projekte: `{ version, projekte: [{ id, name, version, land, notiz, angelegt_am }] }` |
+| `screenarchiv:projekte` | angelegte Projekte und die Arbeitsmenge: `{ version, wahl, projekte: [{ id, name, version, land, notiz, angelegt_am }] }` |
 
 Ein Streckenschritt trägt seit 1.25.0 eine **Liste** von Bildern (`aufnahmen`)
 und eine `art`: `schritt` oder `platzhalter`. Der alte Satz mit einem Bild je

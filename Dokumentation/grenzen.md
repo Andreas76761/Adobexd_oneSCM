@@ -45,8 +45,10 @@ Felder von selbst.
 
 ## Der Eingang liegt im Browser
 
-Aufnahmen stehen im `localStorage` dieses Geräts, Ordnerzugriffe in der
-Browserdatenbank. Wer die Browserdaten löscht, löscht den Eingang. Dauerhaft
+Die Metadaten der Aufnahmen stehen im `localStorage` dieses Geräts, die
+Vorschauen, die Bilder in voller Auflösung und die Ordnerzugriffe in der
+Browserdatenbank (seit 1.34.0). Wer die Browserdaten löscht, löscht den
+Eingang. Dauerhaft
 wird eine Aufnahme erst, wenn sie in einem Ordner oder einer Datei liegt –
 darum gibt es die Ablage, den Beipackzettel und den Rückweg in den Eingang.
 

@@ -54,7 +54,7 @@ function designQuellen() {
     label: `Strecke · ${s.name || 'ohne Namen'} (${s.schritte.length})`
   }));
   // Jede Stelle mit Bildern ist auch eine mögliche Vorlage.
-  const { zahlen } = zaehleBilder(GLIEDERUNG, eingang);
+  const { zahlen } = zaehleBilder(GLIEDERUNG, imProjekt());
   const ausKapiteln = GLIEDERUNG.filter((e) => (zahlen.get(e.nummer) || {}).gesamt).map((e) => ({
     id: 'kapitel:' + e.nummer,
     label: `Kapitel · ${e.nummer} ${e.thema} (${zahlen.get(e.nummer).gesamt})`
@@ -96,7 +96,7 @@ function designSchritte() {
     // Bei einem Kapitel ist die Variante ein Filter: nur die Bilder in dieser
     // Sprache, Rolle, Sparte oder diesem Markt.
     const bilder = sortiereNachKapitel(
-      eingang.filter(
+      imProjekt().filter(
         (a) =>
           gehoertZu(String(a.gliederung || ''), stelle) &&
           (!varianteFeld || String(a[varianteFeld] || '') === varianteWert)
@@ -470,7 +470,7 @@ function zeichneTeileschalter(kasten, teile, gewaehlt, schluessel) {
 function designVariantenwahl() {
   const wahl = [];
   for (const feld of VARIANTEN_FELDER) {
-    const werte = [...new Set(eingang.map((a) => String(a[feld] || '')).filter(Boolean))].sort((a, b) =>
+    const werte = [...new Set(imProjekt().map((a) => String(a[feld] || '')).filter(Boolean))].sort((a, b) =>
       labelWert(feld, a).localeCompare(labelWert(feld, b))
     );
     for (const wert of werte) {
@@ -694,7 +694,7 @@ function handbuchAuswahl() {
   const stelle = umfang === 'kapitel' && designQuelle.startsWith('kapitel:') ? designQuelle.slice(8) : '';
   return {
     stelle,
-    teile: handbuchTeile(GLIEDERUNG, eingang, strecken, { stelle, nurMitBildern: umfang !== 'alle' })
+    teile: handbuchTeile(GLIEDERUNG, imProjekt(), strecken, { stelle, nurMitBildern: umfang !== 'alle' })
   };
 }
 

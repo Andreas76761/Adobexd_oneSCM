@@ -21,6 +21,12 @@
     <symbol id="sym-markt" viewBox="0 0 24 24">
       <path d="M6 21V4M6 4h11l-2.2 3.4L17 11H6"/>
     </symbol>
+    <symbol id="sym-version" viewBox="0 0 24 24">
+      <path d="M4 7h16M4 12h16M4 17h9"/><circle cx="17.5" cy="17" r="2.5"/>
+    </symbol>
+    <symbol id="sym-land" viewBox="0 0 24 24">
+      <circle cx="12" cy="10" r="7"/><path d="M5.3 7.5h13.4M5.3 12.5h13.4M12 3c2.2 2.2 2.2 11.8 0 14M12 3c-2.2 2.2-2.2 11.8 0 14M12 17v4"/>
+    </symbol>
     <symbol id="sym-domaene" viewBox="0 0 24 24">
       <rect x="3.5" y="3.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.4"/>
       <rect x="3.5" y="13.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.4"/>
@@ -123,6 +129,12 @@
             <button type="button" data-ansicht="verzeichnis"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-verzeichnis"/></svg>Verzeichnis</button>
             <button type="button" data-ansicht="eingang"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-eingang"/></svg>Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
+          <div class="projektleiste">
+            <svg class="symbol" aria-hidden="true"><use href="#sym-version"/></svg>
+            <label for="projekt-wahl">Arbeitsmenge</label>
+            <select id="projekt-wahl"></select>
+            <span class="kennung" id="projekt-wahl-stand"></span>
+          </div>
         </div>
       </div>
       <div class="suchfeld" id="archiv-suchfeld">

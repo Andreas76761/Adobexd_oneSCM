@@ -26,7 +26,7 @@ function meldePruefung(text, art = 'neutral') {
 function laufeAgent(id) {
   pruefErgebnisse = {
     ...pruefErgebnisse,
-    [id]: { ...fuehreAgent(id, eingang, GLIEDERUNG, strecken), gelaufen_am: new Date().toISOString() }
+    [id]: { ...fuehreAgent(id, imProjekt(), GLIEDERUNG, strecken), gelaufen_am: new Date().toISOString() }
   };
 }
 

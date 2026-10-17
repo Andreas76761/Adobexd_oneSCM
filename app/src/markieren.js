@@ -558,9 +558,15 @@ function loeseAusVariante() {
 function fuelleMarkierWahl() {
   const wahl = $('#markier-wahl');
   const vorher = wahl.value;
+  // Zur Wahl steht die Arbeitsmenge; was gerade offen ist, bleibt darin -
+  // sonst verlöre ein Wechsel der Arbeitsmenge das Bild unter der Hand.
+  const menge = imProjekt();
+  const liste = menge.some((a) => a.id === markierKennung)
+    ? menge
+    : [...eingang.filter((a) => a.id === markierKennung), ...menge];
   wahl.replaceChildren(
-    el('option', { value: '', text: eingang.length ? 'Aufnahme wählen' : 'keine Aufnahme im Eingang' }),
-    ...eingang.map((a) =>
+    el('option', { value: '', text: liste.length ? 'Aufnahme wählen' : 'keine Aufnahme in der Arbeitsmenge' }),
+    ...liste.map((a) =>
       el('option', {
         value: a.id,
         text: `${a.id} · ${a.titel}${(a.marken || []).length ? ' · markiert' : ''}`,
@@ -1299,14 +1305,14 @@ function zeichneStrecke() {
       : [el('option', { value: '', text: 'noch keine Strecke' })])
   );
   $('#strecke-aufnahme').replaceChildren(
-    ...(eingang.length
-      ? sortiereNachKapitel(eingang).map((a) =>
+    ...(imProjekt().length
+      ? sortiereNachKapitel(imProjekt()).map((a) =>
           el('option', {
             value: a.id,
             text: `${kapitelKennung(a) ? kapitelKennung(a) + ' · ' : ''}${a.id} · ${a.titel}`
           })
         )
-      : [el('option', { value: '', text: 'keine Aufnahme im Eingang' })])
+      : [el('option', { value: '', text: 'keine Aufnahme in der Arbeitsmenge' })])
   );
   $('#strecke-spalten').replaceChildren(
     ...BLATT_SPALTEN.map((s) =>
@@ -1889,7 +1895,7 @@ let matrixFeld = 'sprache'; // Feld der Deckungsmatrix
 function sichtbareStellen() {
   const gesucht = sucheGliederung(GLIEDERUNG, gliederungSuche);
   if (gliederungZeigen === 'alle') return gesucht;
-  const { zahlen } = zaehleBilder(GLIEDERUNG, eingang);
+  const { zahlen } = zaehleBilder(GLIEDERUNG, imProjekt());
   return gesucht.filter((e) => {
     const zahl = (zahlen.get(e.nummer) || { gesamt: 0 }).gesamt;
     return gliederungZeigen === 'mitBildern' ? zahl > 0 : zahl === 0;
@@ -1898,7 +1904,8 @@ function sichtbareStellen() {
 
 function zeichneGliederung() {
   if (document.getElementById('gliederung-ansicht').hidden) return;
-  const { zahlen, ohneStelle, unbekannt } = zaehleBilder(GLIEDERUNG, eingang);
+  const menge = imProjekt();
+  const { zahlen, ohneStelle, unbekannt } = zaehleBilder(GLIEDERUNG, menge);
   const sichtbar = sichtbareStellen();
   const sichtbareNummern = new Set(sichtbar.map((e) => e.nummer));
   const kapitel = GLIEDERUNG.filter((e) => e.ebene === 1).length;
@@ -1907,7 +1914,13 @@ function zeichneGliederung() {
   $('#gliederung-kennzahlen').replaceChildren(
     ...[
       ['Kapitel', String(kapitel), `${GLIEDERUNG.length} Stellen insgesamt`],
-      ['Bilder zugeordnet', String(eingang.length - ohneStelle), `von ${eingang.length} im Eingang`],
+      [
+        'Bilder zugeordnet',
+        String(menge.length - ohneStelle),
+        menge.length === eingang.length
+          ? `von ${eingang.length} im Eingang`
+          : `von ${menge.length} in der Arbeitsmenge`
+      ],
       ['Stellen mit Bild', String(mitBildern), mitBildern ? 'belegt' : 'noch keine'],
       ['Ohne Stelle', String(ohneStelle), ohneStelle ? 'im Editor zuordnen' : 'alles zugeordnet'],
       ['Unbekannte Stellen', String(unbekannt.length), unbekannt.length ? unbekannt.slice(0, 3).join(', ') : 'keine']
@@ -2076,7 +2089,7 @@ function zeichneMatrix() {
       })
     )
   );
-  const matrix = deckungsMatrix(GLIEDERUNG, eingang, matrixFeld);
+  const matrix = deckungsMatrix(GLIEDERUNG, imProjekt(), matrixFeld);
   const label = LABEL_FELDER.find((f) => f.id === matrixFeld).label;
   $('#matrix-stand').textContent = matrix.spalten.length
     ? `${matrix.zeilen.length} Stellen · ${matrix.spalten.length} Werte · ${matrix.vollstaendig} vollständig${

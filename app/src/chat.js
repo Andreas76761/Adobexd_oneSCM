@@ -272,9 +272,9 @@ async function frageChat() {
     wer = 'gedeutet mit Claude, gefiltert in der Seite';
   }
 
-  const treffer = findeBilder(eingang, filter, GLIEDERUNG);
+  const treffer = findeBilder(imProjekt(), filter, GLIEDERUNG);
   const erkannt = filterInWorten(filter);
-  const text = chatAntwortText({ erkannt, filter }, treffer, eingang.length);
+  const text = chatAntwortText({ erkannt, filter }, treffer, imProjekt().length);
   chatVerlauf = [...chatVerlauf, { art: 'antwort', text, treffer: treffer.slice(0, 24), erkannt, wer }];
   chatLaeuft = false;
   $('#chat-fragen').disabled = false;
