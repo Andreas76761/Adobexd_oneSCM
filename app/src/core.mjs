@@ -33,6 +33,7 @@ export const ANSICHTEN = [
   'pruefung',
   'verzeichnis',
   'output',
+  'ocr',
   'eingang'
 ];
 
@@ -4965,6 +4966,196 @@ export function pptxAusSeiten(seiten = [], { titel = '', anwendung = '', dpi = 3
     ...folien.map((f) => ({ name: `ppt/slides/slide${f.nummer}.xml`, daten: f.xml })),
     ...folien.map((f) => ({ name: `ppt/slides/_rels/slide${f.nummer}.xml.rels`, daten: f.bezuege })),
     ...folien.map((f) => ({ name: `ppt/media/${f.name}`, daten: f.daten }))
+  ]);
+}
+
+/* =========================================================================
+   OCR – den Text aus den Bildern holen.
+
+   Die Seite kann selbst nicht lesen: ein Texterkenner wäre ein fremdes
+   Programm, und die Inhaltsrichtlinie des Artifacts lässt keines zu. Lesen
+   kann Claude - über die Fähigkeit `sample`, die Bilder mitnimmt. Die Seite
+   schickt das Bild, sagt, was zu tun ist, und bewahrt die Antwort auf.
+
+   Zwei Dinge sind dabei zu beachten und stehen darum hier: die Bilder werden
+   vor dem Senden auf rund 1,2 Megapixel verkleinert (kleine Schrift leidet),
+   und die Antwort ist eine Lesung, keine Messung. Darum liest die Seite
+   große Bilder in Kacheln und zeigt jede Antwort in einem Feld, in dem sie
+   sich ändern lässt.
+   ========================================================================= */
+
+export const OCR_SCHLUESSEL = 'screenarchiv:ocr';
+export const OCR_VERSION = 1;
+
+/** Die Marke, bei der ein Bild in Kacheln gelesen wird (Punkte je Bild). */
+export const OCR_GRENZE = 1_200_000;
+
+/**
+ * In wie viele Kacheln ein Bild zerfällt. Gesendet wird auf 1,2 Megapixel
+ * verkleinert; ein Screenshot in 1920 × 1080 liegt knapp darunter, ein
+ * 300-dpi-Blatt weit darüber. Die Kacheln überlappen, damit keine Zeile
+ * genau auf der Kante stirbt.
+ */
+export function ocrKacheln(breite = 0, hoehe = 0, grenze = OCR_GRENZE, ueberlappung = 0.04) {
+  const b = Math.max(0, Math.round(breite));
+  const h = Math.max(0, Math.round(hoehe));
+  if (!b || !h) return [];
+  const punkte = b * h;
+  if (punkte <= grenze) return [{ x: 0, y: 0, breite: b, hoehe: h, nummer: 1, von: 1 }];
+  // Geteilt wird in Zeilen, nicht in Spalten: Text läuft waagerecht.
+  const zahl = Math.min(6, Math.ceil(punkte / grenze));
+  const schritt = h / zahl;
+  const rand = Math.round(schritt * ueberlappung);
+  const kacheln = [];
+  for (let i = 0; i < zahl; i++) {
+    const oben = Math.max(0, Math.round(i * schritt) - (i ? rand : 0));
+    const unten = Math.min(h, Math.round((i + 1) * schritt) + (i < zahl - 1 ? rand : 0));
+    kacheln.push({ x: 0, y: oben, breite: b, hoehe: unten - oben, nummer: i + 1, von: zahl });
+  }
+  return kacheln;
+}
+
+/** Was Claude zu tun hat. Eine Lesung, keine Deutung - das steht da auch. */
+export function ocrAufforderung(aufnahme = {}, kachel = { nummer: 1, von: 1 }) {
+  const stelle = String(aufnahme.gliederung || '').trim();
+  const teil =
+    kachel.von > 1
+      ? `Das Bild ist Teil ${kachel.nummer} von ${kachel.von} eines größeren Bildschirmfotos (von oben nach unten geschnitten). Lies nur, was in diesem Teil steht.`
+      : '';
+  return [
+    'Du liest den Text aus einem Bildschirmfoto der Anwendung oneSCM (Mercedes-Benz, Servicevertragswesen).',
+    teil,
+    'Gib den sichtbaren Text wieder, Zeile für Zeile, in der Reihenfolge von oben nach unten und links nach rechts.',
+    'Erhalte Überschriften, Beschriftungen von Feldern, Werte, Schaltflächen und Tabellenzeilen.',
+    'Trenne Spalten einer Tabellenzeile mit " | ". Beschreibe keine Bilder, deute nichts, ergänze nichts.',
+    'Was unleserlich ist, schreibe als […]. Antworte nur mit dem Text, ohne Einleitung und ohne Schlusssatz.',
+    aufnahme.titel ? `Titel der Aufnahme: ${aufnahme.titel}` : '',
+    stelle ? `Stelle im Handbuch: ${stelle}` : ''
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+/** Die Lesungen aus dem Speicher; ein unlesbarer Stand gilt als keiner. */
+export function leseOcr(text) {
+  let inhalt = null;
+  try {
+    inhalt = JSON.parse(text || 'null');
+  } catch (fehler) {
+    return {};
+  }
+  const roh = inhalt && typeof inhalt === 'object' ? inhalt.texte || inhalt : {};
+  const sauber = {};
+  for (const [kennung, eintrag] of Object.entries(roh || {})) {
+    if (!eintrag) continue;
+    const gelesen = typeof eintrag === 'string' ? { text: eintrag } : eintrag;
+    const inhaltText = String(gelesen.text || '');
+    if (!inhaltText.trim()) continue;
+    sauber[kennung] = {
+      text: inhaltText,
+      erkannt_am: String(gelesen.erkannt_am || ''),
+      teile: Number(gelesen.teile) || 1,
+      quelle: String(gelesen.quelle || 'claude')
+    };
+  }
+  return sauber;
+}
+
+export function schreibeOcr(eintraege = {}) {
+  return JSON.stringify({ version: OCR_VERSION, stand: new Date().toISOString(), texte: eintraege });
+}
+
+/** Die Teile einer Lesung zu einem Text - ohne doppelte Leerzeilen. */
+export function ocrZusammenfuegen(teile = []) {
+  return teile
+    .map((t) => String(t || '').trim())
+    .filter(Boolean)
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/** Alle Lesungen als eine Textdatei: je Bild ein Abschnitt mit Kopf. */
+export function ocrAlsText(abschnitte = [], { stand = new Date().toISOString(), anwendung = '' } = {}) {
+  const zeilen = [`Texte aus Bildern · Screenarchiv${anwendung ? ' ' + anwendung : ''}`, `Stand: ${formatiereZeitpunkt(stand)}`, ''];
+  for (const abschnitt of abschnitte) {
+    zeilen.push(`## ${abschnitt.titel}`);
+    if (abschnitt.kennung || abschnitt.stelle) {
+      zeilen.push([abschnitt.stelle, abschnitt.kennung].filter(Boolean).join(' · '));
+    }
+    zeilen.push('', String(abschnitt.text || '').trim() || '(kein Text erkannt)', '');
+  }
+  return zeilen.join('\n');
+}
+
+/**
+ * Dieselben Abschnitte als Word-Datei - diesmal mit Text statt Bildern.
+ * Überschrift fett und größer, der Text in Absätzen; eine Datei, die sich
+ * weiterschreiben lässt.
+ */
+export function docxAusText(abschnitte = [], { titel = '', anwendung = '' } = {}) {
+  const gueltig = abschnitte.filter((a) => a && (a.titel || a.text));
+  if (!gueltig.length) return null;
+
+  const absatz = (text, { fett = false, groesse = 22, nach = 120 } = {}) =>
+    `<w:p><w:pPr><w:spacing w:after="${nach}"/></w:pPr><w:r><w:rPr>${fett ? '<w:b/>' : ''}` +
+    `<w:sz w:val="${groesse}"/></w:rPr><w:t xml:space="preserve">${maskiereXml(text)}</w:t></w:r></w:p>`;
+
+  const koerper = [
+    titel ? absatz(titel, { fett: true, groesse: 32, nach: 240 }) : '',
+    ...gueltig.flatMap((a) => [
+      absatz(a.titel || '', { fett: true, groesse: 26, nach: 60 }),
+      a.stelle || a.kennung
+        ? absatz([a.stelle, a.kennung].filter(Boolean).join(' · '), { groesse: 18, nach: 120 })
+        : '',
+      ...String(a.text || '')
+        .split(/\n/)
+        .map((zeile) => absatz(zeile, { nach: zeile.trim() ? 40 : 120 }))
+    ])
+  ]
+    .filter(Boolean)
+    .join('');
+
+  const dokument =
+    XML_KOPF +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+    koerper +
+    '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>' +
+    '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/>' +
+    '</w:sectPr></w:body></w:document>';
+
+  const kern =
+    XML_KOPF +
+    '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" ' +
+    'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" ' +
+    'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
+    `<dc:title>${maskiereXml(titel || 'Texte aus Bildern')}</dc:title>` +
+    `<dc:creator>${maskiereXml(`Screenarchiv ${anwendung}`.trim())}</dc:creator>` +
+    '</cp:coreProperties>';
+
+  return zipSchreiben([
+    {
+      name: '[Content_Types].xml',
+      daten:
+        XML_KOPF +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+        '<Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+        '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
+        '</Types>'
+    },
+    {
+      name: '_rels/.rels',
+      daten:
+        XML_KOPF +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rIdDok" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+        '<Relationship Id="rIdKern" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>' +
+        '</Relationships>'
+    },
+    { name: 'docProps/core.xml', daten: kern },
+    { name: 'word/document.xml', daten: dokument }
   ]);
 }
 

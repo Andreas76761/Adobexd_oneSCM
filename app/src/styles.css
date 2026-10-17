@@ -1652,3 +1652,37 @@ div.streifen-bild { cursor: default; }
   border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche-2);
 }
 .output-bild figcaption { font-size: 11px; color: var(--tinte-3); margin-top: 2px; }
+
+/* ------------------------- OCR: Text aus den Bildern (1.40.0) */
+
+.ocr-raster {
+  display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: clamp(14px, 2vw, 24px);
+  align-items: start; padding-bottom: 60px;
+}
+@media (max-width: 1000px) { .ocr-raster { grid-template-columns: 1fr; } }
+.ocr-liste { display: grid; gap: 6px; margin-top: 10px; max-height: 70vh; overflow-y: auto; }
+.ocr-zeile {
+  position: relative; display: grid; grid-template-columns: auto 72px minmax(0, 1fr) auto; gap: 8px;
+  align-items: center; padding: 5px 8px;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche);
+}
+.ocr-zeile--gewaehlt { border-color: var(--akzent); background: var(--akzent-hauch); }
+.ocr-zeile input { width: auto; margin: 0; }
+.ocr-zeile-bild { cursor: pointer; }
+.ocr-zeile-bild img {
+  display: block; width: 72px; height: 46px; object-fit: cover; object-position: top left;
+  border: 1px solid var(--linie); border-radius: 2px; background: var(--flaeche-2);
+}
+.ocr-zeile-text { display: grid; gap: 1px; font-size: 12.5px; min-width: 0; }
+.ocr-zeile .lupe-knopf { position: static; }
+.ocr-marke--gelesen { color: var(--gut); }
+.ocr-texte { display: grid; gap: 14px; }
+.ocr-feld { display: grid; gap: 4px; }
+.ocr-feld-kopf { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; }
+.ocr-feld-kopf label { font-weight: 600; font-size: 13px; }
+.ocr-feld textarea {
+  width: 100%; font-family: var(--schrift-mono); font-size: 12.5px; line-height: 1.5;
+  padding: 8px 10px; color: var(--tinte); background: var(--flaeche);
+  border: 1px solid var(--linie-stark); border-radius: var(--radius); resize: vertical;
+}
+.ocr-feld-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; }

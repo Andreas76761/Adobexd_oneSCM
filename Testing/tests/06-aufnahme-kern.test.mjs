@@ -2963,4 +2963,77 @@ s.test('die Lupe nennt Weg, Rezept und Schritte eines Bildes', () => {
   tieferGleich(kern.kapitelPfad(outputGliederung, '9.9'), ['9.9']);
 });
 
+/* ------------------------------- OCR: Text aus Bildern (1.40.0) */
+
+s.test('ein großes Bild wird in überlappende Kacheln zerlegt', () => {
+  // Was unter der Marke liegt, bleibt ein Stück.
+  const eins = kern.ocrKacheln(1280, 800);
+  gleich(eins.length, 1);
+  tieferGleich(eins[0], { x: 0, y: 0, breite: 1280, hoehe: 800, nummer: 1, von: 1 });
+
+  // 1440 × 900 sind 1,296 Megapixel - knapp darüber, also zwei Kacheln.
+  const zwei = kern.ocrKacheln(1440, 900);
+  gleich(zwei.length, 2);
+  gleich(zwei[0].breite, 1440, 'geteilt wird in Zeilen, nicht in Spalten');
+  wahr(zwei[0].y + zwei[0].hoehe > zwei[1].y, 'die Kacheln überlappen nicht');
+  gleich(zwei[1].y + zwei[1].hoehe, 900, 'die letzte Kachel endet am Bildrand');
+
+  // Ein Blatt aus dem Studio: viele Kacheln, aber nie mehr als sechs.
+  const blatt = kern.ocrKacheln(2480, 3508);
+  wahr(blatt.length >= 6, blatt.length);
+  gleich(blatt.length, 6);
+  gleich(blatt[0].y, 0);
+  tieferGleich(kern.ocrKacheln(0, 100), []);
+});
+
+s.test('die Aufforderung sagt, was zu tun ist – und was nicht', () => {
+  const text = kern.ocrAufforderung({ titel: 'Übersicht Einkauf', gliederung: '7.5.1' }, { nummer: 2, von: 3 });
+  wahr(text.includes('Teil 2 von 3'), text);
+  wahr(text.includes('Titel der Aufnahme: Übersicht Einkauf'), text);
+  wahr(text.includes('Stelle im Handbuch: 7.5.1'), text);
+  wahr(/deute nichts, ergänze nichts/.test(text), 'die Grenze der Lesung fehlt');
+  // Ein einzelnes Bild bekommt keinen Kachelsatz.
+  wahr(!kern.ocrAufforderung({}, { nummer: 1, von: 1 }).includes('Teil 1'), 'ohne Kacheln kein Kachelsatz');
+});
+
+s.test('Lesungen überleben den Speicher und werden zusammengefügt', () => {
+  const eintraege = {
+    'AUF-1': { text: 'Zeile eins', erkannt_am: '2026-10-17T08:00:00.000Z', teile: 2, quelle: 'claude' },
+    'AUF-2': { text: '   ', erkannt_am: '', teile: 1, quelle: 'hand' }
+  };
+  const gelesen = kern.leseOcr(kern.schreibeOcr(eintraege));
+  tieferGleich(Object.keys(gelesen), ['AUF-1'], 'eine leere Lesung ist keine');
+  gleich(gelesen['AUF-1'].teile, 2);
+  // Ein älterer Stand mit nacktem Text wird gelesen.
+  gleich(kern.leseOcr(JSON.stringify({ texte: { 'AUF-9': 'nur Text' } }))['AUF-9'].text, 'nur Text');
+  tieferGleich(kern.leseOcr('{kaputt'), {});
+  tieferGleich(kern.leseOcr(null), {});
+
+  gleich(kern.ocrZusammenfuegen(['  oben  ', '', '   ', 'unten']), 'oben\nunten');
+  gleich(kern.ocrZusammenfuegen([]), '');
+});
+
+s.test('die Texte werden zu einer Textdatei und zu einer Word-Datei', () => {
+  const abschnitte = [
+    { titel: 'Übersicht Einkauf', kennung: 'AUF-1', stelle: '7.5.1', text: 'Offene Freigaben | 47' },
+    { titel: 'Formular', kennung: 'AUF-2', stelle: '', text: '' }
+  ];
+  const text = kern.ocrAlsText(abschnitte, { stand: '2026-10-17T08:00:00.000Z', anwendung: '1.40.0' });
+  wahr(text.includes('## Übersicht Einkauf'), text);
+  wahr(text.includes('7.5.1 · AUF-1'), text);
+  wahr(text.includes('Offene Freigaben | 47'), text);
+  wahr(text.includes('(kein Text erkannt)'), 'ein leerer Abschnitt wird verschwiegen');
+
+  const docx = kern.docxAusText(abschnitte, { titel: 'Texte aus Bildern', anwendung: '1.40.0' });
+  const namen = kern.leseZipVerzeichnis(docx).map((e) => e.name);
+  tieferGleich(namen, ['[Content_Types].xml', '_rels/.rels', 'docProps/core.xml', 'word/document.xml']);
+  const xml = Buffer.from(docx).toString('utf8');
+  wahr(xml.includes('<w:t xml:space="preserve">Offene Freigaben | 47</w:t>'), 'der Text fehlt im Dokument');
+  wahr(xml.includes('<dc:title>Texte aus Bildern</dc:title>'), 'der Titel fehlt');
+  // Kein Bild, keine Medien - und spitze Klammern im Text werden maskiert.
+  const heikel = Buffer.from(kern.docxAusText([{ titel: 'A', text: 'a < b & c' }], {})).toString('utf8');
+  wahr(heikel.includes('a &lt; b &amp; c'), 'der Text wird nicht maskiert');
+  gleich(kern.docxAusText([]), null);
+});
+
 export default s;

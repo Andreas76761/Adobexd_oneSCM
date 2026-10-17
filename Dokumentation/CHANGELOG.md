@@ -20,6 +20,30 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.40.0] – Register OCR: den Text aus den Bildern holen
+
+### Neu
+* **Register OCR** (F-58): Bilder wählen, „Text erkennen“, Text im Feld
+  ändern – und als Textdatei oder Word-Datei (echter Text, kein Bild)
+  sichern oder in die Notiz der Aufnahme übernehmen
+* Gelesen wird über **Claude** (`sample` mit `images`); große Bilder werden
+  in waagerechte, überlappende Kacheln zerlegt, weil jedes gesendete Bild auf
+  rund 1,2 Megapixel verkleinert wird
+* Die Lesungen liegen in `screenarchiv:ocr` und überleben das Neuladen; ohne
+  die Fähigkeit bleibt die Ansicht als Schreibfläche brauchbar
+
+### Kern
+* `OCR_SCHLUESSEL`, `OCR_VERSION`, `OCR_GRENZE`, `ocrKacheln`,
+  `ocrAufforderung`, `leseOcr`, `schreibeOcr`, `ocrZusammenfuegen`,
+  `ocrAlsText`, `docxAusText`
+
+### Geändert
+* Neues Oberflächenmodul `ocr.js`; der Start steht jetzt in dessen letzter
+  Zeile (vorher `output.js`)
+
+### Prüfung
+* Neue Datei `21-ocr.e2e.mjs` (5 Fälle), 4 neue Kernprüfungen; zusammen 436
+
 ## [1.39.0] – Register Output und die Lupe
 
 ### Neu

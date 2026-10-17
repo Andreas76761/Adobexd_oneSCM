@@ -428,7 +428,5 @@ function verdrahteOutput() {
 
 verdrahteOutput();
 
-// Der Start steht in der letzten Zeile der letzten Datei (siehe CLAUDE.md).
-starte();
-stelleOrdnerWiederHer();
-stelleVorschauenWieder();
+// Der Start steht in der letzten Zeile der letzten Datei - seit 1.40.0
+// ist das ocr.js (siehe CLAUDE.md).

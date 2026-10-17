@@ -21,6 +21,9 @@
     <symbol id="sym-markt" viewBox="0 0 24 24">
       <path d="M6 21V4M6 4h11l-2.2 3.4L17 11H6"/>
     </symbol>
+    <symbol id="sym-nav-ocr" viewBox="0 0 24 24">
+      <path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3M8 9h8M8 12h8M8 15h5"/>
+    </symbol>
     <symbol id="sym-lupe" viewBox="0 0 24 24">
       <circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4 20 20M8 10.5h5M10.5 8v5"/>
     </symbol>
@@ -133,6 +136,7 @@
             <button type="button" data-ansicht="gliederung"><svg class="symbol" aria-hidden="true"><use href="#sym-kapitel"/></svg>Gliederung</button>
             <button type="button" data-ansicht="pruefung"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-pruefung"/></svg>Prüfung</button>
             <button type="button" data-ansicht="verzeichnis"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-verzeichnis"/></svg>Verzeichnis</button>
+            <button type="button" data-ansicht="ocr"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-ocr"/></svg>OCR</button>
             <button type="button" data-ansicht="output"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-output"/></svg>Output</button>
             <button type="button" data-ansicht="eingang"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-eingang"/></svg>Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
@@ -834,6 +838,41 @@
     </div>
   </section>
 
+  <section id="ocr-ansicht" aria-label="OCR" hidden>
+    <div class="output-kopf">
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--haupt" id="ocr-lesen" disabled>Text erkennen</button>
+        <button type="button" class="knopf" id="ocr-abbrechen" hidden>Anhalten</button>
+        <button type="button" class="knopf" id="ocr-txt" disabled>Als Textdatei</button>
+        <button type="button" class="knopf" id="ocr-docx" disabled>Als Word</button>
+      </div>
+      <span class="band-stand" id="ocr-stand"></span>
+    </div>
+
+    <p class="band-hinweis">
+      Hier wird der Text aus den Bildern geholt. Lesen kann die Seite nicht
+      selbst – ein Texterkenner wäre ein fremdes Programm, und die
+      Inhaltsrichtlinie des Artifacts lässt keines zu. Lesen kann
+      <b>Claude</b>: die Seite schickt das Bild und bewahrt die Antwort auf.
+      Große Bilder werden dafür in Kacheln zerlegt, weil jedes gesendete Bild
+      auf rund 1,2 Megapixel verkleinert wird. Jede Lesung steht in einem
+      Feld, in dem sie sich ändern lässt – sie ist eine Lesung, keine Messung.
+    </p>
+    <p class="studio-meldung" id="ocr-meldung" role="status" aria-live="polite"></p>
+
+    <div class="ocr-raster">
+      <div class="ocr-wahl">
+        <div class="markier-knoepfe">
+          <button type="button" class="knopf knopf--klein" id="ocr-alle">Alle wählen</button>
+          <button type="button" class="knopf knopf--klein" id="ocr-keine">Keines</button>
+          <button type="button" class="knopf knopf--klein" id="ocr-offene">Nur ungelesene</button>
+        </div>
+        <div class="ocr-liste" id="ocr-liste"></div>
+      </div>
+      <div class="ocr-texte" id="ocr-texte"></div>
+    </div>
+  </section>
+
   <section id="output-ansicht" aria-label="Output" hidden>
     <div class="output-kopf">
       <div class="markier-knoepfe">
@@ -1052,5 +1091,6 @@
 /*%PRUEFUNG%*/
 /*%ABLAGE%*/
 /*%OUTPUT%*/
+/*%OCR%*/
 })();
 </script>

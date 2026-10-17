@@ -1472,3 +1472,43 @@ geladen ist die Vorschau), rechts vier Abschnitte:
 | **Rezept** | Quelle, Ausschnitt, Einfuhr, Bearbeitungen, Fassungen, Erfasser – und in welchem Schritt welcher Strecke das Bild steht |
 
 Dazu zwei Wege hinaus: in den Editor oder in den Eingangsdialog.
+
+## F-58 · Register OCR – den Text aus den Bildern holen
+
+**Seit** 1.40.0 · betrifft OCR, Eingang
+
+**Das Problem** In den Bildschirmfotos steckt Text: Feldbeschriftungen,
+Tabellenzeilen, Meldungen. Für ein Handbuch wird er gebraucht – abgetippt
+wird er heute von Hand.
+
+**Die Lösung** Ein eigenes Register. Links die Bilder der Arbeitsmenge mit
+Kästchen („alle“, „keines“, „nur ungelesene“), rechts je gewähltem Bild ein
+Textfeld. „Text erkennen“ holt den Text, das Feld zeigt ihn – **änderbar**,
+denn eine Lesung ist keine Messung.
+
+**Wer liest.** Nicht die Seite: ein Texterkenner wäre ein fremdes Programm,
+und die Inhaltsrichtlinie des Artifacts lässt keines zu (eine mitgelieferte
+WASM-Erkennung samt Sprachdaten wäre zudem ein Vielfaches der ganzen Seite).
+Lesen kann **Claude** über die Fähigkeit `sample`, die Bilder mitnimmt. Die
+Seite schickt das Bild und eine Aufforderung, die sagt, was zu tun ist: Text
+Zeile für Zeile, Tabellenspalten mit `|` getrennt, nichts deuten, nichts
+ergänzen, Unleserliches als `[…]`.
+
+**Kacheln.** Jedes gesendete Bild wird auf rund 1,2 Megapixel verkleinert –
+bei kleiner Schrift wäre das der Unterschied zwischen Lesen und Raten. Bilder
+darüber werden darum in waagerechte, leicht überlappende Kacheln zerlegt
+(höchstens sechs) und Kachel für Kachel gelesen; die Antworten werden
+zusammengefügt. Ein Bildschirmfoto in 1440 × 900 ergibt zwei Kacheln.
+
+**Was mit dem Text geschieht**
+
+| Weg | Ergebnis |
+| --- | --- |
+| Textfeld | ändern, ergänzen, von Hand eintragen – auch ganz ohne Claude |
+| In die Notiz übernehmen | der Text steht an der Aufnahme (auf 2000 Zeichen gekürzt) und ist damit durchsuchbar |
+| Als Textdatei | `texte-JJJJ-MM-TT.txt`, je Bild ein Abschnitt mit Stelle und Kennung |
+| Als Word | `texte-JJJJ-MM-TT.docx` – echter Text, kein Bild: weiterschreibbar |
+
+Die Lesungen liegen im Browser (`screenarchiv:ocr`) und überleben das
+Neuladen. Fehlt die Fähigkeit oder darf sie keine Bilder sehen, sagt die
+Ansicht das und bleibt als Schreibfläche brauchbar.

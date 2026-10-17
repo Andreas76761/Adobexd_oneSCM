@@ -69,7 +69,8 @@ const MODULE = [
   'chat.js',
   'pruefung.js',
   'ablage.js',
-  'output.js'
+  'output.js',
+  'ocr.js'
 ];
 const erklaerungen = new Map();
 for (const modul of MODULE) {
@@ -102,6 +103,7 @@ const seite = lies('app', 'src', 'index.template.html')
   .replace('/*%PRUEFUNG%*/', () => lies('app', 'src', 'pruefung.js'))
   .replace('/*%ABLAGE%*/', () => lies('app', 'src', 'ablage.js'))
   .replace('/*%OUTPUT%*/', () => lies('app', 'src', 'output.js'))
+  .replace('/*%OCR%*/', () => lies('app', 'src', 'ocr.js'))
   .replace('/*%STAND%*/', daten.stand.split('-').reverse().join('.'))
   .replace('/*%ANZAHL%*/', String(daten.eintraege.length))
   .replace('/*%AUFNAHMEN%*/', String(manifest.anzahl))

@@ -112,6 +112,7 @@ function setze(aenderung, neuZeichnen = true) {
   if (zustand.ansicht === 'pruefung') zeichnePruefung();
   if (zustand.ansicht === 'verzeichnis') zeichneVerzeichnis();
   if (zustand.ansicht === 'output') zeichneOutput();
+  if (zustand.ansicht === 'ocr') zeichneOcr();
 }
 
 function schalte(dimension, wert) {
@@ -555,6 +556,7 @@ const ABSCHNITTE = {
   pruefung: 'pruefung-ansicht',
   verzeichnis: 'verzeichnis-ansicht',
   output: 'output-ansicht',
+  ocr: 'ocr-ansicht',
   eingang: 'eingang-ansicht'
 };
 
@@ -1031,6 +1033,7 @@ if (zustand.ansicht === 'import') zeichneImport();
 if (zustand.ansicht === 'pruefung') zeichnePruefung();
 if (zustand.ansicht === 'verzeichnis') zeichneVerzeichnis();
 if (zustand.ansicht === 'output') zeichneOutput();
+if (zustand.ansicht === 'ocr') zeichneOcr();
 if (zustand.auswahl) oeffneDetail(zustand.auswahl, false);
 document.documentElement.dataset.bereit = 'ja';
 }
