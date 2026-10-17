@@ -15,9 +15,19 @@ Adobexd_oneSCM/
 ├── app/                       ANWENDUNG
 │   ├── src/
 │   │   ├── core.mjs           Kernlogik ohne DOM (Suche, Filter, Wirkung, Zustand,
-│   │   │                      Aufnahme-Entwurf, Ausschnitt, Eingang)
+│   │   │                      Aufnahme-Entwurf, Ausschnitt, Eingang, Marken,
+│   │   │                      Fassungen, Gliederung, Labels, Strecken, BPMN,
+│   │   │                      Designvorlagen, Archive, Suchchat, Agenten,
+│   │   │                      Varianten, Verzeichnisplan)
 │   │   ├── ui.js              Navigation, Archivansicht, Detailansicht
 │   │   ├── aufnahme.js        Aufnahmestudio und Eingang
+│   │   ├── schnipsel.js       Ausschneiden, Ordnerzugriff, Beipackzettel
+│   │   ├── markieren.js       Editor, Strecke, Gliederung, Deckungsmatrix
+│   │   ├── design.js          Designstudio (Blätter, Deckblatt, Vorlagen)
+│   │   ├── import.js          Import aus PNG, PPTX, DOCX, XLSX, PDF
+│   │   ├── chat.js            Suchchat (frei bewegliches Fenster)
+│   │   ├── pruefung.js        die drei Agenten
+│   │   ├── ablage.js          Verzeichnis – die Galerie auf die Platte
 │   │   ├── styles.css         Gestaltung, Farbtoken für beide Themen
 │   │   └── index.template.html Gerüst mit Platzhaltern
 │   └── build/build.mjs        setzt alles zu einer Datei zusammen
@@ -36,8 +46,8 @@ data/eintraege.json ──▶ data/generator ──▶ data/screens/*.svg + mani
         │                                            │
         └──────────────┬─────────────────────────────┘
                        ▼
-       app/build/build.mjs  ◀── app/src/{core.mjs, ui.js, aufnahme.js, styles.css,
-                       ▼                  index.template.html}
+       app/build/build.mjs  ◀── app/src/{core.mjs, die neun Oberflächenmodule,
+                       ▼                  styles.css, index.template.html}
                        ▼
               dist/index.html  ──▶ Artifact
 ```
@@ -51,22 +61,31 @@ Stil, Kernlogik, Oberfläche, Daten und die 40 Aufnahmen – steht inline in der
 Datei. Externe Abrufe scheitern an der Inhaltsrichtlinie der Vorschau; erlaubt
 sind allein Schriften von `fonts.googleapis.com` / `fonts.gstatic.com`.
 
-## Ein Skriptbereich, zwei Oberflächendateien
+## Ein Skriptbereich, neun Oberflächendateien
 
-`ui.js` und `aufnahme.js` werden vom Build in **dieselbe** Klammer geschrieben:
+Alle Oberflächenmodule werden vom Build in **dieselbe** Klammer geschrieben:
 
 ```js
 (function () { 'use strict';
-  /* ui.js */
-  /* aufnahme.js */
+  /* ui.js, aufnahme.js, schnipsel.js, markieren.js, design.js,
+     import.js, chat.js, pruefung.js, ablage.js */
 })();
 ```
 
-Beide teilen sich damit Helfer (`el`, `$`, `zustand`, `setze`, `zeichne`) ohne
-globale Namen. Weil `aufnahme.js` Werte anlegt, die `ui.js` liest (etwa
-`eingang`), steht der Start am Ende: `ui.js` erklärt `starte()`, aufgerufen
-wird es in der letzten Zeile von `aufnahme.js`. Funktionserklärungen werden
-vorgezogen, `const`/`let` nicht – deshalb diese Reihenfolge.
+Sie teilen sich damit Helfer (`el`, `$`, `zustand`, `setze`, `zeichne`) und
+Zustand (`eingang`, `strecken`, `GLIEDERUNG`) ohne globale Namen. Weil
+`aufnahme.js` Werte anlegt, die `ui.js` liest, steht der Start am Ende:
+`ui.js` erklärt `starte()`, aufgerufen wird es in der **letzten Zeile der
+letzten Datei** – derzeit `ablage.js`. Funktionserklärungen werden vorgezogen,
+`const`/`let` nicht; deshalb diese Reihenfolge.
+
+Eine gemeinsame Klammer hat einen Preis: **zwei gleiche Namen sind einer zu
+viel.** Für den Browser ist das kein Fehler – die spätere Erklärung gewinnt
+stumm, und die früheren Aufrufe laufen in die falsche Funktion. Genau das
+passierte in 1.28.0 mit `zeichneStudio` (Aufnahme und Design): die Aufnahme
+ließ sich nicht mehr auslösen, ohne eine einzige Fehlermeldung. Seither prüft
+der Build die Namen aller Module gegeneinander und bricht ab, bevor so etwas
+in die Seite kommt.
 
 ## Wo die Aufnahmen liegen
 
@@ -98,3 +117,35 @@ Generator kennt sechs Archetypen (`uebersicht`, `liste`, `formular`, `checkout`,
 `suchfeld`, `panel`. Vorher und Nachher unterscheiden sich genau in den
 Schaltern, um die es im Beleg geht. Die Erzeugung ist deterministisch: derselbe
 Datensatz ergibt Byte-gleiche Dateien, was ein Test absichert.
+
+## Wo die Daten des Betrachters liegen
+
+| Schlüssel | Ort | Inhalt |
+| --- | --- | --- |
+| `screenarchiv:eingang` | `localStorage` | Aufnahmen samt Vorschau (JPEG, 760 px) |
+| `screenarchiv:strecken` | `localStorage` | Klickstrecken mit Schritten |
+| `screenarchiv:ablage` | `localStorage` | Ablageziele und Namensmuster |
+| `screenarchiv:design` | `localStorage` | Einstellungen des Designstudios |
+| `screenarchiv:verzeichnis` | `localStorage` | Muster und Schalter des Verzeichnisses |
+| `screenarchiv:chat` | `localStorage` | Lage und Größe des Suchchats |
+| `screenarchiv` → `bilder` | IndexedDB | Bilder in voller Auflösung (`AUF-…`, `AUF-…:<Fassung>`) |
+| `screenarchiv` → `zugriffe` | IndexedDB | der gemerkte Ordnerzugriff |
+
+Nichts davon verlässt den Browser, solange der Betrachter es nicht selbst
+ablegt: über „Als JSON sichern", den Kontaktbogen, eine Einzeldatei oder die
+Ansicht **Verzeichnis**.
+
+## Was Claude in der Seite tut – und was nicht
+
+Zwei Stellen fragen Claude, wenn der Betrachter die Fähigkeit `sample` gibt:
+der **Suchchat** (er lässt die Frage deuten) und die **Agenten** (sie lassen
+den fertigen Bericht kommentieren). Beide sind so gebaut, dass die Seite ohne
+Claude vollständig arbeitet:
+
+* Der Chat **filtert immer selbst**. Von Claude kommt höchstens ein Filter,
+  nie eine Antwort – darum kann im Fenster kein Bild stehen, das es nicht gibt.
+* Die Agenten **urteilen immer nach Regeln**. Der Kommentar steht hinter den
+  Befunden und ist als Kommentar gekennzeichnet.
+
+Fehlt die Fähigkeit oder verweigert sie der Betrachter, sagt die Seite das und
+arbeitet weiter.

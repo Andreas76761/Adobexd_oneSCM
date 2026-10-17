@@ -298,6 +298,43 @@ s.test('eine eigene Vorlage lässt sich speichern, nutzen und löschen', () =>
     { hash: AUFNAHME }
   ));
 
+s.test('das ganze Handbuch entsteht als eine HTML-Datei', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1', '7.5.2']);
+      await oeffneStudio(seite);
+      // Vor dem Rechnen steht da, was herauskäme.
+      const stand = await seite.locator('#handbuch-umfang-stand').innerText();
+      wahr(/Stellen · 2 Bilder/.test(stand), 'der Umfang wird nicht gezählt: ' + stand);
+
+      await seite.fill('#design-titel', 'oneSCM Benutzerhandbuch');
+      await seite.fill('#design-hinweis', 'Interne Unterlage');
+      await seite.selectOption('#handbuch-groesse', '1600');
+      await seite.click('#handbuch-sichern');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 30000 });
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      gleich(datei.filename, 'handbuch-onescm-benutzerhandbuch.html');
+      wahr(datei.groesse > 20000, 'das Handbuch ist verdächtig klein: ' + datei.groesse);
+      wahr(
+        /gesichert .* 2 Bilder/.test(await seite.locator('#design-meldung').innerText()),
+        await seite.locator('#design-meldung').innerText()
+      );
+
+      // Die ganze Gliederung nimmt auch die leeren Stellen mit.
+      await seite.selectOption('#handbuch-umfang', 'alle');
+      await seite.waitForFunction(
+        () => /noch ohne Bild/.test(document.getElementById('handbuch-umfang-stand').textContent),
+        null,
+        { timeout: 5000 }
+      );
+      wahr(
+        /23 Kapitel/.test(await seite.locator('#handbuch-umfang-stand').innerText()),
+        await seite.locator('#handbuch-umfang-stand').innerText()
+      );
+    },
+    { hash: AUFNAHME, initSkript: ablageNachbau }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

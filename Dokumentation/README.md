@@ -9,6 +9,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [versionen/v1.32.0.md](versionen/v1.32.0.md) | Das ganze Handbuch – die Gliederung in einem Dokument |
 | [versionen/v1.30.0.md](versionen/v1.30.0.md) | Varianten – dieselbe Maske in jeder Sprache, Deckungsmatrix |
 | [versionen/v1.29.0.md](versionen/v1.29.0.md) | Verzeichnis – die Galerie samt Zusatzdaten auf die Platte |
 | [versionen/v1.28.0.md](versionen/v1.28.0.md) | Designstudio vollständig – Deckblatt, Zeilen, eigene Vorlagen |

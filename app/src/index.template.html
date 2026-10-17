@@ -641,6 +641,35 @@
             <button type="button" class="knopf" id="eigen-loeschen" disabled>Vorlage löschen</button>
           </div>
         </div>
+        <div class="design-studio-feld">
+          <h3 class="abschnitt-titel">Ganzes Handbuch</h3>
+          <p class="feld-hinweis">
+            Nicht ein Blatt, sondern alles in einem Stück: die Gliederung in
+            ihrer Ordnung, mit Inhaltsverzeichnis, den Texten des Handbuchs, den
+            Bildern an ihrer Stelle und – wo eine Strecke sie erzählt – ihren
+            Anweisungen. Aus der HTML-Datei macht der Browser das PDF.
+          </p>
+          <div class="feld">
+            <label for="handbuch-umfang">Umfang</label>
+            <select id="handbuch-umfang">
+              <option value="mitBildern">alle Stellen mit Bildern</option>
+              <option value="alle">die ganze Gliederung (auch leere Stellen)</option>
+              <option value="kapitel">nur das gewählte Kapitel</option>
+            </select>
+          </div>
+          <div class="feld">
+            <label for="handbuch-groesse">Bilder</label>
+            <select id="handbuch-groesse">
+              <option value="1600">auf 1600 px begrenzt (JPEG)</option>
+              <option value="2400">auf 2400 px begrenzt (JPEG)</option>
+              <option value="0">in voller Auflösung (PNG)</option>
+            </select>
+          </div>
+          <p class="feld-hinweis" id="handbuch-umfang-stand"></p>
+          <div class="markier-knoepfe">
+            <button type="button" class="knopf knopf--haupt" id="handbuch-sichern">Handbuch als HTML sichern</button>
+          </div>
+        </div>
       </div>
     </details>
 

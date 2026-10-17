@@ -495,6 +495,7 @@ function zeichneStudioeinstellungen() {
   $('#eigen-format').replaceChildren(
     ...FORMATE.map((f) => el('option', { value: f.id, text: f.label, selected: f.id === (studio.format || 'a4-hoch') }))
   );
+  zeigeHandbuchUmfang();
   const eigen = studio.eigene.find((v) => v.id === studio.vorlage);
   $('#eigen-loeschen').disabled = !eigen;
   if (eigen && $('#eigen-label') !== document.activeElement) {
@@ -685,6 +686,105 @@ async function sichereAlsHtml() {
   );
 }
 
+/* ------------------------------------------------------------ Handbuch */
+
+/** Welche Stellen das Handbuch umfassen soll - nach der Wahl im Studio. */
+function handbuchAuswahl() {
+  const umfang = $('#handbuch-umfang').value;
+  const stelle = umfang === 'kapitel' && designQuelle.startsWith('kapitel:') ? designQuelle.slice(8) : '';
+  return {
+    stelle,
+    teile: handbuchTeile(GLIEDERUNG, eingang, strecken, { stelle, nurMitBildern: umfang !== 'alle' })
+  };
+}
+
+/** Sagt vor dem Rechnen, was herauskäme. */
+function zeigeHandbuchUmfang() {
+  const { teile, stelle } = handbuchAuswahl();
+  const zahl = handbuchUmfang(teile);
+  $('#handbuch-umfang-stand').textContent = zahl.stellen
+    ? `${zahl.kapitel} Kapitel · ${zahl.stellen} Stellen · ${zahl.bilder} Bilder${
+        zahl.ohneBild ? ` · ${zahl.ohneBild} noch ohne Bild` : ''
+      }${stelle ? ` · nur ${stelle}` : ''}`
+    : 'Keine Stelle im Umfang – Bildern im Editor eine Stelle geben oder „die ganze Gliederung" wählen.';
+  $('#handbuch-sichern').disabled = !zahl.stellen;
+}
+
+/**
+ * Ein Bild für das Handbuch. Voll heißt PNG in Originalgröße; begrenzt heißt
+ * JPEG auf die gewählte Breite - 300 Seiten in voller Auflösung sprengen jede
+ * Datei, und für den Druck reichen 1600 px auf A4 allemal.
+ */
+async function handbuchBild(aufnahme, grenze) {
+  const adresse = await bestesBild(aufnahme, (neuesteFassung(aufnahme) || {}).nummer);
+  if (!adresse) return '';
+  if (!grenze) return adresse;
+  const geladen = await ladeBild(adresse, 'eingang', aufnahme.titel);
+  const massstab = Math.min(1, grenze / Math.max(1, geladen.breite));
+  const leinwand = document.createElement('canvas');
+  leinwand.width = Math.max(1, Math.round(geladen.breite * massstab));
+  leinwand.height = Math.max(1, Math.round(geladen.hoehe * massstab));
+  const stift = leinwand.getContext('2d');
+  stift.imageSmoothingQuality = 'high';
+  stift.fillStyle = '#FFFFFF';
+  stift.fillRect(0, 0, leinwand.width, leinwand.height);
+  stift.drawImage(geladen.element, 0, 0, leinwand.width, leinwand.height);
+  return leinwand.toDataURL('image/jpeg', 0.86);
+}
+
+async function sichereHandbuch() {
+  const { teile, stelle } = handbuchAuswahl();
+  if (!teile.length) return;
+  const grenze = Number($('#handbuch-groesse').value) || 0;
+  $('#handbuch-sichern').disabled = true;
+  const zahl = handbuchUmfang(teile);
+  meldeDesign(`Handbuch wird gerechnet – ${zahl.bilder} Bilder …`, 'neutral');
+
+  const bilder = new Map();
+  let gerechnet = 0;
+  for (const teil of teile) {
+    for (const aufnahme of teil.bilder) {
+      if (bilder.has(aufnahme.id)) continue;
+      try {
+        bilder.set(aufnahme.id, await handbuchBild(aufnahme, grenze));
+      } catch (fehler) {
+        bilder.set(aufnahme.id, aufnahme.bild || '');
+      }
+      gerechnet += 1;
+      if (gerechnet % 5 === 0) meldeDesign(`Handbuch wird gerechnet – ${gerechnet} von ${zahl.bilder} Bildern …`, 'neutral');
+    }
+  }
+
+  const eintrag = stelle ? GLIEDERUNG.find((e) => e.nummer === stelle) : null;
+  const titel = studio.titel || (eintrag ? `${eintrag.nummer} ${eintrag.thema}` : 'Benutzerhandbuch');
+  const html = handbuchHtml(teile, {
+    titel,
+    untertitel: studio.untertitel,
+    hinweis: studio.hinweis,
+    anwendung: DATEN.anwendung,
+    bilder,
+    mitTexten: studio.texte
+  });
+  const name = `handbuch-${bereinigeDateiname(titel) || 'oneSCM'}.html`;
+  const ergebnis = await uebergebeDatei(name, new Blob([html], { type: 'text/html' }));
+  $('#handbuch-sichern').disabled = false;
+  if (ergebnis.art === 'gesichert') {
+    meldeDesign(
+      `${name} gesichert (${formatiereBytes(ergebnis.groesse)}) – ${zahl.stellen} Stellen, ${zahl.bilder} Bilder. Im Browser öffnen und drucken ergibt das PDF.`,
+      'gut'
+    );
+    return;
+  }
+  meldeDesign(
+    ergebnis.art === 'zu_gross'
+      ? `Das Handbuch ist mit ${formatiereBytes(ergebnis.groesse)} zu groß für eine Datei (Grenze 16 MB). Bilder kleiner wählen oder den Umfang auf ein Kapitel einschränken.`
+      : ergebnis.art === 'ohne'
+        ? 'Diese Ansicht darf keine Dateien ablegen. Das Handbuch bleibt ungesichert.'
+        : 'Das Sichern wurde abgebrochen oder ist fehlgeschlagen.',
+    'warnung'
+  );
+}
+
 function verdrahteDesign() {
   $('#design-quelle').addEventListener('change', (e) => {
     designQuelle = e.target.value;
@@ -715,6 +815,8 @@ function verdrahteDesign() {
       studioTakt = setTimeout(zeichneDesign, 500);
     });
   }
+  $('#handbuch-umfang').addEventListener('change', zeigeHandbuchUmfang);
+  $('#handbuch-sichern').addEventListener('click', sichereHandbuch);
   $('#eigen-sichern').addEventListener('click', sichereEigeneVorlage);
   $('#eigen-loeschen').addEventListener('click', loescheEigeneVorlage);
   $('#design-sichern').addEventListener('click', sichereBlaetter);

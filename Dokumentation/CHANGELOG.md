@@ -20,6 +20,27 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.32.0] – Das ganze Handbuch als ein Dokument
+
+### Neu
+* **Handbuch-Export** (F-47): die ganze Gliederung in einem Stück – Titel,
+  Stand, Inhaltsverzeichnis mit Sprungmarken, je Stelle die Texte des
+  Handbuchs, die Bilder und die Anweisungen der Strecke, die sie erzählt
+* **Umfang wählbar**: alle Stellen mit Bildern, die ganze Gliederung samt
+  leeren Stellen, oder nur das gewählte Kapitel – die Zahl steht vor dem
+  Rechnen da
+* **Bildgröße wählbar**: voll (PNG) oder auf 1600/2400 px begrenzt (JPEG);
+  wird die Datei zu groß für die 16-MB-Grenze, sagt die Meldung den Ausweg
+* Ausgabe als HTML mit `@page A4` und Seitenumbruch je Kapitel, ohne jeden
+  Verweis nach außen – der Browser macht daraus das PDF
+* Die Sichtprüfung erzeugt das Handbuch mit und legt ein Bild davon ab
+
+### Kern
+* `handbuchTeile`, `handbuchUmfang`, `handbuchHtml`, `streckeFuerStelle`
+
+### Prüfung
+* 4 neue Kernprüfungen, 1 neue Browserprüfung; zusammen 367
+
 ## [1.31.0] – Symbole, Sichtprüfung und drei Behebungen
 
 ### Neu

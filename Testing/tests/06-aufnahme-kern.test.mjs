@@ -2164,4 +2164,129 @@ s.test('eine Strecke lässt sich in eine andere Sprache umstellen', () => {
   gleich(kern.streckeInVariante(strecke, eingang, 'sprache', 'de').fehlt.length, 0);
 });
 
+/* --------------------------------------------------------------- Handbuch */
+
+const handbuchGliederung = kern.leseGliederung({
+  eintraege: [
+    { nummer: '6', thema: 'Templates', ebene: 1 },
+    { nummer: '6.1', thema: 'Documents', ebene: 2, kriterium: 0 },
+    { nummer: '6.2', thema: 'Emails', ebene: 2 },
+    { nummer: '7', thema: 'Verträge', ebene: 1 },
+    { nummer: 'Ü1', thema: 'Übergang', ebene: 2, art: 'uebergang' }
+  ],
+  texte: ['Die Vorlage ist angelegt.']
+});
+
+const handbuchEingang = [
+  {
+    id: 'A1',
+    titel: 'Liste öffnen',
+    gliederung: '6.1',
+    kapitel: 6,
+    unterkapitel: 1,
+    sprache: 'de',
+    bild: 'data:image/png;base64,AA',
+    erfasst_am: '2026-10-17T08:00:00Z'
+  },
+  {
+    id: 'A2',
+    titel: 'Formular füllen',
+    gliederung: '6.1',
+    kapitel: 6,
+    unterkapitel: 1,
+    bild: 'data:image/png;base64,BB',
+    erfasst_am: '2026-10-17T08:05:00Z'
+  }
+];
+
+const handbuchStrecken = [
+  {
+    id: 'S1',
+    name: 'Vorlage anlegen',
+    schritte: [
+      { art: 'schritt', aufnahmen: ['A1'], text: 'Im Menü öffnen' },
+      { art: 'schritt', aufnahmen: ['A2'], text: 'Formular füllen' }
+    ]
+  }
+];
+
+s.test('das Handbuch nimmt die Stellen in der Ordnung der Gliederung', () => {
+  const teile = kern.handbuchTeile(handbuchGliederung, handbuchEingang, handbuchStrecken);
+  tieferGleich(teile.map((t) => t.nummer), ['6', '6.1'], 'leere Zweige kommen mit oder die Ordnung stimmt nicht');
+  gleich(teile[0].bilder.length, 0, 'das Kapitel selbst trägt keine eigenen Bilder');
+  gleich(teile[0].nachkommen, 2, 'das Kapitel weiß nicht, was unter ihm liegt');
+  gleich(teile[1].bilder.length, 2);
+  // Die Anweisungen der Strecke hängen an den Bildern, die sie zeigt.
+  gleich(teile[1].folge, 'Vorlage anlegen');
+  tieferGleich(teile[1].schritte.map((s) => s.text), ['Im Menü öffnen', 'Formular füllen']);
+  gleich(teile[1].kriterium, 'Die Vorlage ist angelegt.');
+
+  // Die ganze Gliederung nimmt auch die leeren Stellen - ohne Übergänge.
+  const alle = kern.handbuchTeile(handbuchGliederung, handbuchEingang, handbuchStrecken, { nurMitBildern: false });
+  tieferGleich(alle.map((t) => t.nummer), ['6', '6.1', '6.2', '7']);
+  // Ein Kapitel allein.
+  const eins = kern.handbuchTeile(handbuchGliederung, handbuchEingang, handbuchStrecken, { stelle: '6' });
+  tieferGleich(eins.map((t) => t.nummer), ['6', '6.1']);
+  tieferGleich(kern.handbuchTeile(handbuchGliederung, [], [], {}).map((t) => t.nummer), []);
+});
+
+s.test('der Umfang wird gezählt, bevor gerechnet wird', () => {
+  const teile = kern.handbuchTeile(handbuchGliederung, handbuchEingang, handbuchStrecken, { nurMitBildern: false });
+  tieferGleich(kern.handbuchUmfang(teile), { stellen: 4, bilder: 2, kapitel: 2, ohneBild: 3 });
+  tieferGleich(kern.handbuchUmfang([]), { stellen: 0, bilder: 0, kapitel: 0, ohneBild: 0 });
+});
+
+s.test('die Strecke zu einer Stelle ist die, die sie am besten erzählt', () => {
+  const zweite = { id: 'S2', name: 'Nur ein Schritt', schritte: [{ art: 'schritt', aufnahmen: ['A1'], text: 'eins' }] };
+  const beste = kern.streckeFuerStelle([zweite, ...handbuchStrecken], handbuchEingang, '6.1');
+  gleich(beste.strecke.name, 'Vorlage anlegen');
+  gleich(beste.treffer, 2);
+  gleich(kern.streckeFuerStelle([], handbuchEingang, '6.1'), null);
+  gleich(kern.streckeFuerStelle(handbuchStrecken, handbuchEingang, '9.9'), null);
+});
+
+s.test('das Handbuch ist ein vollständiges HTML mit Inhaltsverzeichnis', () => {
+  const teile = kern.handbuchTeile(handbuchGliederung, handbuchEingang, handbuchStrecken);
+  const html = kern.handbuchHtml(teile, {
+    titel: 'oneSCM Benutzerhandbuch',
+    untertitel: 'Stand 10/2026',
+    hinweis: 'Interne Unterlage',
+    stand: '2026-10-17T10:00:00Z',
+    anwendung: '1.32.0',
+    bilder: new Map([['A1', 'data:image/jpeg;base64,ZZ']])
+  });
+  wahr(html.startsWith('<!doctype html>'), html.slice(0, 40));
+  wahr(html.includes('<title>oneSCM Benutzerhandbuch</title>'));
+  wahr(html.includes('href="#stelle-6-1"'), 'das Inhaltsverzeichnis verweist nicht');
+  wahr(html.includes('id="stelle-6-1"'), 'der Anker fehlt');
+  wahr(html.includes('src="data:image/jpeg;base64,ZZ"'), 'das gerechnete Bild fehlt');
+  wahr(html.includes('src="data:image/png;base64,BB"'), 'ohne gerechnetes Bild fehlt die Vorschau');
+  wahr(html.includes('<b>1. Im Menü öffnen</b>'), 'die Anweisung steht nicht an ihrem Bild');
+  wahr(html.includes('Die Vorlage ist angelegt.'), 'der Text der Gliederung fehlt');
+  // Ein Kapitel, dessen Unterkapitel Bilder haben, ist keine Lücke …
+  wahr(!html.includes('Zu dieser Stelle liegt noch kein Bild vor.'), 'das Kapitel wird als Lücke ausgegeben');
+  // … eine Stelle ohne Bilder unter sich dagegen schon.
+  const mitLuecke = kern.handbuchHtml(
+    kern.handbuchTeile(handbuchGliederung, handbuchEingang, handbuchStrecken, { nurMitBildern: false }),
+    { anwendung: '1.32.0' }
+  );
+  wahr(mitLuecke.includes('Zu dieser Stelle liegt noch kein Bild vor.'), 'die leere Stelle bleibt unerwähnt');
+  wahr(html.includes('17.10.2026, 10:00') && html.includes('2 Bilder'), 'der Stand fehlt');
+  wahr(html.includes('@page { size: A4 portrait'), 'ohne Druckformat ist es kein Handbuch');
+  wahr(!/https?:\/\//.test(html), 'das Handbuch verweist nach außen');
+
+  // Ohne Texte aus dem Handbuch bleiben Bilder und Anweisungen.
+  const ohne = kern.handbuchHtml(teile, { mitTexten: false, anwendung: '1.32.0' });
+  wahr(!ohne.includes('Die Vorlage ist angelegt.'), 'die Texte lassen sich nicht abschalten');
+  wahr(ohne.includes('<b>1. Im Menü öffnen</b>'));
+
+  // Freitext darf das Dokument nicht zerlegen.
+  const boese = kern.handbuchHtml(
+    [{ nummer: '1', thema: '<script>alert(1)</script>', ebene: 1, bilder: [], schritte: [], folge: '' }],
+    { titel: 'A & B' }
+  );
+  wahr(boese.includes('&lt;script&gt;'), 'Freitext steht ungemaskiert im Dokument');
+  wahr(boese.includes('<title>A &amp; B</title>'));
+});
+
 export default s;

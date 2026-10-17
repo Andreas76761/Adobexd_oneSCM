@@ -26,7 +26,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `03-aufnahmen.test.mjs` | erzeugte SVG-Aufnahmen: Vollständigkeit, Maße, Sauberkeit, Determinismus | 8 |
 | `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken, doppelte Selektoren | 14 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
-| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten und Kontaktbogen | 123 |
+| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten, Handbuch und Kontaktbogen | 127 |
 | `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Bilderstapel, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen, Werkbank, Bild mit Zettel | 66 |
 
 | `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beipackzettel, Beenden, Sichtbarkeit im Archiv, Zettel im Ordnerband, Übernahme, Nachpflege, verwaiste Zettel, Tastatur, Filter, Metadaten im Bild, „Was hier geht“ | 34 |
@@ -37,7 +37,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `11-gliederung.e2e.mjs` | Gliederung im Browser: Baum, Suche, Zählung je Stelle, Zuordnung, Labels, Teilschritte | 8 |
 
-| `12-design.e2e.mjs` | Designstudio im Browser: Vorlagen, Format, Texte, Ausgabe, Deckblatt, Kopf- und Fußzeile, eigene Vorlagen | 9 |
+| `12-design.e2e.mjs` | Designstudio im Browser: Vorlagen, Format, Texte, Ausgabe, Deckblatt, Kopf- und Fußzeile, eigene Vorlagen, ganzes Handbuch | 10 |
 
 | `13-import.e2e.mjs` | Import im Browser: PNG, Präsentation je Folie, Word, altes Format, PDF ohne Bilder, Übernahme in den Eingang, Lupe | 8 |
 
@@ -49,7 +49,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `17-varianten.e2e.mjs` | Varianten im Browser: verbinden und lösen, Deckungsmatrix, Ausgabe in einer anderen Sprache | 5 |
 
-Summe: **362 Prüfungen**.
+Summe: **367 Prüfungen**.
 
 ## Eigene Helfer
 
@@ -153,8 +153,8 @@ Das Aussehen selbst. Dafür gibt es `npm run schuss`: das Skript legt
 Bildschirmaufnahmen der fertigen Seite ab – Liste, Detailansicht, Telefon,
 Aufnahmestudio, Kompaktmodus, Ausschneiden, Eingang, Nachpflege, Werkbank,
 Editor, Strecke, Gliederung, Designstudio, Import, Prüfung, Verzeichnis,
-Suchchat und Deckungsmatrix, die wichtigsten hell und dunkel – sowie einen
-echten Kontaktbogen samt Bild davon. Zum Ansehen, nicht zum automatischen
+Suchchat, Deckungsmatrix und Handbuch, die wichtigsten hell und dunkel –
+sowie einen echten Kontaktbogen und ein echtes Handbuch samt Bild davon. Zum Ansehen, nicht zum automatischen
 Vergleichen: Automatisiert wird nur, was sich eindeutig entscheiden lässt.
 
 Dass auch das nötig bleibt, hat 1.31.0 gezeigt: Prüfung und Verzeichnis

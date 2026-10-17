@@ -1158,3 +1158,38 @@ vorliegt, bleibt das bisherige stehen und wird **genannt** („1 Schritt ohne
 Entsprechung: 2“) – lieber eine gemischte Seite als ein Loch, von dem niemand
 weiß. Bei einem Kapitel als Inhalt wirkt die Wahl als Filter; die Anweisungen
 der Strecke bleiben in jedem Fall.
+
+---
+
+## F-47 · Das ganze Handbuch als ein Dokument
+
+**Seit** 1.32.0 · **Ansicht** Design (Studio → Ganzes Handbuch)
+
+**Zweck** Das Designstudio setzt Blätter – eine Strecke, ein Kapitel, eine
+Vorlage. Das Handbuch ist das andere Ende: die **ganze Gliederung in einem
+Stück**, in ihrer Ordnung.
+
+**Was darin steht** Deckzeile mit Titel, Untertitel und Stand (Kapitel,
+Stellen, Bilder, offene Stellen), ein **Inhaltsverzeichnis** mit Sprungmarken
+und Bildzahl je Stelle, dann je Stelle: Überschrift mit Nummer, die Texte der
+Gliederung (Abschlusskriterium, Nachweis und Quelle, Übergang – abschaltbar
+mit „Texte aus dem Handbuch“), die Bilder in der Reihenfolge der Gliederung
+und – wo eine **Strecke** die Bilder dieser Stelle erzählt – deren Anweisungen
+als Nummer über der Bildunterschrift. Gewählt wird die Strecke, die die
+meisten Bilder dieser Stelle zeigt.
+
+**Lücken** Eine Stelle ohne Bilder, unter der auch keine liegen, wird als
+Lücke benannt. Ein Kapitel, dessen Unterkapitel Bilder haben, nicht – das wäre
+Rauschen.
+
+**Umfang** Alle Stellen mit Bildern (Vorgabe), die ganze Gliederung mit ihren
+leeren Stellen, oder nur das im Studio gewählte Kapitel. Vor dem Rechnen steht
+da, was herauskäme.
+
+**Bilder** In voller Auflösung (PNG) oder auf 1600 bzw. 2400 px begrenzt
+(JPEG). Die Grenze ist kein Schmuck: 300 Seiten in voller Auflösung sprengen
+die 16-MB-Grenze einer Datei – was passiert, sagt die Meldung samt Ausweg.
+
+**Ausgabe** Eine HTML-Datei mit `@page A4` und Seitenumbruch je Kapitel; der
+Browser macht daraus das PDF. Sie kommt ohne jeden Verweis nach außen aus –
+Bilder stecken als Datenadressen darin.

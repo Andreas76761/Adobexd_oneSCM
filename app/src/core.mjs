@@ -4191,3 +4191,194 @@ export function streckeInVariante(strecke = {}, eingang = [], feld = 'sprache', 
     fehlt
   };
 }
+
+/* =========================================================================
+   Handbuch – alle Kapitel in einem Dokument.
+
+   Das Designstudio setzt Blätter: eine Strecke, ein Kapitel, eine Vorlage.
+   Das Handbuch ist das andere Ende: die ganze Gliederung in einem Stück, in
+   ihrer Ordnung, mit den Texten der Gliederung, den Bildern an ihrer Stelle
+   und - wo eine Strecke die Bilder erzählt - deren Anweisungen als Folge.
+
+   Gebaut wird HTML: der Browser macht daraus das PDF. Ein selbstgeschriebener
+   PDF-Satz wäre ohne Fremdcode schlechter als der Druckweg, und Fremdcode
+   lässt die Inhaltsrichtlinie des Artifacts nicht zu.
+   ========================================================================= */
+
+/** Die Strecke, die eine Stelle am besten erzählt - oder null. */
+export function streckeFuerStelle(strecken = [], eingang = [], nummer) {
+  let beste = null;
+  let hoechste = 0;
+  for (const strecke of strecken) {
+    const schritte = streckeMitAufnahmen(strecke, eingang);
+    const treffer = schritte.filter((s) => s.aufnahme && gehoertZu(String(s.aufnahme.gliederung || ''), nummer)).length;
+    if (treffer > hoechste) {
+      hoechste = treffer;
+      beste = { strecke, schritte, treffer };
+    }
+  }
+  return beste;
+}
+
+/**
+ * Die Teile des Handbuchs in der Ordnung der Gliederung. Eine Stelle kommt
+ * vor, wenn sie Bilder hat - oder, mit `nurMitBildern: false`, weil sie in
+ * der Gliederung steht. Leere Kapitel sind keine Panne: sie zeigen, was noch
+ * fehlt, und halten die Nummerierung des Handbuchs zusammen.
+ */
+export function handbuchTeile(gliederung = [], eingang = [], strecken = [], { stelle = '', nurMitBildern = true } = {}) {
+  const teile = [];
+  for (const eintrag of gliederung) {
+    if (eintrag.art === 'uebergang') continue;
+    if (stelle && !gehoertZu(eintrag.nummer, stelle)) continue;
+    const bilder = sortiereNachKapitel(eingang.filter((a) => String(a.gliederung || '').trim() === eintrag.nummer));
+    const kinderBilder = eingang.filter((a) => gehoertZu(String(a.gliederung || '').trim(), eintrag.nummer)).length;
+    if (nurMitBildern && !kinderBilder) continue;
+    const folge = bilder.length ? streckeFuerStelle(strecken, eingang, eintrag.nummer) : null;
+    teile.push({
+      nummer: eintrag.nummer,
+      thema: eintrag.thema,
+      ebene: eintrag.ebene,
+      // Wie viele Bilder unterhalb liegen: ein Kapitel ohne eigene Bilder ist
+      // keine Luecke, wenn seine Unterkapitel welche haben.
+      nachkommen: kinderBilder,
+      kriterium: eintrag.kriterium,
+      notiz: eintrag.notiz,
+      text: eintrag.text,
+      bilder,
+      // Die Anweisungen der Strecke gehören zu den Bildern, die sie zeigt.
+      schritte: folge
+        ? folge.schritte
+            .filter((s) => s.aufnahme && gehoertZu(String(s.aufnahme.gliederung || ''), eintrag.nummer))
+            .map((s) => ({ nummer: s.nummer, text: s.text, aufnahme: s.aufnahme.id }))
+        : [],
+      folge: folge ? folge.strecke.name || 'Klickstrecke' : ''
+    });
+  }
+  return teile;
+}
+
+/** Zählt, was das Handbuch enthalten wird - vor dem Rechnen. */
+export function handbuchUmfang(teile = []) {
+  return {
+    stellen: teile.length,
+    bilder: teile.reduce((summe, t) => summe + t.bilder.length, 0),
+    kapitel: teile.filter((t) => t.ebene === 1).length,
+    ohneBild: teile.filter((t) => !t.bilder.length).length
+  };
+}
+
+/**
+ * Das Handbuch als HTML. Die Bilder kommen als Datenadressen herein - gerechnet
+ * werden sie in der Oberfläche, weil nur sie eine Leinwand hat.
+ */
+export function handbuchHtml(
+  teile = [],
+  { titel = 'Benutzerhandbuch', untertitel = '', hinweis = '', stand = new Date().toISOString(), anwendung = '', bilder = new Map(), mitTexten = true } = {}
+) {
+  const m = maskiereHtml;
+  const anker = (nummer) => 'stelle-' + String(nummer).replace(/[^0-9A-Za-z]/g, '-');
+  const umfang = handbuchUmfang(teile);
+
+  const inhalt = teile
+    .filter((t) => t.ebene <= 2)
+    .map(
+      (t) =>
+        `<li class="ebene-${t.ebene}"><a href="#${anker(t.nummer)}"><span class="nummer">${m(t.nummer)}</span> ${m(
+          t.thema
+        )}</a><span class="zahl">${t.bilder.length || ''}</span></li>`
+    )
+    .join('\n');
+
+  const abschnitte = teile
+    .map((t) => {
+      const ueberschrift = `h${Math.min(4, Math.max(2, t.ebene + 1))}`;
+      const texte = mitTexten
+        ? [
+            t.kriterium ? `<p class="schild">Abschlusskriterium</p><p>${m(t.kriterium)}</p>` : '',
+            t.notiz ? `<p class="schild">Nachweis und Quelle</p><p>${m(t.notiz)}</p>` : '',
+            t.text ? `<p class="schild">Übergang</p><p>${m(t.text)}</p>` : ''
+          ]
+            .filter(Boolean)
+            .join('\n')
+        : '';
+      const anweisung = new Map(t.schritte.map((s) => [s.aufnahme, s]));
+      const abbildungen = t.bilder
+        .map((a) => {
+          const schritt = anweisung.get(a.id);
+          const quelle = bilder.get(a.id) || a.bild || '';
+          return [
+            '<figure>',
+            quelle ? `<img src="${quelle}" alt="${m(a.titel)}">` : '<p class="fehlt">Bild nicht verfügbar</p>',
+            `<figcaption>${schritt ? `<b>${m(String(schritt.nummer))}. ${m(schritt.text || a.titel)}</b><br>` : ''}${m(
+              bildunterschrift(a)
+            )}${labelKette(a) ? ` · ${m(labelKette(a))}` : ''}</figcaption>`,
+            '</figure>'
+          ].join('');
+        })
+        .join('\n');
+      return [
+        `<section class="stelle ebene-${t.ebene}" id="${anker(t.nummer)}">`,
+        `<${ueberschrift}><span class="nummer">${m(t.nummer)}</span> ${m(t.thema)}</${ueberschrift}>`,
+        t.folge ? `<p class="folge">Folge: ${m(t.folge)}</p>` : '',
+        texte,
+        abbildungen || (t.nachkommen ? '' : '<p class="fehlt">Zu dieser Stelle liegt noch kein Bild vor.</p>'),
+        '</section>'
+      ]
+        .filter(Boolean)
+        .join('\n');
+    })
+    .join('\n');
+
+  return `<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${m(titel)}</title>
+<style>
+  @page { size: A4 portrait; margin: 18mm 16mm; }
+  :root { color-scheme: light; }
+  body { margin: 0; background: #ECEEF2; color: #141A24;
+         font-family: 'IBM Plex Sans', system-ui, sans-serif; line-height: 1.55; }
+  .blatt { max-width: 900px; margin: 0 auto; background: #FFF; padding: 48px 56px 64px; }
+  h1 { font-size: 30px; margin: 0 0 6px; }
+  .untertitel { color: #4A5769; margin: 0 0 24px; }
+  .stand { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #77839A; }
+  .inhalt { border-top: 1px solid #D6DBE4; border-bottom: 1px solid #D6DBE4; margin: 24px 0 32px; padding: 16px 0; }
+  .inhalt ul { list-style: none; margin: 0; padding: 0; }
+  .inhalt li { display: flex; gap: 10px; align-items: baseline; font-size: 14px; padding: 2px 0; }
+  .inhalt li.ebene-2 { padding-left: 22px; font-size: 13px; }
+  .inhalt a { color: inherit; text-decoration: none; flex: 1 1 auto; }
+  .inhalt a:hover { text-decoration: underline; }
+  .inhalt .zahl { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #77839A; }
+  .nummer { font-family: ui-monospace, Menlo, monospace; color: #B4432B; margin-right: 8px; }
+  .stelle { margin: 0 0 34px; }
+  .stelle.ebene-1 { border-top: 3px solid #141A24; padding-top: 18px; break-before: page; }
+  .stelle h2 { font-size: 23px; margin: 0 0 10px; }
+  .stelle h3 { font-size: 18px; margin: 0 0 8px; }
+  .stelle h4 { font-size: 15px; margin: 0 0 6px; }
+  .schild { font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: .05em;
+            text-transform: uppercase; color: #77839A; margin: 12px 0 2px; }
+  .stelle p { margin: 0 0 8px; font-size: 14px; }
+  .folge { font-size: 12.5px; color: #4A5769; }
+  figure { margin: 16px 0 20px; break-inside: avoid; }
+  figure img { display: block; width: 100%; height: auto; border: 1px solid #D6DBE4; }
+  figcaption { font-size: 12px; color: #4A5769; margin-top: 6px; }
+  .fehlt { font-size: 13px; color: #9A6B1F; }
+  .fuss { border-top: 1px solid #D6DBE4; margin-top: 40px; padding-top: 12px;
+          font-size: 11.5px; color: #77839A; display: flex; justify-content: space-between; gap: 16px; }
+  @media print { body { background: #FFF; } .blatt { max-width: none; margin: 0; padding: 0; } }
+</style>
+</head><body><div class="blatt">
+<h1>${m(titel)}</h1>
+${untertitel ? `<p class="untertitel">${m(untertitel)}</p>` : ''}
+<p class="stand">${m(formatiereZeitpunkt(stand))} · ${umfang.kapitel} Kapitel · ${umfang.stellen} Stellen · ${
+    umfang.bilder
+  } Bilder${umfang.ohneBild ? ` · ${umfang.ohneBild} Stellen noch ohne Bild` : ''}</p>
+<nav class="inhalt"><ul>
+${inhalt}
+</ul></nav>
+${abschnitte}
+<div class="fuss"><span>Screenarchiv ${m(anwendung)}</span><span>${m(hinweis)}</span></div>
+</div></body></html>
+`;
+}

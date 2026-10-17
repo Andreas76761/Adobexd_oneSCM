@@ -529,5 +529,83 @@ const geteilterBildschirm = `
   await kontext.close();
 }
 
+/* Das ganze Handbuch: erzeugen, ablegen, ansehen. */
+{
+  const kontext = await browser.newContext({ viewport: { width: 1100, height: 1400 } });
+  // Das Handbuch kommt als Blob - der Text muss daraus gelesen werden.
+  await kontext.addInitScript(`window.__abgelegt = [];
+    window.claude = { use: async (n) => n === 'downloads'
+      ? { save: async (a) => {
+            const text = typeof a.data === 'string' ? a.data : await a.data.text();
+            window.__abgelegt.push({ filename: a.filename, data: text });
+            return { status: 'saved' };
+          } }
+      : null };`);
+  const seite = await kontext.newPage();
+  await seite.goto(adresse + '#ans=aufnahme', { waitUntil: 'load' });
+  await seite.waitForSelector('html[data-bereit="ja"]');
+  await seite.click('#quelle-beispiel');
+  await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled);
+  const satz = [
+    ['Vorlagenliste öffnen', '7.5.1', 'Im Menü „Contract Generation" öffnen'],
+    ['Market filtern', '7.5.1', 'Market auf Germany filtern'],
+    ['Vorlage anlegen', '7.5.2', 'Auf „Create Template" klicken']
+  ];
+  for (const [titel, stelle] of satz) {
+    await seite.fill('#feld-titel', titel);
+    await seite.fill('#feld-projekt', 'oneSCM Portal');
+    await seite.selectOption('#feld-kategorie', 'Formular');
+    await seite.fill('#feld-begriffe', 'vorlage');
+    await seite.click('#ausloesen');
+    await seite.waitForTimeout(150);
+    await seite.click('#letzte-editor');
+    await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden, null, { timeout: 8000 });
+    await seite.fill('#markier-stelle', stelle);
+    await seite.evaluate(() => {
+      document.getElementById('markier-labels').open = true;
+    });
+    await seite.selectOption('#label-sprache', 'de');
+    await seite.selectOption('#label-rolle_label', 'dealer');
+    await seite.waitForTimeout(150);
+    await seite.click('#markier-sichern');
+    await seite.waitForTimeout(200);
+    await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+    await seite.waitForTimeout(120);
+  }
+  // Eine Strecke gibt dem Handbuch seine Anweisungen.
+  await seite.click('.portal-nav button[data-ansicht="strecke"]');
+  await seite.click('#strecke-neu');
+  await seite.fill('#strecke-name', 'Vorlage anlegen');
+  for (let i = 0; i < satz.length; i++) {
+    const kennung = await seite.locator('#strecke-aufnahme option').nth(i).getAttribute('value');
+    await seite.selectOption('#strecke-aufnahme', kennung);
+    await seite.click('#strecke-anhaengen');
+    await seite.waitForTimeout(120);
+    await seite.fill('#schritt-text-' + i, satz[i][2]);
+  }
+  await seite.click('.portal-nav button[data-ansicht="design"]');
+  await seite.waitForSelector('#design-ansicht:not([hidden])');
+  await seite.evaluate(() => {
+    document.getElementById('design-studio').open = true;
+  });
+  await seite.fill('#design-titel', 'oneSCM – Benutzerhandbuch');
+  await seite.fill('#design-untertitel', 'Vertragsvorlagen für Dealer, Stand 10/2026');
+  await seite.fill('#design-hinweis', 'Interne Unterlage – nicht zur Weitergabe');
+  await seite.waitForTimeout(600);
+  await seite.click('#handbuch-sichern');
+  await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 30000 });
+  const [datei] = await seite.evaluate(() => window.__abgelegt);
+  const pfad = join(ziel, datei.filename);
+  writeFileSync(pfad, datei.data, 'utf8');
+  console.log(`${datei.filename} (${(datei.data.length / 1024).toFixed(0)} kB)`);
+
+  const ansicht = await kontext.newPage();
+  await ansicht.goto(pathToFileURL(pfad).href, { waitUntil: 'load' });
+  await ansicht.waitForTimeout(500);
+  await ansicht.screenshot({ path: join(ziel, 'handbuch.png'), fullPage: true });
+  console.log('handbuch.png');
+  await kontext.close();
+}
+
 await browser.close();
 console.log(`\nAufnahmen liegen in ${ziel}`);
