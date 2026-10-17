@@ -1476,3 +1476,39 @@ div.streifen-bild { cursor: default; }
   border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche-2);
   font-family: var(--schrift-mono); font-size: 11.5px; line-height: 1.6; color: var(--tinte-2);
 }
+
+/* ------------------------------- Varianten und Deckungsmatrix (1.30.0) */
+
+.varianten-liste { display: grid; gap: 6px; }
+.varianten-zeile {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 6px 8px; border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche);
+}
+.varianten-zeile--selbst { border-color: var(--akzent); }
+.varianten-zeile img {
+  display: block; width: 64px; height: 40px; object-fit: cover; object-position: top left;
+  border: 1px solid var(--linie); border-radius: 2px; background: var(--flaeche-2);
+}
+.varianten-text { display: grid; gap: 1px; font-size: 12px; }
+.varianten-wahl { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 8px; }
+.varianten-wahl .feld { flex: 1 1 240px; }
+
+.matrix { padding: 10px 0 60px; }
+.matrix-kopf { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: end; }
+.matrix-kopf .abschnitt-titel { margin: 0; }
+.matrix-tabelle { overflow-x: auto; margin-top: 10px; }
+.matrix-gitter { border-collapse: collapse; font-size: 12px; min-width: 100%; }
+.matrix-gitter th, .matrix-gitter td {
+  border: 1px solid var(--linie); padding: 5px 9px; text-align: left; vertical-align: middle;
+}
+.matrix-gitter thead th { background: var(--flaeche-2); font-size: 11.5px; white-space: nowrap; }
+.matrix-gitter tbody th { display: grid; gap: 1px; background: var(--flaeche); }
+.matrix-zelle { text-align: center; font-family: var(--schrift-mono); }
+.matrix-zelle--leer { color: var(--tinte-3); background: var(--flaeche-2); }
+.matrix-knopf {
+  padding: 1px 8px; border: 1px solid var(--linie); border-radius: 10px;
+  background: var(--akzent-hauch); color: var(--akzent-tief); font: inherit; cursor: pointer;
+}
+.matrix-knopf:hover { border-color: var(--akzent); }
+.matrix-voll tbody th, .matrix-gitter tr.matrix-voll th { border-left: 3px solid var(--gut); }
+.matrix-summe th, .matrix-summe td { background: var(--flaeche-2); font-weight: 600; }

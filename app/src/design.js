@@ -43,6 +43,8 @@ function aendereStudio(aenderung, neuZeichnen = true) {
 }
 
 const designVorlageSatz = () => vorlageAus(studio.vorlage, studio.eigene);
+let designVariante = ''; // '' oder 'sprache:en' – die Ausgabe in einer Variante
+let designFehlendeVarianten = []; // Schritte ohne Entsprechung, zuletzt gerechnet
 let studioTakt = 0; // gedrosseltes Neuzeichnen beim Tippen
 
 /** Die Inhalte, aus denen ein Blatt entstehen kann. */
@@ -62,9 +64,20 @@ function designQuellen() {
 
 /** Die Schritte des gewählten Inhalts: Bild, Anweisung, Aufnahme. */
 function designSchritte() {
+  const [varianteFeld, varianteWert] = designVariante ? designVariante.split(':') : ['', ''];
+  designFehlendeVarianten = [];
   if (designQuelle.startsWith('strecke:')) {
-    const strecke = strecken.find((s) => 'strecke:' + s.id === designQuelle);
-    if (!strecke) return { titel: '', schritte: [] };
+    const gefunden = strecken.find((s) => 'strecke:' + s.id === designQuelle);
+    if (!gefunden) return { titel: '', schritte: [] };
+    // Die Ausgabe in einer anderen Sprache tauscht je Schritt das Bild gegen
+    // seine Entsprechung; wo keine vorliegt, bleibt das bisherige stehen und
+    // wird genannt.
+    let strecke = gefunden;
+    if (varianteFeld && varianteWert) {
+      const umgestellt = streckeInVariante(gefunden, eingang, varianteFeld, varianteWert);
+      strecke = umgestellt.strecke;
+      designFehlendeVarianten = umgestellt.fehlt;
+    }
     return {
       titel: strecke.name || 'Klickstrecke',
       // Platzhalter haben kein Bild - auf ein Blatt kommen sie nicht.
@@ -80,11 +93,19 @@ function designSchritte() {
   if (designQuelle.startsWith('kapitel:')) {
     const stelle = designQuelle.slice(8);
     const eintrag = GLIEDERUNG.find((e) => e.nummer === stelle);
+    // Bei einem Kapitel ist die Variante ein Filter: nur die Bilder in dieser
+    // Sprache, Rolle, Sparte oder diesem Markt.
     const bilder = sortiereNachKapitel(
-      eingang.filter((a) => gehoertZu(String(a.gliederung || ''), stelle))
+      eingang.filter(
+        (a) =>
+          gehoertZu(String(a.gliederung || ''), stelle) &&
+          (!varianteFeld || String(a[varianteFeld] || '') === varianteWert)
+      )
     );
     return {
-      titel: eintrag ? `${eintrag.nummer} ${eintrag.thema}` : stelle,
+      titel:
+        (eintrag ? `${eintrag.nummer} ${eintrag.thema}` : stelle) +
+        (varianteFeld ? ` · ${labelWert(varianteFeld, varianteWert)}` : ''),
       schritte: bilder.map((a, i) => ({ aufnahme: a, anweisung: a.titel, nummer: i + 1 }))
     };
   }
@@ -445,6 +466,23 @@ function zeichneTeileschalter(kasten, teile, gewaehlt, schluessel) {
 // Der Name sagt es genau: die Einstellungen, nicht das Blatt. (In
 // aufnahme.js heißt die Studioansicht der Aufnahme schon zeichneStudio -
 // zwei gleiche Namen in einer Klammer wären einer zu viel.)
+/** Die Werte, in die sich die Ausgabe umstellen lässt - aus dem Bestand. */
+function designVariantenwahl() {
+  const wahl = [];
+  for (const feld of VARIANTEN_FELDER) {
+    const werte = [...new Set(eingang.map((a) => String(a[feld] || '')).filter(Boolean))].sort((a, b) =>
+      labelWert(feld, a).localeCompare(labelWert(feld, b))
+    );
+    for (const wert of werte) {
+      wahl.push({
+        id: `${feld}:${wert}`,
+        label: `${LABEL_FELDER.find((f) => f.id === feld).label}: ${labelWert(feld, wert)}`
+      });
+    }
+  }
+  return wahl;
+}
+
 function zeichneStudioeinstellungen() {
   $('#design-deckblatt').checked = studio.deckblatt;
   $('#design-texte').checked = studio.texte;
@@ -530,6 +568,12 @@ async function zeichneDesign() {
   $('#design-zweck').textContent = `${vor.zweck} Bis zu ${vor.spalten * vor.zeilen} Bilder je Seite, ${
     format(studio.format || vor.format).label
   }, 300 dpi.`;
+  const varianten = designVariantenwahl();
+  if (designVariante && !varianten.some((v) => v.id === designVariante)) designVariante = '';
+  $('#design-variante').replaceChildren(
+    el('option', { value: '', text: 'wie abgelegt', selected: !designVariante }),
+    ...varianten.map((v) => el('option', { value: v.id, text: v.label, selected: v.id === designVariante }))
+  );
 
   const { schritte } = designSchritte();
   $('#design-sichern').disabled = !schritte.length;
@@ -568,11 +612,16 @@ async function zeichneDesign() {
   // Der Stand steht am Container: welche Vorlage hier gerade liegt.
   $('#design-blaetter').dataset.vorlage = studio.vorlage;
   $('#design-blaetter').dataset.texte = studio.texte ? 'ja' : 'nein';
+  const luecke = designFehlendeVarianten.length
+    ? ` · ${designFehlendeVarianten.length} Schritt(e) ohne Entsprechung: ${designFehlendeVarianten
+        .map((f) => f.nummer)
+        .join(', ')}`
+    : '';
   meldeDesign(
     `${designSeiten.length} ${designSeiten.length === 1 ? 'Blatt' : 'Blätter'}${
       studio.deckblatt ? ' (mit Deckblatt)' : ''
-    } · ${schritte.length} Bilder · ${studio.texte ? 'mit' : 'ohne'} Texte aus dem Handbuch.`,
-    'gut'
+    } · ${schritte.length} Bilder · ${studio.texte ? 'mit' : 'ohne'} Texte aus dem Handbuch${luecke}.`,
+    designFehlendeVarianten.length ? 'warnung' : 'gut'
   );
 }
 
@@ -649,6 +698,10 @@ function verdrahteDesign() {
   $('#design-texte').addEventListener('change', (e) => aendereStudio({ texte: e.target.checked }));
   $('#design-labels').addEventListener('change', (e) => aendereStudio({ labels: e.target.checked }));
   $('#design-deckblatt').addEventListener('change', (e) => aendereStudio({ deckblatt: e.target.checked }));
+  $('#design-variante').addEventListener('change', (e) => {
+    designVariante = e.target.value;
+    zeichneDesign();
+  });
   for (const [feld, schluessel] of [
     ['#design-titel', 'titel'],
     ['#design-untertitel', 'untertitel'],

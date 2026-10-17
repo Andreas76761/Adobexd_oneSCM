@@ -20,6 +20,30 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.30.0] – Varianten: dieselbe Maske in jeder Sprache
+
+### Neu
+* **Variantengruppen** (F-46): im Editor lassen sich Aufnahmen verbinden, die
+  dieselbe Maske in anderer Sprache, Rolle, Sparte oder Markt zeigen. Der
+  Block zeigt die Gruppe, öffnet ihre Mitglieder und nennt, welche Werte des
+  Bestands ihr noch fehlen
+* **Deckungsmatrix** in der Gliederung: Stelle × Wert, umschaltbar nach
+  Sprache, Rolle, Sparte, Markt – mit Summen, Spalte „ohne“ und dem Stand,
+  wie viele Stellen vollständig belegt sind. Ein Klick auf eine Zelle öffnet
+  das erste Bild
+* **Ausgabe in einer Variante** im Designstudio: dieselbe Strecke in einer
+  anderen Sprache; fehlende Entsprechungen bleiben stehen und werden genannt.
+  Bei einem Kapitel wirkt die Wahl als Filter
+
+### Kern
+* `VARIANTEN_FELDER`, `neueVariantengruppe`, `variantengruppe`,
+  `variantenVon`, `verbindeVarianten`, `loeseVariante`, `findeVariante`,
+  `fehlendeVarianten`, `deckungsMatrix`, `streckeInVariante`
+
+### Prüfung
+* Neue Datei `17-varianten.e2e.mjs`; 4 neue Kernprüfungen, 5
+  Browserprüfungen, zusammen 362
+
 ## [1.29.0] – Verzeichnis: die Galerie auf die Platte
 
 ### Neu

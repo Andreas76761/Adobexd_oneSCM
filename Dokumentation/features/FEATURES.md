@@ -1123,3 +1123,38 @@ Platte ist mehr wert als keine.
 
 **Grenze** Ordnerzugriff gibt es nur in Chromium (Chrome, Edge). Fehlt er,
 sagt die Ansicht es und nennt den Weg über „Als JSON sichern“ im Eingang.
+
+---
+
+## F-46 · Varianten, Deckungsmatrix und Ausgabe je Sprache
+
+**Seit** 1.30.0 · **Ansichten** Editor, Gliederung, Design
+
+**Das Problem** Ein Label sagt, *was* ein Bild ist. Es sagt nicht, dass zwei
+Bilder dieselbe Maske zeigen – einmal auf Deutsch, einmal auf Englisch. Genau
+das braucht ein Handbuch in 21 Sprachen und vier Rollen.
+
+**Variantengruppe** Im Editor lassen sich Aufnahmen verbinden. Die Gruppe
+steht als `variante` an jeder Aufnahme – eine Kennung, kein Zeiger auf ein
+„Original“: unter Entsprechungen gibt es keine Rangfolge. Ein zweites
+Verbinden führt die bestehende Gruppe weiter (sonst fielen die bisherigen
+Entsprechungen auseinander); treffen zwei Gruppen aufeinander, gewinnt die
+größere. „Aus der Gruppe nehmen“ löst eine einzelne; bleibt eine allein
+übrig, löst sich die Gruppe ganz.
+
+**Was fehlt, steht da** Der Block nennt die Werte, die es **im Bestand** gibt
+und in dieser Gruppe nicht – nicht alle 21 Sprachen, sondern die, mit denen
+tatsächlich gearbeitet wird.
+
+**Deckungsmatrix** (Gliederung): eine Zeile je Stelle mit Bildern, eine
+Spalte je Wert, der im Bestand vorkommt, umschaltbar nach **Sprache, Rolle,
+Sparte, Markt**. Eine leere Zelle ist eine Lücke; ein Klick auf eine gefüllte
+öffnet das erste Bild im Editor. Dazu Summenzeile, Spalte „ohne“ (Bilder ohne
+dieses Label) und der Stand: wie viele Stellen in jedem Wert belegt sind.
+
+**Ausgabe in einer Variante** (Designstudio): „Ausgabe in – Sprache:
+Englisch“ tauscht je Schritt das Bild gegen seine Entsprechung. Wo keine
+vorliegt, bleibt das bisherige stehen und wird **genannt** („1 Schritt ohne
+Entsprechung: 2“) – lieber eine gemischte Seite als ein Loch, von dem niemand
+weiß. Bei einem Kapitel als Inhalt wirkt die Wahl als Filter; die Anweisungen
+der Strecke bleiben in jedem Fall.

@@ -2072,4 +2072,96 @@ s.test('der Bericht sagt, was liegt – und was fehlte', () => {
   wahr(halb.includes('kein Bild vorhanden'));
 });
 
+/* -------------------------------------------------------------- Varianten */
+
+const variantenGliederung = kern.leseGliederung({
+  eintraege: [
+    { nummer: '6.1', thema: 'Documents', ebene: 2 },
+    { nummer: '6.2', thema: 'Emails', ebene: 2 }
+  ]
+});
+
+const variantenEingang = () => [
+  { id: 'A1', titel: 'Liste deutsch', gliederung: '6.1', sprache: 'de', rolle_label: 'dealer', kapitel: 6, unterkapitel: 1 },
+  { id: 'A2', titel: 'Liste englisch', gliederung: '6.1', sprache: 'en', rolle_label: 'dealer', kapitel: 6, unterkapitel: 1 },
+  { id: 'A3', titel: 'Formular deutsch', gliederung: '6.2', sprache: 'de', rolle_label: 'market', kapitel: 6, unterkapitel: 2 },
+  { id: 'A4', titel: 'Ohne Sprache', gliederung: '6.2', kapitel: 6, unterkapitel: 2 }
+];
+
+s.test('zwei Aufnahmen werden zur Variantengruppe und wieder getrennt', () => {
+  const ergebnis = kern.verbindeVarianten(variantenEingang(), ['A1', 'A2'], 1760000000000);
+  wahr(ergebnis.gruppe.startsWith('VAR-'), ergebnis.gruppe);
+  gleich(ergebnis.verbunden, 2);
+  tieferGleich(kern.variantenVon(ergebnis.eingang, ergebnis.eingang[0]).map((a) => a.id), ['A1', 'A2']);
+
+  // Eine dritte kommt dazu - die Gruppe bleibt dieselbe.
+  const dritte = kern.verbindeVarianten(ergebnis.eingang, ['A2', 'A3']);
+  gleich(dritte.gruppe, ergebnis.gruppe, 'das zweite Verbinden legt eine neue Gruppe an');
+  gleich(dritte.verbunden, 3);
+
+  // Eine einzelne Aufnahme ist keine Gruppe.
+  gleich(kern.verbindeVarianten(variantenEingang(), ['A1']).gruppe, '');
+
+  // Lösen nimmt nur eine heraus; bleibt eine allein, löst sich die Gruppe.
+  const geloest = kern.loeseVariante(dritte.eingang, 'A3');
+  gleich(kern.variantengruppe(geloest.find((a) => a.id === 'A3')), '');
+  gleich(kern.variantenVon(geloest, geloest.find((a) => a.id === 'A1')).length, 2);
+  const leer = kern.loeseVariante(geloest, 'A2');
+  gleich(kern.variantengruppe(leer.find((a) => a.id === 'A1')), '', 'die Gruppe mit einem Mitglied bleibt bestehen');
+});
+
+s.test('die Entsprechung in einer Sprache wird gefunden – oder benannt', () => {
+  const { eingang } = kern.verbindeVarianten(variantenEingang(), ['A1', 'A2']);
+  const eins = eingang.find((a) => a.id === 'A1');
+  gleich(kern.findeVariante(eingang, eins, 'sprache', 'en').id, 'A2');
+  gleich(kern.findeVariante(eingang, eins, 'sprache', 'de').id, 'A1', 'die eigene Sprache findet sich selbst');
+  gleich(kern.findeVariante(eingang, eins, 'sprache', 'fr'), null);
+  gleich(kern.findeVariante(eingang, eins, 'titel', 'x'), null, 'der Titel ist kein Variantenfeld');
+  tieferGleich(kern.fehlendeVarianten(eingang, eins, 'sprache', ['de', 'en', 'fr']), ['fr']);
+  // Ohne Gruppe ist eine Aufnahme ihre eigene einzige Variante.
+  const allein = variantenEingang()[2];
+  tieferGleich(kern.variantenVon(variantenEingang(), allein).map((a) => a.id), ['A3']);
+});
+
+s.test('die Deckungsmatrix zählt je Stelle und Wert', () => {
+  const matrix = kern.deckungsMatrix(variantenGliederung, variantenEingang(), 'sprache');
+  tieferGleich(matrix.spalten.map((s) => s.label), ['Deutsch', 'Englisch']);
+  gleich(matrix.zeilen.length, 2);
+  gleich(matrix.zeilen[0].nummer, '6.1');
+  gleich(matrix.zeilen[0].thema, 'Documents');
+  tieferGleich(matrix.zeilen[0].zellen.map((c) => c.zahl), [1, 1]);
+  tieferGleich(matrix.zeilen[1].zellen.map((c) => c.zahl), [1, 0]);
+  gleich(matrix.zeilen[1].ohne, 1, 'das Bild ohne Sprache fehlt in der Zeile');
+  gleich(matrix.zeilen[1].gesamt, 2);
+  tieferGleich(matrix.summen, [2, 1]);
+  gleich(matrix.ohne, 1);
+  gleich(matrix.vollstaendig, 1, 'nur 6.1 ist in jeder Sprache belegt');
+
+  // Eine Stelle, die es in der Gliederung nicht gibt, wird dennoch gezeigt.
+  const fremd = kern.deckungsMatrix(variantenGliederung, [{ id: 'X', gliederung: '9.9', sprache: 'de' }], 'sprache');
+  gleich(fremd.zeilen[0].bekannt, false);
+  // Ohne Labels gibt es keine Spalten - und damit nichts zu behaupten.
+  gleich(kern.deckungsMatrix(variantenGliederung, [{ id: 'X', gliederung: '6.1' }], 'sprache').spalten.length, 0);
+  gleich(kern.deckungsMatrix(variantenGliederung, [], 'rolle_label').zeilen.length, 0);
+});
+
+s.test('eine Strecke lässt sich in eine andere Sprache umstellen', () => {
+  const { eingang } = kern.verbindeVarianten(variantenEingang(), ['A1', 'A2']);
+  const strecke = {
+    ...kern.leereStrecke('Vorlage anlegen'),
+    schritte: [kern.streckeSchritt('A1', 'Liste öffnen'), kern.streckeSchritt('A3', 'Formular füllen')]
+  };
+  const englisch = kern.streckeInVariante(strecke, eingang, 'sprache', 'en');
+  tieferGleich(englisch.strecke.schritte[0].aufnahmen, ['A2'], 'der erste Schritt wurde nicht umgestellt');
+  tieferGleich(englisch.strecke.schritte[1].aufnahmen, ['A3'], 'ohne Entsprechung bleibt das Bild stehen');
+  gleich(englisch.fehlt.length, 1);
+  gleich(englisch.fehlt[0].nummer, 2);
+  gleich(englisch.fehlt[0].titel, 'Formular deutsch');
+  wahr(englisch.strecke.name.endsWith('· Englisch'), englisch.strecke.name);
+  // Die Anweisungen bleiben; nur die Bilder wechseln.
+  gleich(englisch.strecke.schritte[0].text, 'Liste öffnen');
+  // In der eigenen Sprache ändert sich nichts.
+  gleich(kern.streckeInVariante(strecke, eingang, 'sprache', 'de').fehlt.length, 0);
+});
+
 export default s;

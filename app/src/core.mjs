@@ -4043,3 +4043,151 @@ export function verzeichnisBericht(geschrieben = [], fehler = [], ordnername = '
   if (!fehler.length) return kopf;
   return `${kopf} Nicht geschrieben wurden ${fehler.length}: ${fehler.slice(0, 5).join('; ')}${fehler.length > 5 ? ' …' : ''}`;
 }
+
+/* =========================================================================
+   Varianten – dieselbe Maske in anderer Sprache, Rolle, Sparte oder Markt.
+
+   Ein Label sagt, *was* ein Bild ist. Es sagt nicht, dass zwei Bilder
+   dieselbe Maske zeigen - einmal auf Deutsch, einmal auf Englisch. Genau das
+   braucht ein Handbuch in 21 Sprachen und vier Rollen: eine Gruppe, die die
+   Entsprechungen zusammenhält. Darüber lässt sich dann zählen, was fehlt, und
+   eine fertige Strecke in eine andere Sprache ausgeben.
+
+   Die Gruppe steht als `variante` an jeder Aufnahme - eine Kennung, kein
+   Zeiger auf ein "Original": unter Entsprechungen gibt es keine Rangfolge.
+   ========================================================================= */
+
+/** Die Felder, in denen sich Varianten unterscheiden dürfen. */
+export const VARIANTEN_FELDER = ['sprache', 'rolle_label', 'sparte', 'markt'];
+
+/** Eine neue Gruppenkennung; die Zeit macht sie eindeutig genug. */
+export function neueVariantengruppe(zeit = Date.now()) {
+  return 'VAR-' + zeit.toString(36).toUpperCase();
+}
+
+export function variantengruppe(aufnahme = {}) {
+  return String(aufnahme.variante || '').trim();
+}
+
+/**
+ * Alle Aufnahmen einer Gruppe, in der Folge der Gliederung. Ohne Gruppe ist
+ * eine Aufnahme ihre eigene einzige Variante - das macht die Aufrufe einfach.
+ */
+export function variantenVon(eingang = [], aufnahme = {}) {
+  const gruppe = variantengruppe(aufnahme);
+  if (!gruppe) return aufnahme && aufnahme.id ? [aufnahme] : [];
+  return sortiereNachKapitel(eingang.filter((a) => variantengruppe(a) === gruppe));
+}
+
+/**
+ * Verbindet Aufnahmen zu einer Gruppe. Gehört eine davon schon zu einer,
+ * wird diese weitergeführt - sonst bekäme ein zweites Verbinden eine neue
+ * Kennung und die bisherigen Entsprechungen fielen auseinander. Treffen zwei
+ * Gruppen aufeinander, gewinnt die größere, und die kleinere wandert mit.
+ */
+export function verbindeVarianten(eingang = [], kennungen = [], zeit = Date.now()) {
+  const gewaehlt = eingang.filter((a) => kennungen.includes(a.id));
+  if (gewaehlt.length < 2) return { eingang, gruppe: '', verbunden: 0 };
+  const gruppen = [...new Set(gewaehlt.map(variantengruppe).filter(Boolean))];
+  const groesse = (gruppe) => eingang.filter((a) => variantengruppe(a) === gruppe).length;
+  const gruppe = gruppen.length ? [...gruppen].sort((a, b) => groesse(b) - groesse(a) || a.localeCompare(b))[0] : neueVariantengruppe(zeit);
+  const betroffen = new Set([...kennungen, ...eingang.filter((a) => gruppen.includes(variantengruppe(a))).map((a) => a.id)]);
+  return {
+    eingang: eingang.map((a) => (betroffen.has(a.id) ? { ...a, variante: gruppe } : a)),
+    gruppe,
+    verbunden: betroffen.size
+  };
+}
+
+/** Nimmt eine Aufnahme aus ihrer Gruppe; bleibt eine allein, löst sie sich. */
+export function loeseVariante(eingang = [], kennung) {
+  const aufnahme = eingang.find((a) => a.id === kennung);
+  const gruppe = variantengruppe(aufnahme || {});
+  if (!gruppe) return eingang;
+  const ohne = eingang.map((a) => (a.id === kennung ? { ...a, variante: '' } : a));
+  const rest = ohne.filter((a) => variantengruppe(a) === gruppe);
+  // Eine Gruppe mit einem Mitglied ist keine Gruppe.
+  return rest.length > 1 ? ohne : ohne.map((a) => (variantengruppe(a) === gruppe ? { ...a, variante: '' } : a));
+}
+
+/** Die Entsprechung in einem bestimmten Wert - oder null, wenn sie fehlt. */
+export function findeVariante(eingang = [], aufnahme = {}, feld, wert) {
+  if (!VARIANTEN_FELDER.includes(feld)) return null;
+  if (String(aufnahme[feld] || '') === String(wert || '')) return aufnahme;
+  return variantenVon(eingang, aufnahme).find((a) => String(a[feld] || '') === String(wert || '')) || null;
+}
+
+/**
+ * Was einer Gruppe in einem Feld fehlt: die Werte, die andere Gruppen haben,
+ * diese aber nicht. Ohne diesen Vergleich wäre "vollständig" eine Behauptung.
+ */
+export function fehlendeVarianten(eingang = [], aufnahme = {}, feld, erwartet = []) {
+  const vorhanden = new Set(variantenVon(eingang, aufnahme).map((a) => String(a[feld] || '')).filter(Boolean));
+  return erwartet.map(String).filter((wert) => !vorhanden.has(wert));
+}
+
+/**
+ * Die Deckungsmatrix: je Stelle der Gliederung, wie viele Bilder es in
+ * welcher Sprache (oder Rolle, Sparte, Markt) gibt. Spalten sind die Werte,
+ * die im Bestand vorkommen - eine Spalte für jede der 21 Sprachen wäre eine
+ * Tabelle, die niemand liest.
+ */
+export function deckungsMatrix(gliederung = [], eingang = [], feld = 'sprache') {
+  const werte = [...new Set(eingang.map((a) => String(a[feld] || '')).filter(Boolean))].sort((a, b) =>
+    labelWert(feld, a).localeCompare(labelWert(feld, b))
+  );
+  const stellen = [...new Set(eingang.map((a) => String(a.gliederung || '').trim()).filter(Boolean))];
+  const zeilen = [];
+  for (const nummer of stellen.sort(vergleicheKapitel)) {
+    const eintrag = gliederung.find((e) => e.nummer === nummer) || null;
+    const bilder = eingang.filter((a) => String(a.gliederung || '').trim() === nummer);
+    const zellen = werte.map((wert) => {
+      const treffer = bilder.filter((a) => String(a[feld] || '') === wert);
+      return { wert, zahl: treffer.length, kennungen: treffer.map((a) => a.id) };
+    });
+    const ohne = bilder.filter((a) => !String(a[feld] || '').trim());
+    zeilen.push({
+      nummer,
+      thema: eintrag ? eintrag.thema : '',
+      bekannt: Boolean(eintrag),
+      zellen,
+      ohne: ohne.length,
+      gesamt: bilder.length
+    });
+  }
+  const summen = werte.map((wert, i) => zeilen.reduce((summe, z) => summe + z.zellen[i].zahl, 0));
+  const voll = zeilen.filter((z) => z.zellen.every((c) => c.zahl > 0)).length;
+  return {
+    feld,
+    spalten: werte.map((wert) => ({ wert, label: labelWert(feld, wert) })),
+    zeilen,
+    summen,
+    ohne: eingang.filter((a) => !String(a[feld] || '').trim()).length,
+    vollstaendig: voll
+  };
+}
+
+/**
+ * Dieselbe Strecke in einem anderen Wert: jeder Schritt bekommt, wo es sie
+ * gibt, die Entsprechung. Wo keine Entsprechung vorliegt, bleibt das Bild
+ * stehen und wird genannt - lieber ein Blatt mit einer gemischten Seite als
+ * ein Blatt mit Löchern, von denen niemand weiß.
+ */
+export function streckeInVariante(strecke = {}, eingang = [], feld = 'sprache', wert = '') {
+  const fehlt = [];
+  const schritte = (strecke.schritte || []).map((schritt, i) => {
+    const kennungen = (schritt.aufnahmen || []).map((kennung) => {
+      const aufnahme = eingang.find((a) => a.id === kennung);
+      if (!aufnahme) return kennung;
+      const treffer = findeVariante(eingang, aufnahme, feld, wert);
+      if (treffer) return treffer.id;
+      fehlt.push({ nummer: i + 1, aufnahme: kennung, titel: aufnahme.titel || kennung });
+      return kennung;
+    });
+    return { ...schritt, aufnahmen: kennungen };
+  });
+  return {
+    strecke: { ...strecke, schritte, name: `${strecke.name || 'Strecke'} · ${labelWert(feld, wert)}` },
+    fehlt
+  };
+}

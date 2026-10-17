@@ -357,6 +357,23 @@
           <span class="feld-hinweis">Im Bild lassen sich Labels verschieben – ziehen wie jede Marke.</span>
         </div>
       </details>
+      <details class="labels" id="markier-varianten">
+        <summary>Varianten <span class="kennung" id="varianten-stand"></span></summary>
+        <p class="feld-hinweis">
+          Dieselbe Maske in anderer Sprache, Rolle, Sparte oder Markt. Verbundene
+          Aufnahmen halten zusammen: die Gliederung zählt die Deckung, das
+          Designstudio gibt dieselbe Strecke in einer anderen Sprache aus.
+        </p>
+        <div class="varianten-liste" id="varianten-liste"></div>
+        <div class="varianten-wahl">
+          <div class="feld">
+            <label for="varianten-andere">Mit dieser Aufnahme verbinden</label>
+            <select id="varianten-andere"></select>
+          </div>
+          <button type="button" class="knopf knopf--klein" id="varianten-verbinden">Verbinden</button>
+          <button type="button" class="knopf knopf--klein" id="varianten-loesen" disabled>Aus der Gruppe nehmen</button>
+        </div>
+      </details>
       <div class="markier-knoepfe">
         <button type="button" class="knopf knopf--klein" id="markier-rueckgaengig" disabled title="Strg+Z">↶ Rückgängig</button>
         <button type="button" class="knopf knopf--klein" id="markier-wiederher" disabled title="Strg+Umschalt+Z">↷ Wiederholen</button>
@@ -513,6 +530,10 @@
         <input type="checkbox" id="design-labels" checked>
         <span>Labels zeigen</span>
       </label>
+      <div class="feld feld--schmal">
+        <label for="design-variante">Ausgabe in</label>
+        <select id="design-variante"></select>
+      </div>
       <label class="markier-schalter">
         <input type="checkbox" id="design-deckblatt">
         <span>Deckblatt</span>
@@ -619,6 +640,23 @@
         <div class="stelle-beschreibung" id="stelle-beschreibung" hidden></div>
       </aside>
     </div>
+
+    <section class="matrix" aria-label="Deckung">
+      <div class="matrix-kopf">
+        <h2 class="abschnitt-titel">Deckung je Stelle</h2>
+        <div class="feld feld--schmal">
+          <label for="matrix-feld">Nach</label>
+          <select id="matrix-feld"></select>
+        </div>
+        <span class="band-stand" id="matrix-stand"></span>
+      </div>
+      <p class="band-hinweis">
+        Eine Zeile je Stelle mit Bildern, eine Spalte je Wert, der im Bestand
+        vorkommt. Eine leere Zelle ist eine Lücke – ein Klick auf eine gefüllte
+        öffnet das erste Bild im Editor.
+      </p>
+      <div class="matrix-tabelle" id="matrix-tabelle"></div>
+    </section>
   </section>
 
   <section id="eingang-ansicht" aria-label="Eingang" hidden>

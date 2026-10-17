@@ -388,6 +388,7 @@ function zeichneMarkieren() {
   zeichneMarkenliste();
   zeichneFassungen();
   zeichneKlickstrecke();
+  zeichneVarianten();
   const zusammen = markenZusammenfassung(marken);
   $('#markier-stand').textContent = marken.length
     ? `${zusammen.unkenntlich} unkenntlich · ${zusammen.rahmen} Rahmen · ${zusammen.schritte} Schritte`
@@ -398,6 +399,111 @@ function zeichneMarkieren() {
   $('#markier-datei').disabled = !markierBild || !marken.length;
   $('#markier-zuruecksetzen').disabled = !marken.length;
   $('#markier-stufe-feld').hidden = markierWerkzeug !== 'unkenntlich';
+}
+
+/* ---------------------------------------------------------- Varianten */
+
+/**
+ * Dieselbe Maske in anderer Sprache, Rolle, Sparte oder Markt. Die Gruppe
+ * steht an den Aufnahmen; hier wird sie gezeigt, erweitert und gelöst.
+ * Angezeigt wird, was einer Gruppe *im Bestand* fehlt - nicht alle 21
+ * Sprachen, sondern die, die es hier schon gibt.
+ */
+function zeichneVarianten() {
+  const aufnahme = markierAufnahme();
+  const liste = $('#varianten-liste');
+  const stand = $('#varianten-stand');
+  if (!aufnahme) {
+    stand.textContent = '';
+    liste.replaceChildren(el('p', { klasse: 'feld-hinweis', text: 'Zuerst eine Aufnahme wählen.' }));
+    $('#varianten-andere').replaceChildren(el('option', { value: '', text: 'keine Aufnahme' }));
+    $('#varianten-verbinden').disabled = true;
+    $('#varianten-loesen').disabled = true;
+    return;
+  }
+  const gruppe = variantengruppe(aufnahme);
+  const geschwister = variantenVon(eingang, aufnahme);
+  stand.textContent = gruppe ? `${geschwister.length} verbunden` : 'nicht verbunden';
+
+  // Was fehlt: die Werte, die es im Bestand gibt, in dieser Gruppe aber nicht.
+  const luecken = [];
+  for (const feld of VARIANTEN_FELDER) {
+    const vorhanden = [...new Set(eingang.map((a) => String(a[feld] || '')).filter(Boolean))];
+    const fehlt = fehlendeVarianten(eingang, aufnahme, feld, vorhanden);
+    if (fehlt.length) {
+      luecken.push(
+        `${LABEL_FELDER.find((f) => f.id === feld).label}: ${fehlt.map((w) => labelWert(feld, w)).join(', ')}`
+      );
+    }
+  }
+
+  liste.replaceChildren(
+    ...geschwister.map((a) =>
+      el('div', { klasse: 'varianten-zeile' + (a.id === aufnahme.id ? ' varianten-zeile--selbst' : '') }, [
+        el('img', { src: anzeigeBild(a), alt: a.titel, loading: 'lazy' }),
+        el('div', { klasse: 'varianten-text' }, [
+          el('span', { text: a.titel }),
+          el('span', { klasse: 'kennung', text: `${a.id} · ${labelKette(a) || 'ohne Labels'}` })
+        ]),
+        a.id === aufnahme.id
+          ? el('span', { klasse: 'kennung', text: 'diese' })
+          : el('button', {
+              klasse: 'knopf knopf--klein',
+              type: 'button',
+              text: 'öffnen',
+              onclick: () => oeffneEditor(a.id)
+            })
+      ])
+    ),
+    luecken.length
+      ? el('p', { klasse: 'feld-hinweis', text: 'Es fehlt noch – ' + luecken.join(' · ') })
+      : el('p', { klasse: 'feld-hinweis', text: 'In jedem Wert des Bestands vorhanden.' })
+  );
+
+  // Zur Wahl stehen alle anderen Aufnahmen, die nicht schon in der Gruppe sind.
+  const andere = sortiereNachKapitel(
+    eingang.filter((a) => a.id !== aufnahme.id && !(gruppe && variantengruppe(a) === gruppe))
+  );
+  $('#varianten-andere').replaceChildren(
+    ...(andere.length
+      ? andere.map((a) =>
+          el('option', {
+            value: a.id,
+            text: `${kapitelKennung(a) ? kapitelKennung(a) + ' · ' : ''}${a.id} · ${a.titel}${
+              labelKette(a) ? ' · ' + labelKette(a) : ''
+            }`
+          })
+        )
+      : [el('option', { value: '', text: 'keine weitere Aufnahme' })])
+  );
+  $('#varianten-verbinden').disabled = !andere.length;
+  $('#varianten-loesen').disabled = !gruppe;
+}
+
+function verbindeMitVariante() {
+  const aufnahme = markierAufnahme();
+  const andere = $('#varianten-andere').value;
+  if (!aufnahme || !andere) return;
+  const ergebnis = verbindeVarianten(eingang, [aufnahme.id, andere]);
+  if (!ergebnis.gruppe) return;
+  eingang = ergebnis.eingang;
+  sichereEingang();
+  zeichneVarianten();
+  zeichneEingang();
+  meldeMarkieren(
+    `${ergebnis.verbunden} Aufnahmen sind nun eine Variantengruppe (${ergebnis.gruppe}).`,
+    'gut'
+  );
+}
+
+function loeseAusVariante() {
+  const aufnahme = markierAufnahme();
+  if (!aufnahme || !variantengruppe(aufnahme)) return;
+  eingang = loeseVariante(eingang, aufnahme.id);
+  sichereEingang();
+  zeichneVarianten();
+  zeichneEingang();
+  meldeMarkieren(`${aufnahme.id} steht wieder allein. Die anderen bleiben verbunden.`, 'neutral');
 }
 
 function fuelleMarkierWahl() {
@@ -819,6 +925,8 @@ function verdrahteMarkieren() {
     zeichneMarkierflaeche();
     $('#markier-sichern').disabled = !markierBild;
   });
+  $('#varianten-verbinden').addEventListener('click', verbindeMitVariante);
+  $('#varianten-loesen').addEventListener('click', loeseAusVariante);
   $('#label-ins-bild').addEventListener('click', setzeLabelsInsBild);
   $('#label-aus-bild').addEventListener('click', nimmLabelsAusBild);
   $('#markier-unterschrift').addEventListener('change', (e) => {
@@ -1657,6 +1765,7 @@ let gliederungSuche = '';
 let gliederungZeigen = 'alle';
 let gliederungOffen = new Set();
 let gliederungStelle = ''; // gewählte Stelle für Teilschritte und Beschreibung
+let matrixFeld = 'sprache'; // Feld der Deckungsmatrix
 
 /** Die Stellen, die nach Suche und Filter übrig bleiben. */
 function sichtbareStellen() {
@@ -1701,6 +1810,7 @@ function zeichneGliederung() {
       .filter(Boolean)
   );
   zeichneTeilschritte();
+  zeichneMatrix();
 }
 
 /**
@@ -1830,8 +1940,89 @@ function zeigeStelleImEingang(nummer) {
   zeichneEingang();
 }
 
+/* ----------------------------------------------------- Deckungsmatrix */
+
+/**
+ * Eine Zeile je Stelle mit Bildern, eine Spalte je Wert, der im Bestand
+ * vorkommt. Alle 21 Sprachen als Spalten wären eine Tabelle, die niemand
+ * liest - und eine leere Spalte sagt ohnehin nichts über die Deckung.
+ */
+function zeichneMatrix() {
+  $('#matrix-feld').replaceChildren(
+    ...VARIANTEN_FELDER.map((feld) =>
+      el('option', {
+        value: feld,
+        text: LABEL_FELDER.find((f) => f.id === feld).label,
+        selected: feld === matrixFeld
+      })
+    )
+  );
+  const matrix = deckungsMatrix(GLIEDERUNG, eingang, matrixFeld);
+  const label = LABEL_FELDER.find((f) => f.id === matrixFeld).label;
+  $('#matrix-stand').textContent = matrix.spalten.length
+    ? `${matrix.zeilen.length} Stellen · ${matrix.spalten.length} Werte · ${matrix.vollstaendig} vollständig${
+        matrix.ohne ? ` · ${matrix.ohne} ohne ${label}` : ''
+      }`
+    : '';
+  const kasten = $('#matrix-tabelle');
+  if (!matrix.spalten.length) {
+    kasten.replaceChildren(
+      el('p', {
+        klasse: 'feld-hinweis',
+        text: `Noch kein Bild trägt ein Label ${label} – im Editor setzen, dann steht hier die Deckung.`
+      })
+    );
+    return;
+  }
+
+  const kopf = el('tr', {}, [
+    el('th', { scope: 'col', text: 'Stelle' }),
+    ...matrix.spalten.map((s) => el('th', { scope: 'col', text: s.label })),
+    el('th', { scope: 'col', text: 'ohne' }),
+    el('th', { scope: 'col', text: 'gesamt' })
+  ]);
+  const zeilen = matrix.zeilen.map((zeile) =>
+    el('tr', { klasse: zeile.zellen.every((c) => c.zahl) ? 'matrix-voll' : '' }, [
+      el('th', { scope: 'row' }, [
+        el('span', { klasse: 'kennung', text: zeile.nummer }),
+        el('span', { text: zeile.thema || (zeile.bekannt ? '' : 'nicht in der Gliederung') })
+      ]),
+      ...zeile.zellen.map((zelle) =>
+        el(
+          'td',
+          { klasse: zelle.zahl ? 'matrix-zelle matrix-zelle--voll' : 'matrix-zelle matrix-zelle--leer' },
+          zelle.zahl
+            ? el('button', {
+                type: 'button',
+                klasse: 'matrix-knopf',
+                title: `${zelle.kennungen.join(', ')} – erste im Editor öffnen`,
+                text: String(zelle.zahl),
+                onclick: () => oeffneEditor(zelle.kennungen[0])
+              })
+            : el('span', { text: '–' })
+        )
+      ),
+      el('td', { klasse: 'matrix-zelle', text: zeile.ohne ? String(zeile.ohne) : '–' }),
+      el('td', { klasse: 'matrix-zelle', text: String(zeile.gesamt) })
+    ])
+  );
+  const summe = el('tr', { klasse: 'matrix-summe' }, [
+    el('th', { scope: 'row', text: 'Summe' }),
+    ...matrix.summen.map((wert) => el('td', { klasse: 'matrix-zelle', text: String(wert) })),
+    el('td', { klasse: 'matrix-zelle', text: matrix.ohne ? String(matrix.ohne) : '–' }),
+    el('td', { klasse: 'matrix-zelle', text: String(eingang.length) })
+  ]);
+  kasten.replaceChildren(
+    el('table', { klasse: 'matrix-gitter' }, [el('thead', {}, kopf), el('tbody', {}, [...zeilen, summe])])
+  );
+}
+
 function verdrahteGliederung() {
   let takt = null;
+  $('#matrix-feld').addEventListener('change', (e) => {
+    matrixFeld = e.target.value;
+    zeichneMatrix();
+  });
   $('#gliederung-suche').addEventListener('input', (e) => {
     gliederungSuche = e.target.value;
     clearTimeout(takt);
