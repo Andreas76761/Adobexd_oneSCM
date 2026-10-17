@@ -2640,4 +2640,83 @@ s.test('Version und Land sind Labelfelder und eine Achse der Deckung', () => {
   gleich(matrix.zeilen.find((z) => z.nummer === '6.2').ohne, 1, 'das Bild ohne Version fehlt in der Spalte „ohne"');
 });
 
+/* ------------------------------- Projektvergleich (1.37.0) */
+
+const vergleichGliederung = kern.leseGliederung({
+  eintraege: [
+    { nummer: '6.2', thema: 'Market Settings', ebene: 2 },
+    { nummer: '6.3', thema: 'Vorlagen', ebene: 2 },
+    { nummer: '6.4', thema: 'Freigaben', ebene: 2 }
+  ]
+});
+
+const zweiFassungen = [
+  { id: 'A1', projekt: 'oneSCM Portal', version: '2.3', land: 'Germany', gliederung: '6.2' },
+  { id: 'A2', projekt: 'oneSCM Portal', version: '2.3', land: 'Germany', gliederung: '6.4' },
+  { id: 'A3', projekt: 'oneSCM Portal', version: '2.3', land: 'Germany', gliederung: '' },
+  { id: 'A4', projekt: 'oneSCM Portal', version: '2.4', land: 'Germany', gliederung: '6.2' },
+  { id: 'A5', projekt: 'oneSCM Portal', version: '2.4', land: 'Germany', gliederung: '6.2' },
+  { id: 'A6', projekt: 'oneSCM Portal', version: '2.4', land: 'Germany', gliederung: '6.3' },
+  { id: 'A7', projekt: 'oneSCM Portal', version: '2.4', land: 'Korea', gliederung: '7.1' }
+];
+const ALT = 'PRJ-onescm-portal-2-3-germany';
+const NEU = 'PRJ-onescm-portal-2-4-germany';
+
+s.test('der Projektvergleich nennt neue, entfallene und gemeinsame Stellen', () => {
+  const v = kern.vergleicheProjekte(zweiFassungen, ALT, NEU, vergleichGliederung);
+  gleich(v.bilderA, 3);
+  gleich(v.bilderB, 3, 'das koreanische Bild gehört nicht dazu');
+  tieferGleich(v.zeilen.map((z) => z.nummer), ['6.2', '6.3', '6.4'], 'die Folge der Gliederung stimmt nicht');
+  const art = Object.fromEntries(v.zeilen.map((z) => [z.nummer, z.art]));
+  tieferGleich(art, { '6.2': 'beide', '6.3': 'neu', '6.4': 'entfallen' });
+  gleich(v.neu, 1);
+  gleich(v.entfallen, 1);
+  gleich(v.beide, 1);
+
+  // Gezählt werden Bilder je Stelle - zwei Screenshots derselben Maske sind
+  // keine zweite Stelle.
+  const gemeinsam = v.zeilen.find((z) => z.nummer === '6.2');
+  gleich(gemeinsam.a, 1);
+  gleich(gemeinsam.b, 2);
+  gleich(gemeinsam.thema, 'Market Settings');
+  tieferGleich(gemeinsam.kennungenB, ['A4', 'A5']);
+
+  // Was keine Stelle hat, wird nicht verglichen - aber gezählt.
+  gleich(v.ohneStelleA, 1);
+  gleich(v.ohneStelleB, 0);
+
+  // Derselbe Vergleich andersherum dreht neu und entfallen um.
+  const zurueck = kern.vergleicheProjekte(zweiFassungen, NEU, ALT, vergleichGliederung);
+  gleich(zurueck.neu, 1);
+  gleich(zurueck.entfallen, 1);
+  gleich(zurueck.zeilen.find((z) => z.nummer === '6.3').art, 'entfallen');
+
+  // Zwei leere Mengen geben keinen Vergleich, aber auch keinen Fehler.
+  gleich(kern.vergleicheProjekte([], ALT, NEU, vergleichGliederung).zeilen.length, 0);
+});
+
+s.test('der Vergleich als Text ist der erste Entwurf eines Releaseletters', () => {
+  const projekte = kern.leseProjekte(
+    kern.schreibeProjekte([
+      { name: 'oneSCM Portal', version: '2.3', land: 'Germany' },
+      { name: 'oneSCM Portal', version: '2.4', land: 'Germany' }
+    ])
+  );
+  const text = kern.vergleichAlsText(
+    kern.vergleicheProjekte(zweiFassungen, ALT, NEU, vergleichGliederung),
+    projekte,
+    { stand: '2026-10-17T08:00:00.000Z', anwendung: '1.37.0' }
+  );
+  wahr(text.includes('Vorher: oneSCM Portal 2.3 · Germany (3 Bilder)'), text);
+  wahr(text.includes('Nachher: oneSCM Portal 2.4 · Germany (3 Bilder)'), text);
+  wahr(text.includes('## Neu in oneSCM Portal 2.4 · Germany (1)'), text);
+  wahr(text.includes('6.3 Vorlagen · 0 → 1 Bild(er)'), text);
+  wahr(text.includes('## Nur in oneSCM Portal 2.3 · Germany (1)'), text);
+  wahr(text.includes('6.4 Freigaben'), text);
+  wahr(text.includes('Ohne Stelle und darum nicht verglichen: 1'), text);
+  // Ein leerer Block steht als Strich da, nicht als Lücke.
+  const leer = kern.vergleichAlsText(kern.vergleicheProjekte([], ALT, NEU, vergleichGliederung), projekte, {});
+  gleich((leer.match(/^–$/gm) || []).length, 3, leer);
+});
+
 export default s;

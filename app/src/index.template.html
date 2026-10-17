@@ -799,6 +799,31 @@
     </p>
     <p class="studio-meldung" id="pruef-meldung" role="status" aria-live="polite"></p>
     <div class="pruef-agenten" id="pruef-agenten"></div>
+
+    <div class="band vergleich" id="projektvergleich">
+      <div class="band-kopf">
+        <h2 class="abschnitt-titel">Projektvergleich</h2>
+        <span class="band-stand" id="vergleich-stand"></span>
+      </div>
+      <p class="band-hinweis">
+        Zwei Projekte nebeneinander: welche Stelle des Handbuchs gibt es in der
+        einen Fassung und in der anderen nicht. Verglichen werden Stellen, nicht
+        Bilder – ein neuer Screenshot derselben Maske ist keine neue Funktion.
+        Das ist der erste Entwurf eines Releaseletters.
+      </p>
+      <div class="vergleich-wahl">
+        <div class="feld">
+          <label for="vergleich-a">Vorher</label>
+          <select id="vergleich-a"></select>
+        </div>
+        <div class="feld">
+          <label for="vergleich-b">Nachher</label>
+          <select id="vergleich-b"></select>
+        </div>
+        <button type="button" class="knopf knopf--klein" id="vergleich-sichern" disabled>Als Text sichern</button>
+      </div>
+      <div class="vergleich-tabelle" id="vergleich-tabelle"></div>
+    </div>
   </section>
 
   <section id="verzeichnis-ansicht" aria-label="Verzeichnis" hidden>

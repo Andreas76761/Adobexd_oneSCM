@@ -26,7 +26,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `03-aufnahmen.test.mjs` | erzeugte SVG-Aufnahmen: Vollständigkeit, Maße, Sauberkeit, Determinismus | 8 |
 | `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken, doppelte Selektoren | 14 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
-| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten, Handbuch, Labels am Entwurf, Zählung, Suchtext, Projekte nach Version und Land, Arbeitsmenge und Kontaktbogen | 142 |
+| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten, Handbuch, Labels am Entwurf, Zählung, Suchtext, Projekte nach Version und Land, Arbeitsmenge, Projektvergleich und Kontaktbogen | 144 |
 | `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Bilderstapel, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Labels am Entwurf, Kontaktbogen, Werkbank, Bild mit Zettel | 68 |
 
 | `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beipackzettel, Beenden, Sichtbarkeit im Archiv, Zettel im Ordnerband, Übernahme, Nachpflege, verwaiste Zettel, Tastatur, Filter, Metadaten im Bild, „Was hier geht“ | 34 |
@@ -43,7 +43,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `14-chat.e2e.mjs` | Suchchat im Browser: Fenster über jeder Ansicht, Deutung der Frage, Treffer, Weg in Editor und Strecke, Ziehen und Lage | 6 |
 
-| `15-pruefung.e2e.mjs` | Prüfung im Browser: drei Agenten, Kennzahlen, Befunde mit Weg, Bericht, Kommentar von Claude | 6 |
+| `15-pruefung.e2e.mjs` | Prüfung im Browser: drei Agenten, Kennzahlen, Befunde mit Weg, Bericht, Kommentar von Claude, Projektvergleich zweier Fassungen als Tabelle und als Text | 9 |
 
 | `16-verzeichnis.e2e.mjs` | Verzeichnis im Browser: Plan vor der Datei, Muster, Schalter, Schreiben mit Unterordnern, Bericht | 6 |
 
@@ -53,7 +53,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-Summe: **404 Prüfungen**.
+Summe: **409 Prüfungen**.
 
 ## Eigene Helfer
 

@@ -1364,3 +1364,36 @@ unmittelbar:
   genauso wie die fehlende Sprache.
 * Das **Designstudio** kann dieselbe Strecke in der Variante einer anderen
   Version ausgeben – die Grundlage eines Releaseletters.
+
+## F-54 · Projektvergleich – der erste Entwurf eines Releaseletters
+
+**Seit** 1.37.0 · betrifft Prüfung
+
+**Das Problem** Ein Releaseletter beantwortet eine einzige Frage: *was ist in
+der neuen Fassung dazugekommen, was ist weggefallen?* Mit Projekten (F-51) und
+der Arbeitsmenge (F-52) liegen beide Fassungen im selben Bestand – verglichen
+hat sie bis dahin niemand. Von Hand zwei Listen nebeneinanderzulegen ist genau
+die Arbeit, für die es diese Seite gibt.
+
+**Die Lösung** In der Ansicht **Prüfung** steht unter den Agenten der Block
+*Projektvergleich*: zwei Auswahlfelder (vorher / nachher) über allen bekannten
+Projekten, darunter eine Tabelle mit einer Zeile je Stelle der Gliederung:
+
+| Stelle | Thema | Lage | vorher | nachher |
+| --- | --- | --- | --- | --- |
+| 6.2 | Market Settings | in beiden | 1 | 2 |
+| 6.3 | Vorlagen | **neu** | 0 | 1 |
+| 6.4 | Freigaben | **entfallen** | 1 | 0 |
+
+**Verglichen werden Stellen, nicht Bilder.** Ein zweiter Screenshot derselben
+Maske ist keine neue Funktion – die Bildzahlen stehen daneben, entscheiden tut
+die Stelle. Ein Klick auf die Nummer führt in die Gliederung.
+
+Was keine Stelle trägt, kann nicht verglichen werden; es wird darum unter der
+Tabelle gezählt genannt, statt stillschweigend zu fehlen. Dieselbe Fassung
+zweimal zu wählen sagt die Tabelle, statt eine leere Liste zu zeigen.
+
+**Als Text sichern** legt den Vergleich als `projektvergleich-JJJJ-MM-TT.txt`
+ab: Kopf mit beiden Projekten und Bildzahlen, dann die drei Blöcke *Neu in …*,
+*Nur in …* und *In beiden*. Das ist der Entwurf, aus dem ein Releaseletter
+geschrieben wird – die Seite behauptet nicht, ihn zu schreiben.

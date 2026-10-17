@@ -54,7 +54,7 @@ s.test('die drei Agenten stellen sich vor, bevor sie laufen', () =>
         'der Zustand vor dem Lauf fehlt'
       );
       wahr(
-        (await seite.locator('#pruefung-ansicht .band-hinweis').innerText()).includes('entscheiden tun die Regeln'),
+        (await seite.locator('#pruefung-ansicht .band-hinweis').first().innerText()).includes('entscheiden tun die Regeln'),
         'die Rolle von Claude wird nicht genannt'
       );
     },
@@ -171,6 +171,119 @@ s.test('Claude kommentiert, wenn die Fähigkeit da ist – als Kommentar', () =>
           { json: async () => ({}) }
         ) };`
     }
+  ));
+
+/* ------------------------------------------- Projektvergleich (1.37.0) */
+
+/**
+ * Zwei Fassungen desselben Projekts: 2.3 hat 6.2 und 6.4, 2.4 hat 6.2 und
+ * 6.3 – also eine neue und eine entfallene Stelle.
+ */
+async function zweiFassungen(seite) {
+  const satz = [
+    ['2.3', 'Liste alt', '6.2'],
+    ['2.3', 'Freigaben alt', '6.4'],
+    ['2.4', 'Liste neu', '6.2'],
+    ['2.4', 'Vorlagen neu', '6.3']
+  ];
+  await seite.click('#quelle-beispiel');
+  await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+  await seite.evaluate(() => {
+    document.getElementById('projekt-verwaltung').open = true;
+  });
+  for (const version of ['2.3', '2.4']) {
+    await seite.fill('#projekt-neu-name', 'oneSCM Portal');
+    await seite.fill('#projekt-neu-version', version);
+    await seite.fill('#projekt-neu-land', 'Germany');
+    await seite.click('#projekt-anlegen');
+    await seite.waitForTimeout(120);
+  }
+  let nummer = 0;
+  for (const [version, titel, stelle] of satz) {
+    nummer++;
+    await seite.fill('#feld-version', version);
+    await seite.fill('#feld-titel', titel);
+    await seite.click('#ausloesen');
+    await seite.waitForTimeout(180);
+    await seite.click('#letzte-editor');
+    await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden, null, { timeout: 8000 });
+    await seite.fill('#markier-stelle', stelle);
+    await seite.click('#markier-sichern');
+    await seite.waitForTimeout(220);
+    await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+    await seite.waitForTimeout(120);
+  }
+}
+
+s.test('ohne zwei Projekte erklärt sich der Vergleich', () =>
+  mitSeite(async (seite) => {
+    gleich(await seite.locator('#vergleich-sichern').isDisabled(), true);
+    wahr(
+      (await seite.locator('#vergleich-tabelle').innerText()).includes('Noch kein zweites Projekt'),
+      await seite.locator('#vergleich-tabelle').innerText()
+    );
+    gleich(await seite.locator('#vergleich-stand').innerText(), 'dafür braucht es zwei Projekte');
+  }, { hash: PRUEFUNG }));
+
+s.test('der Vergleich zweier Fassungen nennt neu, entfallen und gemeinsam', () =>
+  mitSeite(
+    async (seite) => {
+      await zweiFassungen(seite);
+      await seite.click('.portal-nav button[data-ansicht="pruefung"]');
+      await seite.waitForSelector('#pruefung-ansicht:not([hidden])');
+      await seite.selectOption('#vergleich-a', 'PRJ-onescm-portal-2-3-germany');
+      await seite.selectOption('#vergleich-b', 'PRJ-onescm-portal-2-4-germany');
+      await seite.waitForSelector('.vergleich-gitter');
+
+      const stand = await seite.locator('#vergleich-stand').innerText();
+      wahr(/1 neu · 1 nur vorher · 1 in beiden/.test(stand), stand);
+      gleich(await seite.locator('.vergleich-zeile').count(), 3);
+      gleich(await seite.locator('.vergleich-zeile--neu').count(), 1);
+      gleich(await seite.locator('.vergleich-zeile--entfallen').count(), 1);
+      wahr(
+        (await seite.locator('.vergleich-zeile--neu').innerText()).includes('6.3'),
+        await seite.locator('.vergleich-zeile--neu').innerText()
+      );
+
+      // Die Spalten tragen die Namen der beiden Projekte.
+      const kopf = await seite.locator('.vergleich-gitter thead th').allInnerTexts();
+      wahr(kopf.some((k) => k.includes('2.3 · Germany')) && kopf.some((k) => k.includes('2.4 · Germany')), kopf.join(' | '));
+
+      // Ein Klick auf die Stelle führt in die Gliederung.
+      await seite.locator('.vergleich-zeile .matrix-knopf').first().click();
+      await seite.waitForSelector('#gliederung-ansicht:not([hidden])');
+
+      // Dasselbe Projekt zweimal vergleicht nichts.
+      await seite.click('.portal-nav button[data-ansicht="pruefung"]');
+      await seite.selectOption('#vergleich-b', 'PRJ-onescm-portal-2-3-germany');
+      await seite.waitForTimeout(200);
+      gleich(await seite.locator('#vergleich-sichern').isDisabled(), true);
+      wahr(
+        (await seite.locator('#vergleich-tabelle').innerText()).includes('Zwei verschiedene Projekte'),
+        await seite.locator('#vergleich-tabelle').innerText()
+      );
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('der Vergleich wird als Text gesichert', () =>
+  mitSeite(
+    async (seite) => {
+      await zweiFassungen(seite);
+      await seite.click('.portal-nav button[data-ansicht="pruefung"]');
+      await seite.selectOption('#vergleich-a', 'PRJ-onescm-portal-2-3-germany');
+      await seite.selectOption('#vergleich-b', 'PRJ-onescm-portal-2-4-germany');
+      await seite.waitForSelector('.vergleich-gitter');
+      await seite.click('#vergleich-sichern');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 8000 });
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      wahr(/^projektvergleich-\d{4}-\d{2}-\d{2}\.txt$/.test(datei.filename), datei.filename);
+      wahr(
+        /1 neu, 1 nur vorher/.test(await seite.locator('#pruef-meldung').innerText()),
+        await seite.locator('#pruef-meldung').innerText()
+      );
+    },
+    { hash: AUFNAHME, initSkript: ablageNachbau }
   ));
 
 s.test('Browser wieder schließen', () => schliessen());

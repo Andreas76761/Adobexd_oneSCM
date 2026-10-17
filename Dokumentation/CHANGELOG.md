@@ -20,6 +20,23 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.37.0] – Projektvergleich: was ist neu in 2.4?
+
+### Neu
+* **Projektvergleich** (F-54) in der Ansicht Prüfung: zwei Projekte
+  nebeneinander, eine Zeile je Stelle der Gliederung mit „neu“, „entfallen“
+  oder „in beiden“ und den Bildzahlen beider Fassungen
+* Ein Klick auf die Stelle führt in die Gliederung; was ohne Stelle ist, wird
+  gezählt genannt statt verschwiegen
+* **Als Text sichern**: `projektvergleich-JJJJ-MM-TT.txt` mit den drei Blöcken
+  „Neu in …“, „Nur in …“ und „In beiden“ – der Entwurf eines Releaseletters
+
+### Kern
+* `vergleicheProjekte`, `vergleichAlsText`
+
+### Prüfung
+* 2 neue Kernprüfungen, 3 neue Browserprüfungen; zusammen 409
+
 ## [1.36.0] – Die Arbeitsmenge: in einem Projekt arbeiten
 
 ### Neu

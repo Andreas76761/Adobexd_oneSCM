@@ -4654,6 +4654,86 @@ export function projektFilter(aufnahmen = [], wahl = '') {
   return aufnahmen.filter((a) => projektKennzeichen(a.projekt, a.version, a.land) === gewaehlt);
 }
 
+/**
+ * Zwei Arbeitsmengen nebeneinander: was in der einen steht und in der anderen
+ * fehlt. Das ist die Frage vor einem Releaseletter ("was ist neu in 2.4?")
+ * und vor einer Übersetzung ("was fehlt in Korea?"). Verglichen werden
+ * Stellen der Gliederung, nicht Bilder: ein neuer Screenshot derselben Maske
+ * ist keine neue Funktion.
+ */
+export function vergleicheProjekte(aufnahmen = [], wahlA = '', wahlB = '', gliederung = []) {
+  const a = projektFilter(aufnahmen, wahlA);
+  const b = projektFilter(aufnahmen, wahlB);
+  const stelleVon = (bild) => String(bild.gliederung || '').trim();
+  const stellen = [...new Set([...a, ...b].map(stelleVon).filter(Boolean))].sort(vergleicheKapitel);
+
+  const zeilen = stellen.map((nummer) => {
+    const eintrag = gliederung.find((e) => e.nummer === nummer) || null;
+    const inA = a.filter((bild) => stelleVon(bild) === nummer);
+    const inB = b.filter((bild) => stelleVon(bild) === nummer);
+    return {
+      nummer,
+      thema: eintrag ? eintrag.thema : '',
+      bekannt: Boolean(eintrag),
+      art: !inA.length ? 'neu' : !inB.length ? 'entfallen' : 'beide',
+      a: inA.length,
+      b: inB.length,
+      kennungenA: inA.map((bild) => bild.id),
+      kennungenB: inB.map((bild) => bild.id)
+    };
+  });
+
+  return {
+    wahlA,
+    wahlB,
+    zeilen,
+    // Ohne Stelle lässt sich nichts vergleichen - gezählt wird es trotzdem,
+    // damit niemand glaubt, die Bilder seien weg.
+    ohneStelleA: a.filter((bild) => !stelleVon(bild)).length,
+    ohneStelleB: b.filter((bild) => !stelleVon(bild)).length,
+    bilderA: a.length,
+    bilderB: b.length,
+    neu: zeilen.filter((z) => z.art === 'neu').length,
+    entfallen: zeilen.filter((z) => z.art === 'entfallen').length,
+    beide: zeilen.filter((z) => z.art === 'beide').length
+  };
+}
+
+/** Der Vergleich als Text - der erste Entwurf eines Releaseletters. */
+export function vergleichAlsText(vergleich = {}, projekte = [], { stand = new Date().toISOString(), anwendung = '' } = {}) {
+  const nameA = projektWahlText(vergleich.wahlA, projekte);
+  const nameB = projektWahlText(vergleich.wahlB, projekte);
+  const zeilen = [
+    `Projektvergleich Screenarchiv${anwendung ? ' ' + anwendung : ''}`,
+    `Stand: ${formatiereZeitpunkt(stand)}`,
+    `Vorher: ${nameA} (${vergleich.bilderA || 0} Bilder)`,
+    `Nachher: ${nameB} (${vergleich.bilderB || 0} Bilder)`,
+    ''
+  ];
+  const blocke = [
+    ['neu', `Neu in ${nameB}`],
+    ['entfallen', `Nur in ${nameA}`],
+    ['beide', 'In beiden']
+  ];
+  for (const [art, titel] of blocke) {
+    const teil = (vergleich.zeilen || []).filter((z) => z.art === art);
+    zeilen.push(`## ${titel} (${teil.length})`, '');
+    if (!teil.length) zeilen.push('–', '');
+    for (const z of teil) {
+      zeilen.push(`${z.nummer}${z.thema ? ' ' + z.thema : ''} · ${z.a} → ${z.b} Bild(er)`);
+    }
+    if (teil.length) zeilen.push('');
+  }
+  if (vergleich.ohneStelleA || vergleich.ohneStelleB) {
+    zeilen.push(
+      `Ohne Stelle und darum nicht verglichen: ${vergleich.ohneStelleA || 0} in ${nameA}, ` +
+        `${vergleich.ohneStelleB || 0} in ${nameB}.`,
+      ''
+    );
+  }
+  return zeilen.join('\n');
+}
+
 /** Wie die Wahl in einer Zeile heißt - auch wenn das Projekt gelöscht wurde. */
 export function projektWahlText(wahl, projekte = []) {
   const gewaehlt = String(wahl || '');

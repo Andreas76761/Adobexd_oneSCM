@@ -1561,3 +1561,16 @@ div.streifen-bild { cursor: default; }
   background: var(--flaeche); color: var(--tinte); font: inherit;
 }
 .projektleiste .kennung { text-transform: none; letter-spacing: 0; }
+
+/* ------------------------- Projektvergleich (1.37.0) */
+
+.vergleich { margin-top: 20px; }
+.vergleich-wahl { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; margin: 10px 0; }
+.vergleich-wahl .feld { flex: 1 1 220px; }
+.vergleich-tabelle { overflow-x: auto; }
+.vergleich-gitter td, .vergleich-gitter th { white-space: nowrap; }
+.vergleich-art { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; color: var(--tinte-3); }
+.vergleich-zeile--neu th { border-left: 3px solid var(--gut); }
+.vergleich-zeile--neu .vergleich-art { color: var(--gut); }
+.vergleich-zeile--entfallen th { border-left: 3px solid var(--warn); }
+.vergleich-zeile--entfallen .vergleich-art { color: var(--warn); }

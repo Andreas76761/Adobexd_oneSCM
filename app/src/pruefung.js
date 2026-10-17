@@ -153,6 +153,119 @@ function zeichnePruefung() {
   if (document.getElementById('pruefung-ansicht').hidden) return;
   $('#pruef-agenten').replaceChildren(...AGENTEN.map(agentKarte));
   $('#pruef-bericht').disabled = !Object.keys(pruefErgebnisse).length;
+  zeichneVergleich();
+}
+
+/* ----------------------------------------------- Projektvergleich (1.37.0) */
+
+let vergleichWahl = { a: '', b: '' };
+
+/** Die Projekte, zwischen denen verglichen werden kann - auch die aus dem Bestand. */
+const vergleichProjekte = () => [...projekte, ...projekteAusBestand(eingang, projekte)];
+
+function fuelleVergleichswahl(liste) {
+  for (const [seite, feld] of [['a', '#vergleich-a'], ['b', '#vergleich-b']]) {
+    const wahl = $(feld);
+    wahl.replaceChildren(
+      el('option', { value: '', text: liste.length ? 'Projekt wählen' : 'noch kein Projekt' }),
+      ...liste.map((satz) => el('option', { value: satz.id, text: projektKennung(satz) }))
+    );
+    wahl.value = liste.some((satz) => satz.id === vergleichWahl[seite]) ? vergleichWahl[seite] : '';
+    vergleichWahl = { ...vergleichWahl, [seite]: wahl.value };
+  }
+}
+
+/** Eine Zeile je Stelle: neu, entfallen oder in beiden. */
+function vergleichZeile(zeile) {
+  const schild = { neu: 'neu', entfallen: 'entfallen', beide: 'in beiden' }[zeile.art];
+  return el('tr', { klasse: 'vergleich-zeile vergleich-zeile--' + zeile.art }, [
+    el('th', { scope: 'row' }, [
+      el('button', {
+        klasse: 'matrix-knopf',
+        type: 'button',
+        text: zeile.nummer,
+        title: 'Die Stelle in der Gliederung zeigen',
+        onclick: () => setze({ ansicht: 'gliederung' })
+      })
+    ]),
+    el('td', { text: zeile.thema || (zeile.bekannt ? '' : 'nicht in der Gliederung') }),
+    el('td', { klasse: 'vergleich-art', text: schild }),
+    el('td', { text: String(zeile.a) }),
+    el('td', { text: String(zeile.b) })
+  ]);
+}
+
+function zeichneVergleich() {
+  const liste = vergleichProjekte();
+  fuelleVergleichswahl(liste);
+  const kasten = $('#vergleich-tabelle');
+  const stand = $('#vergleich-stand');
+  const knopf = $('#vergleich-sichern');
+
+  if (!vergleichWahl.a || !vergleichWahl.b || vergleichWahl.a === vergleichWahl.b) {
+    stand.textContent = liste.length < 2 ? 'dafür braucht es zwei Projekte' : '';
+    knopf.disabled = true;
+    kasten.replaceChildren(
+      el('p', {
+        klasse: 'feld-hinweis',
+        text:
+          liste.length < 2
+            ? 'Noch kein zweites Projekt. In der Aufnahme unter „Projekte" eines anlegen – etwa dieselbe Anwendung in der nächsten Fassung.'
+            : 'Zwei verschiedene Projekte wählen – vorher und nachher.'
+      })
+    );
+    return;
+  }
+
+  const vergleich = vergleicheProjekte(eingang, vergleichWahl.a, vergleichWahl.b, GLIEDERUNG);
+  stand.textContent = `${vergleich.neu} neu · ${vergleich.entfallen} nur vorher · ${vergleich.beide} in beiden`;
+  knopf.disabled = false;
+
+  if (!vergleich.zeilen.length) {
+    kasten.replaceChildren(
+      el('p', { klasse: 'feld-hinweis', text: 'Keines der beiden Projekte hat Bilder mit einer Stelle – es gibt nichts zu vergleichen.' })
+    );
+    return;
+  }
+
+  const kopf = el('tr', {}, [
+    el('th', { scope: 'col', text: 'Stelle' }),
+    el('th', { scope: 'col', text: 'Thema' }),
+    el('th', { scope: 'col', text: 'Lage' }),
+    el('th', { scope: 'col', text: projektWahlText(vergleichWahl.a, liste) }),
+    el('th', { scope: 'col', text: projektWahlText(vergleichWahl.b, liste) })
+  ]);
+  const kinder = [
+    el('table', { klasse: 'matrix-gitter vergleich-gitter' }, [
+      el('thead', {}, kopf),
+      el('tbody', {}, vergleich.zeilen.map(vergleichZeile))
+    ])
+  ];
+  if (vergleich.ohneStelleA || vergleich.ohneStelleB) {
+    kinder.push(
+      el('p', {
+        klasse: 'feld-hinweis',
+        text: `Ohne Stelle und darum nicht verglichen: ${vergleich.ohneStelleA} vorher, ${vergleich.ohneStelleB} nachher.`
+      })
+    );
+  }
+  kasten.replaceChildren(...kinder);
+}
+
+async function sichereVergleich() {
+  const liste = vergleichProjekte();
+  const vergleich = vergleicheProjekte(eingang, vergleichWahl.a, vergleichWahl.b, GLIEDERUNG);
+  const text = vergleichAlsText(vergleich, liste, { anwendung: DATEN.anwendung });
+  const name = `projektvergleich-${new Date().toISOString().slice(0, 10)}.txt`;
+  const ergebnis = await uebergebeDatei(name, new Blob([text], { type: 'text/plain' }));
+  meldePruefung(
+    ergebnis.art === 'gesichert'
+      ? `${name} gesichert (${formatiereBytes(ergebnis.groesse)}) – ${vergleich.neu} neu, ${vergleich.entfallen} nur vorher.`
+      : ergebnis.art === 'ohne'
+        ? 'Diese Ansicht darf keine Dateien ablegen. Der Vergleich bleibt in der Ansicht.'
+        : 'Das Sichern wurde abgebrochen oder ist fehlgeschlagen.',
+    ergebnis.art === 'gesichert' ? 'gut' : 'warnung'
+  );
 }
 
 /* ------------------------------------------------------- Kommentar und Bericht */
@@ -239,6 +352,13 @@ function verdrahtePruefung() {
     );
   });
   $('#pruef-bericht').addEventListener('click', sichereBericht);
+  for (const [seite, feld] of [['a', '#vergleich-a'], ['b', '#vergleich-b']]) {
+    $(feld).addEventListener('change', (e) => {
+      vergleichWahl = { ...vergleichWahl, [seite]: e.target.value };
+      zeichneVergleich();
+    });
+  }
+  $('#vergleich-sichern').addEventListener('click', sichereVergleich);
 }
 
 verdrahtePruefung();
