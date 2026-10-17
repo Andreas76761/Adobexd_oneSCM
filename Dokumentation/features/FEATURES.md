@@ -623,3 +623,56 @@ Ordnerwahl bleiben Eingang und Einzeldatei, ohne Freigabe das Bildschirmfoto,
 auf dem Telefon „Bild öffnen“. Die Zeile zur Netzablage sagt, dass die
 Inhaltsrichtlinie des Artifacts jede Verbindung nach außen sperrt – und nennt
 den Umweg: ein Ordner, der mit SharePoint oder OneDrive synchronisiert wird.
+
+
+---
+
+## F-31 · Unkenntlich machen
+
+**Zweck** Ein Bildschirmfoto aus einem echten System zeigt echte Daten:
+Benutzerkennung, FIN, Adresse, Name, Vertragsnummer. Wer es weitergibt, gibt
+sie mit. Bis 1.16.0 half nur, den Ausschnitt so zu legen, dass nichts
+Persönliches hineingerät – was selten geht.
+
+**Wie abgedeckt wird** Rechteck über der Stelle aufziehen. Der Bereich wird
+auf ein grobes Raster heruntergerechnet und wieder vergrößert; was dabei
+verloren geht, ist wirklich weg. Kein Weichzeichner: der verschmiert nur und
+lässt sich unter Umständen zurückrechnen. Drei Stärken stehen zur Wahl – grob
+(24 px), mittel (12 px), fein (6 px).
+
+**Das Original bleibt** Die Marken liegen als Angaben neben der Aufnahme
+(`marken`), die abgedeckte Fassung entsteht daraus als Kopie
+(`bild_markiert`). Beide stehen im Eingang; die Marken lassen sich später
+verschieben, ändern oder entfernen. „Alle Marken entfernen“ und sichern führt
+zurück zum Original.
+
+**Wo die Fassung erscheint** Eingangskarte und Kontaktbogen zeigen die
+bearbeitete Fassung, sobald es eine gibt – und nennen sie: „bearbeitet – 1
+Stelle abgedeckt“. Ein stillschweigend verändertes Bild wäre unredlich. Der
+Beipackzettel trägt seit Version 2 `unkenntlich_gemacht` und `marken`.
+
+---
+
+## F-32 · Rahmen, Kommentar und Klickstrecke
+
+**Zweck** Ein Bildschirmfoto zeigt alles gleich wichtig. Wer erklären will,
+wo zu klicken ist, braucht einen Rand um die Bedienfläche und einen Text
+daneben – und für einen Ablauf mehrere davon in Reihenfolge.
+
+**Rahmen** Rechteck aufziehen, fertig: ein Rand in der Akzentfarbe. Eine
+Beschriftung ist freiwillig; sie steht als Band über dem Rahmen, oder
+darunter, wenn oben kein Platz ist.
+
+**Schritt der Klickstrecke** Derselbe Rahmen, zusätzlich mit einer Nummer im
+Kreis und Pflichttext. Die Nummern vergibt die Seite in der Reihenfolge der
+Marken; wird ein Schritt gelöscht, wird neu durchgezählt – eine Strecke mit
+1, 3, 4 liest sich wie ein Fehler.
+
+**Die Strecke als Text** Neben dem Bild steht die ganze Klickstrecke
+untereinander („1. Auf ‚Bestellung anlegen‘ klicken“), zum Mitlesen und
+Herauskopieren. Ein Schritt ohne Text wird beim Sichern benannt.
+
+**Bedienung** Klick auf eine Marke wählt sie, `Entf` entfernt die gewählte,
+die Liste rechts zeigt Maße, Text und Raster. Die Marken liegen in
+Bildpunkten des Originals, nicht in Bildschirmpunkten – die Fassung stimmt
+auch dann, wenn die Ansicht kleiner skaliert ist.

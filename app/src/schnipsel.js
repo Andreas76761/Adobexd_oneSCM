@@ -658,6 +658,5 @@ function verdrahteSchnipsel() {
   window.addEventListener('pagehide', () => beendeAusschneiden(true));
 }
 
+// starte() steht in der letzten Zeile der letzten Datei - jetzt markieren.js.
 verdrahteSchnipsel();
-starte();
-stelleOrdnerWiederHer();

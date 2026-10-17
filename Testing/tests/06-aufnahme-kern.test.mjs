@@ -291,14 +291,15 @@ s.test('der Beipackzettel führt alle Felder in fester Folge', () => {
   tieferGleich(
     Object.keys(zettel),
     ['beipackzettel', 'erzeugt_von', 'bild', 'erfasst_am', 'datum', 'titel', 'projekt', 'seite', 'kategorie',
-     'status', 'rolle', 'begriffe', 'notiz', 'autor', 'browser', 'ausschnitt', 'quelle'],
+     'status', 'rolle', 'begriffe', 'notiz', 'autor', 'browser', 'ausschnitt', 'quelle',
+     'unkenntlich_gemacht', 'marken'],
     'die Feldfolge ist nicht stabil'
   );
 });
 
 s.test('der Beipackzettel bleibt auch ohne Angaben vollständig geformt', () => {
   const zettel = JSON.parse(kern.baueBeipackzettel({ bildname: 'a.png' }));
-  gleich(Object.keys(zettel).length, 17, 'Felder fehlen, wenn nichts eingetragen ist');
+  gleich(Object.keys(zettel).length, 19, 'Felder fehlen, wenn nichts eingetragen ist');
   gleich(zettel.titel, '');
   tieferGleich(zettel.begriffe, []);
   gleich(zettel.ausschnitt, null);
@@ -344,7 +345,7 @@ s.test('ein gelesener Beipackzettel trägt alle Zeilen in fester Folge', () => {
   const leere = gelesen.zeilen.filter((z) => z.leer).map((z) => z.schluessel);
   tieferGleich(
     leere,
-    ['seite', 'status', 'rolle', 'autor', 'browser'],
+    ['seite', 'status', 'rolle', 'autor', 'browser', 'unkenntlich_gemacht', 'marken'],
     'leere Felder werden falsch erkannt'
   );
 });
@@ -570,6 +571,107 @@ s.test('jede fehlende Fähigkeit nennt einen Weg, der statt dessen geht', () => 
   wahr(/eingebettete Ansicht/.test(freigabe.text), 'am Rechner wird die Hülle nicht genannt');
   const amTelefon = kern.beschreibeFaehigkeiten({ beruehrung: true }).find((z) => /Bildschirm/.test(z.name));
   wahr(/Telefon/.test(amTelefon.text) && /Bild öffnen/.test(amTelefon.text), 'am Telefon fehlt der Ausweg');
+});
+
+/* ------------------------------------------------------------- Marken */
+
+s.test('eine neue Marke sitzt im Bild und zählt die Schritte weiter', () => {
+  const quelle = { breite: 1200, hoehe: 800 };
+  let liste = [];
+  liste = [...liste, kern.leereMarke('unkenntlich', kern.begrenzeMarke({ x: 10, y: 20, breite: 300, hoehe: 24 }, quelle), liste)];
+  liste = [...liste, kern.leereMarke('schritt', kern.begrenzeMarke({ x: 40, y: 60, breite: 200, hoehe: 50 }, quelle), liste)];
+  liste = [...liste, kern.leereMarke('schritt', kern.begrenzeMarke({ x: 40, y: 200, breite: 200, hoehe: 50 }, quelle), liste)];
+  gleich(liste[0].nummer, null, 'eine abgedeckte Stelle bekommt keine Nummer');
+  gleich(liste[1].nummer, 1);
+  gleich(liste[2].nummer, 2);
+  gleich(liste[0].stufe, 'mittel', 'ohne Angabe gilt das mittlere Raster');
+  wahr(liste[0].id !== liste[1].id, 'zwei Marken teilen sich eine Kennung');
+
+  // Eine Marke bleibt im Bild und unter Mindestmaß nicht liegen.
+  const raus = kern.begrenzeMarke({ x: 1190, y: 790, breite: 2, hoehe: 2 }, quelle);
+  gleich(raus.breite, kern.MINDEST_MARKE, 'zu kleine Marken werden nicht auf Mindestmaß gebracht');
+  wahr(raus.x + raus.breite <= quelle.breite, 'die Marke ragt rechts aus dem Bild');
+  wahr(raus.y + raus.hoehe <= quelle.hoehe, 'die Marke ragt unten aus dem Bild');
+});
+
+s.test('nach dem Löschen bleibt in der Klickstrecke keine Lücke', () => {
+  const marken = kern.nummeriereSchritte([
+    { art: 'schritt', nummer: 1, text: 'eins' },
+    { art: 'unkenntlich', nummer: null },
+    { art: 'schritt', nummer: 2, text: 'zwei' },
+    { art: 'schritt', nummer: 3, text: 'drei' }
+  ]);
+  const ohneZwei = kern.nummeriereSchritte(marken.filter((m) => m.text !== 'zwei'));
+  tieferGleich(
+    ohneZwei.filter((m) => m.art === 'schritt').map((m) => m.nummer),
+    [1, 2],
+    'die Nummern springen'
+  );
+  gleich(kern.klickstreckeAlsText(ohneZwei), '1. eins\n2. drei');
+  gleich(kern.naechsteSchrittnummer(ohneZwei), 3);
+});
+
+s.test('ein Schritt ohne Text wird benannt, ein Rahmen ohne Text nicht', () => {
+  const marken = [
+    { id: 'a', art: 'schritt', nummer: 1, text: '' },
+    { id: 'b', art: 'rahmen', text: '' },
+    { id: 'c', art: 'unkenntlich' }
+  ];
+  const probleme = kern.pruefeMarken(marken);
+  gleich(probleme.length, 1, 'nur der Schritt braucht Text');
+  gleich(probleme[0].id, 'a');
+  tieferGleich(kern.markenZusammenfassung(marken), { gesamt: 3, unkenntlich: 1, rahmen: 1, schritte: 1 });
+});
+
+s.test('Marken überleben das Ablegen und Zurücklesen, Unbekanntes fällt weg', () => {
+  const marken = [
+    { id: 'a', art: 'unkenntlich', x: 10, y: 20, breite: 300, hoehe: 24, stufe: 'grob', text: '' },
+    { id: 'b', art: 'schritt', x: 40, y: 60, breite: 200, hoehe: 50, nummer: 1, text: 'Auf „Anlegen“ klicken' }
+  ];
+  const abgelegt = kern.markenAlsAblage(marken);
+  gleich(abgelegt[0].nummer, undefined, 'eine abgedeckte Stelle trägt keine Nummer mit');
+  gleich(abgelegt[1].stufe, undefined, 'ein Schritt trägt kein Raster mit');
+  const zurueck = kern.leseMarken(abgelegt);
+  gleich(zurueck.length, 2);
+  gleich(zurueck[0].stufe, 'grob');
+  gleich(zurueck[1].text, 'Auf „Anlegen“ klicken');
+  gleich(zurueck[1].nummer, 1);
+
+  tieferGleich(kern.leseMarken('keine Liste'), []);
+  gleich(
+    kern.leseMarken([{ art: 'erfunden', x: 1, y: 1, breite: 1, hoehe: 1 }, { art: 'rahmen', x: 'a' }]).length,
+    0,
+    'unbekannte Arten und halbe Maße kommen durch'
+  );
+  gleich(kern.rasterZuStufe('fein') < kern.rasterZuStufe('grob'), true, 'fein muss feiner sein als grob');
+  gleich(kern.rasterZuStufe('erfunden'), kern.rasterZuStufe('mittel'), 'ohne Stufe gilt die mittlere');
+});
+
+s.test('die bearbeitete Fassung ist am Namen erkennbar', () => {
+  gleich(kern.markiertName('schirm-001.png'), 'schirm-001-markiert.png');
+  gleich(kern.markiertName('a.b.c.jpeg'), 'a.b.c-markiert.jpeg');
+  gleich(kern.markiertName('ohne-endung'), 'ohne-endung-markiert');
+});
+
+s.test('der Beipackzettel sagt, dass etwas abgedeckt wurde', () => {
+  const marken = [
+    { id: 'a', art: 'unkenntlich', x: 1, y: 1, breite: 10, hoehe: 10, stufe: 'grob' },
+    { id: 'b', art: 'schritt', x: 1, y: 1, breite: 10, hoehe: 10, nummer: 1, text: 'klicken' }
+  ];
+  const zettel = JSON.parse(kern.baueBeipackzettel({ entwurf: { titel: 'T' }, bildname: 'a.png', marken }));
+  gleich(zettel.beipackzettel, 2, 'die Zettelversion muss mitwachsen');
+  gleich(zettel.unkenntlich_gemacht, 1);
+  gleich(zettel.marken.length, 2);
+  const gelesen = kern.leseBeipackzettel(JSON.stringify(zettel));
+  gleich(gelesen.ok, true);
+  gleich(gelesen.kuenftig, false, 'der eigene Zettel gilt als künftig');
+  tieferGleich(gelesen.fremd, [], 'die neuen Felder gelten als fremd');
+  const wert = (s) => gelesen.zeilen.find((z) => z.schluessel === s).wert;
+  gleich(wert('unkenntlich_gemacht'), '1 Stelle abgedeckt');
+  gleich(wert('marken'), '1 unkenntlich · 1 Schritte');
+  // Ohne Marken bleiben die Zeilen leer statt "0".
+  const ohne = kern.leseBeipackzettel(kern.baueBeipackzettel({ bildname: 'a.png' }));
+  gleich(ohne.zeilen.find((z) => z.schluessel === 'unkenntlich_gemacht').leer, true);
 });
 
 /* -------------------------------------------- Metadaten in der PNG-Datei */

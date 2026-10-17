@@ -175,6 +175,49 @@ const geteilterBildschirm = `
   }
 }
 
+/* Markieren: eine Stelle abgedeckt, zwei Schritte einer Klickstrecke. */
+{
+  for (const [name, thema] of [['markieren', 'light'], ['markieren-dunkel', 'dark']]) {
+    const kontext = await browser.newContext({ viewport: { width: 1500, height: 1050 }, colorScheme: thema });
+    const seite = await kontext.newPage();
+    await seite.goto(adresse + '#ans=aufnahme', { waitUntil: 'load' });
+    await seite.waitForSelector('html[data-bereit="ja"]');
+    await seite.click('#quelle-beispiel');
+    await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled);
+    await seite.fill('#feld-titel', 'Bestellübersicht mit Kundendaten');
+    await seite.fill('#feld-projekt', 'oneSCM Portal');
+    await seite.selectOption('#feld-kategorie', 'Formular');
+    await seite.fill('#feld-begriffe', 'kundendaten, freigabe');
+    await seite.click('#ausloesen');
+    await seite.waitForTimeout(200);
+    await seite.click('.portal-nav button[data-ansicht="markieren"]');
+    await seite.waitForSelector('#markieren-ansicht:not([hidden])');
+    const auswahl = await seite.locator('#markier-wahl option').nth(1).getAttribute('value');
+    await seite.selectOption('#markier-wahl', auswahl);
+    await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden);
+    const masse = await seite.locator('#markier-leinwand').boundingBox();
+    const ziehe = async (x1, y1, x2, y2) => {
+      await seite.mouse.move(masse.x + x1, masse.y + y1);
+      await seite.mouse.down();
+      await seite.mouse.move(masse.x + x2, masse.y + y2, { steps: 12 });
+      await seite.mouse.up();
+      await seite.waitForTimeout(150);
+    };
+    await ziehe(60, 78, 300, 112);
+    await seite.click('#markier-werkzeuge button[data-werkzeug="schritt"]');
+    await ziehe(330, 196, 540, 248);
+    let zeile = await seite.locator('.marke-zeile').last().getAttribute('data-marke');
+    await seite.fill('#marke-text-' + zeile, 'Auf „Bestellung anlegen“ klicken');
+    await ziehe(120, 300, 320, 348);
+    zeile = await seite.locator('.marke-zeile').last().getAttribute('data-marke');
+    await seite.fill('#marke-text-' + zeile, 'Lieferant auswählen');
+    await seite.waitForTimeout(300);
+    await seite.screenshot({ path: join(ziel, name + '.png') });
+    console.log(name + '.png');
+    await kontext.close();
+  }
+}
+
 /* Die Werkbank: zwei Aufnahmen, Begruendung, Kennzahl - ein Belegentwurf. */
 {
   for (const [name, thema] of [['werkbank', 'light'], ['werkbank-dunkel', 'dark']]) {

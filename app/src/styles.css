@@ -133,7 +133,8 @@ button { font: inherit; color: inherit; }
   justify-content: space-between; padding: 28px 0 20px;
 }
 
-.marke { display: flex; gap: 16px; align-items: flex-start; max-width: 62ch; }
+/* Seit fünf Einträgen in der Portalnavigation braucht die Marke mehr Breite. */
+.marke { display: flex; gap: 16px; align-items: flex-start; max-width: 74ch; }
 
 .stempel {
   flex: none;
@@ -697,6 +698,11 @@ dialog.detail::backdrop { background: rgba(12, 16, 22, .62); backdrop-filter: bl
 .eingang-karte--offen { border-left: 3px solid var(--warn); }
 .eingang-bild { position: relative; background: var(--flaeche-2); border-bottom: 1px solid var(--linie); }
 .eingang-bild img { display: block; width: 100%; height: 150px; object-fit: cover; object-position: top left; }
+.markiert-marke {
+  position: absolute; right: 0; bottom: 0;
+  font-family: var(--schrift-mono); font-size: 9.5px; letter-spacing: var(--spur);
+  background: var(--akzent); color: var(--auf-farbe); padding: 2px 7px; line-height: 1.6;
+}
 .offen-marke {
   position: absolute; left: 0; bottom: 0;
   font-family: var(--schrift-mono); font-size: 9.5px; letter-spacing: var(--spur); text-transform: uppercase;
@@ -1021,4 +1027,59 @@ div.streifen-bild { cursor: default; }
 @media (max-width: 700px) {
   .faehig-liste { grid-template-columns: 1fr; gap: 2px; }
   .faehig-liste dd { margin-bottom: 8px; }
+}
+
+/* ------------------------------------------------ Markieren (ab 1.17.0) */
+
+.markier-kopf {
+  display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: end;
+  padding: 18px 0 12px;
+}
+.markier-kopf .feld { min-width: 190px; }
+.markier-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+
+.werkzeuge { display: flex; border: 1px solid var(--linie-stark); border-radius: var(--radius); overflow: hidden; }
+.werkzeuge button {
+  padding: 7px 13px; background: var(--flaeche); border: none; cursor: pointer;
+  font-size: 12.5px; color: var(--tinte-2); border-right: 1px solid var(--linie);
+}
+.werkzeuge button:last-child { border-right: none; }
+.werkzeuge button[aria-pressed="true"] { background: var(--akzent); color: var(--auf-farbe); font-weight: 500; }
+
+.markier-raster {
+  display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: clamp(16px, 2.5vw, 28px);
+  align-items: start; padding-bottom: 60px;
+}
+@media (max-width: 1000px) { .markier-raster { grid-template-columns: 1fr; } }
+
+.markier-buehne {
+  position: relative; display: grid; place-items: center; min-height: 320px;
+  background: var(--flaeche-2); border: 1px solid var(--linie); border-radius: var(--radius);
+  cursor: crosshair; touch-action: none; overflow: hidden;
+}
+.markier-flaeche { position: relative; display: block; line-height: 0; max-width: 100%; }
+.markier-buehne canvas {
+  display: block; width: auto; max-width: 100%; max-height: calc(100vh - 300px); height: auto;
+}
+.markier-buehne canvas[hidden] { display: none; }
+
+.markier-liste-spalte { display: grid; gap: 10px; align-content: start; }
+/* Der Stand ist ein Wert, keine Beschriftung - also keine Versalien. */
+.markier-liste-spalte .abschnitt-titel .kennung { text-transform: none; letter-spacing: 0; color: var(--tinte-2); }
+.markier-liste { display: grid; gap: 8px; }
+.marke-zeile {
+  display: grid; gap: 7px; padding: 9px 10px; cursor: pointer;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche);
+}
+.marke-zeile--gewaehlt { border-color: var(--akzent); background: var(--akzent-hauch); }
+.marke-kopf { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.marke-art { font-size: 12.5px; font-weight: 500; }
+.marke-zeile .kennung { font-size: 10.5px; }
+
+.klickstrecke { display: grid; gap: 6px; }
+.klickstrecke[hidden] { display: none; }
+.klickstrecke pre {
+  margin: 0; padding: 9px 10px; white-space: pre-wrap; overflow-wrap: anywhere;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche-2);
+  font-family: var(--schrift-mono); font-size: 11.5px; line-height: 1.6; color: var(--tinte-2);
 }

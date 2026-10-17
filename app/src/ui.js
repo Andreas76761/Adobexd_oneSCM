@@ -103,6 +103,8 @@ function setze(aenderung, neuZeichnen = true) {
   // Das Ordnerband behauptet, den tatsaechlichen Inhalt zu zeigen - beim
   // Betreten des Archivs wird er darum frisch gelesen, nicht erinnert.
   if (zustand.ansicht === 'archiv' && vorher !== 'archiv' && ordnerZugriff) zeigeOrdnerImArchiv();
+  // Die Markieransicht kennt den Eingang erst, wenn sie sichtbar ist.
+  if (zustand.ansicht === 'markieren') zeichneMarkieren();
 }
 
 function schalte(dimension, wert) {
@@ -538,6 +540,7 @@ const ABSCHNITTE = {
   archiv: 'archiv-ansicht',
   aufnahme: 'aufnahme-ansicht',
   ausschneiden: 'schnipsel-ansicht',
+  markieren: 'markieren-ansicht',
   eingang: 'eingang-ansicht'
 };
 
@@ -848,6 +851,8 @@ breit.addEventListener('change', richteSchub);
 function starte() {
 richteSchub();
 zeichne();
+// Auch beim Aufruf mit #ans=markieren muss die Ansicht gefüllt sein.
+if (zustand.ansicht === 'markieren') zeichneMarkieren();
 if (zustand.auswahl) oeffneDetail(zustand.auswahl, false);
 document.documentElement.dataset.bereit = 'ja';
 }

@@ -1,0 +1,282 @@
+/**
+ * Browserprüfung der Ansicht Markieren: unkenntlich machen und erklären.
+ * Geprüft wird dist/index.html in der Hülle, die das Artifact ergänzt.
+ */
+import { join } from 'node:path';
+import { suite, wahr, gleich } from '../hilfen/pruefe.mjs';
+import { erzeugeBrowserHelfer } from '../hilfen/browser.mjs';
+
+const wurzel = join(import.meta.dirname, '..', '..');
+const { mitSeite, schliessen } = erzeugeBrowserHelfer(join(wurzel, 'dist', 'index.html'));
+const s = suite('Markieren – Oberfläche');
+
+const MARKIEREN = '#ans=markieren';
+const AUFNAHME = '#ans=aufnahme';
+
+/** Legt eine Aufnahme aus der Beispielquelle an und wechselt zum Markieren. */
+async function mitAufnahme(seite, titel = 'Bestellübersicht mit Kundendaten') {
+  await seite.click('#quelle-beispiel');
+  await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+  await seite.fill('#feld-titel', titel);
+  await seite.fill('#feld-projekt', 'oneSCM Portal');
+  await seite.selectOption('#feld-kategorie', 'Formular');
+  await seite.fill('#feld-begriffe', 'kundendaten');
+  await seite.click('#ausloesen');
+  await seite.waitForTimeout(150);
+  await seite.click('.portal-nav button[data-ansicht="markieren"]');
+  await seite.waitForSelector('#markieren-ansicht:not([hidden])');
+  await seite.selectOption('#markier-wahl', 'AUF-2026-001');
+  await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden, null, { timeout: 5000 });
+}
+
+/** Zieht ein Rechteck auf der Markierfläche auf. */
+async function ziehe(seite, x1, y1, x2, y2) {
+  const m = await seite.locator('#markier-leinwand').boundingBox();
+  await seite.mouse.move(m.x + x1, m.y + y1);
+  await seite.mouse.down();
+  await seite.mouse.move(m.x + x2, m.y + y2, { steps: 10 });
+  await seite.mouse.up();
+  await seite.waitForTimeout(120);
+}
+
+const letzteMarke = (seite) => seite.locator('.marke-zeile').last().getAttribute('data-marke');
+
+const eingangImSpeicher = (seite) =>
+  seite.evaluate(() => {
+    const roh = localStorage.getItem('screenarchiv:eingang');
+    return roh ? JSON.parse(roh).aufnahmen : [];
+  });
+
+s.test('die Navigation führt in die Ansicht Markieren', () =>
+  mitSeite(async (seite) => {
+    await seite.click('.portal-nav button[data-ansicht="markieren"]');
+    gleich(await seite.locator('#markieren-ansicht').isVisible(), true);
+    gleich(await seite.locator('#markier-leer').isVisible(), true, 'ohne Aufnahme fehlt die Anleitung');
+    gleich(await seite.locator('#markier-sichern').isDisabled(), true);
+    wahr(
+      (await seite.locator('#markier-erklaerung').innerText()).includes('Original'),
+      'der Hinweis auf das Original fehlt'
+    );
+  }));
+
+s.test('eine abgedeckte Stelle verändert die Bildpunkte wirklich', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      // Bildpunkte der Stelle vor dem Abdecken merken.
+      const vorher = await seite.evaluate(() => {
+        const l = document.getElementById('markier-leinwand');
+        return Array.from(l.getContext('2d').getImageData(80, 100, 40, 12).data);
+      });
+      await ziehe(seite, 60, 80, 300, 115);
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      const nachher = await seite.evaluate(() => {
+        const l = document.getElementById('markier-leinwand');
+        return Array.from(l.getContext('2d').getImageData(80, 100, 40, 12).data);
+      });
+      wahr(vorher.join(',') !== nachher.join(','), 'die Stelle sieht unverändert aus');
+      // Außerhalb der Marke darf sich nichts ändern.
+      const aussen = await seite.evaluate(() => {
+        const l = document.getElementById('markier-leinwand');
+        const d = l.getContext('2d').getImageData(l.width - 30, l.height - 30, 10, 10).data;
+        return Array.from(d);
+      });
+      await ziehe(seite, 60, 200, 100, 240);
+      const aussenDanach = await seite.evaluate(() => {
+        const l = document.getElementById('markier-leinwand');
+        const d = l.getContext('2d').getImageData(l.width - 30, l.height - 30, 10, 10).data;
+        return Array.from(d);
+      });
+      gleich(aussen.join(','), aussenDanach.join(','), 'außerhalb der Marke wurde gemalt');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('Schritte werden nummeriert, beschriftet und ergeben eine Klickstrecke', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      await seite.click('#markier-werkzeuge button[data-werkzeug="schritt"]');
+      await ziehe(seite, 320, 200, 520, 250);
+      await seite.fill('#marke-text-' + (await letzteMarke(seite)), 'Auf „Bestellung anlegen“ klicken');
+      await ziehe(seite, 120, 300, 300, 345);
+      await seite.fill('#marke-text-' + (await letzteMarke(seite)), 'Lieferant auswählen');
+      await seite.waitForFunction(
+        () => !document.getElementById('klickstrecke').hidden,
+        null,
+        { timeout: 5000 }
+      );
+      gleich(
+        await seite.locator('#klickstrecke-text').innerText(),
+        '1. Auf „Bestellung anlegen“ klicken\n2. Lieferant auswählen'
+      );
+      wahr(
+        (await seite.locator('#markier-stand').innerText()).includes('2 Schritte'),
+        'der Stand zählt die Schritte nicht'
+      );
+
+      // Schritt 1 entfernen: die Nummern dürfen keine Lücke lassen.
+      await seite.locator('.marke-zeile').first().locator('.knopf').click();
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await seite.locator('#klickstrecke-text').innerText(), '1. Lieferant auswählen');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('die gesicherte Fassung liegt neben dem Original, nicht darüber', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      const [vorher] = await eingangImSpeicher(seite);
+      await ziehe(seite, 60, 80, 300, 115);
+      await seite.waitForFunction(() => !document.getElementById('markier-sichern').disabled, null, { timeout: 5000 });
+      await seite.click('#markier-sichern');
+      await seite.waitForFunction(
+        () => /gesichert/.test(document.getElementById('markier-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+      const [nachher] = await eingangImSpeicher(seite);
+      gleich(nachher.bild, vorher.bild, 'das Original wurde überschrieben');
+      wahr(nachher.bild_markiert && nachher.bild_markiert !== nachher.bild, 'die Fassung fehlt');
+      gleich(nachher.marken.length, 1);
+      gleich(nachher.marken[0].art, 'unkenntlich');
+      wahr(String(nachher.markiert_am).includes('T'), 'der Zeitpunkt fehlt');
+      wahr(
+        (await seite.locator('#markier-meldung').innerText()).includes('Original'),
+        'die Meldung verschweigt, dass das Original bleibt'
+      );
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('die Marken kommen beim nächsten Öffnen zurück', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      await seite.click('#markier-werkzeuge button[data-werkzeug="schritt"]');
+      await ziehe(seite, 320, 200, 520, 250);
+      await seite.fill('#marke-text-' + (await letzteMarke(seite)), 'Auf „Anlegen“ klicken');
+      await seite.click('#markier-sichern');
+      await seite.waitForFunction(
+        () => /gesichert/.test(document.getElementById('markier-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+      await seite.reload({ waitUntil: 'load' });
+      await seite.waitForSelector('html[data-bereit="ja"]');
+      await seite.click('.portal-nav button[data-ansicht="markieren"]');
+      await seite.selectOption('#markier-wahl', 'AUF-2026-001');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await seite.locator('#klickstrecke-text').innerText(), '1. Auf „Anlegen“ klicken');
+      wahr(
+        (await seite.locator('#markier-meldung').innerText()).includes('1 Marken'),
+        'die zurückgeholten Marken werden nicht genannt'
+      );
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('„Alle Marken entfernen“ führt zurück zum Original', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      await ziehe(seite, 60, 80, 300, 115);
+      await seite.click('#markier-sichern');
+      await seite.waitForFunction(
+        () => /gesichert/.test(document.getElementById('markier-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+      await seite.click('#markier-zuruecksetzen');
+      await seite.click('#markier-sichern');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 0,
+        null,
+        { timeout: 5000 }
+      );
+      const [aufnahme] = await eingangImSpeicher(seite);
+      gleich(aufnahme.marken.length, 0);
+      gleich(aufnahme.bild_markiert, undefined, 'die Fassung bleibt liegen');
+      wahr(aufnahme.bild.startsWith('data:image/'), 'das Original fehlt');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('Entf entfernt die gewählte Marke', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      await ziehe(seite, 60, 80, 300, 115);
+      await ziehe(seite, 60, 200, 260, 240);
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 2,
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await seite.locator('.marke-zeile--gewaehlt').count(), 1, 'die neue Marke ist nicht gewählt');
+      await seite.locator('#markier-buehne').focus();
+      await seite.keyboard.press('Delete');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('Eingang und Kontaktbogen zeigen die bearbeitete Fassung', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      await ziehe(seite, 60, 80, 300, 115);
+      await seite.click('#markier-werkzeuge button[data-werkzeug="schritt"]');
+      await ziehe(seite, 320, 200, 520, 250);
+      await seite.fill('#marke-text-' + (await letzteMarke(seite)), 'Auf „Anlegen“ klicken');
+      await seite.click('#markier-sichern');
+      await seite.waitForFunction(
+        () => /gesichert/.test(document.getElementById('markier-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      gleich(await seite.locator('.markiert-marke').innerText(), '1× abgedeckt · 1 Schritte');
+      const [aufnahme] = await eingangImSpeicher(seite);
+      gleich(
+        await seite.locator('.eingang-karte img').first().getAttribute('src'),
+        aufnahme.bild_markiert,
+        'die Karte zeigt noch das Original'
+      );
+
+      await seite.click('#eingang-kontaktbogen');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 5000 });
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      wahr(datei.data.includes(aufnahme.bild_markiert.slice(-60)), 'der Bogen trägt nicht die Fassung');
+      wahr(!datei.data.includes(aufnahme.bild.slice(-60)), 'der Bogen trägt das Original');
+      wahr(/bearbeitet . 1 Stelle abgedeckt/.test(datei.data), 'der Bogen verschweigt die Bearbeitung');
+    },
+    {
+      hash: AUFNAHME,
+      initSkript: `window.__abgelegt = [];
+        window.claude = { use: async (n) => n !== 'downloads' ? null : {
+          save: async (a) => { window.__abgelegt.push({ filename: a.filename, data: String(a.data) }); return { status: 'saved' }; } } };`
+    }
+  ));
+
+s.test('Browser wieder schließen', () => schliessen());
+
+export default s;

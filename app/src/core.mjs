@@ -21,7 +21,7 @@ export const STANDARD_ZUSTAND = {
 export const ARCHIV_ANSICHTEN = ['aktiv', 'archiv', 'alle'];
 
 /** Hauptansichten der Seite (Navigation oben links). */
-export const ANSICHTEN = ['archiv', 'aufnahme', 'ausschneiden', 'eingang'];
+export const ANSICHTEN = ['archiv', 'aufnahme', 'ausschneiden', 'markieren', 'eingang'];
 
 export const SORTIERUNGEN = [
   { id: 'datum-neu', label: 'Neueste zuerst' },
@@ -655,6 +655,22 @@ dd { margin: 0; }
 @page { margin: 14mm; }
 `;
 
+/**
+ * Ein Kontaktbogen zeigt die bearbeitete Fassung, wenn es eine gibt - dort
+ * sind die personenbezogenen Stellen abgedeckt. Dass es eine Bearbeitung ist,
+ * steht dabei: ein stillschweigend verändertes Bild waere unredlich.
+ */
+function fassungZeile(aufnahme) {
+  if (!aufnahme.bild_markiert) return '';
+  const z = markenZusammenfassung(leseMarken(aufnahme.marken));
+  const teile = [
+    z.unkenntlich ? `${z.unkenntlich} ${z.unkenntlich === 1 ? 'Stelle' : 'Stellen'} abgedeckt` : '',
+    z.rahmen ? `${z.rahmen} ${z.rahmen === 1 ? 'Rahmen' : 'Rahmen'}` : '',
+    z.schritte ? `${z.schritte} Schritte` : ''
+  ].filter(Boolean);
+  return `bearbeitet – ${teile.join(', ') || 'ohne Marken'}`;
+}
+
 function kontaktbogenSatz(aufnahme) {
   const m = maskiereHtml;
   const zeile = (bezeichnung, wert) =>
@@ -665,7 +681,7 @@ function kontaktbogenSatz(aufnahme) {
   const a = aufnahme.ausschnitt || {};
   return `
       <article class="satz">
-        <div><img src="${m(aufnahme.bild)}" alt="${m(aufnahme.titel)}"></div>
+        <div><img src="${m(aufnahme.bild_markiert || aufnahme.bild)}" alt="${m(aufnahme.titel)}"></div>
         <div>
           <div class="satz-kopf">
             <span class="kennung">${m(aufnahme.id)}</span>
@@ -681,6 +697,7 @@ function kontaktbogenSatz(aufnahme) {
             ${zeile('Rolle', rolle)}
             ${zeile('Erfasst von', aufnahme.autor)}
             ${zeile('Browser', aufnahme.browser)}
+            ${zeile('Fassung', fassungZeile(aufnahme))}
           </dl>
           ${
             (aufnahme.begriffe || []).length
@@ -961,14 +978,15 @@ export const ABLAGE_STANDARD = {
   muster: 'screenarchiv-{datum}-{nummer}'
 };
 
-export const BEIPACKZETTEL_VERSION = 1;
+export const BEIPACKZETTEL_VERSION = 2; // seit 1.17.0 mit Marken
 
 /**
  * Der Beipackzettel: alle Metadaten neben der Bilddatei, gleicher Name, Endung
  * .json. Ohne ihn traegt eine abgelegte Datei nur, was ins Namensmuster passt.
  * Feste Feldfolge, auch wenn Werte leer sind - so bleibt die Form vorhersagbar.
  */
-export function baueBeipackzettel({ entwurf = {}, bildname, ausschnitt, quelle, erfasstAm, anwendung }) {
+export function baueBeipackzettel({ entwurf = {}, bildname, ausschnitt, quelle, erfasstAm, anwendung, marken }) {
+  const liste = markenAlsAblage(marken || entwurf.marken || []);
   return JSON.stringify(
     {
       beipackzettel: BEIPACKZETTEL_VERSION,
@@ -987,7 +1005,11 @@ export function baueBeipackzettel({ entwurf = {}, bildname, ausschnitt, quelle, 
       autor: String(entwurf.autor || '').trim(),
       browser: String(entwurf.browser || '').trim(),
       ausschnitt: ausschnitt ? { ...ausschnitt } : null,
-      quelle: quelle ? { art: quelle.art, name: quelle.name || '', breite: quelle.breite, hoehe: quelle.hoehe } : null
+      quelle: quelle ? { art: quelle.art, name: quelle.name || '', breite: quelle.breite, hoehe: quelle.hoehe } : null,
+      // Seit Zettelversion 2: was auf dem Bild liegt. Wurde etwas unkenntlich
+      // gemacht, steht das hier - sonst waere der Eingriff spurlos.
+      unkenntlich_gemacht: liste.filter((m) => m.art === 'unkenntlich').length,
+      marken: liste
     },
     null,
     2
@@ -1015,6 +1037,8 @@ export const BEIPACK_FELDER = [
   ['browser', 'Browser'],
   ['ausschnitt', 'Ausschnitt'],
   ['quelle', 'Quelle'],
+  ['unkenntlich_gemacht', 'Unkenntlich gemacht'],
+  ['marken', 'Marken'],
   ['erzeugt_von', 'Erzeugt von']
 ];
 
@@ -1030,6 +1054,22 @@ function beipackWert(schluessel, wert) {
     if (!zahlen.every((zahl) => Number.isFinite(zahl))) return '';
     const [breite, hoehe, x, y] = zahlen.map(Math.round);
     return `${breite} \u00d7 ${hoehe} px ab ${x}, ${y}`;
+  }
+  if (schluessel === 'unkenntlich_gemacht') {
+    const zahl = Number(wert);
+    if (!Number.isFinite(zahl) || zahl <= 0) return '';
+    return `${zahl} ${zahl === 1 ? 'Stelle' : 'Stellen'} abgedeckt`;
+  }
+  if (schluessel === 'marken') {
+    if (!Array.isArray(wert) || !wert.length) return '';
+    const z = markenZusammenfassung(wert);
+    return [
+      z.unkenntlich ? `${z.unkenntlich} unkenntlich` : '',
+      z.rahmen ? `${z.rahmen} Rahmen` : '',
+      z.schritte ? `${z.schritte} Schritte` : ''
+    ]
+      .filter(Boolean)
+      .join(' \u00b7 ');
   }
   if (schluessel === 'quelle') {
     if (typeof wert !== 'object') return String(wert).trim();
@@ -1081,6 +1121,152 @@ export function leseBeipackzettel(text) {
 /** Gleicher Name wie das Bild, andere Endung. */
 export function beipackzettelName(bildname) {
   return String(bildname || '').replace(/\.[a-z0-9]+$/i, '') + '.json';
+}
+
+/* ------------------------------------- Marken: unkenntlich und erklaert */
+
+export const MINDEST_MARKE = 8;
+export const MARKEN_ARTEN = [
+  {
+    id: 'unkenntlich',
+    label: 'Unkenntlich machen',
+    hinweis: 'Personenbezogenes abdecken: Benutzerkennung, FIN, Adresse, Name.'
+  },
+  { id: 'rahmen', label: 'Rahmen', hinweis: 'Eine Bedienfläche hervorheben, mit oder ohne Beschriftung.' },
+  { id: 'schritt', label: 'Schritt der Klickstrecke', hinweis: 'Nummerierter Rahmen mit Text – 1, 2, 3 …' }
+];
+
+export const UNKENNTLICH_STUFEN = [
+  { id: 'grob', label: 'grob', raster: 24 },
+  { id: 'mittel', label: 'mittel', raster: 12 },
+  { id: 'fein', label: 'fein', raster: 6 }
+];
+
+export const istMarkenart = (art) => MARKEN_ARTEN.some((a) => a.id === art);
+
+/** Die naechste freie Schrittnummer - Luecken werden nicht wiederverwendet. */
+export function naechsteSchrittnummer(marken = []) {
+  return (
+    marken
+      .filter((m) => m && m.art === 'schritt')
+      .reduce((hoechste, m) => Math.max(hoechste, Number(m.nummer) || 0), 0) + 1
+  );
+}
+
+/** Eine neue Marke; die Kennung traegt die Zeit, damit sie eindeutig bleibt. */
+export function leereMarke(art, rechteck, marken = [], zeit = Date.now()) {
+  return {
+    id: `M-${zeit.toString(36)}-${Math.floor(Math.random() * 1296).toString(36)}`,
+    art: istMarkenart(art) ? art : 'rahmen',
+    x: Math.round(rechteck.x),
+    y: Math.round(rechteck.y),
+    breite: Math.round(rechteck.breite),
+    hoehe: Math.round(rechteck.hoehe),
+    text: '',
+    stufe: 'mittel',
+    nummer: art === 'schritt' ? naechsteSchrittnummer(marken) : null
+  };
+}
+
+/** Haelt eine Marke im Bild und auf Mindestmass. */
+export function begrenzeMarke(rechteck, quelle) {
+  return begrenzeAusschnitt(rechteck, quelle, MINDEST_MARKE);
+}
+
+/**
+ * Nummeriert die Schritte in der Reihenfolge, in der sie stehen, neu durch.
+ * Nach dem Loeschen von Schritt 2 soll keine Luecke bleiben - eine
+ * Klickstrecke mit 1, 3, 4 liest sich wie ein Fehler.
+ */
+export function nummeriereSchritte(marken = []) {
+  let lauf = 0;
+  return marken.map((m) => (m.art === 'schritt' ? { ...m, nummer: ++lauf } : m));
+}
+
+/** Zaehlt, was auf dem Bild liegt. */
+export function markenZusammenfassung(marken = []) {
+  const zaehle = (art) => marken.filter((m) => m && m.art === art).length;
+  return {
+    gesamt: marken.length,
+    unkenntlich: zaehle('unkenntlich'),
+    rahmen: zaehle('rahmen'),
+    schritte: zaehle('schritt')
+  };
+}
+
+/** Was an den Marken noch fehlt; ein Schritt ohne Text erklaert nichts. */
+export function pruefeMarken(marken = []) {
+  const probleme = [];
+  for (const marke of marken) {
+    if (marke.art === 'schritt' && !String(marke.text || '').trim()) {
+      probleme.push({ id: marke.id, text: `Schritt ${marke.nummer} hat keinen Text.` });
+    }
+  }
+  return probleme;
+}
+
+/** Die Klickstrecke als Text - fuer Kontaktbogen, Zettel und Zwischenablage. */
+export function klickstreckeAlsText(marken = []) {
+  return marken
+    .filter((m) => m.art === 'schritt')
+    .sort((a, b) => (a.nummer || 0) - (b.nummer || 0))
+    .map((m) => `${m.nummer}. ${String(m.text || '').trim() || '(ohne Text)'}`)
+    .join('\n');
+}
+
+/**
+ * Die Marken, wie sie neben dem Bild abgelegt werden. Bewusst ohne Bilddaten:
+ * sie beschreiben, was wo liegt, und lassen sich damit spaeter wieder
+ * anzeigen oder aendern.
+ */
+export function markenAlsAblage(marken = []) {
+  return marken.map((m) => ({
+    id: m.id,
+    art: m.art,
+    x: m.x,
+    y: m.y,
+    breite: m.breite,
+    hoehe: m.hoehe,
+    text: String(m.text || '').trim(),
+    stufe: m.art === 'unkenntlich' ? m.stufe || 'mittel' : undefined,
+    nummer: m.art === 'schritt' ? m.nummer : undefined
+  }));
+}
+
+/** Liest abgelegte Marken zurueck; alles Unbekannte faellt weg. */
+export function leseMarken(liste) {
+  if (!Array.isArray(liste)) return [];
+  return nummeriereSchritte(
+    liste
+      .filter((m) => m && istMarkenart(m.art) && ['x', 'y', 'breite', 'hoehe'].every((f) => Number.isFinite(Number(m[f]))))
+      .map((m, i) => ({
+        id: String(m.id || `M-gelesen-${i}`),
+        art: m.art,
+        x: Math.round(Number(m.x)),
+        y: Math.round(Number(m.y)),
+        breite: Math.max(1, Math.round(Number(m.breite))),
+        hoehe: Math.max(1, Math.round(Number(m.hoehe))),
+        text: String(m.text || ''),
+        stufe: UNKENNTLICH_STUFEN.some((s) => s.id === m.stufe) ? m.stufe : 'mittel',
+        nummer: m.art === 'schritt' ? Number(m.nummer) || null : null
+      }))
+  );
+}
+
+/** Das Raster, mit dem eine Stelle unkenntlich gemacht wird. */
+export function rasterZuStufe(stufe) {
+  const treffer = UNKENNTLICH_STUFEN.find((s) => s.id === stufe);
+  return (treffer || UNKENNTLICH_STUFEN[1]).raster;
+}
+
+/**
+ * Der Dateiname der bearbeiteten Fassung. Das Original behaelt seinen Namen -
+ * die Kopie ist erkennbar eine Kopie.
+ */
+export function markiertName(bildname) {
+  const text = String(bildname || 'bild.png');
+  const punkt = text.lastIndexOf('.');
+  return punkt > 0 ? `${text.slice(0, punkt)}-markiert${text.slice(punkt)}` : `${text}-markiert`;
 }
 
 /* ------------------------------------------------- Was hier geht (1.16.0) */
@@ -1357,6 +1543,8 @@ export function aufnahmeAusZettel({ daten = {}, bild, kennung, ordner, datei, ze
     kennung,
     erfasstAm: erfasst
   });
+  const gelesen = leseMarken(daten.marken);
+  if (gelesen.length) aufnahme.marken = markenAlsAblage(gelesen);
   aufnahme.herkunft = {
     ordner: String(ordner || ''),
     datei: String(datei || ''),

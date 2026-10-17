@@ -24,6 +24,7 @@
             <button type="button" data-ansicht="archiv">Archiv</button>
             <button type="button" data-ansicht="aufnahme">Aufnahme</button>
             <button type="button" data-ansicht="ausschneiden">Ausschneiden</button>
+            <button type="button" data-ansicht="markieren">Markieren</button>
             <button type="button" data-ansicht="eingang">Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
         </div>
@@ -269,6 +270,54 @@
     </div>
   </section>
 
+  <section id="markieren-ansicht" aria-label="Markieren" hidden>
+    <div class="markier-kopf">
+      <div class="feld">
+        <label for="markier-wahl">Aufnahme aus dem Eingang</label>
+        <select id="markier-wahl"></select>
+      </div>
+      <div class="werkzeuge" id="markier-werkzeuge" role="group" aria-label="Werkzeug"></div>
+      <div class="feld" id="markier-stufe-feld">
+        <label for="markier-stufe">Stärke des Rasters</label>
+        <select id="markier-stufe"></select>
+      </div>
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--haupt" id="markier-sichern" disabled>Fassung sichern</button>
+        <button type="button" class="knopf" id="markier-datei" disabled>Als Datei sichern</button>
+        <button type="button" class="knopf" id="markier-zuruecksetzen" disabled>Alle Marken entfernen</button>
+      </div>
+    </div>
+
+    <p class="band-hinweis" id="markier-erklaerung">
+      Das Original bleibt unangetastet: die Marken liegen als Angaben daneben, die
+      bearbeitete Fassung entsteht als Kopie. Rechteck aufziehen, um eine Marke zu
+      setzen – mit <kbd>Entf</kbd> wird die gewählte Marke wieder entfernt.
+    </p>
+
+    <div class="markier-raster">
+      <div class="markier-buehne" id="markier-buehne" tabindex="0" role="application"
+           aria-label="Bild markieren – Rechteck aufziehen, Entf entfernt die gewählte Marke">
+        <span class="markier-flaeche" id="markier-flaeche">
+          <canvas id="markier-leinwand"></canvas>
+        </span>
+        <p class="quelle-leer" id="markier-leer">
+          Keine Aufnahme gewählt. Im Eingang entstehen Aufnahmen – hier werden sie
+          unkenntlich gemacht und erklärt.
+        </p>
+      </div>
+
+      <aside class="markier-liste-spalte">
+        <h2 class="abschnitt-titel">Marken <span class="kennung" id="markier-stand"></span></h2>
+        <p class="studio-meldung" id="markier-meldung" role="status" aria-live="polite"></p>
+        <div class="markier-liste" id="markier-liste"></div>
+        <div class="klickstrecke" id="klickstrecke" hidden>
+          <h3 class="abschnitt-titel">Klickstrecke</h3>
+          <pre id="klickstrecke-text"></pre>
+        </div>
+      </aside>
+    </div>
+  </section>
+
   <section id="eingang-ansicht" aria-label="Eingang" hidden>
     <div class="eingang-kennzahlen" id="eingang-kennzahlen"></div>
     <div class="eingang-leiste">
@@ -355,5 +404,6 @@
 /*%UI%*/
 /*%AUFNAHME%*/
 /*%SCHNIPSEL%*/
+/*%MARKIEREN%*/
 })();
 </script>

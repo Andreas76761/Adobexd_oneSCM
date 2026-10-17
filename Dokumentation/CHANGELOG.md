@@ -20,6 +20,39 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.17.0] – Markieren: unkenntlich machen und erklären
+
+### Neu
+* Neue Ansicht **Markieren** in der Portalnavigation: eine Aufnahme aus dem
+  Eingang wählen, Rechtecke aufziehen, Marken setzen
+* **Unkenntlich machen** (F-31): personenbezogene Stellen – Benutzerkennung,
+  FIN, Adresse, Name – werden auf ein Raster heruntergerechnet und wieder
+  vergrößert. Was dabei verloren geht, ist weg; drei Stärken zur Wahl
+* **Rahmen und Klickstrecke** (F-32): Bedienflächen mit Rand hervorheben, mit
+  Beschriftung versehen und als nummerierte Schritte zu einer Klickstrecke
+  verketten. Die Strecke steht daneben als Text
+* Das **Original bleibt unangetastet**: die Marken liegen als Angaben neben
+  der Aufnahme, die bearbeitete Fassung entsteht daraus als Kopie und lässt
+  sich jederzeit ändern oder verwerfen
+* Eingangskarte und Kontaktbogen zeigen die bearbeitete Fassung, wenn es eine
+  gibt – und sagen, dass es eine ist
+* „Als Datei sichern“ legt die Fassung als `…-markiert.png` ab, mit
+  Beipackzettel in der Datei
+
+### Geändert
+* Beipackzettel auf **Version 2**: zwei neue Felder, `unkenntlich_gemacht` und
+  `marken`. Ein Eingriff ins Bild soll in den Metadaten stehen
+* Der Start der Seite (`starte()`) steht jetzt am Ende von `markieren.js`
+
+### Kern
+* `MARKEN_ARTEN`, `UNKENNTLICH_STUFEN`, `leereMarke`, `begrenzeMarke`,
+  `nummeriereSchritte`, `markenZusammenfassung`, `pruefeMarken`,
+  `klickstreckeAlsText`, `markenAlsAblage`, `leseMarken`, `rasterZuStufe`,
+  `markiertName`
+
+### Prüfung
+* Neue Datei `09-markieren.e2e.mjs`; 15 neue Prüfungen, zusammen 240
+
 ## [1.16.0] – Was hier geht
 
 ### Neu

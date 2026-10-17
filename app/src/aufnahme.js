@@ -931,8 +931,13 @@ function eingangKarte(aufnahme) {
     },
     [
       el('div', { klasse: 'eingang-bild' }, [
-        el('img', { src: aufnahme.bild, alt: aufnahme.titel, loading: 'lazy' }),
-        vollstaendig ? null : el('span', { klasse: 'offen-marke', text: 'unvollständig' })
+        // Die Karte zeigt die bearbeitete Fassung, wenn es eine gibt - sonst
+        // sähe man im Eingang noch, was längst abgedeckt sein soll.
+        el('img', { src: aufnahme.bild_markiert || aufnahme.bild, alt: aufnahme.titel, loading: 'lazy' }),
+        vollstaendig ? null : el('span', { klasse: 'offen-marke', text: 'unvollständig' }),
+        (aufnahme.marken || []).length
+          ? el('span', { klasse: 'markiert-marke', text: markenKurz(aufnahme.marken) })
+          : null
       ]),
       el('div', { klasse: 'eingang-text' }, [
         el('div', { klasse: 'zeile-meta' }, [
@@ -1317,6 +1322,16 @@ function zettelNachKnopf(aufnahme, sichern) {
       }
     }
   });
+}
+
+/** Kurzform der Marken für die Karte im Eingang. */
+function markenKurz(liste) {
+  const z = markenZusammenfassung(leseMarken(liste));
+  const teile = [];
+  if (z.unkenntlich) teile.push(`${z.unkenntlich}× abgedeckt`);
+  if (z.schritte) teile.push(`${z.schritte} Schritte`);
+  if (!teile.length && z.rahmen) teile.push(`${z.rahmen} Rahmen`);
+  return teile.join(' · ');
 }
 
 function oeffneEingangDialog(kennung) {
