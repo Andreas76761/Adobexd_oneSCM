@@ -21,7 +21,7 @@ export const STANDARD_ZUSTAND = {
 export const ARCHIV_ANSICHTEN = ['aktiv', 'archiv', 'alle'];
 
 /** Hauptansichten der Seite (Navigation oben links). */
-export const ANSICHTEN = ['archiv', 'aufnahme', 'ausschneiden', 'markieren', 'strecke', 'gliederung', 'eingang'];
+export const ANSICHTEN = ['archiv', 'aufnahme', 'ausschneiden', 'markieren', 'strecke', 'design', 'gliederung', 'eingang'];
 
 export const SORTIERUNGEN = [
   { id: 'datum-neu', label: 'Neueste zuerst' },
@@ -1122,6 +1122,158 @@ export function leseBeipackzettel(text) {
 /** Gleicher Name wie das Bild, andere Endung. */
 export function beipackzettelName(bildname) {
   return String(bildname || '').replace(/\.[a-z0-9]+$/i, '') + '.json';
+}
+
+/* --------------------------------- Designvorlagen und Seitenaufbau */
+
+/**
+ * Die Ausgabeformate. Gerechnet wird in Bildpunkten bei 300 dpi - was auf
+ * Papier soll, muss in dieser Aufloesung vorliegen, sonst ist die Schrift im
+ * Druck unscharf.
+ */
+export const FORMATE = [
+  { id: 'a4-hoch', label: 'A4 hoch', breite: 2480, hoehe: 3508 },
+  { id: 'a4-quer', label: 'A4 quer', breite: 3508, hoehe: 2480 },
+  { id: 'bildschirm', label: 'Bildschirm 16:9', breite: 3840, hoehe: 2160 }
+];
+
+/**
+ * Die Vorlagen. Jede sagt, wie viele Bilder auf eine Seite gehoeren, wie
+ * breit die Textspalte ist und ob ein Deckblatt davorsteht.
+ */
+export const VORLAGEN = [
+  {
+    id: 'quickguide',
+    label: 'Quick Guide',
+    zweck: 'Eine Seite je Aufgabe: Schritte nebeneinander, kurzer Text darunter.',
+    format: 'a4-quer',
+    spalten: 3,
+    zeilen: 2,
+    textspalte: 0,
+    deckblatt: false,
+    textlaenge: 180
+  },
+  {
+    id: 'onepager',
+    label: 'One Pager',
+    zweck: 'Alles auf eine Seite: bis zu vier Bilder, Text daneben.',
+    format: 'a4-hoch',
+    spalten: 2,
+    zeilen: 2,
+    textspalte: 0,
+    deckblatt: false,
+    textlaenge: 240
+  },
+  {
+    id: 'releaseletter',
+    label: 'Releaseletter',
+    zweck: 'Zwei Bilder je Seite mit Fließtext – was neu ist und warum.',
+    format: 'a4-hoch',
+    spalten: 1,
+    zeilen: 2,
+    textspalte: 0.38,
+    deckblatt: true,
+    textlaenge: 420
+  },
+  {
+    id: 'handbuch',
+    label: 'Handbuchseite',
+    zweck: 'Ein Bild je Schritt, Text in der Spalte daneben, Kapitelkopf.',
+    format: 'a4-hoch',
+    spalten: 1,
+    zeilen: 3,
+    textspalte: 0.34,
+    deckblatt: false,
+    textlaenge: 300
+  }
+];
+
+export const vorlage = (id) => VORLAGEN.find((v) => v.id === id) || VORLAGEN[0];
+export const format = (id) => FORMATE.find((f) => f.id === id) || FORMATE[0];
+
+/** Kuerzt auf Wortgrenze - ein mitten im Wort abgeschnittener Satz wirkt kaputt. */
+export function kuerzeText(text, grenze) {
+  const sauber = String(text || '').replace(/\s+/g, ' ').trim();
+  if (sauber.length <= grenze) return sauber;
+  const schnitt = sauber.slice(0, grenze);
+  const letzte = schnitt.lastIndexOf(' ');
+  return (letzte > grenze * 0.6 ? schnitt.slice(0, letzte) : schnitt).replace(/[,;:.\s]+$/, '') + ' …';
+}
+
+/**
+ * Der Text zu einem Schritt. Ohne Texte aus dem Handbuch steht nur die
+ * Anweisung da; mit ihnen kommen Thema und Abschlusskriterium der Stelle
+ * dazu - die Gliederung ist die Quelle, nicht eine Erfindung der Seite.
+ */
+export function schrittText({ anweisung, aufnahme = {}, gliederung = [], mitTexten = true, grenze = 300 }) {
+  const stelle = gliederung.find((e) => e.nummer === String(aufnahme.gliederung || ''));
+  const zeilen = [];
+  const kopf = String(anweisung || aufnahme.titel || '').trim();
+  if (kopf) zeilen.push(kopf);
+  if (mitTexten && stelle) {
+    if (stelle.thema && stelle.thema !== kopf) zeilen.push(stelle.thema);
+    if (stelle.kriterium) zeilen.push(kuerzeText(stelle.kriterium, grenze));
+  }
+  return zeilen;
+}
+
+/**
+ * Teilt die Schritte auf Seiten auf und rechnet jede Kachel aus. Ohne DOM,
+ * damit sich die Aufteilung pruefen laesst: Rand, Kopfhoehe, Spalten, Zeilen
+ * und die Textspalte ergeben die Masse jeder Kachel.
+ */
+export function seitenAufteilung(schritte = [], { vorlage: v, format: f, mitTexten = true } = {}) {
+  const vor = typeof v === 'string' ? vorlage(v) : v || VORLAGEN[0];
+  const fmt = typeof f === 'string' ? format(f) : f || format(vor.format);
+  const rand = Math.round(fmt.breite * 0.045);
+  const kopfHoehe = Math.round(fmt.hoehe * 0.075);
+  const fussHoehe = Math.round(fmt.hoehe * 0.035);
+  const abstand = Math.round(fmt.breite * 0.022);
+  const jeSeite = Math.max(1, vor.spalten * vor.zeilen);
+  const seiten = [];
+  for (let i = 0; i < Math.max(schritte.length, 1); i += jeSeite) {
+    const teil = schritte.slice(i, i + jeSeite);
+    // Eine Seite mit drei statt sechs Bildern soll nicht halb leer bleiben:
+    // gerechnet wird mit den Zeilen, die wirklich gebraucht werden.
+    const zeilenGenutzt = Math.max(1, Math.ceil(teil.length / vor.spalten));
+    const kacheln = teil.map((schritt, j) => {
+      const spalte = j % vor.spalten;
+      const zeile = Math.floor(j / vor.spalten);
+      const innenBreite = fmt.breite - 2 * rand;
+      const innenHoehe = fmt.hoehe - kopfHoehe - fussHoehe - rand;
+      const kachelBreite = Math.floor((innenBreite - abstand * (vor.spalten - 1)) / vor.spalten);
+      const kachelHoehe = Math.floor((innenHoehe - abstand * (zeilenGenutzt - 1)) / zeilenGenutzt);
+      const textBreite = Math.round(kachelBreite * vor.textspalte);
+      const bildBreite = kachelBreite - (textBreite ? textBreite + abstand : 0);
+      return {
+        nummer: i + j + 1,
+        schritt,
+        x: rand + spalte * (kachelBreite + abstand),
+        y: kopfHoehe + zeile * (kachelHoehe + abstand),
+        breite: kachelBreite,
+        hoehe: kachelHoehe,
+        bildBreite,
+        // Ohne Textspalte steht der Text unter dem Bild, sonst daneben.
+        textBreite: textBreite || kachelBreite,
+        textNeben: textBreite > 0,
+        bildHoehe: textBreite ? kachelHoehe : Math.round(kachelHoehe * 0.74)
+      };
+    });
+    seiten.push({ nummer: seiten.length + 1, kacheln, rand, kopfHoehe, fussHoehe, zeilen: zeilenGenutzt });
+  }
+  const gesamt = seiten.length;
+  return {
+    vorlage: vor,
+    format: fmt,
+    mitTexten,
+    seiten: seiten.map((s) => ({ ...s, von: gesamt }))
+  };
+}
+
+/** Der Dateiname eines Blattes: Vorlage, Name, Seitenzahl. */
+export function seitenName(vorlageId, name, nummer, von) {
+  const basis = bereinigeDateiname(`${vorlageId}-${name || 'ohne-namen'}`) || 'blatt';
+  return von > 1 ? `${basis}-seite-${String(nummer).padStart(2, '0')}.png` : `${basis}.png`;
 }
 
 /* ------------------------------- Strecken: mehrere Bilder, eine Folge */

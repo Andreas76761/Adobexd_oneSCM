@@ -20,6 +20,29 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.23.0] – Designstudio: aus Bildern wird ein Blatt
+
+### Neu
+* Neue Ansicht **Design** mit vier Vorlagen (F-38): **Quick Guide** (A4 quer,
+  bis 6 Bilder), **One Pager** (A4 hoch, 4), **Releaseletter** (2 je Seite mit
+  Fließtext), **Handbuchseite** (3 je Seite, Text in der Spalte daneben)
+* Als Inhalt dient eine **Strecke** oder **jede Stelle der Gliederung** mit
+  Bildern; die Bilder kommen in voller Auflösung, gerechnet wird auf A4 bei
+  **300 dpi**
+* **Texte aus dem Handbuch** zuschaltbar: Thema und Abschlusskriterium der
+  Stelle unter der Anweisung. Ohne sie steht nur die Anweisung da
+* **Labels** zuschaltbar: Gliederungsnummer, Sprache, Rolle, Sparte, Markt
+  unter jedem Bild
+* Ausgabe als **PNG je Seite** oder als **eine HTML-Datei zum Drucken** –
+  daraus macht der Browser das PDF
+
+### Kern
+* `FORMATE`, `VORLAGEN`, `seitenAufteilung`, `schrittText`, `kuerzeText`,
+  `seitenName` – die Seitenrechnung läuft ohne DOM und ist damit prüfbar
+
+### Prüfung
+* Neue Datei `12-design.e2e.mjs`; 12 neue Prüfungen, zusammen 287
+
 ## [1.22.0] – Labels und Teilschritte
 
 ### Neu

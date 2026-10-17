@@ -1577,6 +1577,3 @@ function verdrahteGliederung() {
 
 verdrahteGliederung();
 
-// starte() steht in der letzten Zeile der letzten Datei (siehe CLAUDE.md).
-starte();
-stelleOrdnerWiederHer();

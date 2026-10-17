@@ -573,6 +573,79 @@ s.test('jede fehlende Fähigkeit nennt einen Weg, der statt dessen geht', () => 
   wahr(/Telefon/.test(amTelefon.text) && /Bild öffnen/.test(amTelefon.text), 'am Telefon fehlt der Ausweg');
 });
 
+/* -------------------------------------------------------- Designvorlagen */
+
+s.test('jede Vorlage hat Format, Raster und Zweck', () => {
+  tieferGleich(kern.VORLAGEN.map((v) => v.id), ['quickguide', 'onepager', 'releaseletter', 'handbuch']);
+  for (const v of kern.VORLAGEN) {
+    wahr(v.label && v.zweck, `${v.id}: Label oder Zweck fehlt`);
+    wahr(kern.FORMATE.some((f) => f.id === v.format), `${v.id}: unbekanntes Format ${v.format}`);
+    wahr(v.spalten >= 1 && v.zeilen >= 1, `${v.id}: leeres Raster`);
+  }
+  // A4 bei 300 dpi - was gedruckt wird, braucht diese Auflösung.
+  gleich(kern.format('a4-hoch').breite, 2480);
+  gleich(kern.format('a4-hoch').hoehe, 3508);
+  gleich(kern.format('erfunden').id, 'a4-hoch', 'ein unbekanntes Format fällt nicht zurück');
+});
+
+s.test('die Seitenaufteilung bricht um und füllt die letzte Seite', () => {
+  const schritte = Array.from({ length: 7 }, (_, i) => ({ nummer: i + 1 }));
+  const quick = kern.seitenAufteilung(schritte, { vorlage: 'quickguide' });
+  gleich(quick.seiten.length, 2, 'sechs Kacheln je Seite ergeben zwei Seiten');
+  gleich(quick.seiten[0].kacheln.length, 6);
+  gleich(quick.seiten[1].kacheln.length, 1);
+  gleich(quick.seiten[0].von, 2, 'die Seitenzahl kennt das Ganze nicht');
+  // Die letzte Seite mit einer Kachel nutzt die Höhe, statt halb leer zu bleiben.
+  wahr(
+    quick.seiten[1].kacheln[0].hoehe > quick.seiten[0].kacheln[0].hoehe,
+    'die einzelne Kachel bleibt klein'
+  );
+  // Die Kacheln liegen nebeneinander und übereinander, ohne sich zu überlappen.
+  const [a, b, c] = quick.seiten[0].kacheln;
+  wahr(b.x > a.x + a.breite - 1, 'zwei Kacheln überlappen waagerecht');
+  const zweiteZeile = quick.seiten[0].kacheln[3];
+  wahr(zweiteZeile.y > a.y + a.hoehe - 1, 'die zweite Zeile überlappt die erste');
+  gleich(c.y, a.y, 'die erste Zeile steht nicht auf einer Höhe');
+});
+
+s.test('Text steht je nach Vorlage daneben oder darunter', () => {
+  const schritte = [{ nummer: 1 }];
+  const handbuch = kern.seitenAufteilung(schritte, { vorlage: 'handbuch' }).seiten[0].kacheln[0];
+  gleich(handbuch.textNeben, true);
+  wahr(handbuch.bildBreite < handbuch.breite, 'das Bild nimmt die ganze Breite, obwohl Text daneben soll');
+  const quick = kern.seitenAufteilung(schritte, { vorlage: 'quickguide' }).seiten[0].kacheln[0];
+  gleich(quick.textNeben, false);
+  gleich(quick.bildBreite, quick.breite);
+  wahr(quick.bildHoehe < quick.hoehe, 'unter dem Bild bleibt kein Platz für Text');
+});
+
+s.test('der Text eines Schrittes kommt wahlweise aus dem Handbuch', () => {
+  const gliederung = [
+    { nummer: '7.5.2', thema: 'Signaturergebnis', kriterium: 'Scope und Quelle bestätigen.' }
+  ];
+  const aufnahme = { gliederung: '7.5.2', titel: 'Ergebnis prüfen' };
+  const mit = kern.schrittText({ anweisung: 'Auf Prüfen klicken', aufnahme, gliederung, mitTexten: true });
+  tieferGleich(mit, ['Auf Prüfen klicken', 'Signaturergebnis', 'Scope und Quelle bestätigen.']);
+  const ohne = kern.schrittText({ anweisung: 'Auf Prüfen klicken', aufnahme, gliederung, mitTexten: false });
+  tieferGleich(ohne, ['Auf Prüfen klicken'], 'ohne Handbuchtexte darf nichts dazukommen');
+  // Ohne Anweisung steht der Titel der Aufnahme da.
+  tieferGleich(kern.schrittText({ aufnahme, gliederung, mitTexten: false }), ['Ergebnis prüfen']);
+});
+
+s.test('lange Texte werden an der Wortgrenze gekürzt', () => {
+  const lang = 'Scope, Quelle, Rollen und anwendbare Pflichtprüfungen bestätigen; Freigabebeleg dokumentieren.';
+  const kurz = kern.kuerzeText(lang, 40);
+  wahr(kurz.length <= 44, 'zu lang: ' + kurz);
+  wahr(kurz.endsWith('…'), 'die Kürzung ist nicht erkennbar');
+  wahr(!/\s…$/.test(kurz.slice(0, -1)), 'vor dem Auslassungszeichen steht ein Rest');
+  gleich(kern.kuerzeText('kurz', 40), 'kurz', 'ein kurzer Text wird angefasst');
+});
+
+s.test('der Dateiname eines Blattes nennt Vorlage und Seite', () => {
+  gleich(kern.seitenName('quickguide', 'Vorlage anlegen', 1, 1), 'quickguide-vorlage-anlegen.png');
+  gleich(kern.seitenName('handbuch', 'Kapitel 7', 2, 3), 'handbuch-kapitel-7-seite-02.png');
+});
+
 /* ------------------------------------------------------------ Strecken */
 
 const streckenEingang = [

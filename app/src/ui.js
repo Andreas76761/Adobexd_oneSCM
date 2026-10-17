@@ -107,6 +107,7 @@ function setze(aenderung, neuZeichnen = true) {
   if (zustand.ansicht === 'markieren') zeichneMarkieren();
   if (zustand.ansicht === 'strecke') zeichneStrecke();
   if (zustand.ansicht === 'gliederung') zeichneGliederung();
+  if (zustand.ansicht === 'design') zeichneDesign();
 }
 
 function schalte(dimension, wert) {
@@ -544,6 +545,7 @@ const ABSCHNITTE = {
   ausschneiden: 'schnipsel-ansicht',
   markieren: 'markieren-ansicht',
   strecke: 'strecke-ansicht',
+  design: 'design-ansicht',
   gliederung: 'gliederung-ansicht',
   eingang: 'eingang-ansicht'
 };
@@ -860,6 +862,7 @@ zeichne();
 if (zustand.ansicht === 'markieren') zeichneMarkieren();
 if (zustand.ansicht === 'strecke') zeichneStrecke();
 if (zustand.ansicht === 'gliederung') zeichneGliederung();
+if (zustand.ansicht === 'design') zeichneDesign();
 if (zustand.auswahl) oeffneDetail(zustand.auswahl, false);
 document.documentElement.dataset.bereit = 'ja';
 }

@@ -26,7 +26,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `03-aufnahmen.test.mjs` | erzeugte SVG-Aufnahmen: Vollständigkeit, Maße, Sauberkeit, Determinismus | 8 |
 | `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken, doppelte Selektoren | 15 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
-| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken und Kontaktbogen | 79 |
+| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen und Kontaktbogen | 86 |
 | `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Bilderstapel, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Kontaktbogen, Werkbank, Bild mit Zettel | 66 |
 
 | `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beipackzettel, Beenden, Sichtbarkeit im Archiv, Zettel im Ordnerband, Übernahme, Nachpflege, verwaiste Zettel, Tastatur, Filter, Metadaten im Bild, „Was hier geht“ | 34 |
@@ -37,7 +37,9 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `11-gliederung.e2e.mjs` | Gliederung im Browser: Baum, Suche, Zählung je Stelle, Zuordnung, Labels, Teilschritte | 8 |
 
-Summe: **275 Prüfungen**.
+| `12-design.e2e.mjs` | Designstudio im Browser: Vorlagen, Format, Texte, Ausgabe | 5 |
+
+Summe: **287 Prüfungen**.
 
 ## Eigene Helfer
 

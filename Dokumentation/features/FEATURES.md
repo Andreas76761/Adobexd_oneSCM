@@ -844,3 +844,44 @@ Abschlusskriterium, Nachweis und Quelle.
 **Symbole** Ein eigener Vorrat als Inline-SVG (Sprache, Rolle, Sparte, Markt,
 Domäne, Reiter, Schritt, Kapitel, Bild). Externe Symbolschriften verbietet
 die Inhaltsrichtlinie des Artifacts – und sie würden offline fehlen.
+
+
+---
+
+## F-38 · Designstudio
+
+**Zweck** Der eigentliche Grund für die Galerie: aus den Bildern entstehen
+Unterlagen – Benutzerhandbuch, Releaseletter, One Pager, Quick Guide – in der
+Auflösung, die der Druck braucht.
+
+**Vier Vorlagen**
+
+| Vorlage | Format | Bilder je Seite | Text |
+| --- | --- | --- | --- |
+| Quick Guide | A4 quer | 6 (3 × 2) | unter dem Bild |
+| One Pager | A4 hoch | 4 (2 × 2) | unter dem Bild |
+| Releaseletter | A4 hoch | 2 | in der Spalte daneben (38 %) |
+| Handbuchseite | A4 hoch | 3 | in der Spalte daneben (34 %) |
+
+Gerechnet wird bei **300 dpi** – A4 hoch sind 2480 × 3508 Bildpunkte. Was
+auf Papier soll, muss in dieser Auflösung vorliegen; mit den Bildern aus
+1.20.0 ist das gegeben.
+
+**Inhalt** Eine Strecke (Reihenfolge und Anweisungen kommen von dort) oder
+jede Stelle der Gliederung mit Bildern (Reihenfolge nach Gliederungsnummer).
+
+**Texte aus dem Handbuch** Zuschaltbar: unter der Anweisung stehen Thema und
+Abschlusskriterium der Stelle, gekürzt auf die Länge, die die Vorlage
+vorsieht. Abgeschaltet steht nur die Anweisung da – für Unterlagen, die ohne
+Begleittext auskommen.
+
+**Satz** Die Kopfzeile trägt Titel, Vorlage und Seitenzahl; der Titel wird
+beschnitten, bevor er in die Seitenzahl läuft. Text, der nicht mehr auf die
+Kachel passt, endet dort – er wandert nicht in die nächste. Eine Seite mit
+weniger Bildern als Plätzen rechnet mit den Zeilen, die sie braucht, statt
+halb leer zu bleiben.
+
+**Ausgabe** PNG je Seite (Name: Vorlage, Inhalt, Seitenzahl) oder eine
+HTML-Datei mit allen Blättern, eingerichtet für den Druck: `@page` auf A4 in
+der richtigen Lage, ein Blatt je Seite. Das PDF macht der Browser – ein
+selbstgebautes PDF wäre schlechter als der Druckweg.

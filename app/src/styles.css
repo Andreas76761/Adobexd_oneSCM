@@ -1253,3 +1253,20 @@ div.streifen-bild { cursor: default; }
   font-family: var(--schrift-mono); font-size: 10px; letter-spacing: var(--spur);
   text-transform: uppercase; color: var(--tinte-3); margin-top: 6px;
 }
+
+/* ------------------------------------------------ Designstudio (1.23.0) */
+
+.design-kopf { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: end; padding: 18px 0 10px; }
+.design-kopf .feld { min-width: 210px; }
+.design-blaetter {
+  display: grid; gap: 22px; padding: 14px 0 60px;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+}
+.design-rahmen { margin: 0; display: grid; gap: 6px; }
+.design-blatt {
+  display: block; width: 100%; height: auto; background: var(--flaeche);
+  border: 1px solid var(--linie-stark); border-radius: var(--radius); box-shadow: var(--schatten);
+}
+.design-rahmen figcaption {
+  font-family: var(--schrift-mono); font-size: 11px; color: var(--tinte-3);
+}

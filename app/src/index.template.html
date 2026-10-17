@@ -60,6 +60,7 @@
             <button type="button" data-ansicht="ausschneiden">Ausschneiden</button>
             <button type="button" data-ansicht="markieren">Editor</button>
             <button type="button" data-ansicht="strecke">Strecke</button>
+            <button type="button" data-ansicht="design">Design</button>
             <button type="button" data-ansicht="gliederung">Gliederung</button>
             <button type="button" data-ansicht="eingang">Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
@@ -440,6 +441,38 @@
     </div>
   </section>
 
+  <section id="design-ansicht" aria-label="Designvorlagen" hidden>
+    <div class="design-kopf">
+      <div class="feld">
+        <label for="design-quelle">Inhalt</label>
+        <select id="design-quelle"></select>
+      </div>
+      <div class="feld">
+        <label for="design-vorlage">Vorlage</label>
+        <select id="design-vorlage"></select>
+      </div>
+      <div class="feld feld--schmal">
+        <label for="design-format">Format</label>
+        <select id="design-format"></select>
+      </div>
+      <label class="markier-schalter">
+        <input type="checkbox" id="design-texte" checked>
+        <span>Texte aus dem Handbuch</span>
+      </label>
+      <label class="markier-schalter">
+        <input type="checkbox" id="design-labels" checked>
+        <span>Labels zeigen</span>
+      </label>
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--haupt" id="design-sichern" disabled>Seiten sichern</button>
+        <button type="button" class="knopf" id="design-html" disabled>Als HTML zum Drucken</button>
+      </div>
+    </div>
+    <p class="band-hinweis" id="design-zweck"></p>
+    <p class="studio-meldung" id="design-meldung" role="status" aria-live="polite"></p>
+    <div class="design-blaetter" id="design-blaetter"></div>
+  </section>
+
   <section id="gliederung-ansicht" aria-label="Gliederung" hidden>
     <div class="gliederung-kopf">
       <div class="suchfeld suchfeld--klein">
@@ -552,5 +585,6 @@
 /*%AUFNAHME%*/
 /*%SCHNIPSEL%*/
 /*%MARKIEREN%*/
+/*%DESIGN%*/
 })();
 </script>

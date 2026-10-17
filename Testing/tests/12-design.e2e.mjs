@@ -1,0 +1,182 @@
+/**
+ * Browserprüfung des Designstudios: aus Bildern werden Blätter in
+ * Druckauflösung – Quick Guide, One Pager, Releaseletter, Handbuchseite.
+ */
+import { join } from 'node:path';
+import { suite, wahr, gleich } from '../hilfen/pruefe.mjs';
+import { erzeugeBrowserHelfer } from '../hilfen/browser.mjs';
+
+const wurzel = join(import.meta.dirname, '..', '..');
+const { mitSeite, schliessen } = erzeugeBrowserHelfer(join(wurzel, 'dist', 'index.html'));
+const s = suite('Design – Oberfläche');
+
+const AUFNAHME = '#ans=aufnahme';
+const DESIGN = '#ans=design';
+
+const ablageNachbau = `
+  window.__abgelegt = [];
+  window.claude = { use: async (name) => name !== 'downloads' ? null : {
+    save: async (auftrag) => {
+      window.__abgelegt.push({ filename: auftrag.filename, groesse: auftrag.data.size || String(auftrag.data).length });
+      return { status: 'saved' };
+    } } };`;
+
+/** Legt Aufnahmen an und ordnet sie Stellen im Handbuch zu. */
+async function bilderMitStellen(seite, stellen) {
+  await seite.click('#quelle-beispiel');
+  await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+  for (const stelle of stellen) {
+    await seite.fill('#feld-titel', 'Schritt ' + stelle);
+    await seite.fill('#feld-projekt', 'oneSCM Portal');
+    await seite.selectOption('#feld-kategorie', 'Formular');
+    await seite.fill('#feld-begriffe', 'signatur');
+    await seite.click('#ausloesen');
+    await seite.waitForTimeout(150);
+    await seite.click('#letzte-editor');
+    await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden, null, { timeout: 8000 });
+    await seite.fill('#markier-stelle', stelle);
+    await seite.evaluate(() => {
+      document.getElementById('markier-labels').open = true;
+    });
+    await seite.selectOption('#label-sprache', 'de');
+    await seite.selectOption('#label-rolle_label', 'dealer');
+    await seite.waitForTimeout(150);
+    await seite.click('#markier-sichern');
+    await seite.waitForTimeout(250);
+    await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+    await seite.waitForTimeout(120);
+  }
+  await seite.click('.portal-nav button[data-ansicht="design"]');
+  await seite.waitForSelector('#design-ansicht:not([hidden])');
+  await seite.waitForFunction(
+    () => document.querySelectorAll('.design-blatt').length > 0,
+    null,
+    { timeout: 15000 }
+  );
+}
+
+s.test('ohne Inhalt sagt das Studio, was fehlt', () =>
+  mitSeite(async (seite) => {
+    gleich(await seite.locator('#design-sichern').isDisabled(), true, 'ein leeres Blatt ließe sich sichern');
+    wahr(
+      (await seite.locator('#design-blaetter').innerText()).includes('Kein Inhalt'),
+      'der Hinweis fehlt'
+    );
+  }, { hash: DESIGN }));
+
+s.test('aus Bildern eines Kapitels entsteht ein Blatt in Druckauflösung', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1', '7.5.2', '7.5.4']);
+      wahr(
+        (await seite.locator('#design-quelle').innerText()).includes('Kapitel · 7.5'),
+        'das Kapitel steht nicht zur Wahl'
+      );
+      const masse = await seite.evaluate(() => {
+        const c = document.querySelector('.design-blatt');
+        return { breite: c.width, hoehe: c.height };
+      });
+      // Quick Guide ist A4 quer bei 300 dpi.
+      gleich(masse.breite, 3508, 'die Blattbreite stimmt nicht');
+      gleich(masse.hoehe, 2480);
+      wahr(
+        (await seite.locator('#design-meldung').innerText()).includes('3 Bilder'),
+        'die Meldung zählt die Bilder nicht'
+      );
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('jede Vorlage rechnet ihr eigenes Format und ihre Seitenzahl', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1', '7.5.2', '7.5.4']);
+      const gemessen = {};
+      for (const vorlage of ['quickguide', 'onepager', 'releaseletter', 'handbuch']) {
+        await seite.selectOption('#design-vorlage', vorlage);
+        // Gerechnet wird nebenher - gewartet wird auf den Stand am Container.
+        await seite.waitForFunction(
+          (v) => document.getElementById('design-blaetter').dataset.vorlage === v,
+          vorlage,
+          { timeout: 20000 }
+        );
+        gemessen[vorlage] = await seite.evaluate(() => ({
+          seiten: document.querySelectorAll('.design-blatt').length,
+          breite: document.querySelector('.design-blatt').width,
+          hoehe: document.querySelector('.design-blatt').height
+        }));
+      }
+      gleich(gemessen.quickguide.breite > gemessen.quickguide.hoehe, true, 'der Quick Guide ist nicht quer');
+      gleich(gemessen.handbuch.hoehe > gemessen.handbuch.breite, true, 'die Handbuchseite ist nicht hoch');
+      gleich(gemessen.releaseletter.seiten, 2, 'der Releaseletter bricht nicht um');
+      gleich(gemessen.handbuch.seiten, 1);
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('die Texte aus dem Handbuch lassen sich abschalten', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.2']);
+      await seite.selectOption('#design-vorlage', 'handbuch');
+      await seite.waitForFunction(
+        () => {
+          const k = document.getElementById('design-blaetter').dataset;
+          return k.vorlage === 'handbuch' && k.texte === 'ja';
+        },
+        null,
+        { timeout: 20000 }
+      );
+      // Mit Texten steht mehr Dunkles auf dem Blatt als ohne.
+      const dunkel = () =>
+        seite.evaluate(() => {
+          const c = document.querySelector('.design-blatt');
+          const d = c.getContext('2d').getImageData(Math.round(c.width * 0.6), 0, Math.round(c.width * 0.38), c.height).data;
+          let zahl = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i] < 128) zahl++;
+          return zahl;
+        });
+      const mit = await dunkel();
+      await seite.click('#design-texte');
+      await seite.waitForFunction(
+        () => document.getElementById('design-blaetter').dataset.texte === 'nein',
+        null,
+        { timeout: 20000 }
+      );
+      const ohne = await dunkel();
+      wahr(mit > ohne, `ohne Texte steht nicht weniger auf dem Blatt (${mit} / ${ohne})`);
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('die Blätter lassen sich als Bilder und als HTML sichern', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1', '7.5.2']);
+      await seite.selectOption('#design-vorlage', 'releaseletter');
+      await seite.waitForFunction(
+        () => document.getElementById('design-blaetter').dataset.vorlage === 'releaseletter',
+        null,
+        { timeout: 20000 }
+      );
+      await seite.click('#design-sichern');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length >= 1, null, { timeout: 15000 });
+      const [erste] = await seite.evaluate(() => window.__abgelegt);
+      wahr(/^releaseletter-/.test(erste.filename), 'der Name nennt die Vorlage nicht: ' + erste.filename);
+      wahr(erste.groesse > 20000, 'das Blatt ist verdächtig klein');
+
+      await seite.click('#design-html');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length >= 2, null, { timeout: 15000 });
+      const html = await seite.evaluate(() => window.__abgelegt[window.__abgelegt.length - 1]);
+      wahr(/\.html$/.test(html.filename), 'die HTML-Datei fehlt: ' + html.filename);
+      wahr(
+        /drucken/.test(await seite.locator('#design-meldung').innerText()),
+        'der Weg zum PDF wird nicht genannt'
+      );
+    },
+    { hash: AUFNAHME, initSkript: ablageNachbau }
+  ));
+
+s.test('Browser wieder schließen', () => schliessen());
+
+export default s;
