@@ -951,3 +951,49 @@ div.streifen-bild { cursor: default; }
   font-family: var(--schrift-mono); font-size: 11.5px; background: var(--flaeche-3);
   border-radius: 2px; padding: 1px 4px;
 }
+
+/* ------------------------------------------ Werkbank: Beleg bilden (1.14.0) */
+
+.werkbank {
+  display: grid; gap: 14px; margin: 0 0 22px;
+  background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--radius);
+  padding: 16px 18px 18px;
+}
+.werkbank[hidden] { display: none; }
+.werkbank .band-hinweis { max-width: 86ch; }
+.werkbank code {
+  font-family: var(--schrift-mono); font-size: 11.5px; background: var(--flaeche-3);
+  border-radius: 2px; padding: 1px 4px;
+}
+.werkbank .abschnitt-titel { margin: 6px 0 0; }
+
+.beleg-paar { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 760px) { .beleg-paar { grid-template-columns: 1fr; } }
+.beleg-seite {
+  position: relative; display: grid; gap: 8px; align-content: start;
+  border: 1px solid var(--linie); border-radius: var(--radius); padding: 10px;
+  background: var(--flaeche-2);
+}
+.beleg-seite img {
+  display: block; width: 100%; height: 170px; object-fit: cover; object-position: top left;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche);
+}
+.beleg-seite .aufnahme-schild { position: static; justify-self: start; border-radius: 2px; }
+
+.beleg-form { display: grid; gap: 12px; }
+.beleg-metrik {
+  display: grid; gap: 10px; align-items: end;
+  grid-template-columns: minmax(0, 1.6fr) 80px 90px 90px minmax(0, 1fr) auto;
+  padding: 10px; border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche-2);
+}
+@media (max-width: 900px) { .beleg-metrik { grid-template-columns: 1fr 1fr; } }
+.beleg-wirkung {
+  font-family: var(--schrift-mono); font-size: 12px; color: var(--akzent); white-space: nowrap;
+  padding-bottom: 7px;
+}
+.beleg-probleme {
+  font-size: 13px; line-height: 1.55; color: var(--warn);
+  background: var(--warn-hauch); border-left: 3px solid var(--warn);
+  padding: 9px 11px; border-radius: 0 var(--radius) var(--radius) 0;
+}
+.beleg-probleme[hidden] { display: none; }

@@ -1261,6 +1261,164 @@ s.test('das dunkle Thema trägt auch die Aufnahme', () =>
     { hash: AUFNAHME, thema: 'dark' }
   ));
 
+/* ----------------------------------------------- Werkbank: Beleg bilden */
+
+/** Legt zwei vollständige Aufnahmen mit verschiedenen Daten an. */
+async function belegPaarAnlegen(seite) {
+  await mitBeispielquelle(seite);
+  for (const [titel, datum] of [
+    ['Navigation vorher', '2026-02-01'],
+    ['Navigation nachher', '2026-03-01']
+  ]) {
+    await seite.fill('#feld-titel', titel);
+    await seite.fill('#feld-projekt', 'oneSCM Portal');
+    await seite.fill('#feld-seite', '/portal/uebersicht');
+    await seite.fill('#feld-datum', datum);
+    await seite.selectOption('#feld-kategorie', 'Navigation');
+    await seite.fill('#feld-begriffe', 'navigation');
+    await seite.click('#ausloesen');
+    await seite.waitForTimeout(120);
+  }
+  await seite.click('.portal-nav button[data-ansicht="eingang"]');
+}
+
+/** Füllt die Werkbank bis auf das, was der Test gerade prüft. */
+async function werkbankFuellen(seite) {
+  await seite.fill('#beleg-feld-titel', 'Kontrast der Sekundärnavigation angehoben');
+  await seite.selectOption('#beleg-feld-viewport', 'desktop');
+  await seite.fill('#beleg-feld-anlass', 'Im Audit fiel die Navigation mit 2,8:1 durch, AA verlangt 4,5:1.');
+  await seite.fill('#beleg-feld-aenderung', 'Textfarbe auf dunkles Blaugrau gesetzt, aktiver Eintrag markiert.');
+  await seite.fill('#beleg-feld-wirkung', 'Kontrast auf 5,1:1 angehoben, die Suche dauert kürzer.');
+  await seite.fill('#beleg-feld-quelle', 'Audit Q1/2026, Befund A-14');
+  await seite.fill('#beleg-metrik-name-1', 'Kontrastverhältnis');
+  await seite.fill('#beleg-metrik-einheit-1', ':1');
+  await seite.fill('#beleg-metrik-vorher-1', '2,8');
+  await seite.fill('#beleg-metrik-nachher-1', '5,1');
+}
+
+s.test('ohne zwei Aufnahmen gibt es keine Werkbank', () =>
+  mitSeite(
+    async (seite) => {
+      await mitBeispielquelle(seite);
+      await seite.fill('#feld-titel', 'Einzelne Aufnahme');
+      await seite.click('#ausloesen');
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.click('#beleg-oeffnen');
+      gleich(await seite.locator('#beleg-werkbank').isVisible(), false, 'die Werkbank öffnet ohne Paar');
+      wahr(
+        /zwei Aufnahmen/.test(await seite.locator('#eingang-meldung').innerText()),
+        'der Grund wird nicht genannt'
+      );
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('die Werkbank schlägt das Paar vor und nennt, was noch fehlt', () =>
+  mitSeite(
+    async (seite) => {
+      await belegPaarAnlegen(seite);
+      await seite.click('#beleg-oeffnen');
+      await seite.waitForSelector('#beleg-werkbank:not([hidden])');
+      // Die älteste Aufnahme ist vorher, die neueste nachher.
+      gleich(await seite.locator('#beleg-vorher').inputValue(), 'AUF-2026-001');
+      gleich(await seite.locator('#beleg-nachher').inputValue(), 'AUF-2026-002');
+      gleich(await seite.locator('#beleg-sichern').isDisabled(), true, 'ein leerer Beleg ließe sich sichern');
+      const fehlt = await seite.locator('#beleg-probleme').innerText();
+      for (const wort of ['Titel', 'Viewport', 'Anlass', 'Änderung', 'Wirkung', 'Quelle', 'Kennzahl']) {
+        wahr(fehlt.includes(wort), `${wort} wird nicht als fehlend genannt: ` + fehlt);
+      }
+      // Projekt, Kategorie, Datum und Schlagworte kommen aus den Aufnahmen.
+      gleich(await seite.locator('#beleg-feld-projekt').inputValue(), 'oneSCM Portal');
+      gleich(await seite.locator('#beleg-feld-kategorie').inputValue(), 'Navigation');
+      gleich(await seite.locator('#beleg-feld-datum').inputValue(), '2026-03-01');
+      gleich(await seite.locator('#beleg-feld-tags').inputValue(), 'navigation');
+
+      await werkbankFuellen(seite);
+      await seite.waitForFunction(() => document.getElementById('beleg-probleme').hidden, null, { timeout: 5000 });
+      gleich(await seite.locator('#beleg-sichern').isDisabled(), false);
+      gleich(await seite.locator('#beleg-metrik-wirkung-1').innerText(), '+82,1 %', 'die Wirkung wird nicht gerechnet');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('der gesicherte Belegentwurf hat die Form des Bestands', () =>
+  mitSeite(
+    async (seite) => {
+      await belegPaarAnlegen(seite);
+      await seite.click('#beleg-oeffnen');
+      await seite.waitForSelector('#beleg-werkbank:not([hidden])');
+      await werkbankFuellen(seite);
+      await seite.waitForFunction(() => document.getElementById('beleg-probleme').hidden, null, { timeout: 5000 });
+      await seite.click('#beleg-sichern');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 5000 });
+
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      gleich(datei.filename, 'belegentwurf-scr-2026-001.json', 'die Kennung folgt nicht dem Bestand');
+      const inhalt = JSON.parse(datei.data);
+      gleich(inhalt.belegentwurf, 1);
+      const e = inhalt.eintrag;
+      gleich(e.id, 'SCR-2026-001');
+      gleich(e.titel, 'Kontrast der Sekundärnavigation angehoben');
+      gleich(e.projekt, 'oneSCM Portal');
+      gleich(e.kategorie, 'Navigation');
+      gleich(e.viewport, 'desktop');
+      gleich(e.datum, '2026-03-01');
+      gleich(e.tags.join(','), 'navigation');
+      gleich(e.begruendung.quelle, 'Audit Q1/2026, Befund A-14');
+      wahr(e.begruendung.anlass.length > 20 && e.begruendung.aenderung.length > 20, 'die Begründung ist zu knapp');
+      gleich(e.metriken.length, 1);
+      gleich(e.metriken[0].vorher, 2.8, 'das Komma wird nicht als Dezimaltrenner gelesen');
+      gleich(e.metriken[0].nachher, 5.1);
+      gleich(e.metriken[0].richtung, 'groesser_besser');
+      gleich(e.archiviert, false);
+      gleich(e.screen, null, 'screen kann diese Seite nicht wissen und darf nichts behaupten');
+      // Die beiden echten Bilder liegen daneben, als Vorlage.
+      gleich(inhalt.aufnahmen.vorher.id, 'AUF-2026-001');
+      gleich(inhalt.aufnahmen.nachher.id, 'AUF-2026-002');
+      wahr(inhalt.aufnahmen.vorher.bild.startsWith('data:image/jpeg'), 'das Vorher-Bild fehlt');
+      wahr(/screen/.test(inhalt.hinweis), 'der Hinweis sagt nicht, was im Projekt noch fehlt');
+      wahr(
+        /gesichert/.test(await seite.locator('#beleg-meldung').innerText()),
+        'die Rückmeldung fehlt'
+      );
+    },
+    { hash: AUFNAHME, initSkript: ablageNachbau() }
+  ));
+
+s.test('vertauschte Reihenfolge und verworfener Status werden beanstandet', () =>
+  mitSeite(
+    async (seite) => {
+      await belegPaarAnlegen(seite);
+      await seite.click('#beleg-oeffnen');
+      await seite.waitForSelector('#beleg-werkbank:not([hidden])');
+      await werkbankFuellen(seite);
+      await seite.waitForFunction(() => document.getElementById('beleg-probleme').hidden, null, { timeout: 5000 });
+
+      // Vorher und nachher vertauscht.
+      await seite.selectOption('#beleg-vorher', 'AUF-2026-002');
+      await seite.selectOption('#beleg-nachher', 'AUF-2026-001');
+      await seite.waitForFunction(() => !document.getElementById('beleg-probleme').hidden, null, { timeout: 5000 });
+      wahr(
+        /jünger/.test(await seite.locator('#beleg-probleme').innerText()),
+        'die vertauschte Reihenfolge fällt nicht auf'
+      );
+      await seite.selectOption('#beleg-vorher', 'AUF-2026-001');
+      await seite.selectOption('#beleg-nachher', 'AUF-2026-002');
+      await seite.waitForFunction(() => document.getElementById('beleg-probleme').hidden, null, { timeout: 5000 });
+
+      // Verworfen ohne Begründung im Wirkungstext.
+      await seite.selectOption('#beleg-feld-status', 'verworfen');
+      await seite.waitForFunction(() => !document.getElementById('beleg-probleme').hidden, null, { timeout: 5000 });
+      wahr(
+        /verworfen/.test(await seite.locator('#beleg-probleme').innerText()),
+        'der Status verworfen wird nicht geprüft'
+      );
+      await seite.fill('#beleg-feld-wirkung', 'Die Variante wurde verworfen: der Umbau hätte die Suche verlangsamt.');
+      await seite.waitForFunction(() => document.getElementById('beleg-probleme').hidden, null, { timeout: 5000 });
+    },
+    { hash: AUFNAHME }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

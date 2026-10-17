@@ -551,6 +551,163 @@ s.test('die Wahl des Beipackzettels wird gespeichert', () => {
   gleich(kern.leseAblage('{}').beipack, true, 'ohne Angabe fehlt die Vorgabe');
 });
 
+/* ------------------------------------------------------------ Belegentwurf */
+
+const vokabular = {
+  projekte: ['oneSCM Portal'],
+  kategorien: ['Navigation'],
+  status: ['übernommen', 'in Prüfung', 'verworfen'],
+  viewports: [{ id: 'desktop' }, { id: 'tablet' }]
+};
+
+const paar = () => [
+  {
+    id: 'AUF-2026-001',
+    titel: 'vorher',
+    projekt: 'oneSCM Portal',
+    seite: '/portal/uebersicht',
+    kategorie: 'Navigation',
+    browser: 'Chrome 141',
+    datum: '2026-02-01',
+    begriffe: ['navigation'],
+    bild: 'data:image/jpeg;base64,AAAA',
+    ausschnitt: { x: 0, y: 0, breite: 10, hoehe: 10 },
+    quelle: { art: 'beispiel', name: 'Probe', breite: 100, hoehe: 100 },
+    erfasst_am: '2026-02-01T08:00:00.000Z'
+  },
+  {
+    id: 'AUF-2026-002',
+    titel: 'nachher',
+    projekt: 'oneSCM Portal',
+    seite: '/portal/uebersicht',
+    kategorie: 'Navigation',
+    browser: 'Chrome 141',
+    datum: '2026-03-01',
+    begriffe: ['kontrast'],
+    bild: 'data:image/jpeg;base64,BBBB',
+    ausschnitt: { x: 0, y: 0, breite: 10, hoehe: 10 },
+    quelle: { art: 'beispiel', name: 'Probe', breite: 100, hoehe: 100 },
+    erfasst_am: '2026-03-01T08:00:00.000Z'
+  }
+];
+
+const vollerEntwurf = () => ({
+  ...kern.leererBelegentwurf(...paar()),
+  titel: 'Kontrast der Sekundärnavigation angehoben',
+  viewport: 'desktop',
+  anlass: 'Im Audit fiel die Navigation mit 2,8:1 durch, AA verlangt 4,5:1.',
+  aenderung: 'Textfarbe auf dunkles Blaugrau gesetzt, aktiver Eintrag markiert.',
+  wirkung: 'Kontrast auf 5,1:1 angehoben, die Suche dauert kürzer.',
+  quelle: 'Audit Q1/2026, Befund A-14',
+  metriken: [{ name: 'Kontrast', einheit: ':1', vorher: '2,8', nachher: '5,1', richtung: 'groesser_besser' }]
+});
+
+s.test('der leere Belegentwurf übernimmt, was die Aufnahmen schon wissen', () => {
+  const [vorher, nachher] = paar();
+  const entwurf = kern.leererBelegentwurf(vorher, nachher);
+  gleich(entwurf.projekt, 'oneSCM Portal');
+  gleich(entwurf.seite, '/portal/uebersicht');
+  gleich(entwurf.kategorie, 'Navigation');
+  gleich(entwurf.datum, '2026-03-01', 'das Datum des Belegs ist das der Nachher-Aufnahme');
+  tieferGleich(entwurf.tags, ['navigation', 'kontrast'], 'die Begriffe beider Aufnahmen fehlen');
+  gleich(entwurf.titel, '', 'der Titel des Belegs wird nicht geraten');
+  gleich(entwurf.anlass, '');
+});
+
+s.test('ein Beleg ohne Begründung wird nicht durchgelassen', () => {
+  const [vorher, nachher] = paar();
+  const felder = kern.pruefeBelegentwurf(kern.leererBelegentwurf(vorher, nachher), vorher, nachher, vokabular).map((p) => p.feld);
+  for (const feld of ['titel', 'viewport', 'anlass', 'aenderung', 'wirkung', 'quelle', 'metrik-name-1']) {
+    wahr(felder.includes(feld), `${feld} wird nicht verlangt: ` + felder.join(','));
+  }
+  gleich(kern.pruefeBelegentwurf(vollerEntwurf(), vorher, nachher, vokabular).length, 0, 'ein vollständiger Beleg wird abgewiesen');
+});
+
+s.test('zu knappe Begründungen, falsches Vokabular und vertauschte Daten fallen auf', () => {
+  const [vorher, nachher] = paar();
+  const kurz = { ...vollerEntwurf(), anlass: 'zu kurz' };
+  wahr(
+    kern.pruefeBelegentwurf(kurz, vorher, nachher, vokabular).some((p) => p.feld === 'anlass' && /knapp/.test(p.text)),
+    'ein Einwortanlass geht durch'
+  );
+  const fremd = { ...vollerEntwurf(), kategorie: 'Erfunden' };
+  wahr(
+    kern.pruefeBelegentwurf(fremd, vorher, nachher, vokabular).some((p) => /Vokabular/.test(p.text)),
+    'eine unbekannte Kategorie geht durch'
+  );
+  wahr(
+    kern.pruefeBelegentwurf(vollerEntwurf(), nachher, vorher, vokabular).some((p) => /jünger/.test(p.text)),
+    'vertauschte Aufnahmen gehen durch'
+  );
+  wahr(
+    kern.pruefeBelegentwurf(vollerEntwurf(), vorher, vorher, vokabular).some((p) => p.feld === 'paar'),
+    'dieselbe Aufnahme zweimal geht durch'
+  );
+  const verworfen = { ...vollerEntwurf(), status: 'verworfen' };
+  wahr(
+    kern.pruefeBelegentwurf(verworfen, vorher, nachher, vokabular).some((p) => p.feld === 'wirkung'),
+    'verworfen ohne Begründung im Wirkungstext geht durch'
+  );
+});
+
+s.test('eine halb ausgefüllte Kennzahl ist ein Fehler, eine leere nicht', () => {
+  const [vorher, nachher] = paar();
+  const halb = {
+    ...vollerEntwurf(),
+    metriken: [
+      { name: 'Kontrast', einheit: ':1', vorher: '2,8', nachher: '5,1', richtung: 'groesser_besser' },
+      { name: 'Dauer', einheit: 's', vorher: '', nachher: '33', richtung: 'kleiner_besser' }
+    ]
+  };
+  wahr(
+    kern.pruefeBelegentwurf(halb, vorher, nachher, vokabular).some((p) => p.feld === 'metrik-vorher-2'),
+    'die halbe zweite Kennzahl fällt nicht auf'
+  );
+  const leerZweite = {
+    ...vollerEntwurf(),
+    metriken: [
+      { name: 'Kontrast', einheit: ':1', vorher: '2,8', nachher: '5,1', richtung: 'groesser_besser' },
+      { name: '', einheit: '', vorher: '', nachher: '', richtung: 'groesser_besser' }
+    ]
+  };
+  gleich(kern.pruefeBelegentwurf(leerZweite, vorher, nachher, vokabular).length, 0, 'eine leere Zeile darf nicht stören');
+  gleich(kern.metrikenAusEntwurf(leerZweite).length, 1, 'die leere Zeile landet im Entwurf');
+});
+
+s.test('der Belegentwurf hat die Form des Bestands und behauptet kein screen', () => {
+  const [vorher, nachher] = paar();
+  const gebaut = kern.baueBelegentwurf({
+    entwurf: vollerEntwurf(),
+    vorher,
+    nachher,
+    kennung: 'SCR-2026-001',
+    anwendung: '1.14.0'
+  });
+  gleich(gebaut.belegentwurf, kern.BELEGENTWURF_VERSION);
+  gleich(gebaut.erzeugt_von, 'Screenarchiv 1.14.0');
+  const e = gebaut.eintrag;
+  tieferGleich(
+    Object.keys(e),
+    ['id','titel','projekt','seite','kategorie','status','viewport','browser','autor','datum','tags','begruendung','metriken','archiviert','archiviert_am','archiv_grund','screen'],
+    'die Feldfolge weicht vom Bestand ab'
+  );
+  gleich(e.screen, null, 'screen darf die Seite nicht erfinden');
+  gleich(e.metriken[0].vorher, 2.8, 'das Komma wird nicht gelesen');
+  tieferGleich(Object.keys(e.begruendung), ['anlass', 'aenderung', 'wirkung', 'quelle']);
+  gleich(gebaut.aufnahmen.vorher.id, 'AUF-2026-001');
+  gleich(gebaut.aufnahmen.nachher.bild, 'data:image/jpeg;base64,BBBB');
+  const ohneBilder = kern.baueBelegentwurf({
+    entwurf: vollerEntwurf(), vorher, nachher, kennung: 'SCR-2026-001', mitBildern: false
+  });
+  gleich(ohneBilder.aufnahmen.vorher.bild, undefined, 'ohne Bilder darf kein Bild drinstehen');
+});
+
+s.test('die Belegkennung zählt im Jahr des Belegs weiter', () => {
+  gleich(kern.naechsteBelegKennung([{ id: 'SCR-2026-004' }, { id: 'SCR-2025-009' }], '2026-03-01'), 'SCR-2026-005');
+  gleich(kern.naechsteBelegKennung([{ id: 'SCR-2026-004' }], '2025-03-01'), 'SCR-2025-001');
+  gleich(kern.naechsteBelegKennung([], '2026-03-01'), 'SCR-2026-001');
+});
+
 /* ---------------------------------------------------------- Kontaktbogen */
 
 const bogenProbe = () => [

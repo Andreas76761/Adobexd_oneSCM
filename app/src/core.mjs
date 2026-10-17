@@ -754,6 +754,203 @@ export function baueKontaktbogen(aufnahmen, angaben = {}) {
    der Browser und die umgebende Ansicht - nicht diese Datei.
    ========================================================================= */
 
+/* ------------------------------------------------- Beleg aus zwei Aufnahmen */
+
+export const BELEGENTWURF_VERSION = 1;
+export const MINDEST_BEGRUENDUNG = 20;
+export const RICHTUNGEN = [
+  { id: 'groesser_besser', label: 'größer ist besser' },
+  { id: 'kleiner_besser', label: 'kleiner ist besser' }
+];
+
+/** Die naechste freie Belegkennung eines Jahres: SCR-JJJJ-NNN. */
+export function naechsteBelegKennung(vorhandene, datum) {
+  const jahr = String(datum || '').slice(0, 4) || String(new Date().getFullYear());
+  const hoechste = (vorhandene || [])
+    .map((e) => String((e && e.id) || e || ''))
+    .filter((id) => id.startsWith(`SCR-${jahr}-`))
+    .map((id) => Number(id.slice(-3)))
+    .filter((n) => Number.isFinite(n))
+    .reduce((a, b) => Math.max(a, b), 0);
+  return `SCR-${jahr}-${String(hoechste + 1).padStart(3, '0')}`;
+}
+
+/** Leerer Belegentwurf; was aus den Aufnahmen bekannt ist, steht schon drin. */
+export function leererBelegentwurf(vorher = {}, nachher = {}) {
+  const nimm = (feld) => String(nachher[feld] || vorher[feld] || '').trim();
+  return {
+    titel: '',
+    projekt: nimm('projekt'),
+    seite: nimm('seite'),
+    kategorie: nimm('kategorie'),
+    status: 'in Prüfung',
+    viewport: '',
+    browser: nimm('browser'),
+    autor: nimm('autor'),
+    datum: String(nachher.datum || '').trim(),
+    tags: normalisiereBegriffe([...(vorher.begriffe || []), ...(nachher.begriffe || [])]),
+    anlass: '',
+    aenderung: '',
+    wirkung: '',
+    quelle: '',
+    metriken: [{ name: '', einheit: '', vorher: '', nachher: '', richtung: 'groesser_besser' }]
+  };
+}
+
+/** Eine Kennzahl ist entweder leer oder vollstaendig - halb gilt nicht. */
+function pruefeMetrik(metrik, nummer) {
+  const leer = ['name', 'einheit', 'vorher', 'nachher'].every((f) => String(metrik[f] ?? '').trim() === '');
+  if (leer) return { leer: true, probleme: [] };
+  const probleme = [];
+  if (!String(metrik.name || '').trim()) probleme.push({ feld: `metrik-name-${nummer}`, text: `Kennzahl ${nummer}: der Name fehlt.` });
+  if (!String(metrik.einheit || '').trim()) probleme.push({ feld: `metrik-einheit-${nummer}`, text: `Kennzahl ${nummer}: die Einheit fehlt.` });
+  for (const seite of ['vorher', 'nachher']) {
+    const zahl = Number(String(metrik[seite] ?? '').replace(',', '.'));
+    if (!Number.isFinite(zahl) || String(metrik[seite] ?? '').trim() === '') {
+      probleme.push({ feld: `metrik-${seite}-${nummer}`, text: `Kennzahl ${nummer}: ${seite} ist keine Zahl.` });
+    }
+  }
+  if (!RICHTUNGEN.some((r) => r.id === metrik.richtung)) {
+    probleme.push({ feld: `metrik-richtung-${nummer}`, text: `Kennzahl ${nummer}: die Richtung fehlt.` });
+  }
+  return { leer: false, probleme };
+}
+
+/**
+ * Prueft einen Belegentwurf so streng wie die Datenpruefung des Bestands -
+ * ein Beleg ohne Begruendung ist wertlos, und das soll hier auffallen, nicht
+ * erst beim Einpflegen.
+ */
+export function pruefeBelegentwurf(entwurf = {}, vorher, nachher, vokabular = {}) {
+  const probleme = [];
+  const melde = (feld, text) => probleme.push({ feld, text });
+
+  if (!vorher || !nachher) melde('paar', 'Ein Beleg braucht zwei Aufnahmen: eine vorher, eine nachher.');
+  else if (vorher.id === nachher.id) melde('paar', 'Vorher und nachher dürfen nicht dieselbe Aufnahme sein.');
+
+  if (!String(entwurf.titel || '').trim()) melde('titel', 'Der Titel fehlt.');
+  for (const [feld, name] of [['projekt', 'Projekt'], ['seite', 'Seite'], ['kategorie', 'Kategorie']]) {
+    if (!String(entwurf[feld] || '').trim()) melde(feld, `${name} fehlt.`);
+  }
+  for (const [feld, liste, name] of [
+    ['projekt', vokabular.projekte, 'Projekt'],
+    ['kategorie', vokabular.kategorien, 'Kategorie'],
+    ['status', vokabular.status, 'Status']
+  ]) {
+    const wert = String(entwurf[feld] || '').trim();
+    if (wert && Array.isArray(liste) && liste.length && !liste.includes(wert)) {
+      melde(feld, `${name} „${wert}“ steht nicht im Vokabular – im Bestand muss es zuerst ergänzt werden.`);
+    }
+  }
+  const viewports = (vokabular.viewports || []).map((v) => v.id || v);
+  if (!String(entwurf.viewport || '').trim()) melde('viewport', 'Der Viewport fehlt.');
+  else if (viewports.length && !viewports.includes(entwurf.viewport)) melde('viewport', 'Dieser Viewport ist unbekannt.');
+
+  if (!istGueltigesDatum(entwurf.datum)) melde('datum', 'Das Datum fehlt oder ist unvollständig.');
+  else if (vorher && nachher && istGueltigesDatum(vorher.datum) && vorher.datum > entwurf.datum) {
+    melde('datum', 'Die Vorher-Aufnahme ist jünger als der Beleg – vorher und nachher vertauscht?');
+  }
+  if (vorher && nachher && istGueltigesDatum(vorher.datum) && istGueltigesDatum(nachher.datum) && vorher.datum > nachher.datum) {
+    melde('paar', 'Die Vorher-Aufnahme ist jünger als die Nachher-Aufnahme.');
+  }
+
+  if (!normalisiereBegriffe(entwurf.tags || []).length) melde('tags', 'Mindestens ein Schlagwort wird gebraucht.');
+
+  for (const [feld, name] of [
+    ['anlass', 'Anlass'],
+    ['aenderung', 'Änderung'],
+    ['wirkung', 'Wirkung'],
+    ['quelle', 'Quelle']
+  ]) {
+    const wert = String(entwurf[feld] || '').trim();
+    if (!wert) melde(feld, `${name} fehlt – ohne Begründung ist ein Beleg wertlos.`);
+    else if (feld !== 'quelle' && wert.length < MINDEST_BEGRUENDUNG) {
+      melde(feld, `${name} ist zu knapp (mindestens ${MINDEST_BEGRUENDUNG} Zeichen).`);
+    }
+  }
+  if (String(entwurf.status || '') === 'verworfen' && !/verworfen/i.test(String(entwurf.wirkung || ''))) {
+    melde('wirkung', 'Bei Status „verworfen“ muss im Wirkungstext stehen, warum die Variante nicht kam.');
+  }
+
+  const metriken = entwurf.metriken || [];
+  const gefuellt = metriken.filter((m, i) => {
+    const ergebnis = pruefeMetrik(m, i + 1);
+    probleme.push(...ergebnis.probleme);
+    return !ergebnis.leer;
+  });
+  if (!gefuellt.length) melde('metrik-name-1', 'Mindestens eine Kennzahl mit Wert vorher und nachher wird gebraucht.');
+
+  return probleme;
+}
+
+/** Die gefuellten Kennzahlen als Zahlen, in der Form des Bestands. */
+export function metrikenAusEntwurf(entwurf = {}) {
+  return (entwurf.metriken || [])
+    .filter((m) => String(m.name || '').trim() && String(m.vorher ?? '').trim() !== '' && String(m.nachher ?? '').trim() !== '')
+    .map((m) => ({
+      name: String(m.name).trim(),
+      einheit: String(m.einheit || '').trim(),
+      vorher: Number(String(m.vorher).replace(',', '.')),
+      nachher: Number(String(m.nachher).replace(',', '.')),
+      richtung: RICHTUNGEN.some((r) => r.id === m.richtung) ? m.richtung : 'groesser_besser'
+    }));
+}
+
+/**
+ * Baut den Belegentwurf, wie er die Seite verlaesst. Der Eintrag hat die Form
+ * des Bestands - bis auf `screen`: die gezeichneten Aufnahmen entstehen im
+ * Projekt aus Archetyp und Schaltern, das kann diese Seite nicht wissen. Die
+ * beiden echten Bilder liegen daneben und dienen als Vorlage.
+ */
+export function baueBelegentwurf({ entwurf = {}, vorher, nachher, kennung, anwendung, mitBildern = true }) {
+  const alsAufnahme = (a) =>
+    a
+      ? {
+          id: a.id,
+          titel: a.titel,
+          datum: a.datum,
+          erfasst_am: a.erfasst_am,
+          ausschnitt: a.ausschnitt ? { ...a.ausschnitt } : null,
+          quelle: a.quelle ? { ...a.quelle } : null,
+          herkunft: a.herkunft ? { ...a.herkunft } : null,
+          bild: mitBildern ? a.bild : undefined
+        }
+      : null;
+  return {
+    belegentwurf: BELEGENTWURF_VERSION,
+    erzeugt_von: `Screenarchiv ${anwendung || ''}`.trim(),
+    erzeugt_am: new Date().toISOString(),
+    hinweis:
+      'Eintrag für data/eintraege.json. Vor dem Einpflegen fehlt nur screen: ' +
+      'Archetyp und Schalter werden im Projekt gesetzt, die beiden Bilder dienen als Vorlage.',
+    eintrag: {
+      id: kennung,
+      titel: String(entwurf.titel || '').trim(),
+      projekt: String(entwurf.projekt || '').trim(),
+      seite: String(entwurf.seite || '').trim(),
+      kategorie: String(entwurf.kategorie || '').trim(),
+      status: entwurf.status || 'in Prüfung',
+      viewport: entwurf.viewport || '',
+      browser: String(entwurf.browser || '').trim(),
+      autor: String(entwurf.autor || '').trim(),
+      datum: entwurf.datum || '',
+      tags: normalisiereBegriffe(entwurf.tags || []),
+      begruendung: {
+        anlass: String(entwurf.anlass || '').trim(),
+        aenderung: String(entwurf.aenderung || '').trim(),
+        wirkung: String(entwurf.wirkung || '').trim(),
+        quelle: String(entwurf.quelle || '').trim()
+      },
+      metriken: metrikenAusEntwurf(entwurf),
+      archiviert: false,
+      archiviert_am: null,
+      archiv_grund: null,
+      screen: null
+    },
+    aufnahmen: { vorher: alsAufnahme(vorher), nachher: alsAufnahme(nachher) }
+  };
+}
+
 export const ABLAGE_SCHLUESSEL = 'screenarchiv:ablage';
 
 export const ABLAGE_STANDARD = {

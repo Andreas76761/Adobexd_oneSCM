@@ -174,6 +174,58 @@ const geteilterBildschirm = `
   }
 }
 
+/* Die Werkbank: zwei Aufnahmen, Begruendung, Kennzahl - ein Belegentwurf. */
+{
+  for (const [name, thema] of [['werkbank', 'light'], ['werkbank-dunkel', 'dark']]) {
+    const kontext = await browser.newContext({ viewport: { width: 1500, height: 1200 }, colorScheme: thema });
+    const seite = await kontext.newPage();
+    await seite.goto(adresse + '#ans=aufnahme', { waitUntil: 'load' });
+    await seite.waitForSelector('html[data-bereit="ja"]');
+    await seite.click('#quelle-beispiel');
+    await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled);
+    for (const [titel, datum] of [
+      ['Sekundärnavigation vorher', '2026-02-01'],
+      ['Sekundärnavigation nachher', '2026-03-01']
+    ]) {
+      await seite.fill('#feld-titel', titel);
+      await seite.fill('#feld-projekt', 'oneSCM Portal');
+      await seite.fill('#feld-seite', '/portal/uebersicht');
+      await seite.fill('#feld-datum', datum);
+      await seite.selectOption('#feld-kategorie', 'Barrierefreiheit');
+      await seite.fill('#feld-begriffe', 'kontrast, navigation');
+      await seite.click('#ausloesen');
+      await seite.waitForTimeout(150);
+    }
+    await seite.click('.portal-nav button[data-ansicht="eingang"]');
+    await seite.click('#beleg-oeffnen');
+    await seite.waitForSelector('#beleg-werkbank:not([hidden])');
+    await seite.fill('#beleg-feld-titel', 'Kontrast der Sekundärnavigation angehoben');
+    await seite.selectOption('#beleg-feld-viewport', 'desktop');
+    await seite.fill('#beleg-feld-autor', 'M. Ackermann');
+    await seite.fill(
+      '#beleg-feld-anlass',
+      'Im Barrierefreiheits-Audit fiel die Sekundärnavigation mit 2,8:1 durch; WCAG 2.2 AA verlangt 4,5:1.'
+    );
+    await seite.fill(
+      '#beleg-feld-aenderung',
+      'Textfarbe von Hellgrau auf dunkles Blaugrau gesetzt, aktiver Eintrag mit Markierungsleiste.'
+    );
+    await seite.fill(
+      '#beleg-feld-wirkung',
+      'Kontrastverhältnis auf 5,1:1 angehoben, die Suche nach dem aktiven Bereich dauert kürzer.'
+    );
+    await seite.fill('#beleg-feld-quelle', 'Audit Barrierefreiheit Q1/2026, Befund A-14');
+    await seite.fill('#beleg-metrik-name-1', 'Kontrastverhältnis');
+    await seite.fill('#beleg-metrik-einheit-1', ':1');
+    await seite.fill('#beleg-metrik-vorher-1', '2,8');
+    await seite.fill('#beleg-metrik-nachher-1', '5,1');
+    await seite.waitForTimeout(300);
+    await seite.screenshot({ path: join(ziel, name + '.png') });
+    console.log(name + '.png');
+    await kontext.close();
+  }
+}
+
 /* Der Kontaktbogen zum Herunterladen: erzeugen, ablegen, ansehen. */
 {
   const kontext = await browser.newContext({ viewport: { width: 1440, height: 960 } });

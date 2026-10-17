@@ -280,6 +280,7 @@
         <select id="eingang-sortierung"></select>
       </div>
       <div class="eingang-aktionen">
+        <button type="button" class="knopf" id="beleg-oeffnen">Beleg bilden</button>
         <button type="button" class="knopf knopf--haupt" id="eingang-kontaktbogen">Kontaktbogen sichern</button>
         <button type="button" class="knopf" id="eingang-sichern">Als JSON sichern</button>
         <button type="button" class="knopf" id="eingang-leeren">Eingang leeren</button>
@@ -289,6 +290,27 @@
       <p class="treffer" id="eingang-treffer" role="status" aria-live="polite"></p>
       <p class="studio-meldung" id="eingang-meldung" role="status" aria-live="polite"></p>
     </div>
+    <section class="werkbank" id="beleg-werkbank" aria-labelledby="beleg-werkbank-titel" hidden>
+      <div class="band-kopf">
+        <h2 class="abschnitt-titel" id="beleg-werkbank-titel">Beleg bilden</h2>
+        <span class="band-stand" id="beleg-stand"></span>
+        <button type="button" class="knopf knopf--klein" id="beleg-zu">Schließen</button>
+      </div>
+      <p class="band-hinweis">
+        Ein Beleg ist mehr als zwei Bilder: er braucht Anlass, Änderung, Wirkung,
+        Quelle und mindestens eine Kennzahl. Heraus kommt ein Eintrag im Format
+        von <code>data/eintraege.json</code>; im Projekt fehlt daran nur noch
+        <code>screen</code> – Archetyp und Schalter für die gezeichneten
+        Aufnahmen. Die beiden echten Bilder liegen als Vorlage daneben.
+      </p>
+      <div class="beleg-paar" id="beleg-paar"></div>
+      <div class="beleg-form" id="beleg-form"></div>
+      <p class="beleg-probleme" id="beleg-probleme" role="status" aria-live="polite" hidden></p>
+      <div class="bearbeiten-aktionen">
+        <button type="button" class="knopf knopf--haupt" id="beleg-sichern">Belegentwurf sichern</button>
+        <span class="feld-hinweis" id="beleg-meldung"></span>
+      </div>
+    </section>
     <div class="eingang-raster" id="eingang-raster"></div>
     <div class="leermeldung" id="eingang-leer" hidden>
       <h3>Nichts im Eingang</h3>

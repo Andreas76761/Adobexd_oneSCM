@@ -69,6 +69,42 @@ Aus einer gesicherten Datei entsteht ein Beleg so:
    zeichnet. Die Bilder aus dem Eingang ersetzen die erzeugten Aufnahmen nicht
    automatisch; sie dienen als Vorlage für die Beschreibung.
 
+## Aus einem Belegentwurf der Seite
+
+Seit 1.14.0 bildet die Seite den Beleg selbst vor: im Eingang unter **Beleg
+bilden** werden zwei Aufnahmen gepaart, die vier Begründungsfelder und die
+Kennzahlen ausgefüllt und als `belegentwurf-scr-JJJJ-NNN.json` gesichert. Die
+Seite prüft dabei dieselben Regeln wie die Datenprüfung: Vokabular,
+Mindestlänge der Begründung, mindestens eine vollständige Kennzahl,
+Reihenfolge der Daten, Wort „verworfen“ im Wirkungstext.
+
+Die Datei hat diesen Aufbau:
+
+```json
+{
+  "belegentwurf": 1,
+  "erzeugt_von": "Screenarchiv 1.14.0",
+  "hinweis": "… vor dem Einpflegen fehlt nur screen …",
+  "eintrag": { "id": "SCR-2026-001", "…": "…", "screen": null },
+  "aufnahmen": { "vorher": { "id": "AUF-…", "bild": "data:image/jpeg;…" },
+                 "nachher": { "…": "…" } }
+}
+```
+
+So wird daraus ein Beleg:
+
+1. `eintrag` an das Ende von `data/eintraege.json` übernehmen – die Felder
+   stehen bereits in der Reihenfolge des Bestands.
+2. **Kennung prüfen.** Die Seite kennt nur den eingebauten Bestand; ist
+   inzwischen ein Beleg desselben Jahres dazugekommen, die nächste freie
+   Nummer vergeben.
+3. `screen` setzen: Archetyp und die Schalter, um die es geht. Die beiden
+   Bilder unter `aufnahmen` sind die **Vorlage** dafür – sie zeigen, was zu
+   sehen war; in den Bestand kommen sie nicht.
+4. Vokabular ergänzen, falls die Seite einen Wert gemeldet hat, den es noch
+   nicht gibt.
+5. `npm run alles`, dann Version und Changelog als Patch fortschreiben.
+
 ## Verwerfen und Archivieren
 
 * **Verworfen** ist ein Status, kein Löschgrund: Der Beleg bleibt sichtbar und

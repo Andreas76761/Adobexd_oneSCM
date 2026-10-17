@@ -20,6 +20,27 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.14.0] – Beleg bilden in der Seite
+
+### Neu
+* **Beleg bilden** im Eingang: zwei Aufnahmen als vorher und nachher paaren,
+  Begründung in vier Feldern, Kennzahlen mit Richtung und laufend gerechneter
+  Wirkung. Heraus kommt `belegentwurf-scr-JJJJ-NNN.json` (F-29)
+* Die Werkbank prüft wie die Datenprüfung des Bestands: Vokabular,
+  Mindestlänge der Begründung, mindestens eine vollständige Kennzahl,
+  Reihenfolge der Aufnahmen, Wort „verworfen“ im Wirkungstext. Was fehlt,
+  steht laufend unter dem Formular; gesichert wird erst, wenn nichts fehlt
+* Was die Aufnahmen schon wissen – Projekt, Seite, Kategorie, Browser, Datum,
+  Schlagworte – steht vorausgefüllt da
+
+### Kern
+* `leererBelegentwurf`, `pruefeBelegentwurf`, `metrikenAusEntwurf`,
+  `baueBelegentwurf`, `naechsteBelegKennung`, `RICHTUNGEN`
+
+### Dokumentation
+* Der Skill `beleg-aufnehmen` beschreibt den Weg vom Belegentwurf in den
+  Bestand – `eintrag` übernehmen, Kennung prüfen, `screen` setzen
+
 ## [1.13.0] – Das Ordnerband wird brauchbar
 
 ### Neu

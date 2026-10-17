@@ -553,3 +553,39 @@ geschriebene Aufnahme ihre Datei, nicht nur die übernommene.
 **Grenzen** Ein Bild ohne Zettel lässt sich nicht übernehmen: ohne Metadaten
 wäre es nur ein Bild ohne Zusammenhang. Ein unlesbarer Zettel ebenso – das
 sagt die Schau dann auch.
+
+
+---
+
+## F-29 · Beleg bilden in der Seite
+
+**Zweck** Der Belegbestand entstand bisher nur im Projekt. Wer in der Seite
+zwei Aufnahmen hatte, konnte sie nicht zu dem zusammenfügen, worum es im
+Archiv geht: vorher, nachher und die Begründung dazwischen.
+
+**Die Werkbank** Im Eingang öffnet **Beleg bilden** eine Werkbank über dem
+Raster. Zwei Auswahlfelder bestimmen, welche Aufnahme *vorher* und welche
+*nachher* ist – vorgeschlagen werden die älteste und die neueste. Darüber
+stehen beide Bilder nebeneinander, darunter das Formular.
+
+**Vorausgefüllt wird, was bekannt ist** Projekt, Seite, Kategorie, Browser,
+Datum der Nachher-Aufnahme und die Schlagworte beider Aufnahmen. Der Titel des
+Belegs nicht: er beschreibt die Änderung, nicht das Bild.
+
+**Geprüft wird wie im Bestand** Vokabular für Projekt, Kategorie, Status und
+Viewport; Anlass, Änderung und Wirkung mindestens 20 Zeichen; Quelle gesetzt;
+mindestens eine Kennzahl mit Name, Einheit, beiden Werten und Richtung; die
+Vorher-Aufnahme nicht jünger als die Nachher-Aufnahme; bei Status
+*verworfen* das Wort „verworfen“ im Wirkungstext. Eine Kennzahl ist entweder
+leer oder vollständig – halb gilt nicht. Was fehlt, steht laufend unter dem
+Formular, und der Sicherungsknopf bleibt gesperrt.
+
+**Die Wirkung wird gerechnet** Neben jeder Kennzahl steht die prozentuale
+Verbesserung, in der Richtung, die dort gewählt ist – dieselbe Rechnung wie im
+Archiv.
+
+**Heraus kommt ein Entwurf, kein Beleg** `belegentwurf-scr-JJJJ-NNN.json`
+enthält den Eintrag in der Feldfolge des Bestands und die beiden echten Bilder
+daneben. `screen` steht auf `null`: Archetyp und Schalter für die gezeichneten
+Aufnahmen entstehen im Projekt, und die Seite behauptet nichts, was sie nicht
+weiß. Der Weg von dort steht im Skill `beleg-aufnehmen`.
