@@ -55,6 +55,28 @@ const alsSkript = JSON.stringify(nutzlast)
   .replace(/\u2028/g, '\\u2028')
   .replace(/\u2029/g, '\\u2029');
 
+/* Alle Oberflaechenmodule liegen in *einer* Klammer. Zwei gleiche Namen darin
+   sind kein Fehler fuer den Browser - die spaetere Erklaerung gewinnt stumm,
+   und die frueheren Aufrufe laufen in die falsche Funktion. Darum hier ein
+   Riegel: der Build bricht ab, bevor so etwas in die Seite kommt. */
+const MODULE = ['ui.js', 'aufnahme.js', 'schnipsel.js', 'markieren.js', 'design.js', 'import.js', 'chat.js', 'pruefung.js'];
+const erklaerungen = new Map();
+for (const modul of MODULE) {
+  const quelle = lies('app', 'src', modul);
+  for (const treffer of quelle.matchAll(/^(?:async\s+)?function\s+([A-Za-z0-9_]+)/gm)) {
+    erklaerungen.set(treffer[1], [...(erklaerungen.get(treffer[1]) || []), modul]);
+  }
+  for (const treffer of quelle.matchAll(/^(?:let|const|var)\s+([A-Za-z0-9_]+)/gm)) {
+    erklaerungen.set(treffer[1], [...(erklaerungen.get(treffer[1]) || []), modul]);
+  }
+}
+const doppelt = [...erklaerungen].filter(([, wo]) => wo.length > 1);
+if (doppelt.length) {
+  throw new Error(
+    'Derselbe Name in mehreren Oberflächenmodulen: ' + doppelt.map(([name, wo]) => `${name} (${wo.join(', ')})`).join('; ')
+  );
+}
+
 const seite = lies('app', 'src', 'index.template.html')
   .replace('/*%STYLES%*/', () => lies('app', 'src', 'styles.css'))
   .replace('/*%KERN%*/', () => kern)

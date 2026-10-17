@@ -512,11 +512,84 @@
         <input type="checkbox" id="design-labels" checked>
         <span>Labels zeigen</span>
       </label>
+      <label class="markier-schalter">
+        <input type="checkbox" id="design-deckblatt">
+        <span>Deckblatt</span>
+      </label>
       <div class="markier-knoepfe">
         <button type="button" class="knopf knopf--haupt" id="design-sichern" disabled>Seiten sichern</button>
         <button type="button" class="knopf" id="design-html" disabled>Als HTML zum Drucken</button>
       </div>
     </div>
+
+    <details class="design-studio" id="design-studio">
+      <summary>Studio: Deckblatt, Kopf- und Fußzeile, eigene Vorlage</summary>
+      <div class="design-studio-raster">
+        <div class="design-studio-feld">
+          <h3 class="abschnitt-titel">Deckblatt und Zeilen</h3>
+          <div class="feld">
+            <label for="design-titel">Titel (leer = Name des Inhalts)</label>
+            <input type="text" id="design-titel" autocomplete="off" placeholder="oneSCM – Vorlagen anlegen">
+          </div>
+          <div class="feld">
+            <label for="design-untertitel">Untertitel</label>
+            <input type="text" id="design-untertitel" autocomplete="off" placeholder="Quick Guide für Dealer, Stand 10/2026">
+          </div>
+          <div class="feld">
+            <label for="design-hinweis">Hinweis (Fußzeile und Deckblatt)</label>
+            <input type="text" id="design-hinweis" autocomplete="off" placeholder="Interne Unterlage – nicht zur Weitergabe">
+          </div>
+          <fieldset class="design-teile">
+            <legend>Kopfzeile</legend>
+            <div id="design-kopf-teile"></div>
+          </fieldset>
+          <fieldset class="design-teile">
+            <legend>Fußzeile</legend>
+            <div id="design-fuss-teile"></div>
+          </fieldset>
+        </div>
+        <div class="design-studio-feld">
+          <h3 class="abschnitt-titel">Eigene Vorlage</h3>
+          <p class="feld-hinweis">
+            Einmal eingerichtet, bleibt sie in der Auswahl – mit Bildern je
+            Zeile und Spalte, Breite der Textspalte und Länge der Texte.
+          </p>
+          <div class="feld">
+            <label for="eigen-label">Name</label>
+            <input type="text" id="eigen-label" autocomplete="off" placeholder="Schulungsblatt">
+          </div>
+          <div class="feld-paar">
+            <div class="feld feld--schmal">
+              <label for="eigen-spalten">Spalten</label>
+              <input type="number" id="eigen-spalten" min="1" max="4" value="2">
+            </div>
+            <div class="feld feld--schmal">
+              <label for="eigen-zeilen">Zeilen</label>
+              <input type="number" id="eigen-zeilen" min="1" max="6" value="2">
+            </div>
+          </div>
+          <div class="feld-paar">
+            <div class="feld feld--schmal">
+              <label for="eigen-textspalte">Textspalte (%)</label>
+              <input type="number" id="eigen-textspalte" min="0" max="60" step="2" value="0">
+            </div>
+            <div class="feld feld--schmal">
+              <label for="eigen-textlaenge">Textlänge</label>
+              <input type="number" id="eigen-textlaenge" min="40" max="900" step="20" value="200">
+            </div>
+          </div>
+          <div class="feld feld--schmal">
+            <label for="eigen-format">Format</label>
+            <select id="eigen-format"></select>
+          </div>
+          <div class="markier-knoepfe">
+            <button type="button" class="knopf" id="eigen-sichern">Vorlage speichern</button>
+            <button type="button" class="knopf" id="eigen-loeschen" disabled>Vorlage löschen</button>
+          </div>
+        </div>
+      </div>
+    </details>
+
     <p class="band-hinweis" id="design-zweck"></p>
     <p class="studio-meldung" id="design-meldung" role="status" aria-live="polite"></p>
     <div class="design-blaetter" id="design-blaetter"></div>

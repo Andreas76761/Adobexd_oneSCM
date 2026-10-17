@@ -1048,3 +1048,33 @@ fertigen Bericht eines Agenten und schreibt höchstens fünf Sätze dazu. Der
 Kommentar steht als Kommentar da und ist so gekennzeichnet; die Befunde
 stehen fest, bevor er kommt. Fehlt die Fähigkeit, sagt die Seite das – und
 die Befunde bleiben.
+
+---
+
+## F-44 · Designstudio vollständig: Deckblatt, Zeilen, eigene Vorlagen
+
+**Seit** 1.28.0 · **Ansicht** Design (ergänzt F-38)
+
+**Deckblatt** Zuschaltbar, steht vor den Seiten: Titel, Untertitel und die
+Angaben als Paare – Inhalt, Stelle im Handbuch, Zahl der Bilder und Seiten,
+Vorlage, gemeinsame Labels, Projekt, Stand – dazu der Hinweis unten. Was
+nicht bekannt ist, steht nicht da (keine leere Zeile als Platzhalter). Was
+allen Bildern gemeinsam ist, wird genannt; was sich unterscheidet, gezählt
+(„2 Sprachen“).
+
+**Kopf- und Fußzeile** aus wählbaren Teilen. Kopf: Titel, Stelle im
+Handbuch, Projekt, Vorlage, Seitenzahl. Fuß: Herkunft, Stand, Labels,
+eigener Hinweis, Seitenzahl. Die Seitenzahl steht rechts, alles andere
+links; ein Teil ohne Wert fällt weg, nicht die Zeile. Die Folge der Teile
+ist die der Liste, nicht die des Anklickens – so sieht jede Seite gleich aus.
+
+**Eigene Vorlagen** Name, Spalten (1–4), Zeilen (1–6), Breite der Textspalte
+(0–60 %), Textlänge (40–900) und Format. Sie haben die Form der eingebauten:
+Seitenrechnung, Dateinamen und Ausgabe unterscheiden nicht, ob eine Vorlage
+eingebaut oder selbst eingerichtet ist. Gespeichert wird unter dem Namen –
+dieselbe Vorlage erneut gespeichert wird geändert, nicht verdoppelt.
+
+**Beständig** Alle Einstellungen des Studios liegen in
+`screenarchiv:design` – Vorlage, Format, Texte, Labels, Deckblatt, Zeilen,
+Titel, Untertitel, Hinweis und die eigenen Vorlagen. Eine Vorlage, die man
+einmal einrichtet, findet man wieder.

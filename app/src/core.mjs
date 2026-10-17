@@ -3655,3 +3655,175 @@ export function berichtAlsText(ergebnisse = [], { stand = new Date().toISOString
   }
   return zeilen.join('\n');
 }
+
+/* =========================================================================
+   Designstudio, vollständig – Deckblatt, Kopf, Fuß, eigene Vorlagen.
+
+   Was eine Unterlage professionell macht, ist nicht ein Effekt, sondern die
+   immer gleiche Ordnung: ein Deckblatt, das sagt, was man in der Hand hält,
+   eine Kopfzeile, die auf jeder Seite dasselbe nennt, eine Fußzeile mit
+   Stand und Herkunft – und eine Vorlage, die man einmal einrichtet und
+   wiederfindet.
+   ========================================================================= */
+
+export const DESIGN_SCHLUESSEL = 'screenarchiv:design';
+export const DESIGN_VERSION = 1;
+
+/** Die wählbaren Teile der Kopfzeile. Reihenfolge ist Anzeigefolge. */
+export const KOPF_TEILE = [
+  { id: 'titel', label: 'Titel' },
+  { id: 'kapitel', label: 'Stelle im Handbuch' },
+  { id: 'projekt', label: 'Projekt' },
+  { id: 'vorlage', label: 'Vorlage' },
+  { id: 'seitenzahl', label: 'Seitenzahl' }
+];
+
+export const FUSS_TEILE = [
+  { id: 'herkunft', label: 'Screenarchiv und Fassung' },
+  { id: 'stand', label: 'Stand (Datum, Uhrzeit)' },
+  { id: 'labels', label: 'Sparte, Rolle, Sprache' },
+  { id: 'hinweis', label: 'Eigener Hinweis' },
+  { id: 'seitenzahl', label: 'Seitenzahl' }
+];
+
+/** Die Vorgaben des Studios - so sieht es aus, bevor etwas eingestellt wird. */
+export function leereDesignEinstellungen() {
+  return {
+    vorlage: 'quickguide',
+    format: '',
+    texte: true,
+    labels: true,
+    deckblatt: false,
+    kopf: ['titel', 'vorlage', 'seitenzahl'],
+    fuss: ['herkunft', 'stand'],
+    titel: '',
+    untertitel: '',
+    hinweis: '',
+    eigene: []
+  };
+}
+
+/** Liest die Einstellungen nachsichtig; Unbekanntes faellt weg. */
+export function leseDesignEinstellungen(text) {
+  const vorgabe = leereDesignEinstellungen();
+  let inhalt = null;
+  try {
+    inhalt = JSON.parse(text || 'null');
+  } catch (fehler) {
+    return vorgabe;
+  }
+  if (!inhalt || typeof inhalt !== 'object') return vorgabe;
+  const nurBekannte = (liste, erlaubt) =>
+    (Array.isArray(liste) ? liste : []).map((x) => String(x)).filter((x) => erlaubt.some((e) => e.id === x));
+  return {
+    ...vorgabe,
+    ...inhalt,
+    vorlage: String(inhalt.vorlage || vorgabe.vorlage),
+    format: FORMATE.some((f) => f.id === inhalt.format) ? inhalt.format : '',
+    texte: inhalt.texte !== false,
+    labels: inhalt.labels !== false,
+    deckblatt: Boolean(inhalt.deckblatt),
+    kopf: Array.isArray(inhalt.kopf) ? nurBekannte(inhalt.kopf, KOPF_TEILE) : vorgabe.kopf,
+    fuss: Array.isArray(inhalt.fuss) ? nurBekannte(inhalt.fuss, FUSS_TEILE) : vorgabe.fuss,
+    titel: String(inhalt.titel || ''),
+    untertitel: String(inhalt.untertitel || ''),
+    hinweis: String(inhalt.hinweis || ''),
+    eigene: (Array.isArray(inhalt.eigene) ? inhalt.eigene : []).map(eigeneVorlage).filter(Boolean)
+  };
+}
+
+export function schreibeDesignEinstellungen(einstellungen = {}) {
+  return JSON.stringify({ version: DESIGN_VERSION, ...leseDesignEinstellungen(JSON.stringify(einstellungen)) });
+}
+
+/**
+ * Eine eigene Vorlage. Sie hat die Form der eingebauten, damit alles
+ * Weitere - Seitenrechnung, Namen, Ausgabe - nicht unterscheiden muss, ob
+ * sie eingebaut oder selbst eingerichtet ist.
+ */
+export function eigeneVorlage(satz = {}) {
+  const label = String(satz.label || '').trim();
+  if (!label) return null;
+  const grenzen = (wert, klein, gross, ersatz) => {
+    const zahl = Number(wert);
+    return Number.isFinite(zahl) ? Math.min(gross, Math.max(klein, Math.round(zahl))) : ersatz;
+  };
+  const textspalte = Number(satz.textspalte);
+  return {
+    id: String(satz.id || 'eigen-' + bereinigeDateiname(label) || 'eigen'),
+    label,
+    eigen: true,
+    zweck: String(satz.zweck || 'Eigene Vorlage.'),
+    format: FORMATE.some((f) => f.id === satz.format) ? satz.format : 'a4-hoch',
+    spalten: grenzen(satz.spalten, 1, 4, 2),
+    zeilen: grenzen(satz.zeilen, 1, 6, 2),
+    textspalte: Number.isFinite(textspalte) ? Math.min(0.6, Math.max(0, textspalte)) : 0,
+    deckblatt: false,
+    textlaenge: grenzen(satz.textlaenge, 40, 900, 200)
+  };
+}
+
+/** Alle Vorlagen: die eingebauten und die eigenen, in dieser Folge. */
+export function alleVorlagen(eigene = []) {
+  return [...VORLAGEN, ...eigene.map(eigeneVorlage).filter(Boolean)];
+}
+
+export function vorlageAus(id, eigene = []) {
+  return alleVorlagen(eigene).find((v) => v.id === id) || VORLAGEN[0];
+}
+
+/**
+ * Die Zeile fuer Kopf oder Fuss. Gebaut wird aus Teilen, die der Nutzer
+ * gewaehlt hat - fehlt ein Wert, faellt sein Teil weg und nicht die Zeile.
+ */
+export function zeilenTeile(teile = [], kontext = {}) {
+  const werte = {
+    titel: kontext.titel,
+    kapitel: kontext.kapitel,
+    projekt: kontext.projekt,
+    vorlage: kontext.vorlage,
+    seitenzahl: kontext.von ? `Seite ${kontext.nummer} von ${kontext.von}` : '',
+    herkunft: kontext.herkunft,
+    stand: kontext.stand ? formatiereZeitpunkt(kontext.stand) : '',
+    labels: kontext.labels,
+    hinweis: kontext.hinweis
+  };
+  return teile.map((id) => String(werte[id] || '').trim()).filter(Boolean);
+}
+
+/**
+ * Das Deckblatt in Zeilen: Titel, Untertitel und darunter die Angaben als
+ * Paare. Ohne DOM gerechnet, damit prüfbar ist, was auf dem Blatt steht.
+ */
+export function deckblattZeilen(info = {}) {
+  const paare = [
+    ['Inhalt', info.quelle],
+    ['Stelle im Handbuch', info.kapitel],
+    ['Bilder', info.anzahl ? String(info.anzahl) : ''],
+    ['Seiten', info.seiten ? String(info.seiten) : ''],
+    ['Vorlage', info.vorlage],
+    ['Sparte, Rolle, Sprache', info.labels],
+    ['Projekt', info.projekt],
+    ['Stand', info.stand ? formatiereZeitpunkt(info.stand) : '']
+  ].filter(([, wert]) => String(wert || '').trim());
+  return {
+    titel: String(info.titel || 'Unterlage').trim(),
+    untertitel: String(info.untertitel || '').trim(),
+    paare,
+    hinweis: String(info.hinweis || '').trim()
+  };
+}
+
+/**
+ * Die Labelkette einer Auswahl: was allen Bildern gemeinsam ist, steht auf
+ * dem Deckblatt. Was sich unterscheidet, wird gezaehlt statt behauptet.
+ */
+export function gemeinsameLabels(aufnahmen = []) {
+  const teile = [];
+  for (const feld of ['sparte', 'rolle_label', 'sprache']) {
+    const werte = [...new Set(aufnahmen.map((a) => a && a[feld]).filter(Boolean))];
+    if (werte.length === 1) teile.push(labelWert(feld, werte[0]));
+    else if (werte.length > 1) teile.push(`${werte.length} ${LABEL_FELDER.find((f) => f.id === feld).label}n`);
+  }
+  return teile.join(' · ');
+}

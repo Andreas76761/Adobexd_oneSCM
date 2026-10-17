@@ -1805,4 +1805,131 @@ s.test('Gliederungsnummern vergleichen sich Teil für Teil', () => {
   wahr(kern.vergleicheKapitel('A.1', '6.1') > 0, 'Anhänge stehen nicht hinter Zahlen');
 });
 
+/* ----------------------------------------------- Designstudio: Einstellungen */
+
+s.test('die Einstellungen des Studios überleben das Ablegen; Unsinn fällt weg', () => {
+  const vorgabe = kern.leereDesignEinstellungen();
+  gleich(vorgabe.vorlage, 'quickguide');
+  gleich(vorgabe.deckblatt, false);
+  tieferGleich(vorgabe.kopf, ['titel', 'vorlage', 'seitenzahl']);
+
+  const zurueck = kern.leseDesignEinstellungen(
+    kern.schreibeDesignEinstellungen({
+      ...vorgabe,
+      vorlage: 'onepager',
+      format: 'a4-quer',
+      deckblatt: true,
+      titel: 'oneSCM',
+      kopf: ['titel', 'quatsch', 'kapitel'],
+      fuss: ['hinweis']
+    })
+  );
+  gleich(zurueck.vorlage, 'onepager');
+  gleich(zurueck.format, 'a4-quer');
+  gleich(zurueck.deckblatt, true);
+  gleich(zurueck.titel, 'oneSCM');
+  tieferGleich(zurueck.kopf, ['titel', 'kapitel'], 'unbekannte Teile werden übernommen');
+  tieferGleich(zurueck.fuss, ['hinweis']);
+
+  // Ein unbekanntes Format gilt nicht, kaputter Text gibt die Vorgabe.
+  gleich(kern.leseDesignEinstellungen(JSON.stringify({ format: 'a3' })).format, '');
+  gleich(kern.leseDesignEinstellungen('kein json').vorlage, 'quickguide');
+  gleich(kern.leseDesignEinstellungen(null).texte, true);
+});
+
+s.test('eine eigene Vorlage hat die Form der eingebauten', () => {
+  gleich(kern.eigeneVorlage({ label: '  ' }), null, 'eine Vorlage ohne Namen wird angelegt');
+  const eigen = kern.eigeneVorlage({ label: 'Schulungsblatt', spalten: 9, zeilen: 0, textspalte: 0.9, textlaenge: 5 });
+  gleich(eigen.id, 'eigen-schulungsblatt');
+  gleich(eigen.eigen, true);
+  gleich(eigen.spalten, 4, 'die Spalten werden nicht begrenzt');
+  gleich(eigen.zeilen, 1);
+  gleich(eigen.textspalte, 0.6);
+  gleich(eigen.textlaenge, 40);
+  gleich(eigen.format, 'a4-hoch');
+
+  const alle = kern.alleVorlagen([eigen]);
+  gleich(alle.length, kern.VORLAGEN.length + 1);
+  gleich(kern.vorlageAus('eigen-schulungsblatt', [eigen]).label, 'Schulungsblatt');
+  gleich(kern.vorlageAus('gibtsnicht', [eigen]).id, kern.VORLAGEN[0].id, 'eine unbekannte Vorlage sprengt die Auswahl');
+
+  // Die eigene Vorlage rechnet wie jede andere.
+  const aufbau = kern.seitenAufteilung([{}, {}, {}, {}, {}], { vorlage: eigen, format: 'a4-hoch' });
+  gleich(aufbau.seiten.length, 2, 'vier Bilder je Seite ergeben zwei Seiten');
+  gleich(aufbau.vorlage.label, 'Schulungsblatt');
+});
+
+s.test('Kopf- und Fußzeile entstehen aus den gewählten Teilen', () => {
+  const kontext = {
+    titel: 'Vorlagen anlegen',
+    kapitel: '6.2',
+    projekt: 'oneSCM Portal',
+    vorlage: 'Quick Guide',
+    nummer: 2,
+    von: 3,
+    herkunft: 'Screenarchiv 1.28.0',
+    stand: '2026-10-17T10:00:00Z',
+    labels: 'Pkw · Dealer',
+    hinweis: 'Interne Unterlage'
+  };
+  tieferGleich(kern.zeilenTeile(['titel', 'vorlage', 'seitenzahl'], kontext), [
+    'Vorlagen anlegen',
+    'Quick Guide',
+    'Seite 2 von 3'
+  ]);
+  tieferGleich(kern.zeilenTeile(['herkunft', 'stand', 'labels', 'hinweis'], kontext), [
+    'Screenarchiv 1.28.0',
+    '17.10.2026, 10:00',
+    'Pkw · Dealer',
+    'Interne Unterlage'
+  ]);
+  // Ein Teil ohne Wert fällt weg, nicht die Zeile.
+  tieferGleich(kern.zeilenTeile(['titel', 'kapitel'], { titel: 'nur Titel' }), ['nur Titel']);
+  tieferGleich(kern.zeilenTeile([], kontext), []);
+  tieferGleich(kern.zeilenTeile(['seitenzahl'], { nummer: 1 }), [], 'eine Seitenzahl ohne Gesamtzahl ist keine');
+});
+
+s.test('das Deckblatt nennt nur, was es weiß', () => {
+  const blatt = kern.deckblattZeilen({
+    titel: 'oneSCM – Vorlagen anlegen',
+    untertitel: 'Quick Guide für Dealer',
+    quelle: 'Strecke Vorlage anlegen',
+    kapitel: '6.2 Market Settings',
+    anzahl: 6,
+    seiten: 2,
+    vorlage: 'Quick Guide',
+    labels: 'Pkw · Dealer · Deutsch',
+    stand: '2026-10-17T10:00:00Z',
+    hinweis: 'Interne Unterlage'
+  });
+  gleich(blatt.titel, 'oneSCM – Vorlagen anlegen');
+  gleich(blatt.paare.length, 7, JSON.stringify(blatt.paare));
+  tieferGleich(blatt.paare[0], ['Inhalt', 'Strecke Vorlage anlegen']);
+  wahr(blatt.paare.some(([s, w]) => s === 'Stand' && w === '17.10.2026, 10:00'));
+  gleich(blatt.hinweis, 'Interne Unterlage');
+
+  const karg = kern.deckblattZeilen({});
+  gleich(karg.titel, 'Unterlage', 'ohne Titel bleibt das Blatt namenlos');
+  gleich(karg.paare.length, 0, 'leere Angaben stehen als Lücke da');
+});
+
+s.test('gemeinsame Labels werden genannt, Unterschiede gezählt', () => {
+  gleich(
+    kern.gemeinsameLabels([
+      { sparte: 'pkw', rolle_label: 'dealer', sprache: 'de' },
+      { sparte: 'pkw', rolle_label: 'dealer', sprache: 'de' }
+    ]),
+    'Pkw · Dealer · Deutsch'
+  );
+  gleich(
+    kern.gemeinsameLabels([
+      { sparte: 'pkw', rolle_label: 'dealer', sprache: 'de' },
+      { sparte: 'van', rolle_label: 'dealer', sprache: 'en' }
+    ]),
+    '2 Sparten · Dealer · 2 Sprachen'
+  );
+  gleich(kern.gemeinsameLabels([]), '');
+  gleich(kern.gemeinsameLabels([{}]), '');
+});
+
 export default s;

@@ -20,6 +20,40 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.28.0] – Designstudio vollständig
+
+### Neu
+* **Deckblatt** zuschaltbar (F-44): Titel, Untertitel, die Angaben als Paare
+  und der Hinweis unten; es steht vor den Seiten und geht in beide Ausgaben
+* **Kopf- und Fußzeile aus wählbaren Teilen**: Titel, Stelle im Handbuch,
+  Projekt, Vorlage, Seitenzahl – Herkunft, Stand, Labels, eigener Hinweis
+* **Eigene Vorlagen**: Name, Spalten, Zeilen, Textspalte, Textlänge, Format;
+  sie stehen neben den eingebauten in der Auswahl
+* Titel, Untertitel und Hinweis als Felder – sie gelten für Deckblatt,
+  Kopf- und Fußzeile
+* Alle Einstellungen des Studios bleiben erhalten (`screenarchiv:design`)
+
+### Geändert
+* Der Build bricht ab, wenn zwei Oberflächenmodule denselben Namen erklären –
+  in einer gemeinsamen Klammer gewinnt sonst die spätere Erklärung stumm, und
+  die früheren Aufrufe laufen in die falsche Funktion
+
+### Behoben
+* `zeichneStudio` gab es zweimal (Aufnahme und Design); seit dem Namen
+  `zeichneStudioeinstellungen` ist die Aufnahme wieder auslösbar
+* Die Meldung nach „Vorlage speichern“ wird nicht mehr von der Meldung des
+  Neuzeichnens überschrieben
+
+### Kern
+* `DESIGN_SCHLUESSEL`, `KOPF_TEILE`, `FUSS_TEILE`,
+  `leereDesignEinstellungen`, `leseDesignEinstellungen`,
+  `schreibeDesignEinstellungen`, `eigeneVorlage`, `alleVorlagen`,
+  `vorlageAus`, `zeilenTeile`, `deckblattZeilen`, `gemeinsameLabels`
+
+### Prüfung
+* 5 neue Kernprüfungen, 3 neue Browserprüfungen in `12-design.e2e.mjs`;
+  zusammen 342
+
 ## [1.27.0] – Drei Agenten: roter Faden, Audit, Empfehlung
 
 ### Neu

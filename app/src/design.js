@@ -10,11 +10,40 @@
    ========================================================================= */
 
 let designQuelle = ''; // Kennung einer Strecke oder 'kapitel:7.5'
-let designVorlage = 'quickguide';
-let designFormat = '';
-let designTexte = true;
-let designLabels = true;
 let designSeiten = []; // zuletzt gerechnete Blätter als Leinwände
+// Die Einstellungen des Studios überleben das Neuladen: eine Vorlage, die man
+// einmal einrichtet, soll man wiederfinden.
+let studio = leseDesignEinstellungen(leseStudioSpeicher());
+
+function leseStudioSpeicher() {
+  try {
+    return localStorage.getItem(DESIGN_SCHLUESSEL);
+  } catch (fehler) {
+    return null;
+  }
+}
+
+function sichereStudio() {
+  try {
+    localStorage.setItem(DESIGN_SCHLUESSEL, schreibeDesignEinstellungen(studio));
+  } catch (fehler) {
+    // Ohne Speicher gilt die Einstellung nur für diese Sitzung.
+  }
+}
+
+/**
+ * Ändert eine Einstellung, schreibt sie fort und zeichnet neu. Gibt das
+ * Zeichnen zurück: wer danach etwas melden will, muss darauf warten - sonst
+ * überschreibt die Meldung des Zeichnens die eigene.
+ */
+function aendereStudio(aenderung, neuZeichnen = true) {
+  studio = { ...studio, ...aenderung };
+  sichereStudio();
+  return neuZeichnen ? zeichneDesign() : Promise.resolve();
+}
+
+const designVorlageSatz = () => vorlageAus(studio.vorlage, studio.eigene);
+let studioTakt = 0; // gedrosseltes Neuzeichnen beim Tippen
 
 /** Die Inhalte, aus denen ein Blatt entstehen kann. */
 function designQuellen() {
@@ -64,23 +93,44 @@ function designSchritte() {
 
 /* ------------------------------------------------------------- Zeichnen */
 
-/** Kopfzeile eines Blattes: Titel links, Vorlage und Seitenzahl rechts. */
-function zeichneBlattkopf(stift, seite, aufbau, titel) {
+/**
+ * Kopfzeile eines Blattes. Welche Angaben darin stehen, bestimmt das Studio;
+ * die Seitenzahl steht - wenn gewählt - rechts, alles andere links. So ist
+ * die Zeile auf jeder Seite gleich gebaut, auch wenn sie anders gefüllt ist.
+ */
+function zeichneBlattkopf(stift, seite, aufbau, titel, info = {}) {
   const { format: fmt, vorlage: vor } = aufbau;
+  const kontext = {
+    titel: studio.titel || titel,
+    kapitel: info.kapitel || '',
+    projekt: info.projekt || '',
+    vorlage: vor.label,
+    nummer: seite.nummer,
+    von: seite.von
+  };
+  const links = zeilenTeile(
+    studio.kopf.filter((k) => k !== 'seitenzahl'),
+    kontext
+  ).join(' · ');
+  const rechtsTeile = zeilenTeile(
+    studio.kopf.filter((k) => k === 'seitenzahl'),
+    kontext
+  );
+  if (!links && !rechtsTeile.length) return;
   // Erst rechts setzen, dann weiß der Titel, wie viel Platz ihm bleibt.
-  const rechts = `${vor.label} · Seite ${seite.nummer} von ${seite.von}`;
+  const rechts = rechtsTeile.join(' · ');
   stift.fillStyle = token('--tinte-3', '#77839A');
   stift.font = `400 ${Math.round(seite.kopfHoehe * 0.2)}px ${token('--schrift-mono', 'monospace')}`;
   stift.textAlign = 'right';
   stift.textBaseline = 'alphabetic';
   stift.fillText(rechts, fmt.breite - seite.rand, Math.round(seite.kopfHoehe * 0.62));
-  const belegt = stift.measureText(rechts).width;
+  const belegt = rechts ? stift.measureText(rechts).width : 0;
 
   stift.fillStyle = token('--tinte', '#141A24');
   stift.font = `600 ${Math.round(seite.kopfHoehe * 0.34)}px ${token('--schrift-display', 'sans-serif')}`;
   stift.textAlign = 'left';
   const platz = fmt.breite - 2 * seite.rand - belegt - Math.round(seite.rand * 0.8);
-  stift.fillText(beschneide(stift, titel, platz), seite.rand, Math.round(seite.kopfHoehe * 0.62));
+  stift.fillText(beschneide(stift, links, platz), seite.rand, Math.round(seite.kopfHoehe * 0.62));
   stift.strokeStyle = token('--linie', '#D6DBE4');
   stift.lineWidth = 2;
   stift.beginPath();
@@ -89,17 +139,107 @@ function zeichneBlattkopf(stift, seite, aufbau, titel) {
   stift.stroke();
 }
 
-/** Fußzeile: Stand und Herkunft – ein Blatt ohne Datum ist wertlos. */
-function zeichneBlattfuss(stift, seite, aufbau) {
+/**
+ * Fußzeile aus den gewählten Teilen. Stand und Herkunft sind die Vorgabe -
+ * ein Blatt ohne Datum ist wertlos, und wer es in der Hand hält, soll sehen,
+ * woher es kommt.
+ */
+function zeichneBlattfuss(stift, seite, aufbau, info = {}) {
   const { format: fmt } = aufbau;
+  const kontext = {
+    herkunft: `Screenarchiv ${DATEN.anwendung}`,
+    stand: info.stand || new Date().toISOString(),
+    labels: info.labels || '',
+    hinweis: studio.hinweis,
+    nummer: seite.nummer,
+    von: seite.von
+  };
+  const links = zeilenTeile(
+    studio.fuss.filter((f) => f !== 'seitenzahl'),
+    kontext
+  ).join(' · ');
+  const rechts = zeilenTeile(
+    studio.fuss.filter((f) => f === 'seitenzahl'),
+    kontext
+  ).join('');
+  const y = fmt.hoehe - Math.round(seite.fussHoehe * 0.35);
   stift.fillStyle = token('--tinte-3', '#77839A');
   stift.font = `400 ${Math.round(seite.fussHoehe * 0.38)}px ${token('--schrift-mono', 'monospace')}`;
+  stift.textBaseline = 'alphabetic';
+  if (rechts) {
+    stift.textAlign = 'right';
+    stift.fillText(rechts, fmt.breite - seite.rand, y);
+  }
+  if (links) {
+    stift.textAlign = 'left';
+    stift.fillText(beschneide(stift, links, fmt.breite - 2 * seite.rand - (rechts ? stift.measureText(rechts).width + 40 : 0)), seite.rand, y);
+  }
+}
+
+/**
+ * Das Deckblatt: Titel, Untertitel, die Angaben als Paare, der Hinweis
+ * unten. Es sagt, was man in der Hand hält - ohne es beginnt eine Unterlage
+ * mitten im Satz.
+ */
+function zeichneDeckblatt(stift, aufbau, info) {
+  const fmt = aufbau.format;
+  const rand = Math.round(fmt.breite * 0.09);
+  const blatt = deckblattZeilen(info);
+  stift.fillStyle = token('--flaeche', '#FFFFFF');
+  stift.fillRect(0, 0, fmt.breite, fmt.hoehe);
+
+  // Ein Band oben gibt dem Blatt eine Kante, ohne Bild von außen.
+  stift.fillStyle = token('--akzent', '#B4432B');
+  stift.fillRect(0, 0, fmt.breite, Math.round(fmt.hoehe * 0.012));
+
   stift.textAlign = 'left';
-  stift.fillText(
-    `Screenarchiv ${DATEN.anwendung} · ${formatiereZeitpunkt(new Date().toISOString())}`,
-    seite.rand,
-    fmt.hoehe - Math.round(seite.fussHoehe * 0.35)
-  );
+  stift.textBaseline = 'top';
+  let y = Math.round(fmt.hoehe * 0.2);
+
+  const titelGross = Math.round(fmt.breite * 0.055);
+  stift.fillStyle = token('--tinte', '#141A24');
+  stift.font = `600 ${titelGross}px ${token('--schrift-display', 'sans-serif')}`;
+  for (const zeile of umbrich(stift, blatt.titel, fmt.breite - 2 * rand).slice(0, 3)) {
+    stift.fillText(zeile, rand, y);
+    y += Math.round(titelGross * 1.22);
+  }
+
+  if (blatt.untertitel) {
+    const schrift = Math.round(titelGross * 0.42);
+    y += Math.round(schrift * 0.6);
+    stift.fillStyle = token('--tinte-2', '#4A5769');
+    stift.font = `400 ${schrift}px ${token('--schrift-text', 'sans-serif')}`;
+    for (const zeile of umbrich(stift, blatt.untertitel, fmt.breite - 2 * rand).slice(0, 3)) {
+      stift.fillText(zeile, rand, y);
+      y += Math.round(schrift * 1.4);
+    }
+  }
+
+  y += Math.round(fmt.hoehe * 0.05);
+  stift.strokeStyle = token('--linie', '#D6DBE4');
+  stift.lineWidth = 2;
+  stift.beginPath();
+  stift.moveTo(rand, y);
+  stift.lineTo(fmt.breite - rand, y);
+  stift.stroke();
+  y += Math.round(fmt.hoehe * 0.03);
+
+  const schrift = Math.round(fmt.breite * 0.016);
+  for (const [schild, wert] of blatt.paare) {
+    stift.font = `400 ${schrift}px ${token('--schrift-mono', 'monospace')}`;
+    stift.fillStyle = token('--tinte-3', '#77839A');
+    stift.fillText(schild, rand, y);
+    stift.font = `500 ${Math.round(schrift * 1.1)}px ${token('--schrift-text', 'sans-serif')}`;
+    stift.fillStyle = token('--tinte', '#141A24');
+    stift.fillText(beschneide(stift, String(wert), fmt.breite - rand - (rand + Math.round(fmt.breite * 0.3))), rand + Math.round(fmt.breite * 0.3), y);
+    y += Math.round(schrift * 2.1);
+  }
+
+  if (blatt.hinweis) {
+    stift.font = `400 ${Math.round(schrift * 0.95)}px ${token('--schrift-mono', 'monospace')}`;
+    stift.fillStyle = token('--tinte-3', '#77839A');
+    stift.fillText(beschneide(stift, blatt.hinweis, fmt.breite - 2 * rand), rand, fmt.hoehe - Math.round(fmt.hoehe * 0.07));
+  }
 }
 
 /** Beschneidet eine Zeile auf die Breite, mit Auslassungszeichen. */
@@ -169,13 +309,13 @@ function zeichneKachel(stift, kachel, bild, aufbau) {
     anweisung: schritt.anweisung,
     aufnahme: schritt.aufnahme,
     gliederung: GLIEDERUNG,
-    mitTexten: designTexte,
+    mitTexten: studio.texte,
     grenze: vor.textlaenge
   });
   // Die Schrift richtet sich nach der Textspalte, nicht nach der Kachel -
   // sonst wird sie in einer schmalen Spalte riesig.
   const grund = Math.round(textBreite * (kachel.textNeben ? 0.062 : 0.038));
-  const schlussHoehe = designLabels ? Math.round(grund * 2.4) : 0;
+  const schlussHoehe = studio.labels ? Math.round(grund * 2.4) : 0;
   const platzUnten = kachel.y + kachel.hoehe - schlussHoehe;
   stift.textAlign = 'left';
   stift.textBaseline = 'top';
@@ -200,7 +340,7 @@ function zeichneKachel(stift, kachel, bild, aufbau) {
     y += Math.round(schrift * 0.3);
   }
 
-  if (designLabels) {
+  if (studio.labels) {
     const kette = labelKette(schritt.aufnahme || {});
     const unterschrift = [kapitelKennung(schritt.aufnahme || {}), kette].filter(Boolean).join('  ·  ');
     if (unterschrift) {
@@ -221,9 +361,9 @@ async function baueBlaetter() {
   const { titel, schritte } = designSchritte();
   if (!schritte.length) return [];
   const aufbau = seitenAufteilung(schritte, {
-    vorlage: designVorlage,
-    format: designFormat || vorlage(designVorlage).format,
-    mitTexten: designTexte
+    vorlage: designVorlageSatz(),
+    format: studio.format || designVorlageSatz().format,
+    mitTexten: studio.texte
   });
   // Die Bilder einmal laden, nicht je Seite.
   const bilder = new Map();
@@ -233,7 +373,37 @@ async function baueBlaetter() {
     const geladen = await ladeBild(adresse, 'eingang', schritt.aufnahme.titel);
     bilder.set(schritt.aufnahme.id, { element: geladen.element, breite: geladen.breite, hoehe: geladen.hoehe });
   }
+  // Was allen Bildern gemeinsam ist, gehört in Kopf, Fuß und Deckblatt.
+  const aufnahmen = schritte.map((s) => s.aufnahme).filter(Boolean);
+  const stand = new Date().toISOString();
+  const info = {
+    kapitel: [...new Set(aufnahmen.map((a) => kapitelKennung(a)).filter(Boolean))].slice(0, 3).join(', '),
+    projekt: [...new Set(aufnahmen.map((a) => a.projekt).filter(Boolean))].join(', '),
+    labels: gemeinsameLabels(aufnahmen),
+    stand
+  };
+
   const blaetter = [];
+  if (studio.deckblatt) {
+    const deckblatt = document.createElement('canvas');
+    deckblatt.width = aufbau.format.breite;
+    deckblatt.height = aufbau.format.hoehe;
+    zeichneDeckblatt(deckblatt.getContext('2d'), aufbau, {
+      titel: studio.titel || titel,
+      untertitel: studio.untertitel,
+      hinweis: studio.hinweis,
+      quelle: titel,
+      kapitel: info.kapitel,
+      anzahl: schritte.length,
+      seiten: aufbau.seiten.length,
+      vorlage: aufbau.vorlage.label,
+      labels: info.labels,
+      projekt: info.projekt,
+      stand
+    });
+    blaetter.push({ nummer: 0, von: aufbau.seiten.length, leinwand: deckblatt, titel, deckblatt: true });
+  }
+
   for (const seite of aufbau.seiten) {
     const leinwand = document.createElement('canvas');
     leinwand.width = aufbau.format.breite;
@@ -241,21 +411,104 @@ async function baueBlaetter() {
     const stift = leinwand.getContext('2d');
     stift.fillStyle = token('--flaeche', '#FFFFFF');
     stift.fillRect(0, 0, leinwand.width, leinwand.height);
-    zeichneBlattkopf(stift, seite, aufbau, titel);
+    zeichneBlattkopf(stift, seite, aufbau, titel, info);
     for (const kachel of seite.kacheln) {
       const bild = kachel.schritt.aufnahme && bilder.get(kachel.schritt.aufnahme.id);
       if (bild) zeichneKachel(stift, kachel, bild, aufbau);
     }
-    zeichneBlattfuss(stift, seite, aufbau);
+    zeichneBlattfuss(stift, seite, aufbau, info);
     blaetter.push({ nummer: seite.nummer, von: seite.von, leinwand, titel });
   }
   return blaetter;
+}
+
+/* ------------------------------------------------- Studio: die Einstellungen */
+
+/** Die Schalter für Kopf- und Fußzeile - als Liste, nicht als Geheimnis. */
+function zeichneTeileschalter(kasten, teile, gewaehlt, schluessel) {
+  kasten.replaceChildren(
+    ...teile.map((teil) => {
+      const haken = el('input', { type: 'checkbox', id: `${schluessel}-${teil.id}`, checked: gewaehlt.includes(teil.id) });
+      haken.addEventListener('change', (e) => {
+        const liste = e.target.checked
+          ? [...studio[schluessel], teil.id].filter((x, i, alle) => alle.indexOf(x) === i)
+          : studio[schluessel].filter((x) => x !== teil.id);
+        // Die Folge der Teile ist die der Liste, nicht die des Anklickens.
+        const ordnung = teile.map((x) => x.id);
+        aendereStudio({ [schluessel]: ordnung.filter((x) => liste.includes(x)) });
+      });
+      return el('label', { klasse: 'markier-schalter' }, [haken, el('span', { text: teil.label })]);
+    })
+  );
+}
+
+// Der Name sagt es genau: die Einstellungen, nicht das Blatt. (In
+// aufnahme.js heißt die Studioansicht der Aufnahme schon zeichneStudio -
+// zwei gleiche Namen in einer Klammer wären einer zu viel.)
+function zeichneStudioeinstellungen() {
+  $('#design-deckblatt').checked = studio.deckblatt;
+  $('#design-texte').checked = studio.texte;
+  $('#design-labels').checked = studio.labels;
+  if ($('#design-titel') !== document.activeElement) $('#design-titel').value = studio.titel;
+  if ($('#design-untertitel') !== document.activeElement) $('#design-untertitel').value = studio.untertitel;
+  if ($('#design-hinweis') !== document.activeElement) $('#design-hinweis').value = studio.hinweis;
+  zeichneTeileschalter($('#design-kopf-teile'), KOPF_TEILE, studio.kopf, 'kopf');
+  zeichneTeileschalter($('#design-fuss-teile'), FUSS_TEILE, studio.fuss, 'fuss');
+  $('#eigen-format').replaceChildren(
+    ...FORMATE.map((f) => el('option', { value: f.id, text: f.label, selected: f.id === (studio.format || 'a4-hoch') }))
+  );
+  const eigen = studio.eigene.find((v) => v.id === studio.vorlage);
+  $('#eigen-loeschen').disabled = !eigen;
+  if (eigen && $('#eigen-label') !== document.activeElement) {
+    // Die gewählte eigene Vorlage steht in den Feldern - so lässt sie sich
+    // ändern und erneut speichern, statt neben sich eine zweite zu bekommen.
+    $('#eigen-label').value = eigen.label;
+    $('#eigen-spalten').value = String(eigen.spalten);
+    $('#eigen-zeilen').value = String(eigen.zeilen);
+    $('#eigen-textspalte').value = String(Math.round(eigen.textspalte * 100));
+    $('#eigen-textlaenge').value = String(eigen.textlaenge);
+  }
+}
+
+async function sichereEigeneVorlage() {
+  const satz = eigeneVorlage({
+    label: $('#eigen-label').value,
+    spalten: $('#eigen-spalten').value,
+    zeilen: $('#eigen-zeilen').value,
+    textspalte: Number($('#eigen-textspalte').value) / 100,
+    textlaenge: $('#eigen-textlaenge').value,
+    format: $('#eigen-format').value,
+    zweck: 'Eigene Vorlage.'
+  });
+  if (!satz) {
+    meldeDesign('Die eigene Vorlage braucht einen Namen.', 'warnung');
+    $('#eigen-label').focus({ preventScroll: true });
+    return;
+  }
+  const schonDa = studio.eigene.some((v) => v.id === satz.id);
+  await aendereStudio({
+    eigene: schonDa ? studio.eigene.map((v) => (v.id === satz.id ? satz : v)) : [...studio.eigene, satz],
+    vorlage: satz.id,
+    format: satz.format
+  });
+  meldeDesign(
+    `Vorlage „${satz.label}" ${schonDa ? 'geändert' : 'gespeichert'} – ${satz.spalten} × ${satz.zeilen} Bilder je Seite.`,
+    'gut'
+  );
+}
+
+async function loescheEigeneVorlage() {
+  const eigen = studio.eigene.find((v) => v.id === studio.vorlage);
+  if (!eigen) return;
+  await aendereStudio({ eigene: studio.eigene.filter((v) => v.id !== eigen.id), vorlage: VORLAGEN[0].id, format: '' });
+  meldeDesign(`Vorlage „${eigen.label}" gelöscht. Die Bilder bleiben.`, 'neutral');
 }
 
 /* -------------------------------------------------------------- Ansicht */
 
 async function zeichneDesign() {
   if (document.getElementById('design-ansicht').hidden) return;
+  zeichneStudioeinstellungen();
   const quellen = designQuellen();
   if (!quellen.some((q) => q.id === designQuelle)) designQuelle = quellen.length ? quellen[0].id : '';
   $('#design-quelle').replaceChildren(
@@ -264,16 +517,18 @@ async function zeichneDesign() {
       : [el('option', { value: '', text: 'noch keine Strecke und kein Kapitel mit Bildern' })])
   );
   $('#design-vorlage').replaceChildren(
-    ...VORLAGEN.map((v) => el('option', { value: v.id, text: v.label, selected: v.id === designVorlage }))
+    ...alleVorlagen(studio.eigene).map((v) =>
+      el('option', { value: v.id, text: v.eigen ? `${v.label} (eigene)` : v.label, selected: v.id === studio.vorlage })
+    )
   );
-  const vor = vorlage(designVorlage);
+  const vor = designVorlageSatz();
   $('#design-format').replaceChildren(
     ...FORMATE.map((f) =>
-      el('option', { value: f.id, text: f.label, selected: f.id === (designFormat || vor.format) })
+      el('option', { value: f.id, text: f.label, selected: f.id === (studio.format || vor.format) })
     )
   );
   $('#design-zweck').textContent = `${vor.zweck} Bis zu ${vor.spalten * vor.zeilen} Bilder je Seite, ${
-    format(designFormat || vor.format).label
+    format(studio.format || vor.format).label
   }, 300 dpi.`;
 
   const { schritte } = designSchritte();
@@ -302,17 +557,21 @@ async function zeichneDesign() {
       schau.getContext('2d').drawImage(blatt.leinwand, 0, 0);
       return el('figure', { klasse: 'design-rahmen' }, [
         schau,
-        el('figcaption', { text: `Seite ${blatt.nummer} von ${blatt.von} · ${blatt.leinwand.width} × ${blatt.leinwand.height} px` })
+        el('figcaption', {
+          text: blatt.deckblatt
+            ? `Deckblatt · ${blatt.leinwand.width} × ${blatt.leinwand.height} px`
+            : `Seite ${blatt.nummer} von ${blatt.von} · ${blatt.leinwand.width} × ${blatt.leinwand.height} px`
+        })
       ]);
     })
   );
   // Der Stand steht am Container: welche Vorlage hier gerade liegt.
-  $('#design-blaetter').dataset.vorlage = designVorlage;
-  $('#design-blaetter').dataset.texte = designTexte ? 'ja' : 'nein';
+  $('#design-blaetter').dataset.vorlage = studio.vorlage;
+  $('#design-blaetter').dataset.texte = studio.texte ? 'ja' : 'nein';
   meldeDesign(
-    `${designSeiten.length} ${designSeiten.length === 1 ? 'Blatt' : 'Blätter'} · ${schritte.length} Bilder · ${
-      designTexte ? 'mit' : 'ohne'
-    } Texte aus dem Handbuch.`,
+    `${designSeiten.length} ${designSeiten.length === 1 ? 'Blatt' : 'Blätter'}${
+      studio.deckblatt ? ' (mit Deckblatt)' : ''
+    } · ${schritte.length} Bilder · ${studio.texte ? 'mit' : 'ohne'} Texte aus dem Handbuch.`,
     'gut'
   );
 }
@@ -331,14 +590,16 @@ async function sichereBlaetter() {
   let gesichert = 0;
   for (const blatt of designSeiten) {
     const blob = await new Promise((fertig) => blatt.leinwand.toBlob(fertig, 'image/png'));
-    const name = seitenName(designVorlage, titel, blatt.nummer, blatt.von);
+    const name = blatt.deckblatt
+      ? `${bereinigeDateiname(`${studio.vorlage}-${titel}`) || 'blatt'}-deckblatt.png`
+      : seitenName(studio.vorlage, titel, blatt.nummer, blatt.von);
     const ergebnis = await uebergebeDatei(name, blob);
     if (ergebnis.art === 'gesichert') gesichert += 1;
     else break;
   }
   meldeDesign(
     gesichert === designSeiten.length
-      ? `${gesichert} ${gesichert === 1 ? 'Blatt' : 'Blätter'} gesichert – ${vorlage(designVorlage).label}, 300 dpi.`
+      ? `${gesichert} ${gesichert === 1 ? 'Blatt' : 'Blätter'} gesichert – ${designVorlageSatz().label}, 300 dpi.`
       : `${gesichert} von ${designSeiten.length} Blättern gesichert; der Rest wurde abgebrochen.`,
     gesichert === designSeiten.length ? 'gut' : 'warnung'
   );
@@ -356,7 +617,7 @@ async function sichereAlsHtml() {
   const hoch = designSeiten[0].leinwand.height > designSeiten[0].leinwand.width;
   const html = [
     '<!doctype html><html lang="de"><head><meta charset="utf-8">',
-    `<title>${maskiereHtml(titel)} – ${maskiereHtml(vorlage(designVorlage).label)}</title>`,
+    `<title>${maskiereHtml(titel)} – ${maskiereHtml(designVorlageSatz().label)}</title>`,
     `<style>@page{size:A4 ${hoch ? 'portrait' : 'landscape'};margin:0}`,
     'body{margin:0;background:#eceef2;font-family:system-ui,sans-serif}',
     'figure{margin:0 auto 18px;max-width:1100px}img{display:block;width:100%;height:auto;box-shadow:0 2px 10px rgba(0,0,0,.18)}',
@@ -365,7 +626,7 @@ async function sichereAlsHtml() {
     ...bilder.map((b) => `<figure><img src="${b}" alt="Blatt"></figure>`),
     '</body></html>'
   ].join('');
-  const name = `${bereinigeDateiname(`${designVorlage}-${titel}`) || 'blatt'}.html`;
+  const name = `${bereinigeDateiname(`${studio.vorlage}-${titel}`) || 'blatt'}.html`;
   const ergebnis = await uebergebeDatei(name, html);
   meldeDesign(
     ergebnis.art === 'gesichert'
@@ -381,22 +642,28 @@ function verdrahteDesign() {
     zeichneDesign();
   });
   $('#design-vorlage').addEventListener('change', (e) => {
-    designVorlage = e.target.value;
-    designFormat = '';
-    zeichneDesign();
+    // Eine neue Vorlage bringt ihr eigenes Format mit.
+    aendereStudio({ vorlage: e.target.value, format: '' });
   });
-  $('#design-format').addEventListener('change', (e) => {
-    designFormat = e.target.value;
-    zeichneDesign();
-  });
-  $('#design-texte').addEventListener('change', (e) => {
-    designTexte = e.target.checked;
-    zeichneDesign();
-  });
-  $('#design-labels').addEventListener('change', (e) => {
-    designLabels = e.target.checked;
-    zeichneDesign();
-  });
+  $('#design-format').addEventListener('change', (e) => aendereStudio({ format: e.target.value }));
+  $('#design-texte').addEventListener('change', (e) => aendereStudio({ texte: e.target.checked }));
+  $('#design-labels').addEventListener('change', (e) => aendereStudio({ labels: e.target.checked }));
+  $('#design-deckblatt').addEventListener('change', (e) => aendereStudio({ deckblatt: e.target.checked }));
+  for (const [feld, schluessel] of [
+    ['#design-titel', 'titel'],
+    ['#design-untertitel', 'untertitel'],
+    ['#design-hinweis', 'hinweis']
+  ]) {
+    $(feld).addEventListener('input', (e) => {
+      // Beim Tippen nicht neu rechnen - das kostet bei 300 dpi zu viel.
+      studio = { ...studio, [schluessel]: e.target.value };
+      sichereStudio();
+      clearTimeout(studioTakt);
+      studioTakt = setTimeout(zeichneDesign, 500);
+    });
+  }
+  $('#eigen-sichern').addEventListener('click', sichereEigeneVorlage);
+  $('#eigen-loeschen').addEventListener('click', loescheEigeneVorlage);
   $('#design-sichern').addEventListener('click', sichereBlaetter);
   $('#design-html').addEventListener('click', sichereAlsHtml);
 }

@@ -3,7 +3,7 @@
  * Druckauflösung – Quick Guide, One Pager, Releaseletter, Handbuchseite.
  */
 import { join } from 'node:path';
-import { suite, wahr, gleich } from '../hilfen/pruefe.mjs';
+import { suite, wahr, gleich, tieferGleich } from '../hilfen/pruefe.mjs';
 import { erzeugeBrowserHelfer } from '../hilfen/browser.mjs';
 
 const wurzel = join(import.meta.dirname, '..', '..');
@@ -20,6 +20,13 @@ const ablageNachbau = `
       window.__abgelegt.push({ filename: auftrag.filename, groesse: auftrag.data.size || String(auftrag.data).length });
       return { status: 'saved' };
     } } };`;
+
+/** Das Studio steht zugeklappt in der Ansicht - zum Prüfen wird es geöffnet. */
+async function oeffneStudio(seite) {
+  await seite.evaluate(() => {
+    document.getElementById('design-studio').open = true;
+  });
+}
 
 /** Legt Aufnahmen an und ordnet sie Stellen im Handbuch zu. */
 async function bilderMitStellen(seite, stellen) {
@@ -175,6 +182,120 @@ s.test('die Blätter lassen sich als Bilder und als HTML sichern', () =>
       );
     },
     { hash: AUFNAHME, initSkript: ablageNachbau }
+  ));
+
+s.test('das Deckblatt kommt vor die Seiten und nennt den Inhalt', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1', '7.5.2']);
+      const vorher = await seite.locator('.design-blatt').count();
+      await oeffneStudio(seite);
+      await seite.fill('#design-titel', 'oneSCM – Vorlagen anlegen');
+      await seite.fill('#design-untertitel', 'Quick Guide für Dealer');
+      await seite.check('#design-deckblatt');
+      await seite.waitForFunction(
+        (zahl) => document.querySelectorAll('.design-blatt').length === zahl + 1,
+        vorher,
+        { timeout: 20000 }
+      );
+      const erste = await seite.locator('.design-rahmen figcaption').first().innerText();
+      wahr(erste.startsWith('Deckblatt'), 'das Deckblatt steht nicht vorn: ' + erste);
+      // Der Titel wird gedrosselt übernommen - erst wenn das Rechnen zur Ruhe
+      // kommt, steht die Meldung endgültig da.
+      await seite.waitForFunction(
+        () => /mit Deckblatt/.test(document.getElementById('design-meldung').textContent),
+        null,
+        { timeout: 20000 }
+      );
+
+      // Die Einstellung überlebt das Neuladen.
+      await seite.reload({ waitUntil: 'load' });
+      await seite.waitForSelector('html[data-bereit="ja"]');
+      await seite.click('.portal-nav button[data-ansicht="design"]');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.design-blatt').length > 0,
+        null,
+        { timeout: 20000 }
+      );
+      await oeffneStudio(seite);
+      gleich(await seite.locator('#design-deckblatt').isChecked(), true);
+      gleich(await seite.locator('#design-titel').inputValue(), 'oneSCM – Vorlagen anlegen');
+      wahr(
+        (await seite.locator('.design-rahmen figcaption').first().innerText()).startsWith('Deckblatt'),
+        'nach dem Neuladen fehlt das Deckblatt: ' + (await seite.locator('.design-rahmen figcaption').first().innerText())
+      );
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('Kopf- und Fußzeile lassen sich bestücken', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1']);
+      await oeffneStudio(seite);
+      // Jeder Teil ist ein Schalter; ohne Teile bleibt die Zeile leer.
+      gleich(await seite.locator('#design-kopf-teile input').count(), 5);
+      gleich(await seite.locator('#design-fuss-teile input').count(), 5);
+      gleich(await seite.locator('#kopf-titel').isChecked(), true);
+      gleich(await seite.locator('#kopf-kapitel').isChecked(), false);
+      await seite.check('#kopf-kapitel');
+      await seite.check('#fuss-hinweis');
+      await seite.fill('#design-hinweis', 'Interne Unterlage');
+      await seite.waitForTimeout(900);
+      const gesichert = await seite.evaluate(() => {
+        const roh = localStorage.getItem('screenarchiv:design');
+        return roh ? JSON.parse(roh) : null;
+      });
+      wahr(gesichert.kopf.includes('kapitel'), 'die Kopfzeile merkt sich den Teil nicht');
+      wahr(gesichert.fuss.includes('hinweis'));
+      gleich(gesichert.hinweis, 'Interne Unterlage');
+      // Die Folge der Teile ist die der Liste, nicht die des Anklickens.
+      tieferGleich(gesichert.kopf, ['titel', 'kapitel', 'vorlage', 'seitenzahl']);
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('eine eigene Vorlage lässt sich speichern, nutzen und löschen', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1', '7.5.2']);
+      await oeffneStudio(seite);
+      await seite.fill('#eigen-label', 'Schulungsblatt');
+      await seite.fill('#eigen-spalten', '1');
+      await seite.fill('#eigen-zeilen', '1');
+      await seite.selectOption('#eigen-format', 'a4-quer');
+      await seite.click('#eigen-sichern');
+      await seite.waitForFunction(
+        () => document.getElementById('design-blaetter').dataset.vorlage === 'eigen-schulungsblatt',
+        null,
+        { timeout: 20000 }
+      );
+      wahr(
+        /gespeichert/.test(await seite.locator('#design-meldung').innerText()),
+        'die Meldung zum Speichern fehlt: ' + (await seite.locator('#design-meldung').innerText())
+      );
+      // Ein Bild je Seite: aus zwei Bildern werden zwei Blätter.
+      gleich(await seite.locator('.design-blatt').count(), 2);
+      const masse = await seite.evaluate(() => {
+        const c = document.querySelector('.design-blatt');
+        return { breite: c.width, hoehe: c.height };
+      });
+      wahr(masse.breite > masse.hoehe, 'das Querformat der eigenen Vorlage greift nicht');
+      wahr(
+        (await seite.locator('#design-vorlage').innerText()).includes('Schulungsblatt (eigene)'),
+        'die eigene Vorlage steht nicht in der Auswahl'
+      );
+
+      await seite.click('#eigen-loeschen');
+      await seite.waitForFunction(
+        () => document.getElementById('design-blaetter').dataset.vorlage === 'quickguide',
+        null,
+        { timeout: 20000 }
+      );
+      wahr(/gelöscht/.test(await seite.locator('#design-meldung').innerText()));
+      gleich(await seite.locator('#eigen-loeschen').isDisabled(), true);
+    },
+    { hash: AUFNAHME }
   ));
 
 s.test('Browser wieder schließen', () => schliessen());
