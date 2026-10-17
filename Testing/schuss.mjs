@@ -153,6 +153,7 @@ const geteilterBildschirm = `
     await seite.fill('#ablage-muster', 'reklamation-{nummer}-{datum}');
     await seite.click('#ordner-waehlen');
     await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked);
+    if (imZug) await seite.click('#faehigkeiten summary');
     await seite.click('#schnipsel-start');
     await seite.waitForSelector('#schnipsel-leinwand:not([hidden])');
     await seite.waitForTimeout(400);

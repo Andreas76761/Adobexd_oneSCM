@@ -1083,6 +1083,58 @@ export function beipackzettelName(bildname) {
   return String(bildname || '').replace(/\.[a-z0-9]+$/i, '') + '.json';
 }
 
+/* ------------------------------------------------- Was hier geht (1.16.0) */
+
+/**
+ * Beschreibt, was diese Umgebung hergibt - und was statt dessen geht, wenn
+ * etwas fehlt. Lieber vorher ehrlich als hinterher eine Fehlermeldung: die
+ * Faehigkeiten haengen am Browser, am Geraet und an der Huelle, in der die
+ * Seite laeuft, nicht an der Seite selbst.
+ */
+export function beschreibeFaehigkeiten(lage = {}) {
+  const zeile = (name, geht, ja, nein) => ({ name, geht, text: geht ? ja : nein });
+  return [
+    zeile(
+      'Ordner auf dem Rechner',
+      Boolean(lage.ordner),
+      'Einmal wählen, danach schreibt die Seite jede Aufnahme still hinein. Liegt der Ordner in einem Sync-Ordner (OneDrive, SharePoint, Nextcloud), landen die Dateien dort mit.',
+      'Dieser Browser kennt die Ordnerwahl nicht (Firefox und Safari bisher). Es bleiben Eingang und Einzeldatei.'
+    ),
+    zeile(
+      'Einzeln als Datei sichern',
+      Boolean(lage.datei),
+      'Jede Aufnahme wird einzeln bestätigt und landet im Download-Ordner.',
+      'Diese Ansicht darf keine Dateien ablegen. Die Angaben lassen sich als Text herauskopieren.'
+    ),
+    zeile(
+      'Bildschirm freigeben',
+      Boolean(lage.freigabe),
+      'Fenster, Tab oder ganzen Bildschirm freigeben und daraus ausschneiden.',
+      lage.beruehrung
+        ? 'Auf Telefon und Tablet gibt es keine Bildschirmfreigabe. Stattdessen ein Bildschirmfoto aufnehmen und über „Bild öffnen“ hereinholen.'
+        : 'Diese eingebettete Ansicht darf den Bildschirm nicht freigeben – das entscheidet die Hülle, nicht die Seite. Bildschirmfoto mit der Systemtaste aufnehmen und einfügen oder öffnen.'
+    ),
+    zeile(
+      'Aus der Zwischenablage',
+      Boolean(lage.zwischenablage),
+      'Bildschirmfoto mit der Systemtaste aufnehmen und mit Strg+V bzw. ⌘V einfügen.',
+      'Diese Umgebung gibt die Zwischenablage nicht frei. „Bild öffnen“ führt zum selben Ergebnis.'
+    ),
+    zeile(
+      'Eingang über das Neuladen hinaus',
+      Boolean(lage.speicher),
+      'Die Aufnahmen bleiben im Browser dieses Geräts gespeichert.',
+      'Dieser Browser gibt der Ansicht keinen Speicher. Aufnahmen gelten nur für diese Sitzung – vorher sichern.'
+    ),
+    zeile(
+      'Netzablage, SharePoint, Datenbank',
+      false,
+      '',
+      'Die veröffentlichte Seite darf keine Verbindung nach außen aufbauen – das sperrt die Inhaltsrichtlinie des Artifacts, nicht eine fehlende Funktion. Der Weg dorthin führt über einen Ordner, der mit SharePoint oder OneDrive synchronisiert wird.'
+    )
+  ];
+}
+
 /* ------------------------------------------- Metadaten in der PNG-Datei */
 
 /**

@@ -997,3 +997,28 @@ div.streifen-bild { cursor: default; }
   padding: 9px 11px; border-radius: 0 var(--radius) var(--radius) 0;
 }
 .beleg-probleme[hidden] { display: none; }
+
+/* ------------------------------------------------ Was hier geht (1.16.0) */
+
+.faehigkeiten {
+  border: 1px solid var(--linie); border-radius: var(--radius);
+  background: var(--flaeche-2); padding: 8px 10px;
+}
+.faehigkeiten summary {
+  cursor: pointer; font-size: 13px; color: var(--tinte-2);
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+}
+.faehigkeiten summary .kennung { text-transform: none; letter-spacing: 0; }
+.faehig-liste {
+  margin: 10px 0 2px; display: grid; grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 14px; font-size: 12.5px;
+}
+.faehig-liste dt { display: flex; gap: 7px; align-items: baseline; white-space: nowrap; }
+.faehig-liste dd { margin: 0; color: var(--tinte-3); line-height: 1.5; }
+.faehig-zeichen { font-family: var(--schrift-mono); font-size: 11px; }
+.faehig-ja { color: var(--gut); }
+.faehig-nein { color: var(--warn); }
+@media (max-width: 700px) {
+  .faehig-liste { grid-template-columns: 1fr; gap: 2px; }
+  .faehig-liste dd { margin-bottom: 8px; }
+}

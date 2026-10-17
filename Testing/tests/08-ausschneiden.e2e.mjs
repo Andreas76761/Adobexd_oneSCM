@@ -176,6 +176,55 @@ s.test('ohne Ordnerfreigabe im Browser wird das ehrlich gesagt', () =>
     }
   ));
 
+s.test('„Was hier geht“ misst die Umgebung, statt sie zu behaupten', () =>
+  mitSeite(async (seite) => {
+    await seite.waitForFunction(
+      () => document.querySelectorAll('#faehig-liste dt').length === 6,
+      null,
+      { timeout: 5000 }
+    );
+    const zeilen = await seite.evaluate(() =>
+      [...document.querySelectorAll('#faehig-liste dt')].map((dt) => ({
+        name: dt.textContent.replace(/[✓×]/, '').trim(),
+        geht: dt.classList.contains('faehig-ja'),
+        text: dt.nextElementSibling.textContent.trim()
+      }))
+    );
+    const ordner = zeilen.find((z) => /Ordner/.test(z.name));
+    gleich(ordner.geht, false, 'ohne Ordnerwahl im Browser wird sie behauptet');
+    wahr(/Firefox|Safari/.test(ordner.text), 'der Grund fehlt: ' + ordner.text);
+    const netz = zeilen.find((z) => /SharePoint/.test(z.name));
+    gleich(netz.geht, false);
+    wahr(/Inhaltsrichtlinie/.test(netz.text), 'die Netzsperre wird nicht benannt');
+    wahr(
+      (await seite.locator('#faehig-kurz').innerText()).includes('fehlt hier'),
+      'die Kurzfassung zählt die fehlenden Wege nicht'
+    );
+  },
+  {
+    hash: SCHNEIDEN,
+    initSkript: `Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: undefined });`
+  }));
+
+s.test('mit Ordner und Ablage steht „Was hier geht“ auf grün', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.waitForFunction(
+        () => document.querySelectorAll('#faehig-liste dt').length === 6,
+        null,
+        { timeout: 5000 }
+      );
+      const ordner = await seite.evaluate(() =>
+        [...document.querySelectorAll('#faehig-liste dt')]
+          .filter((dt) => /Ordner/.test(dt.textContent))
+          .map((dt) => ({ geht: dt.classList.contains('faehig-ja'), text: dt.nextElementSibling.textContent }))[0]
+      );
+      gleich(ordner.geht, true);
+      wahr(/SharePoint|OneDrive/.test(ordner.text), 'der Weg über den Sync-Ordner fehlt');
+    },
+    { hash: SCHNEIDEN, initSkript: ordnerNachbau + ablageNachbau }
+  ));
+
 /* --------------------------------------------------------- Ausschneiden */
 
 s.test('ein aufgezogener Bereich wird beim Loslassen ausgeschnitten', () =>

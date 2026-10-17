@@ -154,6 +154,51 @@ async function holeFaehigkeit(name) {
   }
 }
 
+/**
+ * Prüft die Umgebung und schreibt sie in die Ansicht Ausschneiden. Jede
+ * Angabe wird gemessen, nicht vermutet - und wo etwas fehlt, steht der Weg
+ * daneben, der statt dessen geht.
+ */
+async function zeigeFaehigkeiten() {
+  const liste = document.getElementById('faehig-liste');
+  if (!liste) return;
+  const beruehrung = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+  const lage = {
+    ordner: typeof window.showDirectoryPicker === 'function',
+    datei: Boolean(await holeFaehigkeit('downloads')),
+    freigabe: Boolean(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) && freigabeErlaubt() !== false,
+    zwischenablage: typeof window.ClipboardEvent === 'function',
+    speicher: pruefeSpeicher(),
+    beruehrung
+  };
+  const zeilen = beschreibeFaehigkeiten(lage);
+  const fehlend = zeilen.filter((z) => !z.geht && z.name !== 'Netzablage, SharePoint, Datenbank').length;
+  const kurz = document.getElementById('faehig-kurz');
+  if (kurz) kurz.textContent = fehlend ? `${fehlend} Weg${fehlend === 1 ? '' : 'e'} fehlt hier` : 'alle Wege offen';
+  liste.replaceChildren(
+    ...zeilen.flatMap((zeile) => [
+      el('dt', { klasse: zeile.geht ? 'faehig-ja' : 'faehig-nein' }, [
+        el('span', { klasse: 'faehig-zeichen', text: zeile.geht ? '✓' : '×' }),
+        el('span', { text: zeile.name })
+      ]),
+      el('dd', { text: zeile.text })
+    ])
+  );
+}
+
+/** Schreibt und liest einen Probewert - nur so ist der Speicher sicher da. */
+function pruefeSpeicher() {
+  try {
+    const schluessel = 'screenarchiv:probe';
+    localStorage.setItem(schluessel, '1');
+    const gelesen = localStorage.getItem(schluessel) === '1';
+    localStorage.removeItem(schluessel);
+    return gelesen;
+  } catch (fehler) {
+    return false;
+  }
+}
+
 /* --------------------------------------------------------- Kompaktmodus */
 
 /**
@@ -1615,6 +1660,7 @@ function verdrahteAufnahme() {
   $('#eingang-dialog-schliessen').addEventListener('click', () => $('#eingang-dialog').close());
   $('#zum-eingang').addEventListener('click', () => setze({ ansicht: 'eingang' }));
   $('#ordner-auffrischen').addEventListener('click', zeigeOrdnerImArchiv);
+  zeigeFaehigkeiten();
   $('#beleg-oeffnen').addEventListener('click', oeffneWerkbank);
   $('#beleg-zu').addEventListener('click', schliesseWerkbank);
   $('#beleg-sichern').addEventListener('click', sichereBelegentwurf);

@@ -599,3 +599,27 @@ enthält den Eintrag in der Feldfolge des Bestands und die beiden echten Bilder
 daneben. `screen` steht auf `null`: Archetyp und Schalter für die gezeichneten
 Aufnahmen entstehen im Projekt, und die Seite behauptet nichts, was sie nicht
 weiß. Der Weg von dort steht im Skill `beleg-aufnehmen`.
+
+
+---
+
+## F-30 · Was hier geht
+
+**Zweck** Die Seite kann nicht überall dasselbe. Ob ein Ordner gewählt werden
+darf, ob der Bildschirm freigegeben wird, ob Dateien abgelegt werden dürfen,
+ob der Speicher hält – das entscheiden Browser, Gerät und die Hülle, in der
+die Seite läuft. Bis 1.15.0 merkte man das erst, wenn etwas nicht ging.
+
+**Sechs Zeilen, gemessen** In der Ansicht Ausschneiden steht ausklappbar
+**Was hier geht**. Jede Zeile wird geprüft, nicht vermutet: die Ordnerwahl am
+Vorhandensein von `showDirectoryPicker`, die Ablage am tatsächlich
+angeforderten `downloads`, die Freigabe an `getDisplayMedia` **und** der
+Berechtigungsrichtlinie, der Speicher an einem geschriebenen und wieder
+gelesenen Probewert. Die Kurzfassung daneben zählt, wie viele Wege hier
+fehlen.
+
+**Jede Absage nennt einen Weg** Kein „geht nicht“ ohne Fortsetzung: ohne
+Ordnerwahl bleiben Eingang und Einzeldatei, ohne Freigabe das Bildschirmfoto,
+auf dem Telefon „Bild öffnen“. Die Zeile zur Netzablage sagt, dass die
+Inhaltsrichtlinie des Artifacts jede Verbindung nach außen sperrt – und nennt
+den Umweg: ein Ordner, der mit SharePoint oder OneDrive synchronisiert wird.

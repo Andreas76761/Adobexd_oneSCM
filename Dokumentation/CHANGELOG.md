@@ -20,6 +20,21 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.16.0] – Was hier geht
+
+### Neu
+* In der Ansicht Ausschneiden steht ausklappbar **Was hier geht**: sechs
+  Zeilen, jede gemessen statt vermutet – Ordner, Einzeldatei,
+  Bildschirmfreigabe, Zwischenablage, Speicher, Netzablage. Zu jeder fehlenden
+  steht der Weg, der statt dessen geht (F-30)
+* Die Kurzfassung in der Kopfzeile nennt, wie viele Wege hier fehlen
+* Auf Telefon und Tablet nennt die Zeile zur Bildschirmfreigabe den dort
+  gangbaren Weg statt der Hülle
+
+### Dokumentation
+* `Dokumentation/grenzen.md`: was die Seite nicht kann und warum – Netzablage,
+  Browser, Gerät – und welcher Weg jeweils bleibt
+
 ## [1.15.0] – Metadaten im Bild
 
 ### Neu

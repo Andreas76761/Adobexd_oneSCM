@@ -552,6 +552,26 @@ s.test('die Wahl des Beipackzettels wird gespeichert', () => {
   gleich(kern.leseAblage('{}').beipack, true, 'ohne Angabe fehlt die Vorgabe');
 });
 
+s.test('jede fehlende Fähigkeit nennt einen Weg, der statt dessen geht', () => {
+  const alles = kern.beschreibeFaehigkeiten({
+    ordner: true, datei: true, freigabe: true, zwischenablage: true, speicher: true
+  });
+  gleich(alles.filter((z) => z.geht).length, 5, 'bei voller Umgebung fehlt etwas');
+  const netz = alles.find((z) => /SharePoint/.test(z.name));
+  gleich(netz.geht, false, 'die Netzablage kann es nie geben');
+  wahr(/synchronisiert/.test(netz.text), 'der Umweg über den Sync-Ordner fehlt');
+
+  const nichts = kern.beschreibeFaehigkeiten({});
+  for (const zeile of nichts) {
+    gleich(zeile.geht, false);
+    wahr(zeile.text.length > 30, `${zeile.name}: die Absage nennt keinen Weg`);
+  }
+  const freigabe = nichts.find((z) => /Bildschirm/.test(z.name));
+  wahr(/eingebettete Ansicht/.test(freigabe.text), 'am Rechner wird die Hülle nicht genannt');
+  const amTelefon = kern.beschreibeFaehigkeiten({ beruehrung: true }).find((z) => /Bildschirm/.test(z.name));
+  wahr(/Telefon/.test(amTelefon.text) && /Bild öffnen/.test(amTelefon.text), 'am Telefon fehlt der Ausweg');
+});
+
 /* -------------------------------------------- Metadaten in der PNG-Datei */
 
 const probePng = () => new Uint8Array(erzeugePng(8, 8, (x, y) => [x * 30, y * 30, 120]));
