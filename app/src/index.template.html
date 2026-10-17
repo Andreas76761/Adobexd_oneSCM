@@ -410,6 +410,8 @@
       <div class="markier-knoepfe">
         <button type="button" class="knopf" id="strecke-neu">Neue Strecke</button>
         <button type="button" class="knopf knopf--haupt" id="strecke-blatt" disabled>Blatt als Bild sichern</button>
+        <button type="button" class="knopf" id="strecke-bpmn" disabled>Prozess als BPMN</button>
+        <button type="button" class="knopf" id="strecke-prozessbild" disabled>Prozess als Bild</button>
         <button type="button" class="knopf" id="strecke-loeschen" disabled>Strecke löschen</button>
       </div>
     </div>
@@ -418,7 +420,10 @@
       Mehrere Screens in einer Folge: jeder Schritt eine Aufnahme und eine
       Anweisung. Gezeigt wird die jüngste Fassung – also mit abgedeckten
       Stellen und Marken. „Blatt als Bild sichern“ fasst alle Schritte in
-      einem Bild zusammen.
+      einem Bild zusammen. Ein Schritt kann <b>mehrere Bilder parallel</b>
+      tragen – sie gehören zusammen und werden als „3a“, „3b“ gezählt; im
+      Prozess wird daraus eine parallele Teilung. Ein <b>Platzhalter</b> hält
+      die Stelle eines Bildes frei, das noch fehlt.
     </p>
 
     <div class="strecke-raster">
@@ -429,6 +434,7 @@
             <select id="strecke-aufnahme"></select>
           </div>
           <button type="button" class="knopf" id="strecke-anhaengen">Als Schritt anhängen</button>
+          <button type="button" class="knopf" id="strecke-platzhalter">Platzhalter anhängen</button>
         </div>
         <p class="studio-meldung" id="strecke-meldung" role="status" aria-live="polite"></p>
         <div class="strecke-schritte" id="strecke-schritte"></div>
@@ -438,6 +444,13 @@
         <pre id="strecke-text"></pre>
         <h2 class="abschnitt-titel">Vorschau des Blattes</h2>
         <canvas id="strecke-vorschau"></canvas>
+        <h2 class="abschnitt-titel">Prozess</h2>
+        <p class="feld-hinweis">
+          Dieselbe Folge als Prozess: Start, je Schritt eine Aufgabe, parallele
+          Zweige für Schritte mit mehreren Bildern. Die BPMN-Datei trägt das
+          Diagramm mit – sie steht in bpmn.io oder Camunda gelegt da, nicht leer.
+        </p>
+        <canvas id="strecke-prozess"></canvas>
       </aside>
     </div>
   </section>

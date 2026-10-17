@@ -1518,9 +1518,52 @@ export function leereStrecke(name = '', zeit = Date.now()) {
   };
 }
 
-/** Ein Schritt: eine Aufnahme, ihre Anweisung, ihre Stelle in der Folge. */
+/**
+ * Ein Schritt: seine Bilder, seine Anweisung, seine Art. Mehrere Bilder in
+ * *einem* Schritt heissen: sie gehoeren zusammen und laufen nebeneinander -
+ * zwei Rollen sehen denselben Schritt verschieden, oder zwei Reiter werden
+ * zugleich gefuellt. Im Prozess wird daraus eine parallele Teilung.
+ */
 export function streckeSchritt(aufnahme, text = '') {
-  return { aufnahme: String(aufnahme && aufnahme.id ? aufnahme.id : aufnahme || ''), text: String(text || '') };
+  const kennung = String(aufnahme && aufnahme.id ? aufnahme.id : aufnahme || '');
+  return { art: 'schritt', aufnahmen: kennung ? [kennung] : [], text: String(text || '') };
+}
+
+/**
+ * Ein Platzhalter: ein Schritt, dessen Bild noch fehlt. Er steht bewusst in
+ * der Folge - eine Luecke, die man sieht, wird gefuellt; eine, die fehlt,
+ * wird vergessen.
+ */
+export function platzhalterSchritt(text = '') {
+  return { art: 'platzhalter', aufnahmen: [], text: String(text || '') };
+}
+
+/** Haengt ein weiteres Bild an einen Schritt - parallel, nicht danach. */
+export function fuegeParallelHinzu(schritte = [], index, kennung) {
+  const id = String(kennung || '');
+  if (!id || index < 0 || index >= schritte.length) return schritte;
+  // Wer ein Bild bekommt, ist kein Platzhalter mehr.
+  return schritte.map((s, i) =>
+    i === index && !(s.aufnahmen || []).includes(id)
+      ? { ...s, art: 'schritt', aufnahmen: [...(s.aufnahmen || []), id] }
+      : s
+  );
+}
+
+/** Nimmt ein Bild aus einem Schritt; das letzte macht ihn zum Platzhalter. */
+export function entferneParallel(schritte = [], index, kennung) {
+  const id = String(kennung || '');
+  if (index < 0 || index >= schritte.length) return schritte;
+  return schritte.map((s, i) => {
+    if (i !== index) return s;
+    const bleibt = (s.aufnahmen || []).filter((a) => a !== id);
+    return bleibt.length ? { ...s, aufnahmen: bleibt } : { ...s, art: 'platzhalter', aufnahmen: [] };
+  });
+}
+
+/** Die Marke eines Bildes im Blatt: „3" allein, „3a" und „3b" parallel. */
+export function schrittMarke(nummer, zahl, stelle) {
+  return zahl > 1 ? `${nummer}${String.fromCharCode(97 + stelle)}` : String(nummer);
 }
 
 /** Verschiebt einen Schritt; ausserhalb der Folge passiert nichts. */
@@ -1538,13 +1581,45 @@ export function verschiebeSchritt(schritte = [], index, richtung) {
  */
 export function streckeMitAufnahmen(strecke = {}, eingang = []) {
   return (strecke.schritte || [])
-    .map((schritt, i) => ({
-      nummer: i + 1,
-      text: String(schritt.text || ''),
-      aufnahme: eingang.find((a) => a.id === schritt.aufnahme) || null,
-      kennung: schritt.aufnahme
-    }))
-    .filter((schritt) => schritt.aufnahme);
+    .map((schritt, i) => {
+      const kennungen = schritt.aufnahmen || (schritt.aufnahme ? [schritt.aufnahme] : []);
+      const gefunden = kennungen.map((k) => eingang.find((a) => a.id === k) || null);
+      return {
+        nummer: i + 1,
+        art: schritt.art === 'platzhalter' ? 'platzhalter' : 'schritt',
+        text: String(schritt.text || ''),
+        aufnahmen: gefunden.filter(Boolean),
+        // Das erste Bild traegt den Schritt - daran haengen Blatt und Vorlage.
+        aufnahme: gefunden.find(Boolean) || null,
+        fehlen: kennungen.filter((k, j) => !gefunden[j]),
+        kennungen
+      };
+    })
+    .filter((schritt) => schritt.art === 'platzhalter' || schritt.aufnahme);
+}
+
+/**
+ * Die Bilder eines Blattes, flach und in der Reihenfolge der Folge. Ein
+ * Schritt mit zwei Bildern gibt zwei Kacheln - „3a" und „3b" -, ein
+ * Platzhalter gibt eine leere Kachel in festem Seitenverhaeltnis.
+ */
+export function blattBilder(schritte = []) {
+  const flach = [];
+  for (const schritt of schritte) {
+    if (schritt.art === 'platzhalter' || !schritt.aufnahmen.length) {
+      flach.push({ schritt, aufnahme: null, marke: String(schritt.nummer), platzhalter: true });
+      continue;
+    }
+    schritt.aufnahmen.forEach((aufnahme, k) => {
+      flach.push({
+        schritt,
+        aufnahme,
+        marke: schrittMarke(schritt.nummer, schritt.aufnahmen.length, k),
+        platzhalter: false
+      });
+    });
+  }
+  return flach;
 }
 
 /** Was der Strecke noch fehlt, bevor sie ein Blatt werden kann. */
@@ -1554,11 +1629,23 @@ export function pruefeStrecke(strecke = {}, eingang = []) {
   const schritte = strecke.schritte || [];
   if (schritte.length < 2) probleme.push({ feld: 'schritte', text: 'Eine Strecke braucht mindestens zwei Schritte.' });
   schritte.forEach((schritt, i) => {
-    if (!eingang.some((a) => a.id === schritt.aufnahme)) {
-      probleme.push({ feld: 'schritt-' + i, text: `Schritt ${i + 1}: die Aufnahme ${schritt.aufnahme} fehlt im Eingang.` });
+    const kennungen = schritt.aufnahmen || (schritt.aufnahme ? [schritt.aufnahme] : []);
+    const fehlen = kennungen.filter((k) => !eingang.some((a) => a.id === k));
+    for (const k of fehlen) {
+      probleme.push({ feld: 'schritt-' + i, text: `Schritt ${i + 1}: die Aufnahme ${k} fehlt im Eingang.` });
+    }
+    // Ein Platzhalter *darf* ohne Bild stehen - er sagt ja, dass eines fehlt.
+    if (schritt.art !== 'platzhalter' && !kennungen.length) {
+      probleme.push({ feld: 'schritt-' + i, text: `Schritt ${i + 1} hat kein Bild.` });
     }
     if (!String(schritt.text || '').trim()) {
-      probleme.push({ feld: 'text-' + i, text: `Schritt ${i + 1} hat keine Anweisung.` });
+      probleme.push({
+        feld: 'text-' + i,
+        text:
+          schritt.art === 'platzhalter'
+            ? `Platzhalter ${i + 1} sagt nicht, welches Bild fehlt.`
+            : `Schritt ${i + 1} hat keine Anweisung.`
+      });
     }
   });
   return probleme;
@@ -1566,11 +1653,13 @@ export function pruefeStrecke(strecke = {}, eingang = []) {
 
 /** Die Strecke als Text - dieselbe Folge, nur ohne Bilder. */
 export function streckeAlsText(strecke = {}, eingang = []) {
-  const zeilen = streckeMitAufnahmen(strecke, eingang).map(
-    (s) =>
-      `${s.nummer}. ${String(s.text || '').trim() || '(ohne Anweisung)'}` +
-      (kapitelKennung(s.aufnahme) ? `  [${kapitelKennung(s.aufnahme)}]` : '')
-  );
+  const zeilen = streckeMitAufnahmen(strecke, eingang).map((s) => {
+    const anweisung = String(s.text || '').trim() || '(ohne Anweisung)';
+    if (s.art === 'platzhalter') return `${s.nummer}. [Bild fehlt] ${anweisung}`;
+    const stelle = kapitelKennung(s.aufnahme) ? `  [${kapitelKennung(s.aufnahme)}]` : '';
+    const parallel = s.aufnahmen.length > 1 ? `  (parallel: ${s.aufnahmen.length} Bilder)` : '';
+    return `${s.nummer}. ${anweisung}${stelle}${parallel}`;
+  });
   return [String(strecke.name || '').trim(), ...zeilen].filter(Boolean).join('\n');
 }
 
@@ -1588,8 +1677,12 @@ export function blattRaster(bilder = [], { spalten = 2, breite = 1600, abstand =
   let zeilenHoehe = 0;
   bilder.forEach((bild, i) => {
     const spalte = i % spaltenZahl;
-    const massstab = kachelBreite / Math.max(1, bild.breite);
-    const hoehe = Math.round(bild.hoehe * massstab) + textHoehe;
+    // Ein Platzhalter hat kein Bild und damit kein Maß - er bekommt das
+    // Seitenverhaeltnis eines Bildschirms, damit die Zeile nicht einbricht.
+    const bildBreite = Math.max(1, bild.breite || 1600);
+    const bildHoehe = Math.max(1, bild.hoehe || 1000);
+    const massstab = kachelBreite / bildBreite;
+    const hoehe = Math.round(bildHoehe * massstab) + textHoehe;
     if (spalte === 0 && i > 0) {
       y += zeilenHoehe + abstand;
       zeilenHoehe = 0;
@@ -1601,7 +1694,9 @@ export function blattRaster(bilder = [], { spalten = 2, breite = 1600, abstand =
       breite: kachelBreite,
       bildHoehe: hoehe - textHoehe,
       hoehe,
-      nummer: i + 1
+      nummer: i + 1,
+      marke: bild.marke || String(i + 1),
+      platzhalter: Boolean(bild.platzhalter)
     });
   });
   return { breite, hoehe: y + zeilenHoehe + abstand, spalten: spaltenZahl, kacheln };
@@ -1624,14 +1719,238 @@ export function leseStrecken(text) {
       name: String(s.name || ''),
       spalten: Number(s.spalten) || 2,
       geaendert_am: String(s.geaendert_am || ''),
+      // Der alte Satz trug ein Bild je Schritt (`aufnahme`); daraus wird eine
+      // Liste. Platzhalter kommen ohne Bild durch, alles andere braucht eines.
       schritte: Array.isArray(s.schritte)
-        ? s.schritte.filter((x) => x && x.aufnahme).map((x) => ({ aufnahme: String(x.aufnahme), text: String(x.text || '') }))
+        ? s.schritte
+            .map((x) => {
+              if (!x || typeof x !== 'object') return null;
+              const art = x.art === 'platzhalter' ? 'platzhalter' : 'schritt';
+              const aufnahmen = (Array.isArray(x.aufnahmen) ? x.aufnahmen : x.aufnahme ? [x.aufnahme] : [])
+                .map((a) => String(a || ''))
+                .filter(Boolean);
+              if (art === 'schritt' && !aufnahmen.length) return null;
+              return { art, aufnahmen, text: String(x.text || '') };
+            })
+            .filter(Boolean)
         : []
     }));
 }
 
 export function schreibeStrecken(strecken = []) {
   return JSON.stringify({ version: STRECKEN_VERSION, stand: new Date().toISOString(), strecken });
+}
+
+/* ------------------------------------------- Prozess: die Strecke als BPMN */
+
+/**
+ * Masse des Prozessbildes. BPMN rechnet in Punkten; die Werte entsprechen
+ * dem, was die ueblichen Werkzeuge (bpmn.io, Camunda) selbst setzen - so
+ * sieht das Diagramm dort nicht verzogen aus.
+ */
+export const BPMN_MASSE = {
+  ereignis: 36,
+  aufgabeBreite: 170,
+  aufgabeHoehe: 90,
+  tor: 50,
+  luecke: 60,
+  zeile: 130,
+  rand: 60
+};
+
+/**
+ * Baut den Prozess aus der Strecke: Start, je Schritt eine Aufgabe, am Ende
+ * ein Ende. Ein Schritt mit mehreren Bildern wird zu einer *parallelen
+ * Teilung* - genau das heisst „nebeneinander" in einem Prozess: die Zweige
+ * laufen gleichzeitig und treffen sich wieder.
+ *
+ * Gerechnet wird mit Koordinaten, damit das Diagramm auch im fremden
+ * Werkzeug steht statt dort erst gelegt werden zu muessen.
+ */
+export function bpmnAufbau(strecke = {}, eingang = []) {
+  const schritte = streckeMitAufnahmen(strecke, eingang);
+  const m = BPMN_MASSE;
+  const breiteste = schritte.reduce((hoch, s) => Math.max(hoch, s.aufnahmen.length || 1), 1);
+  const bandHoehe = (breiteste - 1) * m.zeile + m.aufgabeHoehe;
+  const mitte = m.rand + bandHoehe / 2;
+  const knoten = [];
+  const kanten = [];
+  let x = m.rand;
+  let vorher = 'start';
+
+  const lege = (knoten_) => {
+    knoten.push(knoten_);
+    return knoten_.id;
+  };
+  const verbinde = (von, nach) => {
+    kanten.push({ id: `fluss_${kanten.length + 1}`, von, nach });
+  };
+
+  lege({ id: 'start', art: 'start', name: 'Start', x, y: mitte - m.ereignis / 2, breite: m.ereignis, hoehe: m.ereignis });
+  x += m.ereignis + m.luecke;
+
+  schritte.forEach((schritt, i) => {
+    const nummer = i + 1;
+    const anweisung = String(schritt.text || '').trim();
+    if (schritt.art === 'platzhalter' || schritt.aufnahmen.length <= 1) {
+      const aufnahme = schritt.aufnahmen[0] || null;
+      const id = lege({
+        id: 'schritt_' + nummer,
+        art: schritt.art === 'platzhalter' ? 'platzhalter' : 'aufgabe',
+        name: `${nummer}. ${anweisung || (aufnahme ? aufnahme.titel : 'Bild fehlt')}`,
+        hinweis: aufnahme ? `${aufnahme.id}${kapitelKennung(aufnahme) ? ' · ' + kapitelKennung(aufnahme) : ''}` : 'Bild fehlt noch',
+        x,
+        y: mitte - m.aufgabeHoehe / 2,
+        breite: m.aufgabeBreite,
+        hoehe: m.aufgabeHoehe
+      });
+      verbinde(vorher, id);
+      vorher = id;
+      x += m.aufgabeBreite + m.luecke;
+      return;
+    }
+
+    // Parallel: Teilung, ein Zweig je Bild, Vereinigung.
+    const teilung = lege({
+      id: 'teilung_' + nummer,
+      art: 'teilung',
+      name: '',
+      x,
+      y: mitte - m.tor / 2,
+      breite: m.tor,
+      hoehe: m.tor
+    });
+    verbinde(vorher, teilung);
+    x += m.tor + m.luecke;
+    const anzahl = schritt.aufnahmen.length;
+    const obenAn = mitte - ((anzahl - 1) * m.zeile + m.aufgabeHoehe) / 2;
+    const zweige = schritt.aufnahmen.map((aufnahme, k) => {
+      const id = lege({
+        id: `schritt_${nummer}_${k + 1}`,
+        art: 'aufgabe',
+        name: `${schrittMarke(nummer, anzahl, k)}. ${anweisung || aufnahme.titel}`,
+        hinweis: `${aufnahme.id}${kapitelKennung(aufnahme) ? ' · ' + kapitelKennung(aufnahme) : ''} · ${aufnahme.titel}`,
+        x,
+        y: obenAn + k * m.zeile,
+        breite: m.aufgabeBreite,
+        hoehe: m.aufgabeHoehe
+      });
+      verbinde(teilung, id);
+      return id;
+    });
+    x += m.aufgabeBreite + m.luecke;
+    const vereinigung = lege({
+      id: 'vereinigung_' + nummer,
+      art: 'vereinigung',
+      name: '',
+      x,
+      y: mitte - m.tor / 2,
+      breite: m.tor,
+      hoehe: m.tor
+    });
+    for (const zweig of zweige) verbinde(zweig, vereinigung);
+    vorher = vereinigung;
+    x += m.tor + m.luecke;
+  });
+
+  const ende = lege({
+    id: 'ende',
+    art: 'ende',
+    name: 'Ende',
+    x,
+    y: mitte - m.ereignis / 2,
+    breite: m.ereignis,
+    hoehe: m.ereignis
+  });
+  verbinde(vorher, ende);
+
+  return {
+    knoten,
+    kanten,
+    breite: x + m.ereignis + m.rand,
+    hoehe: m.rand * 2 + bandHoehe,
+    schritte
+  };
+}
+
+const BPMN_TYPEN = {
+  start: 'startEvent',
+  ende: 'endEvent',
+  aufgabe: 'userTask',
+  platzhalter: 'task',
+  teilung: 'parallelGateway',
+  vereinigung: 'parallelGateway'
+};
+
+/**
+ * Der Prozess als BPMN 2.0. Mit Diagrammteil (`BPMNDiagram`), damit die
+ * Datei in bpmn.io, Camunda oder Signavio sofort etwas zeigt - ohne ihn
+ * waere die Datei gueltig und doch leer.
+ */
+export function streckeAlsBpmn(strecke = {}, eingang = [], { erzeugt = new Date().toISOString(), anwendung = '' } = {}) {
+  const aufbau = bpmnAufbau(strecke, eingang);
+  const m = maskiereHtml;
+  const kennung = String(strecke.id || 'STR').replace(/[^A-Za-z0-9_-]/g, '_');
+  const prozess = 'Prozess_' + kennung;
+  const nachId = new Map(aufbau.knoten.map((k) => [k.id, k]));
+  const raus = (id) => aufbau.kanten.filter((k) => k.von === id);
+  const rein = (id) => aufbau.kanten.filter((k) => k.nach === id);
+
+  const elemente = aufbau.knoten.map((k) => {
+    const typ = BPMN_TYPEN[k.art];
+    const inhalt = [
+      k.hinweis ? `      <bpmn:documentation>${m(k.hinweis)}</bpmn:documentation>` : '',
+      ...rein(k.id).map((kante) => `      <bpmn:incoming>${kante.id}</bpmn:incoming>`),
+      ...raus(k.id).map((kante) => `      <bpmn:outgoing>${kante.id}</bpmn:outgoing>`)
+    ].filter(Boolean);
+    const anfang = `    <bpmn:${typ} id="${k.id}"${k.name ? ` name="${m(k.name)}"` : ''}`;
+    return inhalt.length ? `${anfang}>\n${inhalt.join('\n')}\n    </bpmn:${typ}>` : `${anfang} />`;
+  });
+
+  const fluesse = aufbau.kanten.map(
+    (kante) => `    <bpmn:sequenceFlow id="${kante.id}" sourceRef="${kante.von}" targetRef="${kante.nach}" />`
+  );
+
+  const formen = aufbau.knoten.map(
+    (k) =>
+      `      <bpmndi:BPMNShape id="Form_${k.id}" bpmnElement="${k.id}"${
+        k.art === 'teilung' || k.art === 'vereinigung' ? ' isMarkerVisible="true"' : ''
+      }>\n        <dc:Bounds x="${k.x}" y="${Math.round(k.y)}" width="${k.breite}" height="${k.hoehe}" />\n      </bpmndi:BPMNShape>`
+  );
+
+  const linien = aufbau.kanten.map((kante) => {
+    const von = nachId.get(kante.von);
+    const nach = nachId.get(kante.nach);
+    const vonY = Math.round(von.y + von.hoehe / 2);
+    const nachY = Math.round(nach.y + nach.hoehe / 2);
+    const punkte = [
+      `          <di:waypoint x="${von.x + von.breite}" y="${vonY}" />`,
+      // Ein Knick, wenn die Zweige nicht auf einer Hoehe liegen - sonst
+      // zeichnen die Werkzeuge eine Schraege durch die Kacheln.
+      vonY !== nachY ? `          <di:waypoint x="${nach.x - 20}" y="${vonY}" />` : '',
+      vonY !== nachY ? `          <di:waypoint x="${nach.x - 20}" y="${nachY}" />` : '',
+      `          <di:waypoint x="${nach.x}" y="${nachY}" />`
+    ].filter(Boolean);
+    return `      <bpmndi:BPMNEdge id="Linie_${kante.id}" bpmnElement="${kante.id}">\n${punkte.join('\n')}\n      </bpmndi:BPMNEdge>`;
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!-- Erzeugt aus einer Klickstrecke des Screenarchivs${anwendung ? ' ' + anwendung : ''} am ${erzeugt} -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitionen_${kennung}" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="${prozess}" name="${m(String(strecke.name || 'Klickstrecke'))}" isExecutable="false">
+${[...elemente, ...fluesse].join('\n')}
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagramm_${kennung}">
+    <bpmndi:BPMNPlane id="Flaeche_${kennung}" bpmnElement="${prozess}">
+${[...formen, ...linien].join('\n')}
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+`;
 }
 
 /* ------------------------------------------- Auflösung und Vorschauen */

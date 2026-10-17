@@ -926,3 +926,47 @@ Browserspeicher, das volle Bild in die Datenbank. An der Aufnahme bleibt
 `einfuhr` stehen – Datei, Dateiart, Bildname, Folie –, damit später zu
 erkennen ist, woher sie kam. Von dort aus stehen sie dem Editor, der Strecke
 und dem Designstudio zur Verfügung.
+
+---
+
+## F-40 · Parallele Bilder und Platzhalter in der Strecke
+
+**Seit** 1.25.0 · **Ansicht** Strecke
+
+**Parallel** Ein Schritt kann mehrere Bilder tragen. Das heißt nicht
+„danach“, sondern „zugleich“: zwei Rollen sehen denselben Schritt
+verschieden, oder zwei Reiter werden nebeneinander gefüllt. Im Blatt werden
+sie als `3a`, `3b` gezählt, im Prozess zu einer parallelen Teilung.
+
+**Platzhalter** Ein Schritt ohne Bild, der sagt, welches Bild fehlt. Eine
+Lücke, die man sieht, wird gefüllt; eine, die fehlt, wird vergessen. Der
+Platzhalter steht in der Folge, im Text (`2. [Bild fehlt] …`) und im Blatt
+(gestrichelter Rahmen). Ohne Beschreibung gilt er als unfertig. Wird ihm ein
+Bild zugewiesen, ist er ein gewöhnlicher Schritt – die Anweisung bleibt.
+
+**Datensatz** Ein Schritt ist `{ art, aufnahmen: [...], text }`. Der alte
+Satz (`aufnahme` als eine Kennung) wandert beim Lesen mit.
+
+---
+
+## F-41 · Prozess aus der Strecke (BPMN 2.0)
+
+**Seit** 1.25.0 · **Ansicht** Strecke
+
+Aus der Folge wird ein Prozess: Start, je Schritt eine Aufgabe (`userTask`),
+Ende. Ein Schritt mit mehreren Bildern wird zu `parallelGateway` → Zweige →
+`parallelGateway`. Ein Platzhalter bleibt eine Aufgabe, gestrichelt und als
+`task` ohne Rolle – er ist noch nicht belegt.
+
+**Mit Diagramm** Die Datei trägt `bpmndi:BPMNDiagram` samt Koordinaten; in
+bpmn.io, Camunda oder Signavio steht der Prozess damit gelegt da statt leer.
+Die Rechnung (`bpmnAufbau`) läuft ohne DOM: Knoten, Kanten, Maße und Lage
+sind prüfbar.
+
+**Ausgabe** `prozess-<name>.bpmn` (XML) und `prozess-<name>.png` (dasselbe
+Bild, in doppelter Auflösung gezeichnet). Die Vorschau in der Ansicht hängt
+an derselben Rechnung – was dort steht, steht in der Datei.
+
+**Dokumentation am Knoten** Jede Aufgabe trägt `bpmn:documentation` mit
+Aufnahmekennung und Stelle im Handbuch; so bleibt der Weg zurück zum Bild
+offen. Freitext wird maskiert – ein Name mit `<` zerlegt das Dokument nicht.

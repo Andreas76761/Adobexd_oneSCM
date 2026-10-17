@@ -20,6 +20,34 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.25.0] – Strecke: parallel, lückenlos, als Prozess
+
+### Neu
+* Ein Schritt kann **mehrere Bilder parallel** tragen (F-40): im Blatt als
+  `3a`, `3b` gezählt, im Prozess eine parallele Teilung
+* **Platzhalter** für fehlende Bilder (F-40): sie stehen in der Folge, im
+  Text als `[Bild fehlt]` und im Blatt als gestrichelter Rahmen. Ohne
+  Beschreibung gelten sie als unfertig; mit Bild werden sie zum Schritt
+* **Prozess aus der Strecke als BPMN 2.0** (F-41) – mit Diagrammteil, also
+  im fremden Werkzeug gelegt statt leer. Dazu derselbe Prozess als **Bild**
+  und eine Vorschau in der Ansicht
+* Jede Aufgabe trägt `bpmn:documentation` mit Aufnahmekennung und Stelle im
+  Handbuch; Freitext wird maskiert
+
+### Geändert
+* Ein Streckenschritt ist jetzt `{ art, aufnahmen: [...], text }`; abgelegte
+  Strecken des alten Satzes (`aufnahme`) wandern beim Lesen mit
+* `blattRaster` kennt Marken und Platzhalter; eine leere Kachel bekommt das
+  Seitenverhältnis eines Bildschirms, damit die Zeile nicht einbricht
+
+### Kern
+* `platzhalterSchritt`, `fuegeParallelHinzu`, `entferneParallel`,
+  `schrittMarke`, `blattBilder`, `BPMN_MASSE`, `bpmnAufbau`, `streckeAlsBpmn`
+
+### Prüfung
+* 4 neue Kernprüfungen, 3 neue Browserprüfungen in `10-strecke.e2e.mjs`;
+  zusammen 311
+
 ## [1.24.0] – Import: aus bestehenden Dateien wird Galerie
 
 ### Neu

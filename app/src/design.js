@@ -38,11 +38,14 @@ function designSchritte() {
     if (!strecke) return { titel: '', schritte: [] };
     return {
       titel: strecke.name || 'Klickstrecke',
-      schritte: streckeMitAufnahmen(strecke, eingang).map((s) => ({
-        aufnahme: s.aufnahme,
-        anweisung: s.text,
-        nummer: s.nummer
-      }))
+      // Platzhalter haben kein Bild - auf ein Blatt kommen sie nicht.
+      schritte: streckeMitAufnahmen(strecke, eingang)
+        .filter((s) => s.aufnahme)
+        .map((s) => ({
+          aufnahme: s.aufnahme,
+          anweisung: s.text,
+          nummer: s.nummer
+        }))
     };
   }
   if (designQuelle.startsWith('kapitel:')) {

@@ -53,10 +53,20 @@ s.test('kein Platzhalter blieb stehen', () => {
 
 s.test('lädt von außen nur erlaubte Schriftquellen', () => {
   const erlaubt = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
-  // Die XML-Namensraum-Kennung ist keine Adresse, die abgerufen wird: sie steht
-  // im Skript, das die Beispielquelle als Bild aufbereitet.
-  const namensraum = 'http://www.w3.org/';
-  const verweise = (seite.match(/https?:\/\/[^"')\s\\]+/g) || []).filter((v) => !v.startsWith(namensraum));
+  // Eine XML-Namensraum-Kennung ist keine Adresse, die abgerufen wird: sie
+  // steht im Skript, das die Beispielquelle als Bild aufbereitet (w3.org) oder
+  // den Prozess als BPMN schreibt (omg.org, bpmn.io). Namensräume sind Namen -
+  // der Browser lädt sie nicht; abgerufen wird nur, was in src, href oder
+  // einem fetch steht, und das prüfen die Zeilen darunter.
+  const namensraeume = [
+    'http://www.w3.org/',
+    'http://www.omg.org/spec/BPMN/',
+    'http://www.omg.org/spec/DD/',
+    'http://bpmn.io/schema/bpmn'
+  ];
+  const verweise = (seite.match(/https?:\/\/[^"')\s\\]+/g) || []).filter(
+    (v) => !namensraeume.some((n) => v.startsWith(n))
+  );
   for (const v of verweise) {
     wahr(erlaubt.some((h) => v.startsWith(h)), `nicht erlaubte externe Quelle: ${v}`);
   }

@@ -733,9 +733,111 @@ s.test('Strecken überleben das Ablegen; Unbrauchbares fällt weg', () => {
   const zurueck = kern.leseStrecken(kern.schreibeStrecken([strecke]));
   gleich(zurueck.length, 1);
   gleich(zurueck[0].name, 'Vorlage anlegen');
-  gleich(zurueck[0].schritte[0].aufnahme, 'AUF-2026-001');
+  tieferGleich(zurueck[0].schritte[0].aufnahmen, ['AUF-2026-001']);
+  gleich(zurueck[0].schritte[0].art, 'schritt');
   tieferGleich(kern.leseStrecken('kein json'), []);
   gleich(kern.leseStrecken(JSON.stringify({ strecken: [{ name: 'ohne Kennung' }] })).length, 0);
+});
+
+s.test('ein Schritt kann mehrere Bilder parallel tragen', () => {
+  let schritte = [kern.streckeSchritt(streckenEingang[0], 'Vorlage anlegen')];
+  schritte = kern.fuegeParallelHinzu(schritte, 0, 'AUF-2026-002');
+  tieferGleich(schritte[0].aufnahmen, ['AUF-2026-001', 'AUF-2026-002']);
+  // Zweimal dasselbe Bild ist kein zweiter Zweig.
+  schritte = kern.fuegeParallelHinzu(schritte, 0, 'AUF-2026-002');
+  gleich(schritte[0].aufnahmen.length, 2);
+  gleich(kern.fuegeParallelHinzu(schritte, 9, 'AUF-2026-002')[0].aufnahmen.length, 2, 'außerhalb der Folge wird gesetzt');
+
+  const mit = kern.streckeMitAufnahmen({ ...kern.leereStrecke('x'), schritte }, streckenEingang)[0];
+  gleich(mit.aufnahmen.length, 2);
+  gleich(mit.aufnahme.id, 'AUF-2026-001', 'das erste Bild trägt den Schritt nicht');
+
+  // Das letzte Bild zu nehmen macht den Schritt zum Platzhalter - der Schritt
+  // verschwindet nicht, denn seine Anweisung bleibt gültig.
+  schritte = kern.entferneParallel(schritte, 0, 'AUF-2026-002');
+  tieferGleich(schritte[0].aufnahmen, ['AUF-2026-001']);
+  schritte = kern.entferneParallel(schritte, 0, 'AUF-2026-001');
+  gleich(schritte[0].art, 'platzhalter');
+  gleich(schritte[0].text, 'Vorlage anlegen');
+});
+
+s.test('ein Platzhalter steht in der Folge und verlangt eine Beschreibung', () => {
+  const strecke = {
+    ...kern.leereStrecke('Vorlage anlegen'),
+    schritte: [kern.streckeSchritt(streckenEingang[0], 'Menü öffnen'), kern.platzhalterSchritt('')]
+  };
+  const probleme = kern.pruefeStrecke(strecke, streckenEingang);
+  gleich(probleme.length, 1);
+  wahr(/sagt nicht, welches Bild fehlt/.test(probleme[0].text), 'der Platzhalter wird nicht verlangt: ' + probleme[0].text);
+  const gefuellt = { ...strecke, schritte: [strecke.schritte[0], kern.platzhalterSchritt('Freigabedialog fehlt')] };
+  gleich(kern.pruefeStrecke(gefuellt, streckenEingang).length, 0, 'ein beschriebener Platzhalter ist kein Fehler');
+  const mit = kern.streckeMitAufnahmen(gefuellt, streckenEingang);
+  gleich(mit.length, 2, 'der Platzhalter fällt aus der Folge');
+  gleich(mit[1].art, 'platzhalter');
+  wahr(kern.streckeAlsText(gefuellt, streckenEingang).includes('2. [Bild fehlt] Freigabedialog fehlt'));
+});
+
+s.test('die Marken eines Blattes zählen parallele Bilder als 3a und 3b', () => {
+  gleich(kern.schrittMarke(3, 1, 0), '3');
+  gleich(kern.schrittMarke(3, 2, 0), '3a');
+  gleich(kern.schrittMarke(3, 2, 1), '3b');
+  const schritte = kern.streckeMitAufnahmen(
+    {
+      ...kern.leereStrecke('x'),
+      schritte: [
+        kern.fuegeParallelHinzu([kern.streckeSchritt(streckenEingang[0], 'eins')], 0, 'AUF-2026-002')[0],
+        kern.platzhalterSchritt('fehlt')
+      ]
+    },
+    streckenEingang
+  );
+  const flach = kern.blattBilder(schritte);
+  tieferGleich(flach.map((b) => b.marke), ['1a', '1b', '2']);
+  gleich(flach[2].platzhalter, true);
+  // Ohne Maß bekommt der Platzhalter das Verhältnis eines Bildschirms.
+  const raster = kern.blattRaster(flach.map((b) => ({ ...b, breite: b.platzhalter ? 0 : 1600, hoehe: b.platzhalter ? 0 : 900 })), { spalten: 3, breite: 1600 });
+  gleich(raster.kacheln.length, 3);
+  gleich(raster.kacheln[2].marke, '2');
+  gleich(raster.kacheln[2].platzhalter, true);
+  wahr(raster.kacheln[2].bildHoehe > 0, 'die leere Kachel hat keine Höhe');
+});
+
+s.test('aus der Strecke wird ein Prozess mit paralleler Teilung', () => {
+  const schritte = [
+    kern.streckeSchritt(streckenEingang[0], 'Menü öffnen'),
+    kern.fuegeParallelHinzu([kern.streckeSchritt(streckenEingang[1], 'Beides füllen')], 0, 'AUF-2026-001')[0],
+    kern.platzhalterSchritt('Freigabedialog fehlt')
+  ];
+  const strecke = { ...kern.leereStrecke('Vorlage anlegen'), schritte };
+  const aufbau = kern.bpmnAufbau(strecke, streckenEingang);
+  tieferGleich(
+    aufbau.knoten.map((k) => k.art),
+    ['start', 'aufgabe', 'teilung', 'aufgabe', 'aufgabe', 'vereinigung', 'platzhalter', 'ende']
+  );
+  // Jeder Knoten hat eine Stelle, keiner liegt auf einem anderen.
+  wahr(aufbau.knoten.every((k) => k.x >= 0 && k.hoehe > 0), 'ein Knoten hat kein Maß');
+  const zweige = aufbau.knoten.filter((k) => k.id.startsWith('schritt_2_'));
+  wahr(zweige[0].y !== zweige[1].y, 'die parallelen Zweige liegen übereinander');
+  gleich(aufbau.kanten.length, 8);
+  wahr(aufbau.breite > 800 && aufbau.hoehe > 200);
+
+  const xml = kern.streckeAlsBpmn(strecke, streckenEingang, { erzeugt: '2026-10-17T10:00:00Z' });
+  wahr(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
+  wahr(xml.includes('<bpmn:process id="Prozess_STR-'), 'der Prozess fehlt');
+  gleich((xml.match(/<bpmn:parallelGateway/g) || []).length, 2, 'Teilung und Vereinigung fehlen');
+  gleich((xml.match(/<bpmn:userTask/g) || []).length, 3);
+  gleich((xml.match(/<bpmn:sequenceFlow/g) || []).length, 8);
+  wahr(xml.includes('<bpmndi:BPMNDiagram'), 'ohne Diagramm steht die Datei im Werkzeug leer da');
+  gleich((xml.match(/<bpmndi:BPMNShape/g) || []).length, 8);
+  wahr(xml.includes('<dc:Bounds'), 'die Koordinaten fehlen');
+  wahr(xml.includes('name="2a. Beides füllen"'), 'die Marke steht nicht am Zweig');
+  // Freitext darf das Dokument nicht zerlegen.
+  const boese = kern.streckeAlsBpmn(
+    { ...strecke, name: 'A & B <weg/>' },
+    streckenEingang
+  );
+  wahr(boese.includes('name="A &amp; B &lt;weg/&gt;"'), 'der Name wird nicht maskiert');
+  wahr(!boese.includes('<weg/>'), 'Freitext steht ungemaskiert im Dokument');
 });
 
 /* ------------------------------------------------------------- Labels */

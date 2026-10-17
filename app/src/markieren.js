@@ -1102,6 +1102,10 @@ function zeichneStrecke() {
     meldeStrecke(`${offen.schritte.length} Schritte – das Blatt lässt sich sichern.`, 'gut');
   }
   zeichneBlattVorschau();
+  zeichneProzessvorschau();
+  const hatSchritte = Boolean(offen && streckeMitAufnahmen(offen, eingang).length);
+  $('#strecke-bpmn').disabled = !hatSchritte;
+  $('#strecke-prozessbild').disabled = !hatSchritte;
 }
 
 /**
@@ -1123,7 +1127,43 @@ function aktualisiereStreckenstand() {
   // Die Vorschau behauptet, das Blatt zu zeigen - also muss sie mitlaufen.
   // Gedrosselt, weil jedes Zeichen sonst alle Bilder neu rechnen würde.
   clearTimeout(vorschauTakt);
-  vorschauTakt = setTimeout(zeichneBlattVorschau, 250);
+  vorschauTakt = setTimeout(() => {
+    zeichneBlattVorschau();
+    zeichneProzessvorschau();
+  }, 250);
+}
+
+/** Die Bildkacheln eines Schritts - eine je Bild, parallel nebeneinander. */
+function schrittBilder(schritt, index) {
+  const kennungen = schritt.aufnahmen || [];
+  if (!kennungen.length) {
+    return el('div', { klasse: 'schritt-bilder' }, [
+      el('div', { klasse: 'schritt-platzhalter', text: 'Bild fehlt noch' })
+    ]);
+  }
+  return el(
+    'div',
+    { klasse: 'schritt-bilder' },
+    kennungen.map((kennung, k) => {
+      const aufnahme = eingang.find((a) => a.id === kennung);
+      const marke = schrittMarke(index + 1, kennungen.length, k);
+      return el('figure', { klasse: 'schritt-bild' }, [
+        aufnahme
+          ? el('img', { src: anzeigeBild(aufnahme), alt: aufnahme.titel, loading: 'lazy' })
+          : el('span', { klasse: 'marke-fehlt', text: 'Aufnahme fehlt' }),
+        kennungen.length > 1 ? el('figcaption', { text: marke }) : null,
+        kennungen.length > 1
+          ? el('button', {
+              klasse: 'knopf knopf--klein schritt-bild-weg',
+              type: 'button',
+              title: `${marke} aus dem Schritt nehmen`,
+              text: '×',
+              onclick: () => aendereStrecke({ schritte: entferneParallel(aktuelleStrecke().schritte, index, kennung) })
+            })
+          : null
+      ]);
+    })
+  );
 }
 
 function zeichneStreckenschritte() {
@@ -1134,7 +1174,7 @@ function zeichneStreckenschritte() {
       el('p', {
         klasse: 'feld-hinweis',
         text: offen
-          ? 'Noch kein Schritt. Oben eine Aufnahme wählen und anhängen.'
+          ? 'Noch kein Schritt. Oben eine Aufnahme wählen und anhängen – oder einen Platzhalter setzen.'
           : 'Zuerst eine Strecke anlegen.'
       })
     );
@@ -1142,18 +1182,18 @@ function zeichneStreckenschritte() {
   }
   kasten.replaceChildren(
     ...offen.schritte.map((schritt, i) => {
-      const aufnahme = eingang.find((a) => a.id === schritt.aufnahme);
-      return el('div', { klasse: 'strecke-schritt' }, [
+      const platzhalter = schritt.art === 'platzhalter' || !(schritt.aufnahmen || []).length;
+      const erste = (schritt.aufnahmen || [])[0];
+      const aufnahme = erste ? eingang.find((a) => a.id === erste) : null;
+      return el('div', { klasse: 'strecke-schritt' + (platzhalter ? ' strecke-schritt--platzhalter' : '') }, [
         el('span', { klasse: 'schritt-nummer', text: String(i + 1) }),
-        aufnahme
-          ? el('img', { src: anzeigeBild(aufnahme), alt: aufnahme.titel, loading: 'lazy' })
-          : el('span', { klasse: 'marke-fehlt', text: 'Aufnahme fehlt' }),
+        schrittBilder(schritt, i),
         el('div', { klasse: 'schritt-text' }, [
           el('input', {
             type: 'text',
             id: 'schritt-text-' + i,
             value: schritt.text,
-            placeholder: 'Auf „Create Template“ klicken',
+            placeholder: platzhalter ? 'Welches Bild fehlt hier?' : 'Auf „Create Template“ klicken',
             // Der Stand kommt aus der Ablage, nicht aus dem Zeitpunkt des
             // Zeichnens: sonst überschreibt der zweite Text den ersten.
             oninput: (e) => {
@@ -1167,10 +1207,30 @@ function zeichneStreckenschritte() {
           }),
           el('span', {
             klasse: 'kennung',
-            text: aufnahme ? `${kapitelKennung(aufnahme) || '—'} · ${aufnahme.id}` : schritt.aufnahme
+            text: platzhalter
+              ? 'Platzhalter'
+              : `${kapitelKennung(aufnahme) || '—'} · ${(schritt.aufnahmen || []).join(' + ')}`
           })
         ]),
         el('div', { klasse: 'schritt-knoepfe' }, [
+          el('button', {
+            klasse: 'knopf knopf--klein',
+            type: 'button',
+            id: 'schritt-parallel-' + i,
+            text: platzhalter ? '+ Bild' : '+ parallel',
+            title: platzhalter
+              ? 'Die oben gewählte Aufnahme in diesen Platzhalter setzen'
+              : 'Die oben gewählte Aufnahme neben die bisherigen setzen',
+            onclick: () => {
+              const kennung = $('#strecke-aufnahme').value;
+              if (!kennung) {
+                meldeStrecke('Oben ist keine Aufnahme gewählt.', 'warnung');
+                return;
+              }
+              aendereStrecke({ schritte: fuegeParallelHinzu(aktuelleStrecke().schritte, i, kennung) });
+              meldeStrecke(`${kennung} steht nun in Schritt ${i + 1}.`, 'gut');
+            }
+          }),
           el('button', {
             klasse: 'knopf knopf--klein',
             type: 'button',
@@ -1213,10 +1273,22 @@ async function baueBlatt(breite = 1600) {
   if (!offen) return null;
   const schritte = streckeMitAufnahmen(offen, eingang);
   if (!schritte.length) return null;
+  // Flach heißt: ein Schritt mit zwei parallelen Bildern gibt zwei Kacheln,
+  // „3a" und „3b"; ein Platzhalter gibt eine leere.
   const bilder = [];
-  for (const schritt of schritte) {
-    const geladen = await ladeBild(anzeigeBild(schritt.aufnahme), 'eingang', schritt.aufnahme.titel);
-    bilder.push({ breite: geladen.naturalWidth || geladen.breite, hoehe: geladen.naturalHeight || geladen.hoehe, element: geladen.element, schritt });
+  for (const eintrag of blattBilder(schritte)) {
+    if (eintrag.platzhalter) {
+      bilder.push({ breite: 1600, hoehe: 1000, element: null, eintrag, marke: eintrag.marke, platzhalter: true });
+      continue;
+    }
+    const geladen = await ladeBild(anzeigeBild(eintrag.aufnahme), 'eingang', eintrag.aufnahme.titel);
+    bilder.push({
+      breite: geladen.naturalWidth || geladen.breite,
+      hoehe: geladen.naturalHeight || geladen.hoehe,
+      element: geladen.element,
+      eintrag,
+      marke: eintrag.marke
+    });
   }
   const raster = blattRaster(bilder, { spalten: Number(offen.spalten) || 2, breite });
   const leinwand = document.createElement('canvas');
@@ -1237,14 +1309,32 @@ async function baueBlatt(breite = 1600) {
   stift.fillText(`${schritte.length} Schritte · ${formatiereZeitpunkt(new Date().toISOString())}`, 24, 76);
 
   raster.kacheln.forEach((kachel, i) => {
-    const { element, schritt } = bilder[i];
+    const { element, eintrag, platzhalter } = bilder[i];
+    const schritt = eintrag.schritt;
     stift.save();
     stift.fillStyle = token('--flaeche-2', '#F6F7FA');
     stift.fillRect(kachel.x, kachel.y, kachel.breite, kachel.hoehe);
-    stift.drawImage(element, kachel.x, kachel.y, kachel.breite, kachel.bildHoehe);
-    stift.strokeStyle = token('--linie', '#D6DBE4');
-    stift.lineWidth = 1;
-    stift.strokeRect(kachel.x + 0.5, kachel.y + 0.5, kachel.breite - 1, kachel.bildHoehe - 1);
+    if (platzhalter) {
+      // Eine Lücke, die man sieht, wird gefüllt - darum gestrichelt und
+      // benannt, nicht einfach weggelassen.
+      stift.setLineDash([12, 10]);
+      stift.strokeStyle = token('--warn', '#9A6B1F');
+      stift.lineWidth = 3;
+      stift.strokeRect(kachel.x + 2, kachel.y + 2, kachel.breite - 4, kachel.bildHoehe - 4);
+      stift.setLineDash([]);
+      stift.fillStyle = token('--tinte-3', '#77839A');
+      stift.font = `500 26px ${token('--schrift-text', 'sans-serif')}`;
+      stift.textAlign = 'center';
+      stift.textBaseline = 'middle';
+      stift.fillText('Bild fehlt', kachel.x + kachel.breite / 2, kachel.y + kachel.bildHoehe / 2);
+      stift.textAlign = 'left';
+      stift.textBaseline = 'alphabetic';
+    } else {
+      stift.drawImage(element, kachel.x, kachel.y, kachel.breite, kachel.bildHoehe);
+      stift.strokeStyle = token('--linie', '#D6DBE4');
+      stift.lineWidth = 1;
+      stift.strokeRect(kachel.x + 0.5, kachel.y + 0.5, kachel.breite - 1, kachel.bildHoehe - 1);
+    }
 
     // Nummernkreis in der Ecke
     const r = 20;
@@ -1256,14 +1346,14 @@ async function baueBlatt(breite = 1600) {
     stift.font = `600 22px ${token('--schrift-display', 'sans-serif')}`;
     stift.textAlign = 'center';
     stift.textBaseline = 'middle';
-    stift.fillText(String(kachel.nummer), kachel.x + r + 8, kachel.y + r + 9);
+    stift.fillText(String(kachel.marke || kachel.nummer), kachel.x + r + 8, kachel.y + r + 9);
 
     // Anweisung unter der Kachel
     stift.textAlign = 'left';
     stift.textBaseline = 'top';
     stift.fillStyle = token('--tinte', '#141A24');
     stift.font = `500 20px ${token('--schrift-text', 'sans-serif')}`;
-    const text = `${kachel.nummer}. ${String(schritt.text || '').trim()}`;
+    const text = `${kachel.marke || kachel.nummer}. ${String(schritt.text || '').trim()}`;
     stift.save();
     stift.beginPath();
     stift.rect(kachel.x, kachel.y + kachel.bildHoehe + 8, kachel.breite, 56);
@@ -1273,7 +1363,7 @@ async function baueBlatt(breite = 1600) {
     stift.fillStyle = token('--tinte-3', '#77839A');
     stift.font = `400 14px ${token('--schrift-mono', 'monospace')}`;
     stift.fillText(
-      bildunterschrift(schritt.aufnahme),
+      platzhalter ? 'Platzhalter – noch keine Aufnahme' : bildunterschrift(eintrag.aufnahme),
       kachel.x + 2,
       kachel.y + kachel.bildHoehe + 36
     );
@@ -1324,6 +1414,175 @@ async function sichereBlatt() {
   );
 }
 
+/* ------------------------------------------------------------- Prozess */
+
+/**
+ * Zeichnet den Prozess: Start, Aufgaben, parallele Teilungen, Ende. Gerechnet
+ * wird in BPMN-Punkten (`bpmnAufbau`), gezeichnet in doppelter Auflösung -
+ * sonst ist die Schrift im gesicherten Bild unscharf.
+ */
+function zeichneProzessbild(aufbau, massstab = 2) {
+  const leinwand = document.createElement('canvas');
+  leinwand.width = Math.round(aufbau.breite * massstab);
+  leinwand.height = Math.round(aufbau.hoehe * massstab);
+  const stift = leinwand.getContext('2d');
+  stift.scale(massstab, massstab);
+  stift.fillStyle = token('--flaeche', '#FFFFFF');
+  stift.fillRect(0, 0, aufbau.breite, aufbau.hoehe);
+
+  // Erst die Linien, damit die Kästen darüber liegen.
+  const nachId = new Map(aufbau.knoten.map((k) => [k.id, k]));
+  stift.strokeStyle = token('--tinte-3', '#77839A');
+  stift.fillStyle = token('--tinte-3', '#77839A');
+  stift.lineWidth = 1.6;
+  for (const kante of aufbau.kanten) {
+    const von = nachId.get(kante.von);
+    const nach = nachId.get(kante.nach);
+    if (!von || !nach) continue;
+    const vonY = von.y + von.hoehe / 2;
+    const nachY = nach.y + nach.hoehe / 2;
+    const vonX = von.x + von.breite;
+    const knick = nach.x - 20;
+    stift.beginPath();
+    stift.moveTo(vonX, vonY);
+    if (Math.abs(vonY - nachY) > 1) {
+      stift.lineTo(knick, vonY);
+      stift.lineTo(knick, nachY);
+    }
+    stift.lineTo(nach.x, nachY);
+    stift.stroke();
+    // Pfeilspitze
+    stift.beginPath();
+    stift.moveTo(nach.x, nachY);
+    stift.lineTo(nach.x - 9, nachY - 4.5);
+    stift.lineTo(nach.x - 9, nachY + 4.5);
+    stift.closePath();
+    stift.fill();
+  }
+
+  for (const knoten of aufbau.knoten) {
+    const mx = knoten.x + knoten.breite / 2;
+    const my = knoten.y + knoten.hoehe / 2;
+    stift.lineWidth = 2;
+    if (knoten.art === 'start' || knoten.art === 'ende') {
+      stift.beginPath();
+      stift.arc(mx, my, knoten.breite / 2, 0, Math.PI * 2);
+      stift.fillStyle = token('--flaeche', '#FFFFFF');
+      stift.fill();
+      stift.strokeStyle = knoten.art === 'ende' ? token('--tinte', '#141A24') : token('--tinte-2', '#4A5769');
+      stift.lineWidth = knoten.art === 'ende' ? 4 : 2;
+      stift.stroke();
+      stift.fillStyle = token('--tinte-3', '#77839A');
+      stift.font = `400 12px ${token('--schrift-mono', 'monospace')}`;
+      stift.textAlign = 'center';
+      stift.textBaseline = 'top';
+      stift.fillText(knoten.name, mx, knoten.y + knoten.hoehe + 6);
+      continue;
+    }
+    if (knoten.art === 'teilung' || knoten.art === 'vereinigung') {
+      stift.beginPath();
+      stift.moveTo(mx, knoten.y);
+      stift.lineTo(knoten.x + knoten.breite, my);
+      stift.lineTo(mx, knoten.y + knoten.hoehe);
+      stift.lineTo(knoten.x, my);
+      stift.closePath();
+      stift.fillStyle = token('--flaeche', '#FFFFFF');
+      stift.fill();
+      stift.strokeStyle = token('--tinte-2', '#4A5769');
+      stift.stroke();
+      // Das Kreuz: parallel, nicht „entweder oder".
+      stift.beginPath();
+      stift.moveTo(mx - 9, my);
+      stift.lineTo(mx + 9, my);
+      stift.moveTo(mx, my - 9);
+      stift.lineTo(mx, my + 9);
+      stift.stroke();
+      continue;
+    }
+    // Aufgabe oder Platzhalter
+    const platzhalter = knoten.art === 'platzhalter';
+    stift.beginPath();
+    const r = 8;
+    stift.moveTo(knoten.x + r, knoten.y);
+    stift.arcTo(knoten.x + knoten.breite, knoten.y, knoten.x + knoten.breite, knoten.y + knoten.hoehe, r);
+    stift.arcTo(knoten.x + knoten.breite, knoten.y + knoten.hoehe, knoten.x, knoten.y + knoten.hoehe, r);
+    stift.arcTo(knoten.x, knoten.y + knoten.hoehe, knoten.x, knoten.y, r);
+    stift.arcTo(knoten.x, knoten.y, knoten.x + knoten.breite, knoten.y, r);
+    stift.closePath();
+    stift.fillStyle = platzhalter ? token('--flaeche-2', '#F6F7FA') : token('--flaeche', '#FFFFFF');
+    stift.fill();
+    stift.strokeStyle = platzhalter ? token('--warn', '#9A6B1F') : token('--tinte-2', '#4A5769');
+    if (platzhalter) stift.setLineDash([7, 5]);
+    stift.stroke();
+    stift.setLineDash([]);
+
+    stift.fillStyle = token('--tinte', '#141A24');
+    stift.font = `500 13px ${token('--schrift-text', 'sans-serif')}`;
+    stift.textAlign = 'center';
+    stift.textBaseline = 'middle';
+    const zeilen = umbrich(stift, knoten.name, knoten.breite - 18).slice(0, 4);
+    const start = my - ((zeilen.length - 1) * 17) / 2;
+    zeilen.forEach((zeile, i) => stift.fillText(zeile, mx, start + i * 17));
+  }
+  stift.textAlign = 'left';
+  stift.textBaseline = 'alphabetic';
+  return leinwand;
+}
+
+/** Die Vorschau des Prozesses - sie hängt an derselben Rechnung wie die Datei. */
+function zeichneProzessvorschau() {
+  const schau = $('#strecke-prozess');
+  const offen = aktuelleStrecke();
+  const schritte = offen ? streckeMitAufnahmen(offen, eingang) : [];
+  if (!offen || !schritte.length) {
+    schau.hidden = true;
+    return;
+  }
+  const bild = zeichneProzessbild(bpmnAufbau(offen, eingang), 2);
+  schau.hidden = false;
+  schau.width = bild.width;
+  schau.height = bild.height;
+  schau.getContext('2d').drawImage(bild, 0, 0);
+}
+
+async function sichereBpmn() {
+  const offen = aktuelleStrecke();
+  if (!offen) return;
+  const schritte = streckeMitAufnahmen(offen, eingang);
+  if (!schritte.length) {
+    meldeStrecke('Die Strecke hat keinen Schritt – es gibt keinen Prozess.', 'warnung');
+    return;
+  }
+  const xml = streckeAlsBpmn(offen, eingang, { anwendung: DATEN.anwendung });
+  const name = `prozess-${bereinigeDateiname(offen.name) || 'ohne-namen'}.bpmn`;
+  const ergebnis = await uebergebeDatei(name, new Blob([xml], { type: 'application/xml' }));
+  const parallel = schritte.filter((s) => s.aufnahmen.length > 1).length;
+  const luecken = schritte.filter((s) => s.art === 'platzhalter').length;
+  meldeStrecke(
+    ergebnis.art === 'gesichert'
+      ? `${name} gesichert – ${schritte.length} Schritte, ${parallel} parallel, ${luecken} Platzhalter.`
+      : ergebnis.art === 'ohne'
+        ? 'Diese Ansicht darf keine Dateien ablegen. Der Prozess bleibt in der Vorschau.'
+        : 'Das Sichern wurde abgebrochen oder ist fehlgeschlagen.',
+    ergebnis.art === 'gesichert' ? 'gut' : 'warnung'
+  );
+}
+
+async function sichereProzessbild() {
+  const offen = aktuelleStrecke();
+  if (!offen || !streckeMitAufnahmen(offen, eingang).length) return;
+  const bild = zeichneProzessbild(bpmnAufbau(offen, eingang), 2);
+  const blob = await new Promise((fertig) => bild.toBlob(fertig, 'image/png'));
+  const name = `prozess-${bereinigeDateiname(offen.name) || 'ohne-namen'}.png`;
+  const ergebnis = await uebergebeDatei(name, blob);
+  meldeStrecke(
+    ergebnis.art === 'gesichert'
+      ? `${name} gesichert (${formatiereBytes(ergebnis.groesse)}).`
+      : 'Das Sichern wurde abgebrochen oder ist fehlgeschlagen.',
+    ergebnis.art === 'gesichert' ? 'gut' : 'warnung'
+  );
+}
+
 /* --------------------------------------------------------- Verdrahtung */
 
 function verdrahteStrecke() {
@@ -1355,7 +1614,21 @@ function verdrahteStrecke() {
     const feld = document.getElementById('schritt-text-' + offen.schritte.length);
     if (feld) feld.focus({ preventScroll: true });
   });
+  $('#strecke-platzhalter').addEventListener('click', () => {
+    const offen = aktuelleStrecke();
+    if (!offen) {
+      meldeStrecke('Zuerst eine Strecke anlegen.', 'warnung');
+      return;
+    }
+    aendereStrecke({ schritte: [...aktuelleStrecke().schritte, platzhalterSchritt('')] });
+    const feld = document.getElementById('schritt-text-' + offen.schritte.length);
+    if (feld) feld.focus({ preventScroll: true });
+    // Die Meldung bleibt die der Prüfung: ein Platzhalter ohne Beschreibung
+    // ist noch nichts wert, und das soll da stehen.
+  });
   $('#strecke-blatt').addEventListener('click', sichereBlatt);
+  $('#strecke-bpmn').addEventListener('click', sichereBpmn);
+  $('#strecke-prozessbild').addEventListener('click', sichereProzessbild);
   $('#strecke-loeschen').addEventListener('click', () => {
     const offen = aktuelleStrecke();
     if (!offen) return;
