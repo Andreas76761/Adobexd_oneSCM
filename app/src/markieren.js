@@ -20,9 +20,11 @@ let markierBild = null; // HTMLImageElement der Originalaufnahme
 let markierUnterschrift = true; // Nummer und Zeitstempel ins Bild brennen
 let markierKapitel = { kapitel: '', unterkapitel: '' };
 let markierStelle = ''; // Nummer in der Gliederung des Handbuchs
+let markierLabels = {}; // Sprache, Rolle, Sparte, Markt, Domäne, Reiter, Schritt
 let markierVerlauf = []; // Stände vor jeder Änderung – für Rückgängig
 let markierZurueck = []; // zurückgenommene Stände – für Wiederholen
 let markierZug = null; // laufendes Aufziehen
+let markierSchub = null; // laufendes Verschieben einer Marke
 let markierGesichert = true;
 
 const markierAufnahme = () => eingang.find((a) => a.id === markierKennung) || null;
@@ -146,6 +148,7 @@ function baueMarkierteLeinwand(mitAuswahl = false) {
   const massstab = 1;
   for (const marke of marken) {
     if (marke.art === 'unkenntlich') machUnkenntlich(stift, markierBild, marke);
+    else if (marke.art === 'label') zeichneLabelmarke(stift, marke);
     else zeichneRahmen(stift, marke, massstab, leinwand.width);
   }
   if (streifen) {
@@ -168,6 +171,33 @@ function markierUnterschriftText() {
     },
     aufnahme.erfasst_am
   );
+}
+
+/**
+ * Ein Label im Bild: ein gefülltes Feld mit Text, kein Rahmen. Es deckt
+ * nichts ab, sondern beschriftet - darum liegt es auf dem Bild und nicht
+ * darum herum.
+ */
+function zeichneLabelmarke(stift, marke) {
+  const text = String(marke.text || '').trim();
+  if (!text) return;
+  const hoehe = Math.max(18, marke.hoehe);
+  const schrift = Math.round(hoehe * 0.58);
+  stift.save();
+  stift.font = `500 ${schrift}px ${token('--schrift-text', 'sans-serif')}`;
+  const breite = Math.round(stift.measureText(text).width + hoehe * 0.9);
+  marke.breite = breite;
+  marke.hoehe = hoehe;
+  stift.fillStyle = token('--tinte', '#141A24');
+  const r = Math.round(hoehe * 0.28);
+  stift.beginPath();
+  stift.roundRect(marke.x, marke.y, breite, hoehe, r);
+  stift.fill();
+  stift.fillStyle = token('--grund', '#EDEFF3');
+  stift.textAlign = 'left';
+  stift.textBaseline = 'middle';
+  stift.fillText(text, marke.x + hoehe * 0.45, marke.y + hoehe / 2 + 1);
+  stift.restore();
 }
 
 /** Die gewählte Marke bekommt eine gestrichelte Hülle - nur auf dem Schirm. */
@@ -228,6 +258,9 @@ function beginneZug(e) {
   );
   if (getroffen) {
     waehleMarke(getroffen.id);
+    // Eine getroffene Marke wird verschoben, nicht neu aufgezogen.
+    markierSchub = { id: getroffen.id, von: punkt, start: { x: getroffen.x, y: getroffen.y }, bewegt: false };
+    $('#markier-buehne').setPointerCapture?.(e.pointerId);
     return;
   }
   markierZug = { start: punkt, x: punkt.x, y: punkt.y, breite: 0, hoehe: 0 };
@@ -235,6 +268,27 @@ function beginneZug(e) {
 }
 
 function fuehreZug(e) {
+  if (markierSchub) {
+    const punkt = punktAusEreignis(e);
+    const marke = marken.find((m) => m.id === markierSchub.id);
+    if (!marke) return;
+    if (!markierSchub.bewegt) {
+      merkeStand();
+      markierSchub.bewegt = true;
+    }
+    const quelle = { breite: markierBild.naturalWidth, hoehe: markierBild.naturalHeight };
+    const gerueckt = bewegeMarke(
+      { ...marke, x: markierSchub.start.x, y: markierSchub.start.y },
+      punkt.x - markierSchub.von.x,
+      punkt.y - markierSchub.von.y,
+      quelle
+    );
+    marke.x = gerueckt.x;
+    marke.y = gerueckt.y;
+    markierGesichert = false;
+    zeichneMarkierflaeche();
+    return;
+  }
   if (!markierZug) return;
   const punkt = punktAusEreignis(e);
   markierZug = {
@@ -248,6 +302,15 @@ function fuehreZug(e) {
 }
 
 function beendeZug() {
+  if (markierSchub) {
+    const bewegt = markierSchub.bewegt;
+    markierSchub = null;
+    if (bewegt) {
+      $('#markier-sichern').disabled = !markierBild;
+      zeichneMarkenliste();
+    }
+    return;
+  }
   if (!markierZug) return;
   const roh = markierZug;
   markierZug = null;
@@ -371,7 +434,15 @@ function zeichneMarkenliste() {
       const art = MARKEN_ARTEN.find((a) => a.id === marke.art) || MARKEN_ARTEN[0];
       const kinder = [
         el('div', { klasse: 'marke-kopf' }, [
-          el('span', { klasse: 'marke-art', text: marke.art === 'schritt' ? `${marke.nummer}. Schritt` : art.label }),
+          el('span', {
+          klasse: 'marke-art',
+          text:
+            marke.art === 'schritt'
+              ? `${marke.nummer}. Schritt`
+              : marke.art === 'label'
+                ? `Label ${labelBezeichnung(marke.feld)}`
+                : art.label
+        }),
           el('span', { klasse: 'kennung', text: `${marke.breite} × ${marke.hoehe} px` }),
           el('button', {
             klasse: 'knopf knopf--klein',
@@ -385,7 +456,14 @@ function zeichneMarkenliste() {
           })
         ])
       ];
-      if (marke.art === 'unkenntlich') {
+      if (marke.art === 'label') {
+        kinder.push(
+          el('p', {
+            klasse: 'feld-hinweis',
+            text: `${marke.text} – ziehen verschiebt, Entfernen nimmt es aus dem Bild.`
+          })
+        );
+      } else if (marke.art === 'unkenntlich') {
         kinder.push(
           el('div', { klasse: 'feld' }, [
             el('label', { for: 'marke-stufe-' + marke.id, text: 'Raster' }),
@@ -574,6 +652,8 @@ async function waehleMarkierAufnahme(kennung) {
   markierStelle = String(aufnahme.gliederung || '');
   $('#markier-stelle').value = markierStelle;
   zeigeStellenthema();
+  markierLabels = Object.fromEntries(LABEL_FELDER.map((f) => [f.id, aufnahme[f.id] || '']));
+  zeichneLabelfelder();
   try {
     // Immer das Original in voller Auflösung - gearbeitet wird am Besten,
     // was da ist, nicht an der Vorschau.
@@ -617,6 +697,7 @@ function sichereMarkierung() {
   legeVollbildAb(`${aufnahme.id}:${nummer}`, leinwand.toDataURL('image/png'));
   const gepflegt = {
     ...aufnahme,
+    ...markierLabels,
     gliederung: markierStelle || undefined,
     kapitel: Number(markierKapitel.kapitel) || undefined,
     unterkapitel: Number(markierKapitel.unterkapitel) || undefined,
@@ -695,7 +776,7 @@ function entferneAlleMarken() {
 
 function verdrahteMarkieren() {
   $('#markier-werkzeuge').replaceChildren(
-    ...MARKEN_ARTEN.map((art) =>
+    ...WERKZEUGE.map((art) =>
       el('button', {
         type: 'button',
         'data-werkzeug': art.id,
@@ -738,6 +819,8 @@ function verdrahteMarkieren() {
     zeichneMarkierflaeche();
     $('#markier-sichern').disabled = !markierBild;
   });
+  $('#label-ins-bild').addEventListener('click', setzeLabelsInsBild);
+  $('#label-aus-bild').addEventListener('click', nimmLabelsAusBild);
   $('#markier-unterschrift').addEventListener('change', (e) => {
     markierUnterschrift = e.target.checked;
     markierGesichert = false;
@@ -773,6 +856,123 @@ function verdrahteMarkieren() {
   });
   $('#markier-rueckgaengig').addEventListener('click', machRueckgaengig);
   $('#markier-wiederher').addEventListener('click', machWiederher);
+}
+
+/**
+ * Die Labelfelder: Sprache, Rolle und Sparte aus fester Auswahl, Markt,
+ * Domaene, Reiter und Schritt als Text mit Vorschlaegen aus dem, was schon
+ * verwendet wurde. Ein festes Verzeichnis der Maerkte und Masken waere
+ * morgen falsch; das Vokabular entsteht aus der Arbeit.
+ */
+function zeichneLabelfelder() {
+  const kasten = $('#label-felder');
+  if (!kasten) return;
+  kasten.replaceChildren(
+    ...LABEL_FELDER.map((feld) => {
+      const id = 'label-' + feld.id;
+      const beschriftung = el('label', { for: id }, [
+        symbol(feld.symbol),
+        el('span', { text: feld.label })
+      ]);
+      const aendere = (wert) => {
+        markierLabels = { ...markierLabels, [feld.id]: wert };
+        markierGesichert = false;
+        aktualisiereLabelkette();
+        // Ein Label im Bild traegt den Text mit - also neu zeichnen.
+        for (const marke of marken) {
+          if (marke.art === 'label' && marke.feld === feld.id) marke.text = labelWert(feld.id, wert);
+        }
+        zeichneMarkierflaeche();
+        $('#markier-sichern').disabled = !markierBild;
+      };
+      const eingabe = feld.frei
+        ? el('input', {
+            type: 'text',
+            id,
+            value: markierLabels[feld.id] || '',
+            list: 'vorschlag-' + feld.id,
+            placeholder: feld.id === 'markt' ? 'Germany' : '',
+            oninput: (e) => aendere(e.target.value)
+          })
+        : el(
+            'select',
+            { id, onchange: (e) => aendere(e.target.value) },
+            [
+              el('option', { value: '', text: 'ohne' }),
+              ...feld.werte.map((w) =>
+                el('option', { value: w.id, text: w.label, selected: w.id === markierLabels[feld.id] })
+              )
+            ]
+          );
+      const kinder = [beschriftung, eingabe];
+      if (feld.frei) {
+        kinder.push(
+          el(
+            'datalist',
+            { id: 'vorschlag-' + feld.id },
+            labelVorschlaege(eingang, feld.id).slice(0, 40).map((w) => el('option', { value: w }))
+          )
+        );
+      }
+      return el('div', { klasse: 'feld label-feld' }, kinder);
+    })
+  );
+  aktualisiereLabelkette();
+}
+
+const labelBezeichnung = (feld) => (LABEL_FELDER.find((f) => f.id === feld) || { label: '' }).label;
+
+/** Ein Symbol aus dem Vorrat der Seite - keine externen Bilder. */
+function symbol(name) {
+  const knoten = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  knoten.setAttribute('class', 'symbol');
+  knoten.setAttribute('aria-hidden', 'true');
+  const nutzung = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  nutzung.setAttribute('href', '#sym-' + name);
+  knoten.append(nutzung);
+  return knoten;
+}
+
+function aktualisiereLabelkette() {
+  const kette = labelKette(markierLabels);
+  $('#label-kette').textContent = kette || 'noch keine';
+}
+
+/** Setzt für jedes gesetzte Label eine Marke ins Bild, untereinander. */
+function setzeLabelsInsBild() {
+  if (!markierBild) return;
+  const vorhandene = new Set(marken.filter((m) => m.art === 'label').map((m) => m.feld));
+  const liste = labelListe(markierLabels).filter((l) => !vorhandene.has(l.feld));
+  if (!liste.length) {
+    meldeMarkieren('Alle gesetzten Labels stehen schon im Bild.', 'neutral');
+    return;
+  }
+  merkeStand();
+  const hoehe = Math.max(26, Math.round(markierBild.naturalHeight * 0.035));
+  let y = Math.round(hoehe * 0.6);
+  const neue = liste.map((l) => {
+    const marke = leereMarke('label', { x: Math.round(hoehe * 0.6), y, breite: Math.round(hoehe * 7), hoehe }, marken);
+    marke.text = l.wert;
+    marke.feld = l.feld;
+    y += Math.round(hoehe * 1.25);
+    return marke;
+  });
+  marken = [...marken, ...neue];
+  markierGesichert = false;
+  meldeMarkieren(`${neue.length} Labels ins Bild gesetzt – ziehen verschiebt sie, Entf nimmt sie wieder heraus.`, 'gut');
+  zeichneMarkieren();
+}
+
+function nimmLabelsAusBild() {
+  if (!marken.some((m) => m.art === 'label')) {
+    meldeMarkieren('Im Bild steht kein Label.', 'neutral');
+    return;
+  }
+  merkeStand();
+  marken = marken.filter((m) => m.art !== 'label');
+  markierGesichert = false;
+  meldeMarkieren('Labels aus dem Bild genommen – die Angaben bleiben an der Aufnahme.', 'neutral');
+  zeichneMarkieren();
 }
 
 /** Höchstens 60 Vorschläge - eine Liste mit 1153 Einträgen hilft niemandem. */
@@ -1183,6 +1383,7 @@ const GLIEDERUNG = leseGliederung(DATEN.gliederung || {});
 let gliederungSuche = '';
 let gliederungZeigen = 'alle';
 let gliederungOffen = new Set();
+let gliederungStelle = ''; // gewählte Stelle für Teilschritte und Beschreibung
 
 /** Die Stellen, die nach Suche und Filter übrig bleiben. */
 function sichtbareStellen() {
@@ -1226,6 +1427,65 @@ function zeichneGliederung() {
       .map((knoten) => zeichneStelle(knoten, zahlen, sichtbareNummern))
       .filter(Boolean)
   );
+  zeichneTeilschritte();
+}
+
+/**
+ * Rechts neben dem Baum: welche Sprachen, Rollen, Domänen, Reiter und
+ * Schritte an der gewählten Stelle liegen – mit Zahl. Darunter steht, was
+ * die Gliederung zu dieser Stelle sagt.
+ */
+function zeichneTeilschritte() {
+  const stelle = gliederungStelle;
+  $('#teilschritt-stelle').textContent = stelle || 'alle Bilder';
+  const gruppen = teilschritte(eingang, stelle);
+  const liste = $('#teilschritt-liste');
+  liste.replaceChildren(
+    ...(gruppen.length
+      ? gruppen.map((gruppe) =>
+          el('div', { klasse: 'teilschritt-gruppe' }, [
+            el('h3', { klasse: 'teilschritt-titel' }, [symbol(gruppe.symbol), el('span', { text: gruppe.bezeichnung })]),
+            el(
+              'div',
+              { klasse: 'teilschritt-werte' },
+              gruppe.werte.map((w) =>
+                el('span', { klasse: 'teilschritt-wert' }, [
+                  el('span', { text: w.wert }),
+                  el('span', { klasse: 'teilschritt-zahl', text: String(w.zahl) })
+                ])
+              )
+            )
+          ])
+        )
+      : [
+          el('p', {
+            klasse: 'feld-hinweis',
+            text: stelle
+              ? 'An dieser Stelle liegt noch kein Bild mit Labels.'
+              : 'Noch keine Bilder mit Labels – im Editor unter „Labels“ zu setzen.'
+          })
+        ])
+  );
+
+  const beschreibung = $('#stelle-beschreibung');
+  const eintrag = stelle && GLIEDERUNG.find((e) => e.nummer === stelle);
+  if (!eintrag) {
+    beschreibung.hidden = true;
+    return;
+  }
+  beschreibung.hidden = false;
+  beschreibung.replaceChildren(
+    el('h3', { klasse: 'beschreibung-titel', text: `${eintrag.nummer} ${eintrag.thema}` }),
+    ...(eintrag.kriterium
+      ? [el('p', { klasse: 'beschreibung-schild', text: 'Abschlusskriterium' }), el('p', { text: eintrag.kriterium })]
+      : []),
+    ...(eintrag.notiz
+      ? [el('p', { klasse: 'beschreibung-schild', text: 'Nachweis und Quelle' }), el('p', { text: eintrag.notiz })]
+      : []),
+    ...(eintrag.text
+      ? [el('p', { klasse: 'beschreibung-schild', text: 'Übergang' }), el('p', { text: eintrag.text })]
+      : [])
+  );
 }
 
 /** Eine Stelle mit ihren Kindern; Zweige ohne Treffer fallen weg. */
@@ -1253,8 +1513,19 @@ function zeichneStelle(knoten, zahlen, sichtbar) {
           }
         })
       : el('span', { klasse: 'stelle-schalter stelle-schalter--leer', text: '·' }),
-    el('span', { klasse: 'stelle-nummer', text: knoten.nummer }),
-    el('span', { klasse: 'stelle-thema', text: knoten.thema }),
+    el('button', {
+      klasse: 'stelle-waehlen' + (knoten.nummer === gliederungStelle ? ' stelle-waehlen--an' : ''),
+      type: 'button',
+      'data-waehlen': knoten.nummer,
+      title: 'Teilschritte und Beschreibung zeigen',
+      onclick: () => {
+        gliederungStelle = gliederungStelle === knoten.nummer ? '' : knoten.nummer;
+        zeichneGliederung();
+      }
+    }, [
+      el('span', { klasse: 'stelle-nummer', text: knoten.nummer }),
+      el('span', { klasse: 'stelle-thema', text: knoten.thema })
+    ]),
     el('span', {
       klasse: 'stelle-zahl' + (zahl.gesamt ? ' stelle-zahl--voll' : ''),
       text: zahl.eigene === zahl.gesamt ? String(zahl.gesamt) : `${zahl.eigene} (${zahl.gesamt})`,

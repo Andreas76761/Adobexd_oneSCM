@@ -6,6 +6,40 @@
 /*%STYLES%*/
 </style>
 
+<svg class="symbolvorrat" aria-hidden="true" focusable="false" width="0" height="0">
+  <defs>
+    <symbol id="sym-sprache" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 2.6 15.4 0 18M12 3c-2.6 2.6-2.6 15.4 0 18"/>
+    </symbol>
+    <symbol id="sym-rolle" viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.6 7-5.6s7 2 7 5.6"/>
+    </symbol>
+    <symbol id="sym-sparte" viewBox="0 0 24 24">
+      <path d="M3 14.5h18M4.5 14.5l1.8-5.2A2 2 0 0 1 8.2 8h7.6a2 2 0 0 1 1.9 1.3l1.8 5.2"/>
+      <path d="M4 14.5V18h3v-3.5M17 14.5V18h3v-3.5"/><circle cx="7.5" cy="14.5" r="1.4"/><circle cx="16.5" cy="14.5" r="1.4"/>
+    </symbol>
+    <symbol id="sym-markt" viewBox="0 0 24 24">
+      <path d="M6 21V4M6 4h11l-2.2 3.4L17 11H6"/>
+    </symbol>
+    <symbol id="sym-domaene" viewBox="0 0 24 24">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.4"/>
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.4"/>
+    </symbol>
+    <symbol id="sym-reiter" viewBox="0 0 24 24">
+      <path d="M3 9h18v11H3zM3 9l2.5-4h5L13 9"/>
+    </symbol>
+    <symbol id="sym-schritt" viewBox="0 0 24 24">
+      <path d="M5 3.5l12.5 7.2-5.2 1.4 3 5.6-2.6 1.4-3-5.6-3.6 3.9z"/>
+    </symbol>
+    <symbol id="sym-kapitel" viewBox="0 0 24 24">
+      <path d="M5 4.5h9a3 3 0 0 1 3 3v12a2.4 2.4 0 0 0-2.4-2.4H5z"/><path d="M19 4.5v12.1"/>
+    </symbol>
+    <symbol id="sym-bild" viewBox="0 0 24 24">
+      <rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M4.5 17l4.8-4.3 3.3 2.8 3-2.5 4 3.6"/>
+    </symbol>
+  </defs>
+</svg>
+
 <a class="sprung" href="#ergebnisse">Direkt zu den Belegen</a>
 
 <header class="kopf">
@@ -305,6 +339,16 @@
           <span>Nummer und Zeitstempel ins Bild</span>
         </label>
       </div>
+
+      <details class="labels" id="markier-labels">
+        <summary>Labels <span class="kennung" id="label-kette"></span></summary>
+        <div class="label-felder" id="label-felder"></div>
+        <div class="label-aktionen">
+          <button type="button" class="knopf knopf--klein" id="label-ins-bild">Labels ins Bild setzen</button>
+          <button type="button" class="knopf knopf--klein" id="label-aus-bild">Labels aus dem Bild nehmen</button>
+          <span class="feld-hinweis">Im Bild lassen sich Labels verschieben – ziehen wie jede Marke.</span>
+        </div>
+      </details>
       <div class="markier-knoepfe">
         <button type="button" class="knopf knopf--klein" id="markier-rueckgaengig" disabled title="Strg+Z">↶ Rückgängig</button>
         <button type="button" class="knopf knopf--klein" id="markier-wiederher" disabled title="Strg+Umschalt+Z">↷ Wiederholen</button>
@@ -411,7 +455,14 @@
       <span class="band-stand" id="gliederung-stand"></span>
     </div>
     <div class="gliederung-kennzahlen" id="gliederung-kennzahlen"></div>
-    <div class="gliederung-baum" id="gliederung-baum"></div>
+    <div class="gliederung-raster">
+      <div class="gliederung-baum" id="gliederung-baum"></div>
+      <aside class="teilschritte" id="teilschritte" aria-label="Teilschritte">
+        <h2 class="abschnitt-titel">Teilschritte <span class="kennung" id="teilschritt-stelle">alle Bilder</span></h2>
+        <div class="teilschritt-liste" id="teilschritt-liste"></div>
+        <div class="stelle-beschreibung" id="stelle-beschreibung" hidden></div>
+      </aside>
+    </div>
   </section>
 
   <section id="eingang-ansicht" aria-label="Eingang" hidden>

@@ -1183,3 +1183,73 @@ div.streifen-bild { cursor: default; }
 }
 .stelle-zahl--voll { background: var(--akzent); color: var(--auf-farbe); }
 .stelle-kinder { display: grid; gap: 2px; }
+
+/* ----------------------------------- Labels, Symbole, Teilschritte (1.22) */
+
+.symbolvorrat { position: absolute; width: 0; height: 0; overflow: hidden; }
+.symbol {
+  width: 15px; height: 15px; flex: none; vertical-align: -2px;
+  fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+}
+.symbol--gross { width: 19px; height: 19px; }
+
+.labels {
+  grid-column: 1 / -1; border: 1px solid var(--linie); border-radius: var(--radius);
+  background: var(--flaeche-2); padding: 8px 10px;
+}
+.labels summary { cursor: pointer; font-size: 13px; color: var(--tinte-2); display: flex; gap: 10px; flex-wrap: wrap; }
+.labels summary .kennung { text-transform: none; letter-spacing: 0; }
+.label-felder {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px 14px; margin: 10px 0;
+}
+.label-feld label { display: flex; align-items: center; gap: 6px; }
+.label-aktionen { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+
+.gliederung-raster {
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: clamp(16px, 2.5vw, 28px);
+  align-items: start; padding-bottom: 60px;
+}
+@media (max-width: 1100px) { .gliederung-raster { grid-template-columns: 1fr; } }
+
+.stelle-waehlen {
+  display: flex; align-items: baseline; gap: 12px; flex: 1 1 320px; min-width: 0;
+  background: none; border: none; padding: 0; cursor: pointer; text-align: left; color: inherit; font: inherit;
+}
+.stelle-waehlen--an .stelle-thema { color: var(--akzent); font-weight: 500; }
+
+.teilschritte {
+  position: sticky; top: 16px; display: grid; gap: 12px; align-content: start;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche); padding: 14px 16px;
+}
+.teilschritte .abschnitt-titel .kennung { text-transform: none; letter-spacing: 0; color: var(--tinte-2); }
+.teilschritt-gruppe { display: grid; gap: 5px; }
+.teilschritt-titel {
+  display: flex; align-items: center; gap: 7px; margin: 0;
+  font-family: var(--schrift-mono); font-size: 10.5px; letter-spacing: var(--spur);
+  text-transform: uppercase; color: var(--tinte-3);
+}
+.teilschritt-werte { display: flex; flex-wrap: wrap; gap: 5px; }
+.teilschritt-wert {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+  background: var(--flaeche-2); border: 1px solid var(--linie); border-radius: 12px; padding: 2px 4px 2px 9px;
+}
+.teilschritt-zahl {
+  font-family: var(--schrift-mono); font-size: 10.5px; background: var(--akzent); color: var(--auf-farbe);
+  border-radius: 9px; padding: 1px 6px;
+}
+
+.stelle-beschreibung {
+  display: grid; gap: 4px; border-top: 1px solid var(--linie); padding-top: 10px;
+  font-size: 12.5px; line-height: 1.55; color: var(--tinte-2);
+}
+.stelle-beschreibung[hidden] { display: none; }
+/* Nummer und Thema sind ein Wert - keine Versalien. */
+.beschreibung-titel {
+  font-family: var(--schrift-display); font-size: 13.5px; font-weight: 600;
+  color: var(--tinte); margin: 0;
+}
+.beschreibung-schild {
+  font-family: var(--schrift-mono); font-size: 10px; letter-spacing: var(--spur);
+  text-transform: uppercase; color: var(--tinte-3); margin-top: 6px;
+}

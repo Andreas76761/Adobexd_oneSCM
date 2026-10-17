@@ -1353,6 +1353,133 @@ export function anzeigeBild(aufnahme = {}) {
   return (fassung && fassung.bild) || aufnahme.bild || '';
 }
 
+/* ------------------------------------------- Labels: wer, wo, womit */
+
+/**
+ * Ein Bild allein sagt nicht, fuer wen es gilt. Dieselbe Maske sieht fuer
+ * Dealer und HQ verschieden aus, in Pkw anders als in Van, auf Deutsch anders
+ * als auf Koreanisch. Darum traegt jedes Bild seine Labels - und zeigt sie
+ * auf Wunsch im Bild selbst.
+ */
+export const SPRACHEN = [
+  { id: 'de', label: 'Deutsch', kurz: 'DE' },
+  { id: 'en', label: 'Englisch', kurz: 'EN' },
+  { id: 'fr', label: 'Französisch', kurz: 'FR' },
+  { id: 'sk', label: 'Slowakisch', kurz: 'SK' },
+  { id: 'cs', label: 'Tschechisch', kurz: 'CS' },
+  { id: 'ms', label: 'Malaiisch', kurz: 'MS' },
+  { id: 'ko', label: 'Koreanisch', kurz: 'KO' },
+  { id: 'hi', label: 'Hindi', kurz: 'HI' },
+  { id: 'de-ch', label: 'Deutsch (Schweiz)', kurz: 'DE-CH' },
+  { id: 'fr-ch', label: 'Französisch (Schweiz)', kurz: 'FR-CH' },
+  { id: 'it', label: 'Italienisch', kurz: 'IT' },
+  { id: 'es', label: 'Spanisch', kurz: 'ES' },
+  { id: 'pt', label: 'Portugiesisch', kurz: 'PT' },
+  { id: 'pl', label: 'Polnisch', kurz: 'PL' },
+  { id: 'hu', label: 'Ungarisch', kurz: 'HU' },
+  { id: 'ro', label: 'Rumänisch', kurz: 'RO' },
+  { id: 'tr', label: 'Türkisch', kurz: 'TR' },
+  { id: 'ja', label: 'Japanisch', kurz: 'JA' },
+  { id: 'zh', label: 'Chinesisch', kurz: 'ZH' },
+  { id: 'nl', label: 'Niederländisch', kurz: 'NL' },
+  { id: 'ar', label: 'Arabisch', kurz: 'AR' }
+];
+
+export const ROLLEN_LABEL = [
+  { id: 'dealer', label: 'Dealer', symbol: 'rolle-dealer' },
+  { id: 'market', label: 'Market', symbol: 'rolle-market' },
+  { id: 'hq', label: 'HQ', symbol: 'rolle-hq' },
+  { id: 'mo', label: 'MO', symbol: 'rolle-mo' }
+];
+
+export const SPARTEN = [
+  { id: 'pkw', label: 'Pkw', symbol: 'sparte-pkw' },
+  { id: 'van', label: 'Van', symbol: 'sparte-van' }
+];
+
+/**
+ * Die Labelfelder in fester Folge. Sprache, Rolle und Sparte haben eine feste
+ * Auswahl; Markt, Domaene, Reiter und Schritt kommen aus dem System und
+ * waeren als feste Liste schon morgen falsch - dort wird getippt, und die
+ * Seite schlaegt vor, was schon verwendet wurde.
+ */
+export const LABEL_FELDER = [
+  { id: 'sprache', label: 'Sprache', symbol: 'sprache', werte: SPRACHEN },
+  { id: 'rolle_label', label: 'Rolle', symbol: 'rolle', werte: ROLLEN_LABEL },
+  { id: 'sparte', label: 'Sparte', symbol: 'sparte', werte: SPARTEN },
+  { id: 'markt', label: 'Markt', symbol: 'markt', frei: true },
+  { id: 'domaene', label: 'Domäne', symbol: 'domaene', frei: true },
+  { id: 'reiter', label: 'Reiter', symbol: 'reiter', frei: true },
+  { id: 'schritt_label', label: 'Schritt', symbol: 'schritt', frei: true }
+];
+
+/** Der angezeigte Wert eines Labels: aus der Liste oder wie getippt. */
+export function labelWert(feldId, wert) {
+  const feld = LABEL_FELDER.find((f) => f.id === feldId);
+  if (!feld) return String(wert || '');
+  if (feld.frei) return String(wert || '').trim();
+  const treffer = (feld.werte || []).find((w) => w.id === wert);
+  return treffer ? treffer.label : String(wert || '');
+}
+
+/** Alle gesetzten Labels einer Aufnahme, in fester Folge. */
+export function labelListe(aufnahme = {}) {
+  return LABEL_FELDER.map((feld) => ({
+    feld: feld.id,
+    bezeichnung: feld.label,
+    symbol: feld.symbol,
+    wert: labelWert(feld.id, aufnahme[feld.id])
+  })).filter((l) => l.wert);
+}
+
+/** Die Labels als eine Zeile - fuer Karte, Zettel und Bildunterschrift. */
+export function labelKette(aufnahme = {}, trenner = ' · ') {
+  return labelListe(aufnahme)
+    .map((l) => l.wert)
+    .join(trenner);
+}
+
+/**
+ * Was bisher verwendet wurde - als Vorschlag fuer die freien Felder. So
+ * entsteht das Vokabular aus der Arbeit, nicht aus einer Vermutung.
+ */
+export function labelVorschlaege(aufnahmen = [], feldId) {
+  const gezaehlt = new Map();
+  for (const aufnahme of aufnahmen) {
+    const wert = String(aufnahme[feldId] || '').trim();
+    if (!wert) continue;
+    gezaehlt.set(wert, (gezaehlt.get(wert) || 0) + 1);
+  }
+  return [...gezaehlt.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([wert]) => wert);
+}
+
+/**
+ * Die Teilschritte einer Stelle: welche Sprachen, Domaenen, Reiter und
+ * Schritte dort liegen - jeweils mit Zahl. Das ist die Navigation rechts
+ * neben der Gliederung.
+ */
+export function teilschritte(aufnahmen = [], stelle) {
+  // Ohne gewaehlte Stelle gelten alle Bilder - auch die noch nicht
+  // zugeordneten; sonst waere die Leiste am Anfang immer leer.
+  const passend = stelle ? aufnahmen.filter((a) => gehoertZu(String(a.gliederung || ''), stelle)) : aufnahmen;
+  return LABEL_FELDER.map((feld) => {
+    const gezaehlt = new Map();
+    for (const aufnahme of passend) {
+      const wert = labelWert(feld.id, aufnahme[feld.id]);
+      if (!wert) continue;
+      gezaehlt.set(wert, (gezaehlt.get(wert) || 0) + 1);
+    }
+    return {
+      feld: feld.id,
+      bezeichnung: feld.label,
+      symbol: feld.symbol,
+      werte: [...gezaehlt.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .map(([wert, zahl]) => ({ wert, zahl }))
+    };
+  }).filter((f) => f.werte.length);
+}
+
 /* ----------------------------------------- Gliederung des Handbuchs */
 
 /**
@@ -1362,13 +1489,21 @@ export function anzeigeBild(aufnahme = {}) {
  */
 export function leseGliederung(roh = {}) {
   const liste = Array.isArray(roh.eintraege) ? roh.eintraege : [];
+  // Die Beschreibungen stehen einmal in einer Tabelle; die Eintraege
+  // verweisen darauf. Dieselbe Begruendung steht an 159 Stellen - sie
+  // tausendfach abzulegen waere Verschwendung.
+  const texte = Array.isArray(roh.texte) ? roh.texte : [];
+  const text = (verweis) => (Number.isInteger(verweis) && texte[verweis]) || '';
   return liste
     .filter((e) => e && e.nummer && e.thema)
     .map((e) => ({
       nummer: String(e.nummer),
       thema: String(e.thema),
       ebene: Number(e.ebene) || 0,
-      art: e.art === 'uebergang' ? 'uebergang' : 'kapitel'
+      art: e.art === 'uebergang' ? 'uebergang' : 'kapitel',
+      kriterium: text(e.kriterium),
+      notiz: text(e.notiz),
+      text: text(e.text)
     }));
 }
 
@@ -1522,8 +1657,12 @@ export const MARKEN_ARTEN = [
     hinweis: 'Personenbezogenes abdecken: Benutzerkennung, FIN, Adresse, Name.'
   },
   { id: 'rahmen', label: 'Rahmen', hinweis: 'Eine Bedienfläche hervorheben, mit oder ohne Beschriftung.' },
-  { id: 'schritt', label: 'Schritt der Klickstrecke', hinweis: 'Nummerierter Rahmen mit Text – 1, 2, 3 …' }
+  { id: 'schritt', label: 'Schritt der Klickstrecke', hinweis: 'Nummerierter Rahmen mit Text – 1, 2, 3 …' },
+  // Labels werden nicht aufgezogen, sondern aus den Angaben gesetzt - darum
+  // stehen sie nicht in der Werkzeugleiste.
+  { id: 'label', label: 'Label', hinweis: 'Sprache, Rolle, Sparte, Markt – aus den Angaben der Aufnahme.', intern: true }
 ];
+export const WERKZEUGE = MARKEN_ARTEN.filter((a) => !a.intern);
 
 export const UNKENNTLICH_STUFEN = [
   { id: 'grob', label: 'grob', raster: 24 },
@@ -1555,6 +1694,14 @@ export function leereMarke(art, rechteck, marken = [], zeit = Date.now()) {
     stufe: 'mittel',
     nummer: art === 'schritt' ? naechsteSchrittnummer(marken) : null
   };
+}
+
+/** Verschiebt eine Marke; sie bleibt dabei vollstaendig im Bild. */
+export function bewegeMarke(marke, dx, dy, quelle) {
+  return begrenzeMarke(
+    { x: marke.x + dx, y: marke.y + dy, breite: marke.breite, hoehe: marke.hoehe },
+    quelle
+  );
 }
 
 /** Haelt eine Marke im Bild und auf Mindestmass. */
@@ -1618,7 +1765,8 @@ export function markenAlsAblage(marken = []) {
     hoehe: m.hoehe,
     text: String(m.text || '').trim(),
     stufe: m.art === 'unkenntlich' ? m.stufe || 'mittel' : undefined,
-    nummer: m.art === 'schritt' ? m.nummer : undefined
+    nummer: m.art === 'schritt' ? m.nummer : undefined,
+    feld: m.art === 'label' ? m.feld : undefined
   }));
 }
 
@@ -1637,7 +1785,8 @@ export function leseMarken(liste) {
         hoehe: Math.max(1, Math.round(Number(m.hoehe))),
         text: String(m.text || ''),
         stufe: UNKENNTLICH_STUFEN.some((s) => s.id === m.stufe) ? m.stufe : 'mittel',
-        nummer: m.art === 'schritt' ? Number(m.nummer) || null : null
+        nummer: m.art === 'schritt' ? Number(m.nummer) || null : null,
+        feld: m.art === 'label' ? String(m.feld || '') : ''
       }))
   );
 }

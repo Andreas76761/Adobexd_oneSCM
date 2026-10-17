@@ -664,6 +664,92 @@ s.test('Strecken überleben das Ablegen; Unbrauchbares fällt weg', () => {
   gleich(kern.leseStrecken(JSON.stringify({ strecken: [{ name: 'ohne Kennung' }] })).length, 0);
 });
 
+/* ------------------------------------------------------------- Labels */
+
+s.test('die Labels stehen in fester Folge und nennen ihren Klartext', () => {
+  const aufnahme = {
+    sprache: 'ko',
+    rolle_label: 'hq',
+    sparte: 'van',
+    markt: 'Korea',
+    domaene: 'Templates – Market Settings',
+    reiter: 'Documents',
+    schritt_label: 'Create Template'
+  };
+  gleich(
+    kern.labelKette(aufnahme),
+    'Koreanisch · HQ · Van · Korea · Templates – Market Settings · Documents · Create Template'
+  );
+  gleich(kern.labelListe(aufnahme).length, 7);
+  gleich(kern.labelListe({ sprache: 'de' }).length, 1, 'leere Labels gehören nicht in die Kette');
+  gleich(kern.labelWert('sprache', 'fr'), 'Französisch');
+  gleich(kern.labelWert('markt', ' Germany '), 'Germany', 'freie Felder werden nur beschnitten');
+  gleich(kern.labelWert('sprache', 'xx'), 'xx', 'ein unbekannter Code wird nicht verschwiegen');
+  wahr(kern.SPRACHEN.length >= 19, 'es fehlen Sprachen: ' + kern.SPRACHEN.length);
+  tieferGleich(kern.ROLLEN_LABEL.map((r) => r.label), ['Dealer', 'Market', 'HQ', 'MO']);
+  tieferGleich(kern.SPARTEN.map((s) => s.label), ['Pkw', 'Van']);
+});
+
+s.test('die Vorschläge für freie Felder kommen aus der bisherigen Arbeit', () => {
+  const aufnahmen = [
+    { markt: 'Germany' },
+    { markt: 'Korea' },
+    { markt: 'Germany' },
+    { markt: '' }
+  ];
+  tieferGleich(kern.labelVorschlaege(aufnahmen, 'markt'), ['Germany', 'Korea'], 'das Häufigste steht nicht vorn');
+  tieferGleich(kern.labelVorschlaege([], 'markt'), []);
+});
+
+s.test('die Teilschritte zählen je Stelle, was dort liegt', () => {
+  const aufnahmen = [
+    { gliederung: '7.5.2', sprache: 'de', reiter: 'Documents', rolle_label: 'market' },
+    { gliederung: '7.5.1', sprache: 'en', reiter: 'Documents', rolle_label: 'market' },
+    { gliederung: '9.1.1', sprache: 'de', reiter: 'Emails', rolle_label: 'mo' }
+  ];
+  const unter75 = kern.teilschritte(aufnahmen, '7.5');
+  const sprache = unter75.find((f) => f.feld === 'sprache');
+  gleich(sprache.werte.length, 2);
+  gleich(unter75.find((f) => f.feld === 'reiter').werte[0].zahl, 2, 'der Reiter wird nicht gezählt');
+  gleich(unter75.find((f) => f.feld === 'rolle_label').werte[0].wert, 'Market');
+  gleich(kern.teilschritte(aufnahmen, '9').find((f) => f.feld === 'reiter').werte[0].wert, 'Emails');
+  // Ohne Stelle gelten alle Bilder - auch die ohne Zuordnung.
+  gleich(kern.teilschritte([{ sprache: 'de' }], '').length, 1);
+  gleich(kern.teilschritte([], '').length, 0);
+});
+
+s.test('eine Marke lässt sich verschieben und bleibt im Bild', () => {
+  const quelle = { breite: 1000, hoehe: 800 };
+  const marke = { x: 100, y: 100, breite: 200, hoehe: 50 };
+  tieferGleich(kern.bewegeMarke(marke, 50, -30, quelle), { x: 150, y: 70, breite: 200, hoehe: 50 });
+  const links = kern.bewegeMarke(marke, -500, 0, quelle);
+  gleich(links.x, 0, 'die Marke rutscht links aus dem Bild');
+  const unten = kern.bewegeMarke(marke, 0, 5000, quelle);
+  gleich(unten.y + unten.hoehe, 800, 'die Marke rutscht unten aus dem Bild');
+});
+
+s.test('ein Label im Bild trägt sein Feld durch die Ablage', () => {
+  const marken = [{ id: 'a', art: 'label', x: 10, y: 10, breite: 100, hoehe: 24, text: 'Deutsch', feld: 'sprache' }];
+  const abgelegt = kern.markenAlsAblage(marken);
+  gleich(abgelegt[0].feld, 'sprache');
+  gleich(kern.leseMarken(abgelegt)[0].feld, 'sprache');
+  gleich(kern.leseMarken(abgelegt)[0].art, 'label');
+  // Labels gehören nicht in die Werkzeugleiste - sie werden gesetzt, nicht gezogen.
+  gleich(kern.WERKZEUGE.some((w) => w.id === 'label'), false);
+  gleich(kern.WERKZEUGE.length, 3);
+});
+
+s.test('die Gliederung trägt Abschlusskriterium und Nachweis', () => {
+  const roh = {
+    texte: ['Scope bestätigen.', 'Quelle: Handbuch, 7.5.2.'],
+    eintraege: [{ nummer: '7.5.2', thema: 'Signaturergebnis', ebene: 3, kriterium: 0, notiz: 1 }]
+  };
+  const [stelle] = kern.leseGliederung(roh);
+  gleich(stelle.kriterium, 'Scope bestätigen.');
+  gleich(stelle.notiz, 'Quelle: Handbuch, 7.5.2.');
+  gleich(kern.leseGliederung({ eintraege: [{ nummer: '1', thema: 'A', ebene: 1 }] })[0].kriterium, '');
+});
+
 /* ------------------------------------------ Fassungen und Gliederung */
 
 s.test('jede Bearbeitung ist eine eigene Fassung, das Original bleibt', () => {

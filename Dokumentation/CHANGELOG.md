@@ -20,6 +20,31 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.22.0] – Labels und Teilschritte
+
+### Neu
+* **Labels je Bild** (F-37): Sprache (21 zur Wahl), Rolle (Dealer, Market, HQ,
+  MO), Sparte (Pkw, Van) aus fester Auswahl; Markt, Domäne, Reiter und
+  Schritt als Text mit Vorschlägen aus dem, was schon verwendet wurde
+* **Labels im Bild**: „Labels ins Bild setzen“ legt für jedes gesetzte Label
+  eine Marke an – verschiebbar wie jede Marke, einzeln oder gesammelt wieder
+  zu entfernen. Die Angaben bleiben dabei an der Aufnahme
+* **Marken lassen sich verschieben**: ziehen statt entfernen und neu aufziehen
+  (die Grenze aus 1.17.0 ist damit weg)
+* **Teilschritte** rechts neben der Gliederung (F-37): welche Sprachen,
+  Rollen, Sparten, Märkte, Domänen, Reiter und Schritte an einer Stelle
+  liegen – jeweils mit Zahl, mit eigenem Symbol
+* **Beschreibung je Stelle**: Abschlusskriterium, Nachweis und Quelle aus der
+  Arbeitsmappe, unter den Teilschritten (F-36)
+* Eigener Symbolvorrat als Inline-SVG – keine externen Bilder
+
+### Geändert
+* `data/gliederung/gliederung.json` trägt die Beschreibungen; gleiche Texte
+  stehen einmal in einer Tabelle, die Einträge verweisen darauf
+
+### Prüfung
+* 9 neue Prüfungen, zusammen 275
+
 ## [1.21.0] – Die Gliederung des Handbuchs
 
 ### Neu

@@ -802,3 +802,45 @@ aus bis zu 60 Vorschlägen wählen. Das Thema steht darunter; eine Nummer, die
 es nicht gibt, wird benannt statt stillschweigend genommen. Die Stelle geht in
 die Bildunterschrift, auf die Karte im Eingang, in den Kontaktbogen und über
 `{kapitel}` in den Dateinamen.
+
+
+---
+
+## F-37 · Labels und Teilschritte
+
+**Zweck** Ein Bild allein sagt nicht, für wen es gilt. Dieselbe Maske sieht
+für Dealer und HQ verschieden aus, in Pkw anders als in Van, auf Deutsch
+anders als auf Koreanisch. Ohne diese Angaben lässt sich kein Handbuch je
+Rolle, Sparte und Sprache zusammenstellen.
+
+**Die sieben Felder**
+
+| Feld | Werte |
+| --- | --- |
+| Sprache | feste Auswahl, 21 Sprachen von Deutsch bis Arabisch |
+| Rolle | Dealer, Market, HQ, MO |
+| Sparte | Pkw, Van |
+| Markt | Text, Vorschläge aus der bisherigen Arbeit |
+| Domäne | Text – etwa „Templates – Market Settings“ |
+| Reiter | Text – etwa „Documents“, „Emails“, „System Notifications“ |
+| Schritt | Text – etwa „Auswahl Template“, „Create Template“, „Actions“ |
+
+Markt, Domäne, Reiter und Schritt kommen aus dem System und wären als feste
+Liste schon morgen falsch; dort wird getippt, und die Seite schlägt vor, was
+schon verwendet wurde. So entsteht das Vokabular aus der Arbeit.
+
+**Labels im Bild** „Labels ins Bild setzen“ legt für jedes gesetzte Label
+eine Marke an – ein gefülltes Feld mit Text, untereinander in der linken
+oberen Ecke. Jede lässt sich **ziehen**, einzeln entfernen oder gesammelt
+wieder herausnehmen; die Angaben bleiben dabei an der Aufnahme. Seit 1.22.0
+lässt sich **jede** Marke verschieben, nicht nur ein Label.
+
+**Teilschritte** Rechts neben der Gliederung steht, was an der gewählten
+Stelle liegt: Sprachen, Rollen, Sparten, Märkte, Domänen, Reiter und Schritte
+mit Zahl, jeweils mit eigenem Symbol. Ohne gewählte Stelle gelten alle
+Bilder. Darunter die Beschreibung der Stelle aus der Arbeitsmappe –
+Abschlusskriterium, Nachweis und Quelle.
+
+**Symbole** Ein eigener Vorrat als Inline-SVG (Sprache, Rolle, Sparte, Markt,
+Domäne, Reiter, Schritt, Kapitel, Bild). Externe Symbolschriften verbietet
+die Inhaltsrichtlinie des Artifacts – und sie würden offline fehlen.
