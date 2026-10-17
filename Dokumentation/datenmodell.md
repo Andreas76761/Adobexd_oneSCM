@@ -80,11 +80,59 @@ deshalb getrennt im Eingang und tragen ein eigenes Format:
 | `ausschnitt` | `x`, `y`, `breite`, `hoehe` in Bildpunkten der Quelle |
 | `quelle` | `art` (`bildschirm`, `datei`, `beispiel`), `name`, `breite`, `hoehe` |
 | `erfasst_am` | Zeitpunkt der Aufnahme |
-| `bild` | JPEG als Daten-Adresse, höchstens 1100 Bildpunkte breit |
+| `bild` | **Vorschau** als JPEG-Datenadresse, 760 Bildpunkte breit |
 
 Eine Aufnahme gilt als **vollständig**, sobald Titel, Projekt, Kategorie und
 mindestens ein Begriff vorliegen. Bis dahin ist sie im Eingang markiert – das
 ist der Sinn der Ansicht: schnell aufnehmen, später ordnen.
+
+### Was später dazukam
+
+| Feld | Seit | Bedeutung |
+| --- | --- | --- |
+| `herkunft` | 1.9.0 | `ordner`, `datei`, `zettel`, `uebernommen_am` – die abgelegte Datei |
+| `marken` | 1.17.0 | Marken auf dem Bild: `art` (`unkenntlich`, `rahmen`, `schritt`, `label`), Lage, Text, Stufe, Nummer, Feld |
+| `fassungen` | 1.18.0 | bearbeitete Fassungen: `nummer`, `bild`, `marken`, `notiz`, `erstellt_am`. Das Original bleibt unangetastet |
+| `voll`, `breite`, `hoehe` | 1.20.0 | das volle Bild liegt in der Browserdatenbank; die Maße gehören zu ihm |
+| `gliederung` | 1.21.0 | Stelle im Handbuch, z. B. `7.5.2`; Grundlage für Kapitelnummer und Zählung |
+| `kapitel`, `unterkapitel` | 1.18.0 | abgeleitete Zahlen für die Sortierung |
+| `sprache`, `rolle_label`, `sparte`, `markt`, `domaene`, `reiter`, `schritt_label` | 1.22.0 | Labels: feste Vokabulare für Sprache (21), Rolle (Dealer, Market, HQ, MO) und Sparte (Pkw, Van), freier Text für die übrigen |
+| `einfuhr` | 1.24.0 | Herkunft aus dem Import: `datei`, `art`, `bild`, `seite`, `uebernommen_am` |
+| `variante` | 1.30.0 | Kennung der Variantengruppe – dieselbe Maske in anderer Sprache, Rolle, Sparte oder Markt |
+
+Alle Felder sind freiwillig: eine Aufnahme ohne Labels ist eine Aufnahme ohne
+Labels, kein Fehler. Was fehlt, zählen die Agenten (F-43) und die
+Deckungsmatrix (F-46).
+
+## Was neben dem Eingang im Browser liegt
+
+| Schlüssel | Inhalt |
+| --- | --- |
+| `screenarchiv:strecken` | Klickstrecken: `{ id, name, spalten, schritte: [{ art, aufnahmen: [...], text }] }` |
+| `screenarchiv:ablage` | Ablageziele und Namensmuster der Ansicht Ausschneiden |
+| `screenarchiv:design` | Einstellungen des Designstudios samt eigener Vorlagen |
+| `screenarchiv:verzeichnis` | Muster und Schalter der Ansicht Verzeichnis |
+| `screenarchiv:chat` | Lage, Größe und Zustand des Suchchats |
+
+Ein Streckenschritt trägt seit 1.25.0 eine **Liste** von Bildern (`aufnahmen`)
+und eine `art`: `schritt` oder `platzhalter`. Der alte Satz mit einem Bild je
+Schritt wandert beim Lesen mit.
+
+## Die Gliederung des Handbuchs
+
+`data/gliederung/gliederung.json` trägt 1153 Stellen aus der Arbeitsmappe des
+Projekts:
+
+```json
+{ "eintraege": [ { "nummer": "7.5.2", "thema": "Signaturergebnis", "ebene": 3,
+                   "kriterium": 12, "notiz": 4, "text": 0 } ],
+  "texte": [ "…" ] }
+```
+
+`kriterium`, `notiz` und `text` verweisen in die Tabelle `texte` – dieselbe
+Begründung steht an 159 Stellen, sie tausendfach abzulegen wäre Verschwendung.
+`art: "uebergang"` kennzeichnet die sieben Übergänge zwischen Kapiteln; sie
+zählen nicht als Stelle.
 
 Aus Aufnahmen werden Belege, indem man sie als JSON sichert und in
 `data/eintraege.json` einträgt: zwei Aufnahmen desselben Zusammenhangs werden

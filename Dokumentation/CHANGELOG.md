@@ -20,6 +20,15 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.32.1] – Dokumentation nachgezogen
+
+### Geändert
+* `architektur.md`: alle neun Oberflächenmodule, der Riegel gegen doppelte
+  Namen, wo die Daten des Betrachters liegen und was Claude in der Seite tut
+* `datenmodell.md`: die Felder, die seit 1.9.0 dazukamen (Herkunft, Marken,
+  Fassungen, volle Auflösung, Gliederung, Labels, Einfuhr, Variante), die
+  weiteren Schlüssel im Browser und der Aufbau der Gliederungsdatei
+
 ## [1.32.0] – Das ganze Handbuch als ein Dokument
 
 ### Neu
