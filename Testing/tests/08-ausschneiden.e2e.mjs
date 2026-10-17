@@ -515,6 +515,76 @@ s.test('das Archiv zeigt den Beipackzettel der Ordnerdatei', () =>
     { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
   ));
 
+s.test('eine Ordnerdatei wird samt Zettel in den Eingang übernommen', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+      await seite.fill('#feld-titel', 'Kopfzeile ohne Kontrast');
+      await seite.fill('#feld-projekt', 'oneSCM Portal');
+      await seite.selectOption('#feld-kategorie', 'Barrierefreiheit');
+      await seite.fill('#feld-begriffe', 'kontrast, kopfzeile');
+      await seite.click('.portal-nav button[data-ansicht="ausschneiden"]');
+      await seite.fill('#ablage-muster', 'schirm-{nummer}');
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+
+      // Nur in den Ordner ablegen - der Eingang bleibt leer, bis uebernommen wird.
+      await seite.uncheck('#ziel-eingang');
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 30, 300, 220);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 2, null, { timeout: 5000 });
+      gleich((await eingangImSpeicher(seite)).length, 0, 'ohne Eingangsziel darf nichts im Eingang liegen');
+
+      await seite.click('.portal-nav button[data-ansicht="archiv"]');
+      await seite.waitForSelector('#ordner-band:not([hidden])');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('#ordner-streifen .streifen-bild').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      await seite.click('#ordner-streifen .streifen-bild');
+      await seite.waitForSelector('#ordner-zettel:not([hidden])');
+      gleich(
+        await seite.locator('#zettel-uebernehmen').innerText(),
+        'In den Eingang übernehmen'
+      );
+
+      await seite.click('#zettel-uebernehmen');
+      await seite.waitForFunction(
+        () => /AUF-/.test(document.getElementById('zettel-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+      const liste = await eingangImSpeicher(seite);
+      gleich(liste.length, 1, 'die Übernahme kommt nicht im Speicher an');
+      const [aufnahme] = liste;
+      gleich(aufnahme.titel, 'Kopfzeile ohne Kontrast');
+      gleich(aufnahme.projekt, 'oneSCM Portal');
+      gleich(aufnahme.kategorie, 'Barrierefreiheit');
+      gleich(aufnahme.begriffe.join(','), 'kontrast,kopfzeile');
+      gleich(aufnahme.herkunft.ordner, 'Bildschirmfotos');
+      gleich(aufnahme.herkunft.datei, 'schirm-001.png');
+      wahr(aufnahme.bild.startsWith('data:image/jpeg'), 'das Bild wird nicht als JPEG abgelegt');
+      wahr(aufnahme.ausschnitt.breite > 0, 'die Ausschnittmaße des Zettels fehlen');
+
+      // Kein zweites Mal: die Kachel traegt die Kennung, der Knopf fuehrt hin.
+      await seite.waitForFunction(
+        () => /Im Eingang zeigen/.test(document.getElementById('zettel-uebernehmen').textContent),
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await seite.locator('#ordner-streifen .eingang-marke').innerText(), aufnahme.id);
+      wahr(
+        (await seite.locator('#eingang-zahl').innerText()).includes('1'),
+        'die Navigation zählt die Übernahme nicht mit'
+      );
+      await seite.click('#zettel-uebernehmen');
+      await seite.waitForSelector('#eingang-ansicht:not([hidden])');
+      gleich((await eingangImSpeicher(seite)).length, 1, 'die Datei wurde ein zweites Mal übernommen');
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
 s.test('ein Bild ohne Zettel wird im Ordnerband als solches gezeigt', () =>
   mitSeite(
     async (seite) => {

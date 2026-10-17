@@ -381,6 +381,103 @@ s.test('unbrauchbare Werte im Zettel gelten als leer', () => {
   gleich(wert('begriffe'), 'a, b', 'Begriffe als Text müssen lesbar bleiben');
 });
 
+s.test('aus einem Zettel entsteht wieder eine Aufnahme für den Eingang', () => {
+  const text = kern.baueBeipackzettel({
+    entwurf: {
+      datum: '2025-06-30',
+      titel: 'Kopfzeile ohne Kontrast',
+      projekt: 'oneSCM Portal',
+      kategorie: 'Barrierefreiheit',
+      begriffe: ['kontrast'],
+      notiz: 'Vergleich mit 4.2',
+      autor: 'M. Ackermann',
+      status: 'übernommen',
+      rolle: 'vorher'
+    },
+    bildname: 'schirm-001.png',
+    ausschnitt: { x: 12, y: 34, breite: 300, hoehe: 200 },
+    quelle: { art: 'bildschirm', name: 'Freigabe', breite: 1440, hoehe: 900 },
+    erfasstAm: '2025-06-30T09:12:00.000Z'
+  });
+  const aufnahme = kern.aufnahmeAusZettel({
+    daten: kern.leseBeipackzettel(text).daten,
+    bild: 'data:image/jpeg;base64,AAAA',
+    kennung: 'AUF-2025-007',
+    ordner: 'Bildschirmfotos',
+    datei: 'schirm-001.png',
+    zettelDatei: 'schirm-001.json',
+    erfasstAm: '2026-10-17T10:00:00.000Z'
+  });
+  gleich(aufnahme.id, 'AUF-2025-007');
+  gleich(aufnahme.titel, 'Kopfzeile ohne Kontrast');
+  gleich(aufnahme.projekt, 'oneSCM Portal');
+  gleich(aufnahme.kategorie, 'Barrierefreiheit');
+  gleich(aufnahme.status, 'übernommen', 'der Status des Zettels geht verloren');
+  gleich(aufnahme.rolle, 'vorher');
+  gleich(aufnahme.datum, '2025-06-30', 'das Datum der Aufnahme, nicht der Übernahme');
+  gleich(aufnahme.erfasst_am, '2025-06-30T09:12:00.000Z', 'der Zeitpunkt der Aufnahme bleibt stehen');
+  tieferGleich(aufnahme.begriffe, ['kontrast']);
+  tieferGleich(aufnahme.ausschnitt, { x: 12, y: 34, breite: 300, hoehe: 200 });
+  gleich(aufnahme.quelle.name, 'Freigabe');
+  gleich(aufnahme.herkunft.datei, 'schirm-001.png');
+  gleich(aufnahme.herkunft.zettel, 'schirm-001.json');
+  gleich(aufnahme.herkunft.uebernommen_am, '2026-10-17T10:00:00.000Z');
+  wahr(kern.istVollstaendig(aufnahme), 'eine vollständige Datei kommt unvollständig an');
+  // Der Weg hin und zurueck darf nichts verlieren.
+  const zurueck = JSON.parse(
+    kern.baueBeipackzettel({ entwurf: aufnahme, bildname: 'schirm-001.png', ausschnitt: aufnahme.ausschnitt, quelle: aufnahme.quelle })
+  );
+  gleich(zurueck.titel, 'Kopfzeile ohne Kontrast');
+  gleich(zurueck.kategorie, 'Barrierefreiheit');
+});
+
+s.test('ein lückenhafter Zettel wird übernommen, ohne etwas zu erfinden', () => {
+  const aufnahme = kern.aufnahmeAusZettel({
+    daten: { bild: 'a.png', erfasst_am: '2026-02-03T07:00:00.000Z', ausschnitt: { breite: 'x' } },
+    bild: 'data:image/jpeg;base64,AAAA',
+    kennung: 'AUF-2026-001',
+    ordner: 'Ordner',
+    datei: 'a.png'
+  });
+  gleich(aufnahme.datum, '2026-02-03', 'ohne Datum zählt der Erfassungszeitpunkt');
+  gleich(aufnahme.titel, 'Aufnahme 001 vom 03.02.2026', 'ohne Titel braucht es einen Vorschlag');
+  gleich(aufnahme.kategorie, '');
+  gleich(aufnahme.status, 'in Prüfung');
+  tieferGleich(aufnahme.ausschnitt, { x: 0, y: 0, breite: 0, hoehe: 0 }, 'halbe Maße werden geraten');
+  gleich(aufnahme.quelle.name, 'a.png', 'ohne Quelle steht wenigstens die Datei da');
+  gleich(kern.istVollstaendig(aufnahme), false);
+});
+
+s.test('dieselbe Datei wird über Ordner und Namen wiedererkannt', () => {
+  const liste = [
+    kern.aufnahmeAusZettel({
+      daten: {},
+      bild: 'data:image/jpeg;base64,AAAA',
+      kennung: 'AUF-2026-001',
+      ordner: 'Bildschirmfotos',
+      datei: 'schirm-001.png'
+    })
+  ];
+  wahr(kern.findeUebernahme(liste, 'Bildschirmfotos', 'schirm-001.png'), 'die Datei wird nicht wiedererkannt');
+  wahr(kern.findeUebernahme(liste, 'bildschirmfotos', 'SCHIRM-001.PNG'), 'Groß- und Kleinschreibung trennt');
+  gleich(kern.findeUebernahme(liste, 'Anderer Ordner', 'schirm-001.png'), null, 'der Ordner wird nicht beachtet');
+  gleich(kern.findeUebernahme(liste, 'Bildschirmfotos', 'schirm-002.png'), null);
+  gleich(kern.findeUebernahme([{ id: 'AUF-2026-009' }], 'Bildschirmfotos', 'schirm-001.png'), null, 'eine eigene Aufnahme ohne Herkunft darf nicht passen');
+});
+
+s.test('eine übernommene Aufnahme überlebt das Speichern', () => {
+  const aufnahme = kern.aufnahmeAusZettel({
+    daten: { titel: 'Aus dem Ordner' },
+    bild: 'data:image/jpeg;base64,AAAA',
+    kennung: 'AUF-2026-001',
+    ordner: 'Bildschirmfotos',
+    datei: 'schirm-001.png'
+  });
+  const gelesen = kern.leseEingang(kern.schreibeEingang([aufnahme]));
+  gleich(gelesen.length, 1);
+  tieferGleich(gelesen[0].herkunft, aufnahme.herkunft, 'die Herkunft überlebt den Speicher nicht');
+});
+
 s.test('die Wahl des Beipackzettels wird gespeichert', () => {
   gleich(kern.ABLAGE_STANDARD.beipack, true, 'der Zettel ist nicht voreingestellt');
   gleich(kern.leseAblage(kern.schreibeAblage({ beipack: false })).beipack, false);

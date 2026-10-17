@@ -20,6 +20,26 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.11.0] – Übernahme aus dem Ordner
+
+### Neu
+* **In den Eingang übernehmen** in der Zettelschau: Bild und Beipackzettel aus
+  dem Ordner werden wieder zu einer Aufnahme im Eingang. Die Ablage ist damit
+  keine Einbahnstraße mehr (F-28)
+* Jede übernommene Aufnahme trägt ihre Herkunft (Ordner, Datei, Zettel,
+  Zeitpunkt); dieselbe Datei kommt kein zweites Mal herein. Die Kachel zeigt
+  dann die Kennung, der Knopf führt in den Eingang
+* Das Bild wird beim Übernehmen als JPEG neu gefasst – ein Ordner voller PNG
+  sprengte den Browserspeicher
+
+### Kern
+* `aufnahmeAusZettel`, `findeUebernahme`, `herkunftSchluessel`: Metadaten
+  kommen allein aus dem Zettel, Datum und Erfassungszeitpunkt aus der
+  Aufnahme, nicht aus dem Tag der Übernahme
+
+### Prüfung
+* 5 neue Prüfungen, zusammen 196, alle bestanden
+
 ## [1.10.0] – Beipackzettel im Archiv
 
 ### Neu

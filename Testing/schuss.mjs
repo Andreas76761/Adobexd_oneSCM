@@ -249,6 +249,8 @@ const geteilterBildschirm = `
     await seite.waitForFunction(() => document.querySelectorAll('#ordner-streifen .streifen-bild').length === 1);
     await seite.click('#ordner-streifen .streifen-bild');
     await seite.waitForSelector('#ordner-zettel:not([hidden])');
+    await seite.click('#zettel-uebernehmen');
+    await seite.waitForFunction(() => /AUF-/.test(document.getElementById('zettel-meldung').textContent));
     await seite.click('.zettel-roh summary');
     await seite.waitForTimeout(300);
     await seite.screenshot({ path: join(ziel, name + '.png') });

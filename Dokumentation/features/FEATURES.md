@@ -508,3 +508,31 @@ Beide Bänder bleiben verborgen, solange es nichts zu zeigen gibt.
 zurückgeholt: besteht die Schreiberlaubnis noch, ist der Ordner sofort wieder
 da; sonst wartet er auf einen Klick, weil eine Erlaubnis nur nach einer
 Handlung erfragt werden darf.
+
+
+---
+
+## F-28 · Übernahme aus dem Ordner
+
+**Zweck** Bis 1.10.0 war die Ablage eine Einbahnstraße: die Seite schrieb Bild
+und Beipackzettel auf die Platte und konnte beides nie wieder lesen. Nach einer
+Pause war die Arbeit da, nur nicht mehr in der Anwendung.
+
+**Der Weg zurück** In der Zettelschau des Ordnerbands steht **In den Eingang
+übernehmen**. Die Metadaten kommen allein aus dem Zettel – fehlt eine Angabe,
+bleibt sie leer, statt erfunden zu werden. Datum und Erfassungszeitpunkt
+stammen aus der Aufnahme, nicht aus dem Tag der Übernahme; die Kennung wird
+nach dem Aufnahmejahr vergeben.
+
+**Das Bild wird neu gefasst** Ein PNG aus dem Ordner wandert als JPEG in den
+Eingang – wie bei einer eigenen Aufnahme. Ein Ordner voller PNG sprengte sonst
+den Browserspeicher nach wenigen Dateien.
+
+**Nur einmal** Jede übernommene Aufnahme trägt ihre Herkunft (`herkunft`:
+Ordner, Datei, Zettel, Zeitpunkt). Daran wird die Datei wiedererkannt – über
+Ordner und Namen, Groß- und Kleinschreibung egal, auch nach einem Neuladen.
+Die Kachel trägt dann die Kennung, und der Knopf heißt **Im Eingang zeigen**.
+
+**Grenzen** Ein Bild ohne Zettel lässt sich nicht übernehmen: ohne Metadaten
+wäre es nur ein Bild ohne Zusammenhang. Ein unlesbarer Zettel ebenso – das
+sagt die Schau dann auch.

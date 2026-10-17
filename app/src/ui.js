@@ -17,6 +17,8 @@ const MODUS_SCHLUESSEL = 'screenarchiv:vergleichsmodus';
 
 let zustand = queryZuZustand(location.hash);
 let sichtbar = [];
+let ordnerInhalt = []; // zuletzt gelesener Ordnerinhalt samt Beipackzetteln
+let zettelOffen = null; // Ordnerdatei, deren Beipackzettel gerade offen steht
 let modus = leseModus();
 
 /* ------------------------------------------------------------ Helfer */
@@ -282,11 +284,26 @@ async function zeigeOrdnerImArchiv() {
     teile.push('noch kein Bild abgelegt');
   }
   $('#ordner-stand').textContent = teile.join(' · ');
-  $('#ordner-streifen').replaceChildren(...bilder.map(zeichneOrdnerBild));
+  ordnerInhalt = bilder;
+  zeichneOrdnerStreifen();
+}
+
+/**
+ * Zeichnet den Streifen aus dem zuletzt gelesenen Inhalt - ohne den Ordner
+ * erneut zu lesen, damit eine offene Zettelschau stehen bleibt.
+ */
+function zeichneOrdnerStreifen() {
+  $('#ordner-streifen').replaceChildren(...ordnerInhalt.map(zeichneOrdnerBild));
+}
+
+/** Die schon uebernommene Aufnahme zu einer Ordnerdatei, sonst null. */
+function uebernahmeZu(b) {
+  return ordnerZugriff ? findeUebernahme(eingang, ordnerZugriff.name, b.name) : null;
 }
 
 /** Ein Bild im Ordnerband; mit Zettel wird die Kachel anklickbar. */
 function zeichneOrdnerBild(b) {
+  const uebernommen = uebernahmeZu(b);
   const marke = b.zettel
     ? el('span', { klasse: 'zettel-marke', text: 'Zettel' })
     : el('span', { klasse: 'zettel-marke zettel-marke--fehlt', text: 'kein Zettel' });
@@ -295,6 +312,9 @@ function zeichneOrdnerBild(b) {
     el('span', { klasse: 'kennung', text: b.name }),
     marke
   ];
+  if (uebernommen) {
+    kinder.push(el('span', { klasse: 'eingang-marke', text: uebernommen.id }));
+  }
   const titel = `${b.name} · ${formatiereBytes(b.groesse)}`;
   if (!b.zettel) {
     return el(
@@ -346,13 +366,41 @@ function zeigeZettel(b) {
     ])
   );
   $('#zettel-quelltext').textContent = b.zettel.text;
+  zettelOffen = b;
+  ruesteUebernahme(b, gelesen);
   schau.hidden = false;
   schau.scrollIntoView({ block: 'nearest' });
+}
+
+/**
+ * Der Knopf fuehrt in beide Richtungen: noch nicht uebernommen heisst
+ * uebernehmen, schon uebernommen heisst hinsehen. Ohne lesbaren Zettel gibt
+ * es nichts zu uebernehmen - dann steht er gar nicht da.
+ */
+function ruesteUebernahme(b, gelesen) {
+  const knopf = $('#zettel-uebernehmen');
+  const schon = uebernahmeZu(b);
+  knopf.hidden = !gelesen.ok;
+  knopf.textContent = schon ? `Im Eingang zeigen (${schon.id})` : 'In den Eingang übernehmen';
+  meldeZettel(
+    schon
+      ? `Diese Datei liegt als ${schon.id} im Eingang – übernommen am ${(schon.herkunft.uebernommen_am || '').slice(0, 10)}.`
+      : '',
+    'neutral'
+  );
+}
+
+function meldeZettel(text, art = 'neutral') {
+  const zeile = $('#zettel-meldung');
+  zeile.textContent = text;
+  zeile.className = 'zettel-meldung' + (text ? ' zettel-meldung--' + art : '');
+  zeile.hidden = !text;
 }
 
 function verbergeZettel() {
   const schau = $('#ordner-zettel');
   if (schau) schau.hidden = true;
+  zettelOffen = null;
 }
 
 /* ----------------------------------------------------------- Raster */

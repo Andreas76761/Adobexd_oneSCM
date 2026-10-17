@@ -61,6 +61,77 @@ function sichereEingang() {
   }
 }
 
+/**
+ * Holt eine abgelegte Datei samt Beipackzettel zurueck in den Eingang. Ohne
+ * diesen Weg waere die Ablage eine Einbahnstrasse: die Seite schreibt
+ * Metadaten auf die Platte und koennte sie nie wieder lesen.
+ *
+ * Das Bild wird wie bei einer Aufnahme als JPEG abgelegt - ein PNG aus dem
+ * Ordner spraengte den Browserspeicher schon nach wenigen Dateien.
+ */
+async function uebernimmAusOrdner() {
+  const b = zettelOffen;
+  if (!b || !b.zettel || !ordnerZugriff) return;
+  const schon = findeUebernahme(eingang, ordnerZugriff.name, b.name);
+  if (schon) {
+    setze({ ansicht: 'eingang' });
+    return;
+  }
+  const gelesen = leseBeipackzettel(b.zettel.text);
+  if (!gelesen.ok) {
+    meldeZettel('Dieser Zettel ist nicht lesbar – es gibt nichts zu übernehmen.', 'warnung');
+    return;
+  }
+  // Die Kennung haengt am Jahr der Aufnahme, nicht am Tag der Uebernahme.
+  const datum = istGueltigesDatum(gelesen.daten.datum)
+    ? gelesen.daten.datum
+    : String(gelesen.daten.erfasst_am || '').slice(0, 10) || heute();
+  const knopf = $('#zettel-uebernehmen');
+  knopf.disabled = true;
+  try {
+    const quelleObj = await ladeBild(b.bild, 'datei', b.name);
+    const bild = schneideLeinwand(quelleObj, {
+      x: 0,
+      y: 0,
+      breite: quelleObj.breite,
+      hoehe: quelleObj.hoehe
+    }).toDataURL('image/jpeg', 0.72);
+    const aufnahme = aufnahmeAusZettel({
+      daten: gelesen.daten,
+      bild,
+      kennung: naechsteAufnahmeKennung(eingang, datum),
+      ordner: ordnerZugriff.name,
+      datei: b.name,
+      zettelDatei: b.zettel.name,
+      erfasstAm: new Date().toISOString()
+    });
+    eingang = [aufnahme, ...eingang];
+    const ergebnis = sichereEingang();
+    if (!ergebnis.ok && ergebnis.voll) {
+      eingang = eingang.filter((a) => a.id !== aufnahme.id);
+      meldeZettel(ergebnis.text, 'warnung');
+      return;
+    }
+    meldeZettel(
+      ergebnis.ok
+        ? `${aufnahme.id} im Eingang – ${istVollstaendig(aufnahme) ? 'vollständig' : 'Kategorie oder Begriffe fehlen noch'}.`
+        : `${aufnahme.id} im Eingang – nur für diese Sitzung, der Browser gibt hier keinen Speicher.`,
+      ergebnis.ok ? 'gut' : 'warnung'
+    );
+    zeigeAnsicht();
+    zeichneEigeneAufnahmen();
+    zeichneOrdnerStreifen();
+    ruesteUebernahme(b, gelesen);
+  } catch (fehler) {
+    meldeZettel(
+      'Das Bild konnte nicht gelesen werden: ' + (fehler && fehler.message ? fehler.message : 'unbekannter Grund'),
+      'warnung'
+    );
+  } finally {
+    knopf.disabled = false;
+  }
+}
+
 function erkenneBrowser() {
   const kennung = navigator.userAgent || '';
   const treffer =
@@ -1168,6 +1239,7 @@ function verdrahteAufnahme() {
   $('#zum-eingang').addEventListener('click', () => setze({ ansicht: 'eingang' }));
   $('#ordner-auffrischen').addEventListener('click', zeigeOrdnerImArchiv);
   $('#zettel-zu').addEventListener('click', verbergeZettel);
+  $('#zettel-uebernehmen').addEventListener('click', uebernimmAusOrdner);
 
   /* Eingefügte Bildschirmfotos: der Weg, der auch in einer eingebetteten
      Ansicht funktioniert. Text in Eingabefeldern bleibt unberührt, weil nur

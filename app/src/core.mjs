@@ -886,6 +886,81 @@ export function beipackzettelName(bildname) {
   return String(bildname || '').replace(/\.[a-z0-9]+$/i, '') + '.json';
 }
 
+/* --------------------------------------------- Uebernahme aus dem Ordner */
+
+/**
+ * Ein abgelegtes Bild wird ueber Ordner und Dateiname wiedererkannt - nicht
+ * ueber seinen Inhalt. Damit faellt auf, was schon im Eingang liegt, auch
+ * nach einem Neuladen.
+ */
+export function herkunftSchluessel(ordner, datei) {
+  return `${String(ordner || '').trim().toLowerCase()}/${String(datei || '').trim().toLowerCase()}`;
+}
+
+/** Die bereits uebernommene Aufnahme zu einer Datei, sonst null. */
+export function findeUebernahme(liste, ordner, datei) {
+  const gesucht = herkunftSchluessel(ordner, datei);
+  return (
+    (liste || []).find(
+      (a) => a && a.herkunft && herkunftSchluessel(a.herkunft.ordner, a.herkunft.datei) === gesucht
+    ) || null
+  );
+}
+
+/** Nur vollstaendige Zahlenangaben gelten; halbe Masse werden nicht geraten. */
+function rechteckOderNull(wert) {
+  if (!wert || typeof wert !== 'object') return null;
+  const zahlen = ['x', 'y', 'breite', 'hoehe'].map((feld) => Number(wert[feld]));
+  if (!zahlen.every((zahl) => Number.isFinite(zahl))) return null;
+  const [x, y, breite, hoehe] = zahlen;
+  return { x, y, breite, hoehe };
+}
+
+/**
+ * Baut aus einem gelesenen Beipackzettel wieder eine Aufnahme fuer den
+ * Eingang. Der Zettel ist die einzige Quelle der Metadaten - fehlt eine
+ * Angabe, bleibt sie leer, statt erfunden zu werden. Die Herkunft bleibt
+ * vermerkt, damit dieselbe Datei nicht zweimal hereinkommt.
+ */
+export function aufnahmeAusZettel({ daten = {}, bild, kennung, ordner, datei, zettelDatei, erfasstAm }) {
+  const jetzt = erfasstAm || new Date().toISOString();
+  const erfasst = String(daten.erfasst_am || '').trim() || jetzt;
+  const entwurf = {
+    titel: daten.titel,
+    projekt: daten.projekt,
+    seite: daten.seite,
+    kategorie: daten.kategorie,
+    status: daten.status || 'in Prüfung',
+    rolle: daten.rolle || 'einzeln',
+    browser: daten.browser,
+    autor: daten.autor,
+    datum: istGueltigesDatum(daten.datum) ? daten.datum : erfasst.slice(0, 10),
+    begriffe: Array.isArray(daten.begriffe) ? daten.begriffe : normalisiereBegriffe(daten.begriffe || []),
+    notiz: daten.notiz
+  };
+  const quelleRoh = daten.quelle && typeof daten.quelle === 'object' ? daten.quelle : {};
+  const aufnahme = baueAufnahme({
+    entwurf,
+    bild,
+    ausschnitt: rechteckOderNull(daten.ausschnitt) || { x: 0, y: 0, breite: 0, hoehe: 0 },
+    quelle: {
+      art: String(quelleRoh.art || 'datei'),
+      name: String(quelleRoh.name || datei || ''),
+      breite: Number(quelleRoh.breite) || 0,
+      hoehe: Number(quelleRoh.hoehe) || 0
+    },
+    kennung,
+    erfasstAm: erfasst
+  });
+  aufnahme.herkunft = {
+    ordner: String(ordner || ''),
+    datei: String(datei || ''),
+    zettel: String(zettelDatei || ''),
+    uebernommen_am: jetzt
+  };
+  return aufnahme;
+}
+
 export const ABLAGE_ZIELE = [
   { id: 'eingang', label: 'Eingang in dieser Seite', hinweis: 'Bleibt im Browser, überlebt kein Löschen der Browserdaten.' },
   { id: 'ordner', label: 'Ordner auf dem Rechner', hinweis: 'Einmal wählen, danach schreibt die Seite jede Aufnahme still hinein.' },

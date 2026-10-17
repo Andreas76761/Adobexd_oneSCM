@@ -910,6 +910,15 @@ div.streifen-bild { cursor: default; }
   font-family: var(--schrift-mono); font-size: 11.5px;
 }
 .zettel-liste dd.zettel-leer { color: var(--tinte-3); font-family: var(--schrift-text); }
+.zettel-meldung { font-size: 12.5px; line-height: 1.5; color: var(--tinte-2); }
+.zettel-meldung[hidden] { display: none; }
+.zettel-meldung--gut { color: var(--gut); }
+.zettel-meldung--warnung { color: var(--warn); }
+.eingang-marke {
+  justify-self: start; font-family: var(--schrift-mono); font-size: 9.5px;
+  letter-spacing: 0.04em; padding: 1px 5px; border-radius: 2px; line-height: 1.6;
+  background: var(--gut-hauch); color: var(--gut);
+}
 .zettel-roh summary { font-size: 12.5px; color: var(--tinte-2); cursor: pointer; }
 .zettel-roh pre {
   margin: 8px 0 0; max-height: 220px; overflow: auto; padding: 9px 10px;
