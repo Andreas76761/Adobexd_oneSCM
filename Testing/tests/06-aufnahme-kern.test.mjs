@@ -2719,4 +2719,71 @@ s.test('der Vergleich als Text ist der erste Entwurf eines Releaseletters', () =
   gleich((leer.match(/^–$/gm) || []).length, 3, leer);
 });
 
+/* ------------------------------- PDF aus den Blättern (1.38.0) */
+
+/** Ein JPEG-ähnlicher Block: Anfang, Rumpf, Ende – mehr braucht das PDF nicht. */
+const jpegBlock = (fuellung = 0x41, laenge = 256) =>
+  new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...new Array(laenge).fill(fuellung), 0xff, 0xd9]);
+
+const alsText = (bytes) => Buffer.from(bytes).toString('latin1');
+
+s.test('aus zwei Blättern wird ein PDF mit zwei Seiten in A4', () => {
+  const bild = jpegBlock();
+  const pdf = kern.pdfAusSeiten(
+    [
+      { daten: bild, breite: 2480, hoehe: 3508 },
+      { daten: jpegBlock(0x42), breite: 2480, hoehe: 3508 }
+    ],
+    { titel: 'Quick Guide – Prüfung', anwendung: '1.38.0', stand: new Date('2026-10-17T08:00:00Z') }
+  );
+  const text = alsText(pdf);
+  wahr(text.startsWith('%PDF-1.4\n'), text.slice(0, 20));
+  wahr(text.endsWith('%%EOF\n'), text.slice(-20));
+  gleich((text.match(/\/Type\/Page[^s]/g) || []).length, 2);
+  gleich((text.match(/\/Filter\/DCTDecode/g) || []).length, 2);
+  // 2480 Bildpunkte bei 300 dpi sind 595,2 Punkte - A4 bleibt A4.
+  gleich((text.match(/MediaBox\[0 0 595\.2 841\.92\]/g) || []).length, 2);
+  gleich(text.includes('/CreationDate (D:20261017080000Z)'), true);
+  // Der Titel steht als UTF-16 da, damit „ü" ein „ü" bleibt.
+  wahr(text.includes('/Title <FEFF'), 'der Titel ist nicht als UTF-16 gesetzt');
+  wahr(text.includes('00FC'), 'das ü fehlt im Titel');
+
+  // Das JPEG liegt unverändert im Strom - es wird nicht neu gerechnet.
+  wahr(text.includes(Buffer.from(bild).toString('latin1')), 'der Bildstrom wurde angefasst');
+});
+
+s.test('die Objekttabelle des PDF zeigt auf die richtigen Stellen', () => {
+  const pdf = kern.pdfAusSeiten([{ daten: jpegBlock(), breite: 1240, hoehe: 1754 }], { anwendung: '1.38.0' });
+  const text = alsText(pdf);
+  const start = Number((text.match(/startxref\n(\d+)/) || [])[1]);
+  wahr(Number.isFinite(start), 'es gibt kein startxref');
+  gleich(text.slice(start, start + 4), 'xref', 'startxref zeigt nicht auf die Tabelle');
+
+  // Eine Seite: Katalog, Seitenbaum, Angaben, Seite, Inhalt, Bild.
+  const zeilen = text.slice(start).split('\n');
+  gleich(zeilen[1], '0 7', 'die Tabelle zählt die Objekte falsch');
+  for (let nummer = 1; nummer <= 6; nummer++) {
+    const stelle = Number(zeilen[nummer + 2].slice(0, 10));
+    wahr(
+      text.slice(stelle).startsWith(`${nummer} 0 obj`),
+      `Objekt ${nummer} liegt nicht bei ${stelle}: ` + text.slice(stelle, stelle + 20)
+    );
+  }
+  // Das halbe Format: 1240 Punkte bei 300 dpi sind 297,6.
+  wahr(text.includes('MediaBox[0 0 297.6 420.96]'), text.match(/MediaBox[^\]]+\]/)[0]);
+});
+
+s.test('ohne Blatt gibt es kein PDF, und kaputte Blätter fallen weg', () => {
+  gleich(kern.pdfAusSeiten([]), null);
+  gleich(kern.pdfAusSeiten(), null);
+  gleich(kern.pdfAusSeiten([{ daten: new Uint8Array(), breite: 100, hoehe: 100 }]), null);
+  gleich(kern.pdfAusSeiten([{ daten: jpegBlock(), breite: 0, hoehe: 100 }]), null);
+  // Ein gutes Blatt neben einem kaputten ergibt ein PDF mit einer Seite.
+  const gemischt = kern.pdfAusSeiten([
+    { daten: jpegBlock(), breite: 2480, hoehe: 3508 },
+    { daten: null, breite: 2480, hoehe: 3508 }
+  ]);
+  gleich((alsText(gemischt).match(/\/Type\/Page[^s]/g) || []).length, 1);
+});
+
 export default s;

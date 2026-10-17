@@ -21,6 +21,26 @@ const ablageNachbau = `
       return { status: 'saved' };
     } } };`;
 
+/**
+ * Für das PDF reicht die Größe nicht: die Ablage liest die Datei mit und
+ * zählt, was drinsteht. Mehr als Text braucht die Prüfung nicht - ein PDF
+ * ist Text mit Datenströmen darin.
+ */
+const pdfNachbau = `
+  window.__abgelegt = [];
+  window.claude = { use: async (name) => name !== 'downloads' ? null : {
+    save: async (auftrag) => {
+      const text = await auftrag.data.text();
+      window.__abgelegt.push({
+        filename: auftrag.filename,
+        groesse: auftrag.data.size,
+        kopf: text.slice(0, 8),
+        seiten: (text.match(/\\/Type\\/Page[^s]/g) || []).length,
+        inhalt: text.slice(0, 4000)
+      });
+      return { status: 'saved' };
+    } } };`;
+
 /** Das Studio steht zugeklappt in der Ansicht - zum Prüfen wird es geöffnet. */
 async function oeffneStudio(seite) {
   await seite.evaluate(() => {
@@ -182,6 +202,34 @@ s.test('die Blätter lassen sich als Bilder und als HTML sichern', () =>
       );
     },
     { hash: AUFNAHME, initSkript: ablageNachbau }
+  ));
+
+s.test('die Blätter werden zu einem PDF in A4 und 300 dpi', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1', '7.5.2']);
+      await seite.selectOption('#design-vorlage', 'handbuch');
+      await seite.waitForFunction(
+        () => document.getElementById('design-blaetter').dataset.vorlage === 'handbuch',
+        null,
+        { timeout: 20000 }
+      );
+      const blaetter = await seite.locator('.design-blatt').count();
+      await seite.click('#design-pdf');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 20000 });
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      wahr(/\.pdf$/.test(datei.filename), 'keine PDF-Datei: ' + datei.filename);
+      wahr(datei.groesse > 20000, 'das PDF ist verdächtig klein: ' + datei.groesse);
+      gleich(datei.kopf, '%PDF-1.4', 'der Kopf stimmt nicht: ' + datei.kopf);
+      gleich(datei.seiten, blaetter, 'das PDF hat nicht so viele Seiten wie das Studio Blätter zeigt');
+      wahr(datei.inhalt.includes('/Filter/DCTDecode'), 'das Bild steckt nicht als JPEG im PDF');
+      wahr(/MediaBox\[0 0 595\.\d+ 841\.\d+\]/.test(datei.inhalt), 'die Seite ist nicht A4: ' + datei.inhalt.slice(0, 200));
+      wahr(
+        /300 dpi/.test(await seite.locator('#design-meldung').innerText()),
+        await seite.locator('#design-meldung').innerText()
+      );
+    },
+    { hash: AUFNAHME, initSkript: pdfNachbau }
   ));
 
 s.test('das Deckblatt kommt vor die Seiten und nennt den Inhalt', () =>

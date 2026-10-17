@@ -20,6 +20,24 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.38.0] – PDF aus den Blättern
+
+### Neu
+* **Als PDF sichern** (F-55) im Designstudio: die Blätter in einer Datei, A4
+  und 300 dpi, von der Seite selbst gebaut – ohne fremde Bibliothek, ohne
+  Druckdialog. Die JPEG-Blätter wandern unverändert in den Datenstrom
+
+### Geändert
+* „Als HTML zum Drucken“ heißt in der Meldung jetzt, wozu es gut ist: ansehen
+  und drucken – das fertige PDF gibt der neue Knopf
+
+### Kern
+* `pdfAusSeiten`
+
+### Prüfung
+* 3 neue Kernprüfungen (Aufbau, Objekttabelle, leere Eingaben), 1 neue
+  Browserprüfung; zusammen 413
+
 ## [1.37.0] – Projektvergleich: was ist neu in 2.4?
 
 ### Neu

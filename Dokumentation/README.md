@@ -9,6 +9,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [versionen/v1.38.0.md](versionen/v1.38.0.md) | PDF aus den Blättern – 300 dpi, ohne Druckdialog |
 | [versionen/v1.37.0.md](versionen/v1.37.0.md) | Projektvergleich – was ist neu in 2.4? |
 | [versionen/v1.36.0.md](versionen/v1.36.0.md) | Die Arbeitsmenge – in einem Projekt arbeiten |
 | [versionen/v1.35.0.md](versionen/v1.35.0.md) | Projekte nach Version und Land – angelegt statt getippt |

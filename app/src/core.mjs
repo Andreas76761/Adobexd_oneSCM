@@ -4549,6 +4549,151 @@ ${abschnitte}
 }
 
 /* =========================================================================
+   PDF – die Blätter in einer Datei, 300 dpi.
+
+   Ein PDF ist kein Geheimnis: ein Kopf, nummerierte Objekte, eine Tabelle
+   ihrer Byte-Abstände, ein Schluss. Ein JPEG wandert unverändert als Strom
+   hinein (`DCTDecode`) - der Browser hat es schon gerechnet, es wird hier
+   nicht noch einmal angefasst. Darum braucht diese Datei weder eine fremde
+   Bibliothek (die Inhaltsrichtlinie ließe keine zu) noch eine Schrift: auf
+   den Blättern steht der Text bereits im Bild.
+   ========================================================================= */
+
+const PDF_DPI = 300;
+
+/** Bytes aus einer Zeichenkette - ein Zeichen, ein Byte (Latin-1). */
+function pdfBytes(text) {
+  const bytes = new Uint8Array(text.length);
+  for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i) & 0xff;
+  return bytes;
+}
+
+/**
+ * Ein Text im PDF: als UTF-16BE in Hexadezimal, damit Umlaute nicht zu
+ * Fragezeichen werden. Ein Titel „Prüfbericht" ist sonst keiner.
+ */
+function pdfTextWert(text) {
+  let hex = 'FEFF';
+  for (const zeichen of String(text || '')) {
+    const nummer = zeichen.codePointAt(0);
+    if (nummer > 0xffff) {
+      const rest = nummer - 0x10000;
+      hex += (0xd800 + (rest >> 10)).toString(16).padStart(4, '0').toUpperCase();
+      hex += (0xdc00 + (rest & 0x3ff)).toString(16).padStart(4, '0').toUpperCase();
+    } else {
+      hex += nummer.toString(16).padStart(4, '0').toUpperCase();
+    }
+  }
+  return '<' + hex + '>';
+}
+
+/** Der Zeitstempel in der Schreibweise, die ein PDF erwartet. */
+function pdfDatum(zeit) {
+  const d = zeit instanceof Date ? zeit : new Date(zeit || Date.now());
+  const z = (n) => String(n).padStart(2, '0');
+  return (
+    'D:' +
+    d.getUTCFullYear() +
+    z(d.getUTCMonth() + 1) +
+    z(d.getUTCDate()) +
+    z(d.getUTCHours()) +
+    z(d.getUTCMinutes()) +
+    z(d.getUTCSeconds()) +
+    'Z'
+  );
+}
+
+/**
+ * Die Blätter als PDF. Jede Seite ist ein JPEG in voller Größe; das Format
+ * der Seite folgt den Bildpunkten bei 300 dpi, damit A4 auch A4 bleibt.
+ *
+ * `seiten`: [{ daten: Uint8Array (JPEG), breite, hoehe }]
+ */
+export function pdfAusSeiten(seiten = [], { titel = '', anwendung = '', dpi = PDF_DPI, stand = new Date() } = {}) {
+  const gueltig = seiten.filter((s) => s && s.daten && s.daten.length && s.breite > 0 && s.hoehe > 0);
+  if (!gueltig.length) return null;
+
+  const teile = [];
+  let laenge = 0;
+  const schreibe = (stueck) => {
+    const bytes = typeof stueck === 'string' ? pdfBytes(stueck) : stueck;
+    teile.push(bytes);
+    laenge += bytes.length;
+  };
+
+  // Objekt 1 Katalog, 2 Seitenbaum, 3 Angaben; danach je Seite drei Objekte.
+  const ersteSeite = 4;
+  const objekte = new Map(); // Nummer -> Byte-Abstand
+  const seitenNummern = gueltig.map((_, i) => ersteSeite + i * 3);
+  const beginne = (nummer) => {
+    objekte.set(nummer, laenge);
+    schreibe(`${nummer} 0 obj\n`);
+  };
+
+  schreibe('%PDF-1.4\n');
+  // Vier Bytes über 127: so erkennt jedes Werkzeug die Datei als binär.
+  schreibe(new Uint8Array([0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a]));
+
+  beginne(1);
+  schreibe('<</Type/Catalog/Pages 2 0 R>>\nendobj\n');
+
+  beginne(2);
+  schreibe(`<</Type/Pages/Count ${gueltig.length}/Kids[${seitenNummern.map((n) => `${n} 0 R`).join(' ')}]>>\nendobj\n`);
+
+  beginne(3);
+  schreibe(
+    `<</Title ${pdfTextWert(titel || 'Screenarchiv')}/Producer ${pdfTextWert(
+      `Screenarchiv ${anwendung}`.trim()
+    )}/Creator ${pdfTextWert(`Screenarchiv ${anwendung}`.trim())}/CreationDate (${pdfDatum(stand)})>>\nendobj\n`
+  );
+
+  gueltig.forEach((seite, i) => {
+    const seitenNr = ersteSeite + i * 3;
+    const inhaltNr = seitenNr + 1;
+    const bildNr = seitenNr + 2;
+    // 72 Punkte je Zoll: aus Bildpunkten wird das Papierformat.
+    const breite = Math.round((seite.breite / dpi) * 72 * 100) / 100;
+    const hoehe = Math.round((seite.hoehe / dpi) * 72 * 100) / 100;
+    const inhalt = `q ${breite} 0 0 ${hoehe} 0 0 cm /Im0 Do Q\n`;
+
+    beginne(seitenNr);
+    schreibe(
+      `<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${breite} ${hoehe}]` +
+        `/Resources<</XObject<</Im0 ${bildNr} 0 R>>/ProcSet[/PDF/ImageC]>>` +
+        `/Contents ${inhaltNr} 0 R>>\nendobj\n`
+    );
+
+    beginne(inhaltNr);
+    schreibe(`<</Length ${inhalt.length}>>\nstream\n${inhalt}endstream\nendobj\n`);
+
+    beginne(bildNr);
+    schreibe(
+      `<</Type/XObject/Subtype/Image/Width ${seite.breite}/Height ${seite.hoehe}` +
+        `/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length ${seite.daten.length}>>\nstream\n`
+    );
+    schreibe(seite.daten);
+    schreibe('\nendstream\nendobj\n');
+  });
+
+  const anzahl = 3 + gueltig.length * 3;
+  const xref = laenge;
+  const zeilen = ['xref', `0 ${anzahl + 1}`, '0000000000 65535 f '];
+  for (let nummer = 1; nummer <= anzahl; nummer++) {
+    zeilen.push(String(objekte.get(nummer)).padStart(10, '0') + ' 00000 n ');
+  }
+  schreibe(zeilen.join('\n') + '\n');
+  schreibe(`trailer\n<</Size ${anzahl + 1}/Root 1 0 R/Info 3 0 R>>\nstartxref\n${xref}\n%%EOF\n`);
+
+  const ganz = new Uint8Array(laenge);
+  let stelle = 0;
+  for (const stueck of teile) {
+    ganz.set(stueck, stelle);
+    stelle += stueck.length;
+  }
+  return ganz;
+}
+
+/* =========================================================================
    Projekte – Name, Version, Land.
 
    „oneSCM Portal" allein sagt zu wenig: dieselbe Maske sieht in Fassung 2.3

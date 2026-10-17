@@ -579,6 +579,7 @@ async function zeichneDesign() {
   const { schritte } = designSchritte();
   $('#design-sichern').disabled = !schritte.length;
   $('#design-html').disabled = !schritte.length;
+  $('#design-pdf').disabled = !schritte.length;
   if (!schritte.length) {
     $('#design-blaetter').dataset.vorlage = '';
     $('#design-blaetter').replaceChildren(
@@ -656,9 +657,50 @@ async function sichereBlaetter() {
 }
 
 /**
- * Dieselben Blätter als eine HTML-Datei: zum Ansehen, Weitergeben und
- * Drucken. Der Browser macht daraus ein PDF - die Seite selbst kann das
- * nicht, und ein halbgares eigenes PDF wäre schlechter als der Druckweg.
+ * Dieselben Blätter als eine PDF-Datei, 300 dpi. Jedes Blatt wandert als
+ * JPEG hinein, das Seitenformat folgt den Bildpunkten - A4 bleibt A4. Das
+ * Gerüst baut der Kern (`pdfAusSeiten`), ohne fremde Bibliothek: die
+ * Inhaltsrichtlinie des Artifacts ließe keine zu.
+ */
+async function sichereAlsPdf() {
+  if (!designSeiten.length) return;
+  const { titel } = designSchritte();
+  $('#design-pdf').disabled = true;
+  meldeDesign(`PDF wird gebaut – ${designSeiten.length} Blatt (Blätter) …`, 'neutral');
+  const seiten = [];
+  for (const blatt of designSeiten) {
+    const blob = await new Promise((fertig) => blatt.leinwand.toBlob(fertig, 'image/jpeg', 0.9));
+    if (!blob) continue;
+    seiten.push({
+      daten: new Uint8Array(await blob.arrayBuffer()),
+      breite: blatt.leinwand.width,
+      hoehe: blatt.leinwand.height
+    });
+  }
+  const pdf = pdfAusSeiten(seiten, {
+    titel: `${titel} – ${designVorlageSatz().label}`,
+    anwendung: DATEN.anwendung
+  });
+  $('#design-pdf').disabled = false;
+  if (!pdf) {
+    meldeDesign('Kein Blatt ließ sich in das PDF legen.', 'warnung');
+    return;
+  }
+  const name = `${bereinigeDateiname(`${studio.vorlage}-${titel}`) || 'blatt'}.pdf`;
+  const ergebnis = await uebergebeDatei(name, new Blob([pdf], { type: 'application/pdf' }));
+  meldeDesign(
+    ergebnis.art === 'gesichert'
+      ? `${name} gesichert (${formatiereBytes(ergebnis.groesse)}) – ${seiten.length} Seite(n) A4, 300 dpi.`
+      : ergebnis.art === 'ohne'
+        ? 'Diese Ansicht darf keine Dateien ablegen. Die Blätter bleiben in der Ansicht.'
+        : 'Das Sichern wurde abgebrochen oder ist fehlgeschlagen.',
+    ergebnis.art === 'gesichert' ? 'gut' : 'warnung'
+  );
+}
+
+/**
+ * Dieselben Blätter als eine HTML-Datei: zum Ansehen im Browser und zum
+ * Weitergeben an jemanden, der lieber scrollt als blättert.
  */
 async function sichereAlsHtml() {
   if (!designSeiten.length) return;
@@ -680,7 +722,7 @@ async function sichereAlsHtml() {
   const ergebnis = await uebergebeDatei(name, html);
   meldeDesign(
     ergebnis.art === 'gesichert'
-      ? `${name} gesichert (${formatiereBytes(ergebnis.groesse)}) – im Browser öffnen und drucken ergibt das PDF.`
+      ? `${name} gesichert (${formatiereBytes(ergebnis.groesse)}) – im Browser öffnen, ansehen, drucken. Ein fertiges PDF gibt „Als PDF sichern".`
       : 'Das Sichern wurde abgebrochen oder ist fehlgeschlagen.',
     ergebnis.art === 'gesichert' ? 'gut' : 'warnung'
   );
@@ -816,6 +858,7 @@ function verdrahteDesign() {
     });
   }
   $('#handbuch-umfang').addEventListener('change', zeigeHandbuchUmfang);
+  $('#design-pdf').addEventListener('click', sichereAlsPdf);
   $('#handbuch-sichern').addEventListener('click', sichereHandbuch);
   $('#eigen-sichern').addEventListener('click', sichereEigeneVorlage);
   $('#eigen-loeschen').addEventListener('click', loescheEigeneVorlage);

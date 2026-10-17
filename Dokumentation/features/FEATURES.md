@@ -1397,3 +1397,28 @@ zweimal zu wählen sagt die Tabelle, statt eine leere Liste zu zeigen.
 ab: Kopf mit beiden Projekten und Bildzahlen, dann die drei Blöcke *Neu in …*,
 *Nur in …* und *In beiden*. Das ist der Entwurf, aus dem ein Releaseletter
 geschrieben wird – die Seite behauptet nicht, ihn zu schreiben.
+
+## F-55 · PDF aus den Blättern – 300 dpi, ohne Umweg
+
+**Seit** 1.38.0 · betrifft Designstudio
+
+**Das Problem** Das Studio rechnet die Blätter in Druckauflösung, lieferte sie
+aber nur als PNG je Seite oder als HTML zum Drucken. Der Weg zum PDF ging über
+den Druckdialog des Browsers – mit dessen Rändern, Kopfzeilen und
+Überraschungen.
+
+**Die Lösung** „Als PDF sichern“ baut die Datei selbst. Ein PDF ist ein Kopf,
+nummerierte Objekte, eine Tabelle ihrer Byte-Abstände und ein Schluss; ein
+JPEG wandert unverändert als Strom hinein (`DCTDecode`). Darum braucht es
+weder eine fremde Bibliothek – die Inhaltsrichtlinie des Artifacts ließe keine
+zu – noch eine eingebettete Schrift: auf den Blättern steht der Text bereits
+im Bild.
+
+* Das Seitenformat folgt den Bildpunkten bei **300 dpi**: 2480 × 3508 Punkte
+  werden 595,2 × 841,92 pt, also A4.
+* Der Titel steht als UTF-16 im PDF, damit „Prüfung“ eine Prüfung bleibt.
+* Geprüft wird die Datei nicht nur auf ihren Kopf: die Testfälle lesen die
+  Objekttabelle und rechnen nach, dass jeder Abstand auf sein Objekt zeigt.
+
+Das ganze Handbuch bleibt HTML – dort ist Text Text und soll es bleiben. Das
+PDF entsteht aus den gerenderten Blättern.
