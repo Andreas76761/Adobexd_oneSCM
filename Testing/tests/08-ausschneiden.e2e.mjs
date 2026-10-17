@@ -941,7 +941,7 @@ s.test('der gewählte Ordner wird für das nächste Mal gemerkt', () =>
       const gemerkt = await seite.evaluate(
         () =>
           new Promise((fertig) => {
-            const anfrage = indexedDB.open('screenarchiv', 1);
+            const anfrage = indexedDB.open('screenarchiv');
             anfrage.onsuccess = () => {
               const holen = anfrage.result.transaction('zugriffe', 'readonly').objectStore('zugriffe').get('ordner');
               holen.onsuccess = () => fertig(holen.result ? holen.result.name : null);

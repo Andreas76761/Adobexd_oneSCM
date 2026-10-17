@@ -614,7 +614,7 @@ function verdrahteBuehne() {
  * Auch das Ausschneiden (schnipsel.js) nutzt diesen Weg - so entsteht der
  * Zuschnitt an einer einzigen Stelle.
  */
-function schneideLeinwand(quelleObj, bereich, hoechsteBreite = 1100) {
+function schneideLeinwand(quelleObj, bereich, hoechsteBreite = HOECHSTE_BILDBREITE) {
   const massstab = Math.min(1, hoechsteBreite / bereich.breite);
   const breite = Math.max(1, Math.round(bereich.breite * massstab));
   const hoehe = Math.max(1, Math.round(bereich.hoehe * massstab));
@@ -628,8 +628,37 @@ function schneideLeinwand(quelleObj, bereich, hoechsteBreite = 1100) {
   return leinwand;
 }
 
+/**
+ * Der Zuschnitt in voller Auflösung, verlustfrei als PNG. Bis 1.19.0 wurde
+ * auf 1100 Bildpunkte heruntergerechnet und als JPEG gespeichert - beim
+ * Hineinzoomen war die Schrift dann Matsch. Jetzt bleibt die Auflösung der
+ * Quelle erhalten; in den Eingang kommt nur eine kleine Vorschau.
+ */
 function schneideAus() {
-  return schneideLeinwand(quelle, ausschnitt).toDataURL('image/jpeg', 0.72);
+  return schneideLeinwand(quelle, ausschnitt).toDataURL('image/png');
+}
+
+/** Eine kleine Fassung für die Liste; das volle Bild liegt in der Datenbank. */
+function baueVorschau(leinwand, breite = VORSCHAU_BREITE) {
+  const massstab = Math.min(1, breite / leinwand.width);
+  if (massstab >= 1) return leinwand.toDataURL('image/jpeg', VORSCHAU_GUETE);
+  const klein = document.createElement('canvas');
+  klein.width = Math.max(1, Math.round(leinwand.width * massstab));
+  klein.height = Math.max(1, Math.round(leinwand.height * massstab));
+  const stift = klein.getContext('2d');
+  stift.imageSmoothingQuality = 'high';
+  stift.drawImage(leinwand, 0, 0, klein.width, klein.height);
+  return klein.toDataURL('image/jpeg', VORSCHAU_GUETE);
+}
+
+/** Dasselbe aus einer Datenadresse heraus. */
+async function vorschauAus(datenadresse, breite = VORSCHAU_BREITE) {
+  const geladen = await ladeBild(datenadresse, 'bild', 'vorschau');
+  const leinwand = document.createElement('canvas');
+  leinwand.width = geladen.breite;
+  leinwand.height = geladen.hoehe;
+  leinwand.getContext('2d').drawImage(geladen.element, 0, 0);
+  return baueVorschau(leinwand, breite);
 }
 
 /** Nimmt auf. Rückgabe: die Kennung oder null, wenn etwas fehlt. */
@@ -644,8 +673,19 @@ function loeseAus() {
   }
   aufnahmeLaeuft = true;
   try {
-    const bild = schneideAus();
+    const leinwand = schneideLeinwand(quelle, ausschnitt);
+    const voll = leinwand.toDataURL('image/png');
+    const bild = baueVorschau(leinwand);
     const kennung = naechsteAufnahmeKennung(eingang, entwurf.datum);
+    // Das volle Bild in die Datenbank; schlägt das fehl, bleibt die Vorschau.
+    legeVollbildAb(kennung, voll).then((gelungen) => {
+      const treffer = gelungen && eingang.find((a) => a.id === kennung);
+      if (!treffer) return;
+      treffer.voll = true;
+      treffer.breite = leinwand.width;
+      treffer.hoehe = leinwand.height;
+      sichereEingang();
+    });
     const aufnahme = baueAufnahme({
       entwurf,
       bild,

@@ -31,11 +31,11 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beipackzettel, Beenden, Sichtbarkeit im Archiv, Zettel im Ordnerband, Übernahme, Nachpflege, verwaiste Zettel, Tastatur, Filter, Metadaten im Bild, „Was hier geht“ | 34 |
 
-| `09-markieren.e2e.mjs` | Editor im Browser: unkenntlich machen, Rahmen, Klickstrecke, Fassungen, Gliederung, Direkteinstieg, Tastatur | 12 |
+| `09-markieren.e2e.mjs` | Editor im Browser: unkenntlich machen, Rückgängig, Auflösung, Rahmen, Klickstrecke, Fassungen, Gliederung, Direkteinstieg | 15 |
 
 | `10-strecke.e2e.mjs` | Strecke im Browser: Folge anlegen, Reihenfolge, Blatt als Bild, Beständigkeit | 6 |
 
-Summe: **258 Prüfungen**.
+Summe: **261 Prüfungen**.
 
 ## Eigene Helfer
 

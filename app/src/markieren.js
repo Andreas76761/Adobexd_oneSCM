@@ -19,6 +19,8 @@ let gewaehlteMarke = '';
 let markierBild = null; // HTMLImageElement der Originalaufnahme
 let markierUnterschrift = true; // Nummer und Zeitstempel ins Bild brennen
 let markierKapitel = { kapitel: '', unterkapitel: '' };
+let markierVerlauf = []; // Stände vor jeder Änderung – für Rückgängig
+let markierZurueck = []; // zurückgenommene Stände – für Wiederholen
 let markierZug = null; // laufendes Aufziehen
 let markierGesichert = true;
 
@@ -250,6 +252,7 @@ function beendeZug() {
   const quelle = { breite: markierBild.naturalWidth, hoehe: markierBild.naturalHeight };
   const marke = leereMarke(markierWerkzeug, begrenzeMarke(roh, quelle), marken);
   if (marke.art === 'unkenntlich') marke.stufe = markierStufe;
+  merkeStand();
   marken = [...marken, marke];
   gewaehlteMarke = marke.id;
   markierGesichert = false;
@@ -260,12 +263,47 @@ function beendeZug() {
   }
 }
 
+/** Hält den Stand vor einer Änderung fest; mehr als 40 braucht niemand. */
+function merkeStand() {
+  markierVerlauf = [...markierVerlauf.slice(-39), marken.map((m) => ({ ...m }))];
+  markierZurueck = [];
+}
+
+/** Nimmt die letzte Änderung zurück – auch das Abdecken einer Stelle. */
+function machRueckgaengig() {
+  if (!markierVerlauf.length) {
+    meldeMarkieren('Nichts rückgängig zu machen.', 'neutral');
+    return;
+  }
+  markierZurueck = [...markierZurueck, marken.map((m) => ({ ...m }))];
+  marken = markierVerlauf[markierVerlauf.length - 1];
+  markierVerlauf = markierVerlauf.slice(0, -1);
+  gewaehlteMarke = '';
+  markierGesichert = false;
+  meldeMarkieren(`Rückgängig – ${marken.length} Marken. Strg+Umschalt+Z stellt wieder her.`, 'neutral');
+  zeichneMarkieren();
+}
+
+function machWiederher() {
+  if (!markierZurueck.length) {
+    meldeMarkieren('Nichts wiederherzustellen.', 'neutral');
+    return;
+  }
+  markierVerlauf = [...markierVerlauf, marken.map((m) => ({ ...m }))];
+  marken = markierZurueck[markierZurueck.length - 1];
+  markierZurueck = markierZurueck.slice(0, -1);
+  markierGesichert = false;
+  meldeMarkieren(`Wiederhergestellt – ${marken.length} Marken.`, 'neutral');
+  zeichneMarkieren();
+}
+
 function waehleMarke(id) {
   gewaehlteMarke = id;
   zeichneMarkieren();
 }
 
 function entferneMarke(id) {
+  merkeStand();
   marken = nummeriereSchritte(marken.filter((m) => m.id !== id));
   if (gewaehlteMarke === id) gewaehlteMarke = '';
   markierGesichert = false;
@@ -286,6 +324,8 @@ function zeichneMarkieren() {
     ? `${zusammen.unkenntlich} unkenntlich · ${zusammen.rahmen} Rahmen · ${zusammen.schritte} Schritte`
     : 'noch keine Marke';
   $('#markier-sichern').disabled = !markierBild || markierGesichert;
+  $('#markier-rueckgaengig').disabled = !markierVerlauf.length;
+  $('#markier-wiederher').disabled = !markierZurueck.length;
   $('#markier-datei').disabled = !markierBild || !marken.length;
   $('#markier-zuruecksetzen').disabled = !marken.length;
   $('#markier-stufe-feld').hidden = markierWerkzeug !== 'unkenntlich';
@@ -526,12 +566,16 @@ async function waehleMarkierAufnahme(kennung) {
   $('#markier-kapitel').value = markierKapitel.kapitel;
   $('#markier-unterkapitel').value = markierKapitel.unterkapitel;
   try {
-    const geladen = await ladeBild(aufnahme.bild, 'eingang', aufnahme.titel);
+    // Immer das Original in voller Auflösung - gearbeitet wird am Besten,
+    // was da ist, nicht an der Vorschau.
+    const quellbild = await bestesBild(aufnahme);
+    const geladen = await ladeBild(quellbild, 'eingang', aufnahme.titel);
     markierBild = geladen.element;
+    markierVerlauf = [];
+    markierZurueck = [];
     meldeMarkieren(
-      marken.length
-        ? `${aufnahme.id} geladen – ${marken.length} Marken aus der letzten Fassung.`
-        : `${aufnahme.id} geladen. Das Original bleibt erhalten.`,
+      `${aufnahme.id} geladen – ${geladen.breite} × ${geladen.hoehe} px` +
+        (marken.length ? `, ${marken.length} Marken aus der letzten Fassung.` : '. Das Original bleibt erhalten.'),
       'neutral'
     );
   } catch (fehler) {
@@ -553,12 +597,15 @@ function sichereMarkierung() {
   if (!aufnahme || !markierBild) return;
   const vorhandene = leseFassungen(aufnahme);
   const nummer = naechsteFassungsnummer(vorhandene);
+  const leinwand = baueMarkierteLeinwand(false);
   const fassung = baueFassung({
     nummer,
-    bild: baueMarkierteLeinwand(false).toDataURL('image/jpeg', 0.78),
+    bild: baueVorschau(leinwand),
     marken,
     notiz: markierUnterschrift ? 'mit Bildunterschrift' : ''
   });
+  // Die Fassung in voller Auflösung daneben in die Datenbank.
+  legeVollbildAb(`${aufnahme.id}:${nummer}`, leinwand.toDataURL('image/png'));
   const gepflegt = {
     ...aufnahme,
     kapitel: Number(markierKapitel.kapitel) || undefined,
@@ -586,14 +633,15 @@ async function sichereMarkierteDatei() {
   if (!aufnahme || !markierBild) return;
   const leinwand = baueMarkierteLeinwand(false);
   const blob = await new Promise((fertig) => leinwand.toBlob(fertig, 'image/png'));
-  const name = markiertName(dateinameAus(ablage.muster, {
+  const nummer = naechsteFassungsnummer(leseFassungen(aufnahme)) - 1 || 1;
+  const name = fassungName(dateinameAus(ablage.muster, {
     kapitel: kapitelKennung({ kapitel: markierKapitel.kapitel, unterkapitel: markierKapitel.unterkapitel }),
     datum: aufnahme.datum,
     nummer: String(aufnahme.id).slice(-3),
     projekt: aufnahme.projekt,
     titel: aufnahme.titel,
     kategorie: aufnahme.kategorie
-  }));
+  }), nummer, markenZusammenfassung(marken).unkenntlich > 0);
   const zettel = baueBeipackzettel({
     entwurf: aufnahme,
     bildname: name,
@@ -625,6 +673,7 @@ async function sichereMarkierteDatei() {
 }
 
 function entferneAlleMarken() {
+  merkeStand();
   marken = [];
   gewaehlteMarke = '';
   markierGesichert = false;
@@ -691,6 +740,18 @@ function verdrahteMarkieren() {
       entferneMarke(gewaehlteMarke);
     }
   });
+  // Rückgängig gilt in der ganzen Ansicht, nicht nur auf der Bühne.
+  document.addEventListener('keydown', (e) => {
+    if (document.getElementById('markieren-ansicht').hidden) return;
+    if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
+    const imFeld = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName || '');
+    if (imFeld) return;
+    e.preventDefault();
+    if (e.shiftKey) machWiederher();
+    else machRueckgaengig();
+  });
+  $('#markier-rueckgaengig').addEventListener('click', machRueckgaengig);
+  $('#markier-wiederher').addEventListener('click', machWiederher);
 }
 
 /** Öffnet den Editor mit einer bestimmten Aufnahme - aus jeder Ansicht. */

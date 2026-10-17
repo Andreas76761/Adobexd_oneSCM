@@ -54,9 +54,10 @@ npm test          # muss vollständig grün sein
 * Version in `package.json` und Datenversion in `data/eintraege.json` werden
   getrennt geführt; die Regeln stehen im `CHANGELOG.md`.
 
-* **Aufnahmen liegen im Browser des Betrachters** (`localStorage`, Schlüssel
-  `screenarchiv:eingang`), Ordnerzugriffe in der Browserdatenbank
-  `screenarchiv`. Kein Schreibzugriff auf `data/` zur Laufzeit – der Weg
+* **Aufnahmen liegen im Browser des Betrachters**: die Vorschau im
+  `localStorage` (Schlüssel `screenarchiv:eingang`), das Bild in voller
+  Auflösung in der Browserdatenbank `screenarchiv` (Speicher `bilder`,
+  Schlüssel `AUF-…` bzw. `AUF-…:<Fassung>`), ebenso der Ordnerzugriff. Kein Schreibzugriff auf `data/` zur Laufzeit – der Weg
   dorthin führt über „Als JSON sichern“ oder den Kontaktbogen.
 * **Der Belegbestand des Archivs und die eigenen Aufnahmen sind getrennt.**
   Ein Beleg braucht zwei Aufnahmen und eine Begründung. Die Bänder oben im

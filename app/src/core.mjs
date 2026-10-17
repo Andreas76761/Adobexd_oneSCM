@@ -1261,6 +1261,32 @@ export function schreibeStrecken(strecken = []) {
   return JSON.stringify({ version: STRECKEN_VERSION, stand: new Date().toISOString(), strecken });
 }
 
+/* ------------------------------------------- Auflösung und Vorschauen */
+
+/**
+ * Die Vorschau im Eingang ist klein, das Original bleibt gross. Der
+ * localStorage fasst rund fuenf Megabyte - ein einziger Bildschirm in voller
+ * Aufloesung waere schon ein Zehntel davon. Darum: Vorschau in den Speicher,
+ * volles Bild in die Browserdatenbank.
+ */
+export const VORSCHAU_BREITE = 760;
+export const VORSCHAU_GUETE = 0.78;
+export const HOECHSTE_BILDBREITE = 4096;
+
+/**
+ * Der Name der abgelegten Fassung. Wurde etwas unkenntlich gemacht, heisst
+ * die Datei danach - wer sie weitergibt, sieht am Namen, dass sie bearbeitet
+ * ist: `bestelluebersicht_blurrt_2.png`.
+ */
+export function fassungName(bildname, nummer, mitUnkenntlich) {
+  const text = String(bildname || 'bild.png');
+  const punkt = text.lastIndexOf('.');
+  const basis = punkt > 0 ? text.slice(0, punkt) : text;
+  const endung = punkt > 0 ? text.slice(punkt) : '';
+  const art = mitUnkenntlich ? 'blurrt' : 'markiert';
+  return `${basis}_${art}_${Number(nummer) || 1}${endung}`;
+}
+
 /* ----------------------------- Fassungen: das Original und seine Stufen */
 
 /**

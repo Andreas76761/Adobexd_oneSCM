@@ -20,6 +20,34 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.20.0] – Volle Auflösung und Rückgängig
+
+### Neu
+* **Rückgängig und Wiederholen** im Editor: `Strg+Z` und
+  `Strg+Umschalt+Z`, dazu zwei Knöpfe. Jede Marke – auch eine abgedeckte
+  Stelle – lässt sich zurücknehmen (F-31)
+* Die abgelegte Fassung heißt nach dem, was mit ihr geschah:
+  `…_blurrt_2.png`, wenn etwas abgedeckt wurde, sonst `…_markiert_2.png`
+  (F-33)
+
+### Geändert
+* **Volle Auflösung**: Aufnahmen werden nicht mehr auf 1100 Bildpunkte
+  heruntergerechnet, sondern verlustfrei in der Auflösung der Quelle
+  abgelegt – beim Hineinzoomen bleibt die Schrift lesbar
+* Die Bilder liegen in der Browserdatenbank (`screenarchiv`, Speicher
+  `bilder`), im `localStorage` steht nur eine Vorschau mit 760 Bildpunkten.
+  Der Speicher fasst rund fünf Megabyte, die Datenbank ein Vielfaches
+* Der Editor lädt und rechnet auf dem vollen Bild; die Meldung nennt die
+  Auflösung
+
+### Behoben
+* Das nebenherlaufende Ablegen des vollen Bildes ersetzte die Aufnahme im
+  Eingang und löschte dabei die Herkunft, die das Ausschneiden gerade
+  angehängt hatte
+
+### Prüfung
+* 3 neue Prüfungen, zusammen 261
+
 ## [1.19.0] – Strecke: mehrere Screens, ein Blatt
 
 ### Neu

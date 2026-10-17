@@ -404,6 +404,136 @@ s.test('der Editor lässt sich aus Aufnahme und Eingang direkt öffnen', () =>
     { hash: AUFNAHME }
   ));
 
+s.test('das Abdecken lässt sich rückgängig machen und wiederholen', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      const punkte = () =>
+        seite.evaluate(() =>
+          Array.from(document.getElementById('markier-leinwand').getContext('2d').getImageData(200, 150, 50, 15).data).join()
+        );
+      const vorher = await punkte();
+      await ziehe(seite, 80, 90, 360, 130);
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      const abgedeckt = await punkte();
+      wahr(vorher !== abgedeckt, 'die Stelle wurde nicht abgedeckt');
+
+      await seite.click('#markier-rueckgaengig');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 0,
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await punkte(), vorher, 'Rückgängig stellt das Bild nicht her');
+
+      await seite.click('#markier-wiederher');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await punkte(), abgedeckt, 'Wiederholen bringt das Abdecken nicht zurück');
+
+      // Dasselbe über die Tastatur.
+      await seite.keyboard.press('Control+z');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 0,
+        null,
+        { timeout: 5000 }
+      );
+      await seite.keyboard.press('Control+Shift+z');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.marke-zeile').length === 1,
+        null,
+        { timeout: 5000 }
+      );
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('Aufnahmen behalten ihre volle Auflösung, der Eingang nur die Vorschau', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      const stand = await seite.evaluate(() => {
+        const a = JSON.parse(localStorage.getItem('screenarchiv:eingang')).aufnahmen[0];
+        return { vorschau: a.bild.length, breite: a.breite, hoehe: a.hoehe, voll: a.voll === true };
+      });
+      gleich(stand.voll, true, 'das volle Bild wurde nicht abgelegt');
+      gleich(stand.breite, 1440, 'die Quelle wurde heruntergerechnet');
+      wahr(stand.vorschau < 400000, 'die Vorschau im Speicher ist zu groß: ' + stand.vorschau);
+
+      // Der Editor arbeitet auf dem vollen Bild, nicht auf der Vorschau.
+      const leinwand = await seite.evaluate(() => {
+        const c = document.getElementById('markier-leinwand');
+        return { breite: c.width, hoehe: c.height };
+      });
+      gleich(leinwand.breite, 1440, 'der Editor lädt die Vorschau statt des Originals');
+      wahr(
+        (await seite.locator('#markier-meldung').innerText()).includes('1440 × 900 px'),
+        'die Auflösung wird nicht genannt'
+      );
+
+      // Und in der Datenbank liegt beides getrennt.
+      const schluessel = await seite.evaluate(
+        () =>
+          new Promise((fertig) => {
+            const anfrage = indexedDB.open('screenarchiv');
+            anfrage.onsuccess = () => {
+              const laden = anfrage.result.transaction('bilder', 'readonly').objectStore('bilder').getAllKeys();
+              laden.onsuccess = () => fertig(laden.result);
+            };
+          })
+      );
+      wahr(schluessel.includes('AUF-2026-001'), 'das Original fehlt in der Datenbank: ' + schluessel.join());
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('die abgedeckte Fassung heißt nach dem, was mit ihr geschah', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      await ziehe(seite, 80, 90, 360, 130);
+      await seite.click('#markier-sichern');
+      await seite.waitForFunction(
+        () => /Fassung 1/.test(document.getElementById('markier-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+      await seite.click('#markier-datei');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 8000 });
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      wahr(/_blurrt_1\.png$/.test(datei.filename), 'der Name nennt das Abdecken nicht: ' + datei.filename);
+
+      // Ohne Abdecken heißt sie anders.
+      await seite.click('#markier-zuruecksetzen');
+      await seite.click('#markier-werkzeuge button[data-werkzeug="rahmen"]');
+      await ziehe(seite, 100, 200, 300, 250);
+      await seite.click('#markier-sichern');
+      await seite.waitForFunction(
+        () => /Fassung 2/.test(document.getElementById('markier-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+      await seite.click('#markier-datei');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 2, null, { timeout: 8000 });
+      const zweite = await seite.evaluate(() => window.__abgelegt[1]);
+      wahr(/_markiert_2\.png$/.test(zweite.filename), 'die zweite Fassung heißt falsch: ' + zweite.filename);
+      wahr(zweite.groesse > 20000, 'die abgelegte Datei ist verdächtig klein');
+    },
+    {
+      hash: AUFNAHME,
+      initSkript: `window.__abgelegt = [];
+        window.claude = { use: async (n) => n !== 'downloads' ? null : {
+          save: async (a) => { window.__abgelegt.push({ filename: a.filename, groesse: a.data.size || String(a.data).length }); return { status: 'saved' }; } } };`
+    }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

@@ -45,16 +45,86 @@ function meldeSchnipsel(text, art = 'neutral') {
 
 const ORDNER_DB = 'screenarchiv';
 const ORDNER_LADEN = 'zugriffe';
+const BILD_LADEN = 'bilder';
 
-/** Der Zugriff auf einen Ordner ist kein Text - er gehört in die Datenbank. */
+/**
+ * Der Zugriff auf einen Ordner ist kein Text - er gehoert in die Datenbank.
+ * Dort liegen seit 1.20.0 auch die Bilder in voller Aufloesung: der
+ * localStorage fasst rund fuenf Megabyte, die Datenbank ein Vielfaches.
+ */
 function oeffneDatenbank() {
   return new Promise((fertig, scheitern) => {
     if (!window.indexedDB) return scheitern(new Error('keine Datenbank'));
-    const anfrage = indexedDB.open(ORDNER_DB, 1);
-    anfrage.onupgradeneeded = () => anfrage.result.createObjectStore(ORDNER_LADEN);
+    const anfrage = indexedDB.open(ORDNER_DB, 2);
+    anfrage.onupgradeneeded = () => {
+      const db = anfrage.result;
+      if (!db.objectStoreNames.contains(ORDNER_LADEN)) db.createObjectStore(ORDNER_LADEN);
+      if (!db.objectStoreNames.contains(BILD_LADEN)) db.createObjectStore(BILD_LADEN);
+    };
     anfrage.onsuccess = () => fertig(anfrage.result);
     anfrage.onerror = () => scheitern(anfrage.error);
   });
+}
+
+/**
+ * Legt ein Bild in voller Aufloesung ab. Der Schluessel traegt die Aufnahme
+ * und die Fassung: `AUF-2026-001` fuer das Original, `AUF-2026-001:2` fuer
+ * die zweite Fassung.
+ */
+async function legeVollbildAb(schluessel, datenadresse) {
+  try {
+    const db = await oeffneDatenbank();
+    await new Promise((fertig, scheitern) => {
+      const vorgang = db.transaction(BILD_LADEN, 'readwrite');
+      vorgang.objectStore(BILD_LADEN).put(datenadresse, schluessel);
+      vorgang.oncomplete = fertig;
+      vorgang.onerror = () => scheitern(vorgang.error);
+    });
+    return true;
+  } catch (fehler) {
+    // Ohne Datenbank bleibt die Vorschau - kleiner, aber vorhanden.
+    return false;
+  }
+}
+
+async function holeVollbild(schluessel) {
+  try {
+    const db = await oeffneDatenbank();
+    return await new Promise((fertig, scheitern) => {
+      const anfrage = db.transaction(BILD_LADEN, 'readonly').objectStore(BILD_LADEN).get(schluessel);
+      anfrage.onsuccess = () => fertig(anfrage.result || null);
+      anfrage.onerror = () => scheitern(anfrage.error);
+    });
+  } catch (fehler) {
+    return null;
+  }
+}
+
+async function entferneVollbild(schluessel) {
+  try {
+    const db = await oeffneDatenbank();
+    await new Promise((fertig) => {
+      const vorgang = db.transaction(BILD_LADEN, 'readwrite');
+      vorgang.objectStore(BILD_LADEN).delete(schluessel);
+      vorgang.oncomplete = fertig;
+      vorgang.onerror = fertig;
+    });
+  } catch (fehler) {
+    /* nichts zu tun */
+  }
+}
+
+/** Das beste verfügbare Bild: volle Auflösung, sonst die Vorschau. */
+async function bestesBild(aufnahme, fassungsnummer) {
+  if (!aufnahme) return '';
+  const schluessel = fassungsnummer ? `${aufnahme.id}:${fassungsnummer}` : aufnahme.id;
+  const voll = await holeVollbild(schluessel);
+  if (voll) return voll;
+  if (fassungsnummer) {
+    const fassung = leseFassungen(aufnahme).find((f) => f.nummer === fassungsnummer);
+    if (fassung) return fassung.bild;
+  }
+  return aufnahme.bild || '';
 }
 
 async function merkeOrdner(zugriff) {
@@ -506,7 +576,8 @@ function verdrahteSchnipselBuehne() {
 
 /** Legt den Schnipsel in allen gewählten Zielen ab. */
 async function nimmSchnipsel() {
-  const leinwand = schneideLeinwand(schnipselQuelle, schnipselBereich, 1600);
+  // Volle Auflösung der Quelle - heruntergerechnet wird nur die Vorschau.
+  const leinwand = schneideLeinwand(schnipselQuelle, schnipselBereich);
   const jetzt = new Date();
   const nummer = String(schnipselZaehler + 1).padStart(3, '0');
   const name = dateinameAus(ablage.muster, {
@@ -526,7 +597,7 @@ async function nimmSchnipsel() {
     const kennung = naechsteAufnahmeKennung(eingang, entwurf.datum);
     const aufnahme = baueAufnahme({
       entwurf,
-      bild: leinwand.toDataURL('image/jpeg', 0.72),
+      bild: baueVorschau(leinwand),
       ausschnitt: schnipselBereich,
       quelle: schnipselQuelle,
       kennung,
@@ -534,6 +605,17 @@ async function nimmSchnipsel() {
     });
     eingang = [aufnahme, ...eingang];
     eingangsAufnahme = aufnahme;
+    // Das volle Bild wandert nebenher in die Datenbank. Die Aufnahme wird
+    // dabei nicht ersetzt, sondern ergänzt: zwischen Start und Ende dieses
+    // Weges kann die Ablage ihr die Herkunft angehängt haben.
+    legeVollbildAb(kennung, leinwand.toDataURL('image/png')).then((gelungen) => {
+      const treffer = gelungen && eingang.find((a) => a.id === kennung);
+      if (!treffer) return;
+      treffer.voll = true;
+      treffer.breite = leinwand.width;
+      treffer.hoehe = leinwand.height;
+      sichereEingang();
+    });
     const ergebnis = sichereEingang();
     if (ergebnis.ok) wohin.push(`Eingang (${kennung})`);
     else if (ergebnis.voll) {
@@ -578,8 +660,11 @@ async function nimmSchnipsel() {
         }
         // Die Aufnahme im Eingang merkt sich ihre Datei - sonst waere spaeter
         // nicht zu erkennen, welcher Zettel zu ihr gehoert.
-        if (eingangsAufnahme) {
-          eingangsAufnahme.herkunft = {
+        // Die Aufnahme kann zwischenzeitlich ersetzt worden sein - darum
+        // wird sie hier erneut gesucht, statt auf die alte zu schreiben.
+        const imEingang = eingangsAufnahme && eingang.find((a) => a.id === eingangsAufnahme.id);
+        if (imEingang) {
+          imEingang.herkunft = {
             ordner: ordnerZugriff.name,
             datei: name,
             zettel: ablage.beipack ? zettelName : '',
