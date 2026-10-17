@@ -212,6 +212,10 @@ const geteilterBildschirm = `
     await ziehe(120, 300, 320, 348);
     zeile = await seite.locator('.marke-zeile').last().getAttribute('data-marke');
     await seite.fill('#marke-text-' + zeile, 'Lieferant auswählen');
+    // Die Nummern von Hand stehen hinter einem Aufklapper (1.33.0).
+    await seite.evaluate(() => {
+      document.querySelector('.feld--nummern').open = true;
+    });
     await seite.fill('#markier-kapitel', '2');
     await seite.fill('#markier-unterkapitel', '3');
     await seite.waitForTimeout(200);

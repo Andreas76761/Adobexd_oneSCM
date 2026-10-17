@@ -1513,3 +1513,18 @@ div.streifen-bild { cursor: default; }
 .matrix-knopf:hover { border-color: var(--akzent); }
 .matrix-voll tbody th, .matrix-gitter tr.matrix-voll th { border-left: 3px solid var(--gut); }
 .matrix-summe th, .matrix-summe td { background: var(--flaeche-2); font-weight: 600; }
+
+/* ------------------------- Labels und Stellenwahl (1.33.0) */
+
+.feld--wahl { min-width: 190px; flex: 1 1 190px; }
+.feld--wahl select { max-width: 100%; }
+.feld--nummern { min-width: 0; }
+.feld--nummern > summary { cursor: pointer; font-size: 11.5px; color: var(--tinte-3); padding: 6px 0; }
+.feld-mit-liste { display: block; }
+.feld-mit-liste > input { width: 100%; }
+#entwurf-labels { margin-top: 4px; }
+#entwurf-labels .label-felder { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+#entwurf-labels label { display: flex; align-items: center; gap: 6px; }
+.bearbeiten-form .label-felder {
+  display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}

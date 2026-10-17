@@ -178,6 +178,39 @@ function markierUnterschriftText() {
  * nichts ab, sondern beschriftet - darum liegt es auf dem Bild und nicht
  * darum herum.
  */
+/**
+ * Zeichnet ein Symbol des Vorrats auf die Leinwand. Gelesen wird dieselbe
+ * Quelle wie in der Oberfläche - zwei Sätze Zeichen wären zwei Wahrheiten.
+ * Rückgabe: ob gezeichnet wurde.
+ */
+function zeichneSymbol(stift, name, x, y, groesse, farbe) {
+  const quelle = name && document.getElementById('sym-' + name);
+  if (!quelle || typeof Path2D !== 'function') return false;
+  const zahl = (knoten, attribut) => Number(knoten.getAttribute(attribut)) || 0;
+  stift.save();
+  stift.translate(x, y);
+  stift.scale(groesse / 24, groesse / 24);
+  stift.strokeStyle = farbe;
+  stift.fillStyle = 'transparent';
+  stift.lineWidth = 1.8;
+  stift.lineCap = 'round';
+  stift.lineJoin = 'round';
+  for (const knoten of quelle.children) {
+    let pfad = null;
+    if (knoten.tagName === 'path') pfad = new Path2D(knoten.getAttribute('d') || '');
+    else if (knoten.tagName === 'circle') {
+      pfad = new Path2D();
+      pfad.arc(zahl(knoten, 'cx'), zahl(knoten, 'cy'), zahl(knoten, 'r'), 0, Math.PI * 2);
+    } else if (knoten.tagName === 'rect') {
+      pfad = new Path2D();
+      pfad.roundRect(zahl(knoten, 'x'), zahl(knoten, 'y'), zahl(knoten, 'width'), zahl(knoten, 'height'), zahl(knoten, 'rx'));
+    }
+    if (pfad) stift.stroke(pfad);
+  }
+  stift.restore();
+  return true;
+}
+
 function zeichneLabelmarke(stift, marke) {
   const text = String(marke.text || '').trim();
   if (!text) return;
@@ -185,7 +218,12 @@ function zeichneLabelmarke(stift, marke) {
   const schrift = Math.round(hoehe * 0.58);
   stift.save();
   stift.font = `500 ${schrift}px ${token('--schrift-text', 'sans-serif')}`;
-  const breite = Math.round(stift.measureText(text).width + hoehe * 0.9);
+  // Platz für das Zeichen, wenn es eines gibt - sonst bleibt die Marke schmal.
+  const zeichen = symbolZuLabel(marke.feld, text);
+  const symbolGroesse = Math.round(hoehe * 0.62);
+  const hatZeichen = Boolean(zeichen && document.getElementById('sym-' + zeichen));
+  const vorne = hoehe * 0.45 + (hatZeichen ? symbolGroesse + hoehe * 0.2 : 0);
+  const breite = Math.round(stift.measureText(text).width + vorne + hoehe * 0.45);
   marke.breite = breite;
   marke.hoehe = hoehe;
   stift.fillStyle = token('--tinte', '#141A24');
@@ -193,10 +231,21 @@ function zeichneLabelmarke(stift, marke) {
   stift.beginPath();
   stift.roundRect(marke.x, marke.y, breite, hoehe, r);
   stift.fill();
-  stift.fillStyle = token('--grund', '#EDEFF3');
+  const tinte = token('--grund', '#EDEFF3');
+  if (hatZeichen) {
+    zeichneSymbol(
+      stift,
+      zeichen,
+      marke.x + hoehe * 0.45,
+      marke.y + (hoehe - symbolGroesse) / 2,
+      symbolGroesse,
+      tinte
+    );
+  }
+  stift.fillStyle = tinte;
   stift.textAlign = 'left';
   stift.textBaseline = 'middle';
-  stift.fillText(text, marke.x + hoehe * 0.45, marke.y + hoehe / 2 + 1);
+  stift.fillText(text, marke.x + vorne, marke.y + hoehe / 2 + 1);
   stift.restore();
 }
 
@@ -757,6 +806,7 @@ async function waehleMarkierAufnahme(kennung) {
   $('#markier-unterkapitel').value = markierKapitel.unterkapitel;
   markierStelle = String(aufnahme.gliederung || '');
   $('#markier-stelle').value = markierStelle;
+  fuelleStellenwahl(['#stelle-kapitel', '#stelle-unterkapitel', '#stelle-schritt'], markierStelle);
   zeigeStellenthema();
   markierLabels = Object.fromEntries(LABEL_FELDER.map((f) => [f.id, aufnahme[f.id] || '']));
   zeichneLabelfelder();
@@ -914,12 +964,31 @@ function verdrahteMarkieren() {
       $('#markier-sichern').disabled = !markierBild;
     });
   }
-  // Die Stelle im Handbuch: tippen und aus den Vorschlägen wählen.
+  // Die Stelle im Handbuch: wählen oder tippen - beides führt zum selben Wert.
+  const setzeStelle = (wert) => {
+    markierStelle = wert;
+    $('#markier-stelle').value = wert;
+    fuelleStellenwahl(['#stelle-kapitel', '#stelle-unterkapitel', '#stelle-schritt'], wert);
+    zeigeStellenthema();
+    markierGesichert = false;
+    zeichneMarkierflaeche();
+    $('#markier-sichern').disabled = !markierBild;
+  };
+  for (const feld of ['#stelle-kapitel', '#stelle-unterkapitel', '#stelle-schritt']) {
+    $(feld).addEventListener('change', (e) => {
+      // Eine leere Wahl fällt auf die Ebene darüber zurück, statt die Stelle
+      // zu löschen: wer das Unterkapitel zurücknimmt, meint das Kapitel.
+      const teile = stelleTeile(markierStelle);
+      const ebene = ['#stelle-kapitel', '#stelle-unterkapitel', '#stelle-schritt'].indexOf(feld);
+      setzeStelle(e.target.value || teile[ebene - 1] || '');
+    });
+  }
   $('#markier-stelle').addEventListener('input', (e) => {
     const roh = String(e.target.value || '').trim();
     // Aus "6.2.3 Thema" wird die Nummer; getippte Nummern bleiben, wie sie sind.
     markierStelle = (roh.match(/^[0-9A-Z]+(\.[0-9]+)*/) || [''])[0];
     fuelleStellenvorschlaege(roh);
+    fuelleStellenwahl(['#stelle-kapitel', '#stelle-unterkapitel', '#stelle-schritt'], markierStelle);
     zeigeStellenthema();
     markierGesichert = false;
     zeichneMarkierflaeche();
@@ -978,14 +1047,19 @@ function zeichneLabelfelder() {
   kasten.replaceChildren(
     ...LABEL_FELDER.map((feld) => {
       const id = 'label-' + feld.id;
+      // Das Zeichen folgt dem Wert: eine gesetzte Rolle zeigt ihr eigenes.
       const beschriftung = el('label', { for: id }, [
-        symbol(feld.symbol),
+        symbol(wertSymbol(feld, markierLabels[feld.id])),
         el('span', { text: feld.label })
       ]);
       const aendere = (wert) => {
         markierLabels = { ...markierLabels, [feld.id]: wert };
         markierGesichert = false;
         aktualisiereLabelkette();
+        // Das Zeichen folgt dem Wert, ohne die Felder neu zu bauen - sonst
+        // verlöre das Feld beim Tippen den Fokus.
+        const nutzung = beschriftung.querySelector('use');
+        if (nutzung) nutzung.setAttribute('href', '#sym-' + wertSymbol(feld, wert));
         // Ein Label im Bild traegt den Text mit - also neu zeichnen.
         for (const marke of marken) {
           if (marke.art === 'label' && marke.feld === feld.id) marke.text = labelWert(feld.id, wert);
@@ -1008,7 +1082,11 @@ function zeichneLabelfelder() {
             [
               el('option', { value: '', text: 'ohne' }),
               ...feld.werte.map((w) =>
-                el('option', { value: w.id, text: w.label, selected: w.id === markierLabels[feld.id] })
+                el('option', {
+                  value: w.id,
+                  text: w.lang ? `${w.label} – ${w.lang}` : w.label,
+                  selected: w.id === markierLabels[feld.id]
+                })
               )
             ]
           );
@@ -1031,6 +1109,16 @@ function zeichneLabelfelder() {
 const labelBezeichnung = (feld) => (LABEL_FELDER.find((f) => f.id === feld) || { label: '' }).label;
 
 /** Ein Symbol aus dem Vorrat der Seite - keine externen Bilder. */
+/**
+ * Das Zeichen eines Labelwerts: jede Rolle und jede Sparte hat ihr eigenes
+ * (Dealer, Market, HQ, MO, PC, Van). Fehlt eines, steht das Zeichen des
+ * Feldes da - ein leerer Platz wäre schlimmer als ein allgemeines Symbol.
+ */
+function wertSymbol(feld, wert) {
+  const treffer = (feld.werte || []).find((w) => w.id === wert);
+  return (treffer && treffer.symbol) || feld.symbol;
+}
+
 function symbol(name) {
   const knoten = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   knoten.setAttribute('class', 'symbol');
@@ -1081,6 +1169,36 @@ function nimmLabelsAusBild() {
   markierGesichert = false;
   meldeMarkieren('Labels aus dem Bild genommen – die Angaben bleiben an der Aufnahme.', 'neutral');
   zeichneMarkieren();
+}
+
+/**
+ * Die Auswahl Kapitel → Unterkapitel → Stelle. Jede Ebene zeigt Nummer und
+ * Namen; die tieferen Ebenen richten sich nach der höheren. Wer 1153 Stellen
+ * zuordnen soll, soll sie nicht tippen müssen.
+ */
+function fuelleStellenwahl(kennungen, stelle) {
+  const teile = stelleTeile(stelle);
+  const ebenen = [
+    { feld: kennungen[0], ebene: 1, eltern: '', leer: 'Kapitel wählen' },
+    { feld: kennungen[1], ebene: 2, eltern: teile[0] || '', leer: 'Unterkapitel' },
+    { feld: kennungen[2], ebene: 3, eltern: teile[1] || '', leer: 'Stelle' }
+  ];
+  for (const { feld, ebene, eltern, leer } of ebenen) {
+    const knoten = feld && document.querySelector(feld);
+    if (!knoten) continue;
+    const auswahl = ebene === 1 || eltern ? gliederungEbene(GLIEDERUNG, ebene, eltern) : [];
+    knoten.disabled = !auswahl.length;
+    knoten.replaceChildren(
+      el('option', {
+        value: '',
+        text: auswahl.length ? leer : ebene === 1 ? 'keine Gliederung' : 'erst darüber wählen'
+      }),
+      ...auswahl.map((e) =>
+        el('option', { value: e.nummer, text: stelleLabel(e), selected: e.nummer === teile[ebene - 1] })
+      )
+    );
+    knoten.value = teile[ebene - 1] && auswahl.some((e) => e.nummer === teile[ebene - 1]) ? teile[ebene - 1] : '';
+  }
 }
 
 /** Höchstens 60 Vorschläge - eine Liste mit 1153 Einträgen hilft niemandem. */
@@ -1833,6 +1951,7 @@ function zeichneTeilschritte() {
               { klasse: 'teilschritt-werte' },
               gruppe.werte.map((w) =>
                 el('span', { klasse: 'teilschritt-wert' }, [
+                  w.symbol && w.symbol !== gruppe.symbol ? symbol(w.symbol) : null,
                   el('span', { text: w.wert }),
                   el('span', { klasse: 'teilschritt-zahl', text: String(w.zahl) })
                 ])

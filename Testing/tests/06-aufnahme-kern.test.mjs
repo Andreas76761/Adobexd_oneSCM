@@ -863,7 +863,7 @@ s.test('die Labels stehen in fester Folge und nennen ihren Klartext', () => {
   gleich(kern.labelWert('sprache', 'xx'), 'xx', 'ein unbekannter Code wird nicht verschwiegen');
   wahr(kern.SPRACHEN.length >= 19, 'es fehlen Sprachen: ' + kern.SPRACHEN.length);
   tieferGleich(kern.ROLLEN_LABEL.map((r) => r.label), ['Dealer', 'Market', 'HQ', 'MO']);
-  tieferGleich(kern.SPARTEN.map((s) => s.label), ['Pkw', 'Van']);
+  tieferGleich(kern.SPARTEN.map((s) => s.label), ['PC', 'Van']);
 });
 
 s.test('die Vorschläge für freie Felder kommen aus der bisherigen Arbeit', () => {
@@ -1898,7 +1898,7 @@ s.test('das Deckblatt nennt nur, was es weiß', () => {
     anzahl: 6,
     seiten: 2,
     vorlage: 'Quick Guide',
-    labels: 'Pkw · Dealer · Deutsch',
+    labels: 'PC · Dealer · Deutsch',
     stand: '2026-10-17T10:00:00Z',
     hinweis: 'Interne Unterlage'
   });
@@ -1919,7 +1919,7 @@ s.test('gemeinsame Labels werden genannt, Unterschiede gezählt', () => {
       { sparte: 'pkw', rolle_label: 'dealer', sprache: 'de' },
       { sparte: 'pkw', rolle_label: 'dealer', sprache: 'de' }
     ]),
-    'Pkw · Dealer · Deutsch'
+    'PC · Dealer · Deutsch'
   );
   gleich(
     kern.gemeinsameLabels([
@@ -1970,7 +1970,7 @@ const verzeichnisEingang = [
 
 s.test('der Pfad eines Bildes entsteht aus dem Muster', () => {
   const eins = kern.verzeichnisPfad(verzeichnisEingang[0], kern.VERZEICHNIS_MUSTER, verzeichnisGliederung);
-  tieferGleich(eins.ordner, ['pkw', 'de', '6-2', 'dealer']);
+  tieferGleich(eins.ordner, ['pc', 'de', '6-2', 'dealer']);
   gleich(eins.name, '2026-10-17-auf-2026-001-vorlagenliste-oeffnen');
 
   // Was fehlt, wird benannt statt weggelassen - ein Bild ohne Sprache landet
@@ -2287,6 +2287,101 @@ s.test('das Handbuch ist ein vollständiges HTML mit Inhaltsverzeichnis', () => 
   );
   wahr(boese.includes('&lt;script&gt;'), 'Freitext steht ungemaskiert im Dokument');
   wahr(boese.includes('<title>A &amp; B</title>'));
+});
+
+/* ------------------------------ Labels am Entwurf, Stellenwahl, Zeichen */
+
+s.test('Sprache, Rolle, Sparte und Markt hängen schon am Entwurf', () => {
+  const entwurf = kern.leereAufnahme('2026-10-17', {
+    sprache: 'en',
+    rolle_label: 'hq',
+    sparte: 'van',
+    markt: 'Korea',
+    gliederung: '7.5.2'
+  });
+  gleich(entwurf.sprache, 'en');
+  gleich(entwurf.rolle_label, 'hq');
+  gleich(entwurf.sparte, 'van');
+  gleich(entwurf.markt, 'Korea');
+  gleich(entwurf.gliederung, '7.5.2');
+  gleich(kern.leereAufnahme('2026-10-17').sprache, '', 'ohne Vorlage bleiben die Labels leer');
+
+  const aufnahme = kern.baueAufnahme({
+    entwurf: { ...entwurf, titel: 'Liste', projekt: 'oneSCM' },
+    bild: 'data:image/png;base64,AA',
+    ausschnitt: { x: 0, y: 0, breite: 10, hoehe: 10 },
+    quelle: { art: 'datei', name: 'x', breite: 10, hoehe: 10 },
+    kennung: 'AUF-2026-001',
+    erfasstAm: '2026-10-17T10:00:00Z'
+  });
+  gleich(aufnahme.sprache, 'en');
+  gleich(aufnahme.rolle_label, 'hq');
+  gleich(aufnahme.gliederung, '7.5.2');
+  gleich(kern.labelKette(aufnahme), 'Englisch · HQ · Van · Korea');
+
+  // Leere Labels stehen nicht als leere Felder an der Aufnahme.
+  const ohne = kern.baueAufnahme({
+    entwurf: kern.leereAufnahme('2026-10-17'),
+    bild: 'data:image/png;base64,AA',
+    ausschnitt: { x: 0, y: 0, breite: 10, hoehe: 10 },
+    quelle: { art: 'datei', name: 'x', breite: 10, hoehe: 10 },
+    kennung: 'AUF-2026-002',
+    erfasstAm: '2026-10-17T10:00:00Z'
+  });
+  gleich('sprache' in ohne, false, 'leere Labels landen als leere Felder an der Aufnahme');
+  gleich('gliederung' in ohne, false);
+});
+
+s.test('die Auswahl Kapitel, Unterkapitel, Stelle kennt ihre Ebenen', () => {
+  const g = kern.leseGliederung({
+    eintraege: [
+      { nummer: '7', thema: 'Zahlungsdaten', ebene: 1 },
+      { nummer: '7.5', thema: 'Digitale Unterschrift', ebene: 2 },
+      { nummer: '7.5.1', thema: 'Signaturwege', ebene: 3 },
+      { nummer: '7.5.2', thema: 'Signaturergebnis', ebene: 3 },
+      { nummer: '8', thema: 'Rollen', ebene: 1 },
+      { nummer: '8.1', thema: 'Übergang', ebene: 2, art: 'uebergang' }
+    ]
+  });
+  tieferGleich(kern.stelleTeile('7.5.2'), ['7', '7.5', '7.5.2']);
+  tieferGleich(kern.stelleTeile(''), []);
+  tieferGleich(kern.stelleTeile('A'), ['A']);
+
+  tieferGleich(kern.gliederungEbene(g, 1).map((e) => e.nummer), ['7', '8']);
+  tieferGleich(kern.gliederungEbene(g, 2, '7').map((e) => e.nummer), ['7.5']);
+  tieferGleich(kern.gliederungEbene(g, 3, '7.5').map((e) => e.nummer), ['7.5.1', '7.5.2']);
+  tieferGleich(kern.gliederungEbene(g, 2, '8').map((e) => e.nummer), [], 'ein Übergang ist keine Stelle');
+  tieferGleich(kern.gliederungEbene(g, 3, '8').map((e) => e.nummer), []);
+  gleich(kern.stelleLabel(g.find((e) => e.nummer === '7.5')), '7.5  Digitale Unterschrift');
+  gleich(kern.stelleLabel(null), '');
+});
+
+s.test('jede Rolle und jede Sparte hat ihr eigenes Zeichen', () => {
+  for (const rolle of kern.ROLLEN_LABEL) gleich(kern.symbolZuLabel('rolle_label', rolle.label), rolle.symbol);
+  for (const sparte of kern.SPARTEN) gleich(kern.symbolZuLabel('sparte', sparte.label), sparte.symbol);
+  // Ein freier Wert bekommt das Zeichen seines Feldes, kein leeres.
+  gleich(kern.symbolZuLabel('markt', 'Germany'), 'markt');
+  gleich(kern.symbolZuLabel('sprache', 'Deutsch'), 'sprache');
+  gleich(kern.symbolZuLabel('gibtsnicht', 'x'), '');
+
+  // Die Teilschritte tragen das Zeichen je Wert mit.
+  const gruppen = kern.teilschritte([{ rolle_label: 'hq', sparte: 'van' }], '');
+  const rolle = gruppen.find((g) => g.feld === 'rolle_label');
+  gleich(rolle.werte[0].wert, 'HQ');
+  gleich(rolle.werte[0].symbol, 'rolle-hq');
+});
+
+s.test('die Sparten heißen PC und Van, die Suche kennt beide Namen', () => {
+  tieferGleich(kern.SPARTEN.map((s) => s.id), ['pkw', 'van'], 'die Kennung darf sich nicht ändern');
+  gleich(kern.labelWert('sparte', 'pkw'), 'PC');
+  gleich(kern.deuteFrage('Bilder PC').filter.sparte, 'pkw');
+  gleich(kern.deuteFrage('Pkw Bilder').filter.sparte, 'pkw', 'der alte Name wird nicht mehr verstanden');
+  gleich(kern.deuteFrage('Transporter').filter.sparte, 'van');
+  gleich(kern.deuteFrage('Händler').filter.rolle_label, 'dealer');
+  gleich(kern.deuteFrage('Zentrale').filter.rolle_label, 'hq');
+  // Das Feld Markt gewinnt gegen die Rolle Market.
+  gleich(kern.deuteFrage('Markt Germany').filter.markt, 'germany');
+  gleich(kern.deuteFrage('Markt Germany').filter.rolle_label, '');
 });
 
 export default s;

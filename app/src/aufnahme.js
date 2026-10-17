@@ -13,6 +13,7 @@
 const heute = () => new Date().toISOString().slice(0, 10);
 
 let eingang = leseEingangAusSpeicher();
+let entwurfslabelsOffen = false; // der Labelblock im Aufnahmeformular
 let entwurf = leereAufnahme(heute(), { browser: erkenneBrowser() });
 let quelle = null; // { art, name, breite, hoehe, element, strom }
 let ausschnitt = null; // in Bildpunkten der Quelle
@@ -870,9 +871,77 @@ function baueFormular() {
         }
       }),
       null
-    )
+    ),
+    zeichneEntwurfslabels()
   );
   fuelleFormular();
+}
+
+/**
+ * Sprache, Rolle, Sparte und Markt schon bei der Aufnahme. Wer eine Reihe
+ * aufnimmt, nimmt sie in *einer* Sprache und für *eine* Rolle auf - diese
+ * Angaben hinterher einzeln nachzutragen wäre die Arbeit zweimal. Sie bleiben
+ * stehen, bis sie geändert werden, und wandern in jede neue Aufnahme.
+ */
+function zeichneEntwurfslabels() {
+  const felder = LABEL_FELDER.filter((f) => ['sprache', 'rolle_label', 'sparte', 'markt'].includes(f.id));
+  return el('details', { klasse: 'labels', id: 'entwurf-labels', open: entwurfslabelsOffen }, [
+    el('summary', {}, [
+      el('span', { text: 'Labels' }),
+      el('span', { klasse: 'kennung', id: 'entwurf-label-kette', text: labelKette(entwurf) || 'noch keine' })
+    ]),
+    el(
+      'div',
+      { klasse: 'label-felder' },
+      felder.map((feld) => {
+        const id = 'feld-label-' + feld.id;
+        const wert = entwurf[feld.id] || '';
+        const aendere = (neu) => {
+          entwurf[feld.id] = neu;
+          $('#entwurf-label-kette').textContent = labelKette(entwurf) || 'noch keine';
+        };
+        return el('div', { klasse: 'feld' }, [
+          el('label', { for: id }, [symbol(wert && feld.werte ? wertSymbol(feld, wert) : feld.symbol), el('span', { text: feld.label })]),
+          feld.frei
+            ? el('span', { klasse: 'feld-mit-liste' }, [
+                el('input', {
+                  type: 'text',
+                  id,
+                  value: wert,
+                  list: 'vorschlag-entwurf-' + feld.id,
+                  placeholder: 'Germany',
+                  oninput: (e) => aendere(e.target.value)
+                }),
+                el(
+                  'datalist',
+                  { id: 'vorschlag-entwurf-' + feld.id },
+                  labelVorschlaege(eingang, feld.id)
+                    .slice(0, 40)
+                    .map((w) => el('option', { value: w }))
+                )
+              ])
+            : el(
+                'select',
+                { id, onchange: (e) => aendere(e.target.value) },
+                [
+                  el('option', { value: '', text: 'ohne ' + feld.label }),
+                  ...feld.werte.map((w) =>
+                    el('option', {
+                      value: w.id,
+                      text: w.lang ? `${w.label} – ${w.lang}` : w.label,
+                      selected: w.id === wert
+                    })
+                  )
+                ]
+              )
+        ]);
+      })
+    ),
+    el('span', {
+      klasse: 'feld-hinweis',
+      text: 'Gilt für jede weitere Aufnahme, bis es geändert wird. Im Editor lässt sich alles nachziehen.'
+    })
+  ]);
 }
 
 /** Schreibt den Entwurf in das Formular zurück (nach dem Auslösen). */
@@ -892,6 +961,11 @@ function fuelleFormular() {
   setzeWert('browser', entwurf.browser);
   setzeWert('begriffe', begriffeAlsText(normalisiereBegriffe(entwurf.begriffe)));
   setzeWert('notiz', entwurf.notiz);
+  // Die Labels bleiben über das Auslösen hinaus stehen - sie gelten für die
+  // ganze Reihe, nicht für ein Bild.
+  for (const feld of LABEL_FELDER) setzeWert('label-' + feld.id, entwurf[feld.id] || '');
+  const kette = document.getElementById('entwurf-label-kette');
+  if (kette) kette.textContent = labelKette(entwurf) || 'noch keine';
 }
 
 /* ------------------------------------------------------ Studio zeichnen */
@@ -1439,6 +1513,47 @@ function oeffneEingangDialog(kennung) {
       feld(
         'Notiz',
         el('textarea', { id: 'bearbeite-notiz', rows: '3', oninput: (e) => (arbeitskopie.notiz = e.target.value) })
+      ),
+      // Dieselben Labels wie im Editor - wer hier schon ordnet, muss nicht
+      // dorthin wechseln. Die Stelle im Handbuch steht daneben.
+      feld(
+        'Stelle im Handbuch',
+        el('span', { klasse: 'feld-mit-liste' }, [
+          el('input', {
+            type: 'text',
+            id: 'bearbeite-gliederung',
+            value: arbeitskopie.gliederung || '',
+            list: 'vorschlag-bearbeite-stelle',
+            placeholder: '7.5.2',
+            oninput: (e) => {
+              const roh = String(e.target.value || '').trim();
+              arbeitskopie.gliederung = (roh.match(/^[0-9A-Z]+(\.[0-9]+)*/) || [''])[0];
+            }
+          }),
+          el(
+            'datalist',
+            { id: 'vorschlag-bearbeite-stelle' },
+            sucheGliederung(GLIEDERUNG, '')
+              .slice(0, 300)
+              .map((e) => el('option', { value: e.nummer, text: e.thema }))
+          )
+        ])
+      ),
+      el(
+        'div',
+        { klasse: 'label-felder' },
+        LABEL_FELDER.filter((f) => ['sprache', 'rolle_label', 'sparte', 'markt'].includes(f.id)).map((f) =>
+          feld(
+            f.label,
+            f.frei
+              ? text(f.id, 'Germany')
+              : auswahl(
+                  f.id,
+                  f.werte.map((w) => ({ id: w.id, label: w.lang ? `${w.label} – ${w.lang}` : w.label })),
+                  'ohne ' + f.label
+                )
+          )
+        )
       )
     ]),
     el('div', { klasse: 'bearbeiten-aktionen' }, [

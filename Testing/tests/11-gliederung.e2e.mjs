@@ -145,7 +145,7 @@ s.test('Labels stehen an der Aufnahme und auf Wunsch im Bild', () =>
       );
       gleich(
         await seite.locator('#label-kette').innerText(),
-        'Deutsch · Market · Pkw · Germany · Templates – Market Settings · Documents · Create Template'
+        'Deutsch · Market · PC · Germany · Templates – Market Settings · Documents · Create Template'
       );
 
       await seite.click('#label-ins-bild');

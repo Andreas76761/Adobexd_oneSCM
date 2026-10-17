@@ -16,6 +16,15 @@ let importStelle = ''; // Stelle im Handbuch, die für alle gilt
 let importLaeuft = false; // während des Übernehmens
 let importNummer = 0; // fortlaufende Kennung der Bilder dieser Sitzung
 
+/** Sagt, welche Stelle die Bilder bekommen - leer heißt: keine. */
+function zeichneVerzeichnisHinweis() {
+  const zeile = document.getElementById('import-stelle-thema');
+  if (!zeile) return;
+  zeile.textContent = importStelle
+    ? gliederungKennung(GLIEDERUNG, importStelle)
+    : 'ohne Stelle – die Bilder stehen dann nur im Eingang';
+}
+
 function meldeImport(text, art = 'neutral') {
   const zeile = $('#import-meldung');
   zeile.textContent = text;
@@ -385,6 +394,7 @@ function importDateikarte(datei) {
 
 function zeichneImport() {
   $('#import-stelle').value = importStelle;
+  fuelleStellenwahl(['#import-kapitel', '#import-unterkapitel', null], importStelle);
   const liste = $('#import-liste');
   if (!importDateien.length) {
     liste.replaceChildren(
@@ -517,11 +527,25 @@ function verdrahteImport() {
     await nimmImportDateien([...(e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files : [])]);
   });
 
+  const setzeImportStelle = (wert) => {
+    importStelle = wert;
+    $('#import-stelle').value = wert;
+    fuelleStellenwahl(['#import-kapitel', '#import-unterkapitel', null], wert);
+    zeichneVerzeichnisHinweis();
+  };
+  for (const feld of ['#import-kapitel', '#import-unterkapitel']) {
+    $(feld).addEventListener('change', (e) => {
+      const teile = stelleTeile(importStelle);
+      const ebene = ['#import-kapitel', '#import-unterkapitel'].indexOf(feld);
+      setzeImportStelle(e.target.value || teile[ebene - 1] || '');
+    });
+  }
   $('#import-stelle').addEventListener('input', (e) => {
     const roh = String(e.target.value || '').trim();
     // Aus "6.2.3 Thema" wird die Nummer; getippte Nummern bleiben, wie sie sind.
     importStelle = (roh.match(/^[0-9A-Z]+(\.[0-9]+)*/) || [''])[0];
     fuelleStellenvorschlaege(roh);
+    fuelleStellenwahl(['#import-kapitel', '#import-unterkapitel', null], importStelle);
   });
 
   $('#import-uebernehmen').addEventListener('click', uebernehmeImport);

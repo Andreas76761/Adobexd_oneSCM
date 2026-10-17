@@ -356,6 +356,11 @@ s.test('Nummer und Zeitstempel stehen unter dem Bild', () =>
       const mitHoehe = await hoch();
       wahr(mitHoehe > ohneHoehe, 'der Streifen unter dem Bild fehlt');
 
+      // Die Nummern von Hand stehen seit 1.33.0 hinter einem Aufklapper -
+      // die Regel ist die Stelle aus der Gliederung.
+      await seite.evaluate(() => {
+        document.querySelector('.feld--nummern').open = true;
+      });
       await seite.fill('#markier-kapitel', '2');
       await seite.fill('#markier-unterkapitel', '3');
       await seite.waitForTimeout(200);
@@ -537,6 +542,79 @@ s.test('die abgedeckte Fassung heißt nach dem, was mit ihr geschah', () =>
         window.claude = { use: async (n) => n !== 'downloads' ? null : {
           save: async (a) => { window.__abgelegt.push({ filename: a.filename, groesse: a.data.size || String(a.data).length }); return { status: 'saved' }; } } };`
     }
+  ));
+
+s.test('Kapitel, Unterkapitel und Stelle lassen sich auswählen', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      // Die Auswahl beginnt bei den Kapiteln; tiefere Ebenen warten.
+      wahr((await seite.locator('#stelle-kapitel option').count()) > 10, 'die Kapitel fehlen');
+      gleich(await seite.locator('#stelle-unterkapitel').isDisabled(), true);
+      const erstes = await seite.locator('#stelle-kapitel option').nth(1).innerText();
+      wahr(/^\d+\s{2}\S/.test(erstes), 'Nummer und Name stehen nicht zusammen: ' + erstes);
+
+      await seite.selectOption('#stelle-kapitel', '7');
+      await seite.waitForFunction(() => !document.getElementById('stelle-unterkapitel').disabled, null, { timeout: 5000 });
+      const unter = await seite.locator('#stelle-unterkapitel option').allInnerTexts();
+      wahr(unter.some((u) => u.startsWith('7.5')), unter.slice(0, 4).join(' | '));
+      gleich(await seite.locator('#markier-stelle').inputValue(), '7');
+
+      await seite.selectOption('#stelle-unterkapitel', '7.5');
+      await seite.waitForFunction(() => !document.getElementById('stelle-schritt').disabled, null, { timeout: 5000 });
+      await seite.selectOption('#stelle-schritt', '7.5.2');
+      gleich(await seite.locator('#markier-stelle').inputValue(), '7.5.2');
+      gleich(await seite.locator('#markier-stelle-thema').innerText(), 'Signaturergebnis');
+
+      // Getippt wirkt genauso - die Auswahl zieht nach.
+      await seite.fill('#markier-stelle', '6.2');
+      await seite.waitForFunction(
+        () => document.getElementById('stelle-kapitel').value === '6',
+        null,
+        { timeout: 5000 }
+      );
+      gleich(await seite.locator('#stelle-unterkapitel').inputValue(), '6.2');
+
+      // Die Stelle wandert mit der Fassung an die Aufnahme.
+      await seite.click('#markier-sichern');
+      await seite.waitForFunction(
+        () => /gesichert/.test(document.getElementById('markier-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+      const [aufnahme] = await eingangImSpeicher(seite);
+      gleich(aufnahme.gliederung, '6.2');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('die Labels tragen ihr Zeichen – auch im Bild', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      await seite.evaluate(() => {
+        document.getElementById('markier-labels').open = true;
+      });
+      await seite.selectOption('#label-rolle_label', 'hq');
+      await seite.selectOption('#label-sparte', 'van');
+      // Das Zeichen der Beschriftung folgt dem Wert.
+      gleich(
+        await seite.locator('label[for="label-rolle_label"] use').getAttribute('href'),
+        '#sym-rolle-hq',
+        'die Rolle zeigt ihr eigenes Zeichen nicht'
+      );
+      gleich(await seite.locator('label[for="label-sparte"] use').getAttribute('href'), '#sym-sparte-van');
+      wahr((await seite.locator('#label-kette').innerText()).includes('Van'), await seite.locator('#label-kette').innerText());
+
+      // Im Bild steht die Marke mit Zeichen - sie wird dadurch breiter.
+      await seite.click('#label-ins-bild');
+      await seite.waitForTimeout(300);
+      const marken = await seite.evaluate(() =>
+        [...document.querySelectorAll('#markier-liste .marke-art')].map((k) => k.textContent)
+      );
+      wahr(marken.length >= 2, 'die Labels stehen nicht im Bild: ' + marken.join(', '));
+    },
+    { hash: AUFNAHME }
   ));
 
 s.test('Browser wieder schließen', () => schliessen());

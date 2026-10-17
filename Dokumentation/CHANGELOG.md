@@ -20,6 +20,37 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.33.0] – Labels ab der Aufnahme, Stelle zum Auswählen
+
+### Neu
+* **Labels im Aufnahmeformular** (F-48): Sprache, Rolle, Sparte und Markt
+  schon beim Aufnehmen; sie gelten für jede weitere Aufnahme, bis sie
+  geändert werden
+* Dieselben Labels **und die Stelle im Handbuch** im Eingangsdialog
+* **Kapitel → Unterkapitel → Stelle als Auswahlfelder** im Editor und im
+  Import – jedes mit Nummer und Namen, gefiltert nach der Ebene darüber. Das
+  Textfeld bleibt daneben; beide Wege halten sich aktuell
+* **Ein Zeichen je Wert**: Dealer, Market, HQ, MO, PC und Van haben ihr
+  eigenes Symbol – im Feld, in den Teilschritten und in der Labelmarke im
+  Bild (gezeichnet aus demselben SVG-Vorrat wie die Oberfläche)
+
+### Geändert
+* Die Sparten heißen **PC** und **Van** (Kennung bleibt `pkw`); im Verzeichnis
+  heißt der Ordner damit `pc/` statt `pkw/`
+* Die Suche kennt die gebräuchlichen Namen: `Pkw`, `Passenger Cars`,
+  `Händler`, `Zentrale`, `Landesgesellschaft`, `Marktorganisation`
+* Der Suchchat liest eine Frage, die **genau eine Stelle** der Gliederung
+  nennt, als diese Stelle – „Market Settings" ist das Kapitel, nicht die Rolle
+* Die Nummern von Hand im Editor stehen hinter einem Aufklapper
+
+### Kern
+* `stelleTeile`, `gliederungEbene`, `stelleLabel`, `symbolZuLabel`; Labels und
+  Stelle in `leereAufnahme` und `baueAufnahme`; `alias` und `lang` in den
+  Vokabularen
+
+### Prüfung
+* 4 neue Kernprüfungen, 5 neue Browserprüfungen; zusammen 376
+
 ## [1.32.1] – Dokumentation nachgezogen
 
 ### Geändert

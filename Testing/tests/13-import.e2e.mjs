@@ -169,6 +169,32 @@ s.test('die Vorschau lässt sich auf volle Auflösung stellen', () =>
     { hash: IMPORT }
   ));
 
+s.test('die Stelle für alle lässt sich auswählen statt tippen', () =>
+  mitSeite(
+    async (seite) => {
+      await liesEin(seite, [dateien.png]);
+      await seite.selectOption('#import-kapitel', '7');
+      await seite.waitForFunction(() => !document.getElementById('import-unterkapitel').disabled, null, { timeout: 5000 });
+      gleich(await seite.locator('#import-stelle').inputValue(), '7');
+      await seite.selectOption('#import-unterkapitel', '7.5');
+      gleich(await seite.locator('#import-stelle').inputValue(), '7.5');
+      wahr(
+        (await seite.locator('#import-stelle-thema').innerText()).includes('Digitale Unterschrift'),
+        await seite.locator('#import-stelle-thema').innerText()
+      );
+      await seite.click('#import-uebernehmen');
+      await seite.waitForFunction(() => document.querySelectorAll('.import-figur--fertig').length === 1, null, {
+        timeout: 20000
+      });
+      const [aufnahme] = await seite.evaluate(() => {
+        const roh = localStorage.getItem('screenarchiv:eingang');
+        return roh ? JSON.parse(roh).aufnahmen : [];
+      });
+      gleich(aufnahme.gliederung, '7.5');
+    },
+    { hash: IMPORT }
+  ));
+
 s.test('Browser wieder schließen', async () => {
   await schliessen();
   return true;

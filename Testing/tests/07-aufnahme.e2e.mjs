@@ -1500,6 +1500,80 @@ s.test('vertauschte Reihenfolge und verworfener Status werden beanstandet', () =
     { hash: AUFNAHME }
   ));
 
+s.test('Labels gelten ab der Aufnahme und wandern in jedes Bild der Reihe', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.evaluate(() => {
+        document.getElementById('entwurf-labels').open = true;
+      });
+      await seite.selectOption('#feld-label-sprache', 'en');
+      await seite.selectOption('#feld-label-rolle_label', 'hq');
+      await seite.selectOption('#feld-label-sparte', 'van');
+      await seite.fill('#feld-label-markt', 'Korea');
+      gleich(await seite.locator('#entwurf-label-kette').innerText(), 'Englisch · HQ · Van · Korea');
+      // Die Sparte heißt PC, nicht mehr Pkw.
+      wahr(
+        (await seite.locator('#feld-label-sparte').innerText()).includes('PC – Passenger Cars'),
+        await seite.locator('#feld-label-sparte').innerText()
+      );
+
+      await seite.click('#quelle-beispiel');
+      await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+      for (const titel of ['Erste Maske', 'Zweite Maske']) {
+        await seite.fill('#feld-titel', titel);
+        await seite.fill('#feld-projekt', 'oneSCM Portal');
+        await seite.selectOption('#feld-kategorie', 'Formular');
+        await seite.fill('#feld-begriffe', 'vorlage');
+        await seite.click('#ausloesen');
+        await seite.waitForTimeout(150);
+      }
+      const aufnahmen = await eingangImSpeicher(seite);
+      gleich(aufnahmen.length, 2);
+      for (const a of aufnahmen) {
+        gleich(a.sprache, 'en', a.id + ' hat keine Sprache');
+        gleich(a.rolle_label, 'hq');
+        gleich(a.sparte, 'van');
+        gleich(a.markt, 'Korea');
+      }
+      // Die Labels bleiben nach dem Auslösen stehen - sie gelten für die Reihe.
+      gleich(await seite.locator('#feld-label-sprache').inputValue(), 'en');
+      gleich(await seite.locator('#entwurf-label-kette').innerText(), 'Englisch · HQ · Van · Korea');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('im Eingang lassen sich Stelle und Labels nachziehen', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-beispiel');
+      await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+      await seite.fill('#feld-titel', 'Ohne alles');
+      await seite.fill('#feld-projekt', 'oneSCM Portal');
+      await seite.selectOption('#feld-kategorie', 'Formular');
+      await seite.fill('#feld-begriffe', 'vorlage');
+      await seite.click('#ausloesen');
+      await seite.waitForTimeout(150);
+
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.locator('.eingang-karte').first().click();
+      await seite.waitForSelector('#eingang-dialog[open]');
+      await seite.fill('#bearbeite-gliederung', '7.5.2');
+      await seite.selectOption('#bearbeite-sprache', 'fr');
+      await seite.selectOption('#bearbeite-rolle_label', 'mo');
+      await seite.selectOption('#bearbeite-sparte', 'pkw');
+      await seite.fill('#bearbeite-markt', 'Schweiz');
+      await seite.click('#bearbeite-speichern');
+      await seite.waitForFunction(() => !document.getElementById('eingang-dialog').open, null, { timeout: 5000 });
+      const [aufnahme] = await eingangImSpeicher(seite);
+      gleich(aufnahme.gliederung, '7.5.2');
+      gleich(aufnahme.sprache, 'fr');
+      gleich(aufnahme.rolle_label, 'mo');
+      gleich(aufnahme.sparte, 'pkw');
+      gleich(aufnahme.markt, 'Schweiz');
+    },
+    { hash: AUFNAHME }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

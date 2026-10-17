@@ -1193,3 +1193,35 @@ die 16-MB-Grenze einer Datei – was passiert, sagt die Meldung samt Ausweg.
 **Ausgabe** Eine HTML-Datei mit `@page A4` und Seitenumbruch je Kapitel; der
 Browser macht daraus das PDF. Sie kommt ohne jeden Verweis nach außen aus –
 Bilder stecken als Datenadressen darin.
+
+---
+
+## F-48 · Labels ab der Aufnahme, Stellenwahl, Zeichen je Wert
+
+**Seit** 1.33.0 · **Ansichten** Aufnahme, Eingang, Editor, Import, Gliederung
+
+**Labels schon beim Aufnehmen** Das Aufnahmeformular trägt einen Block
+**Labels**: Sprache, Rolle (Dealer, Market, HQ, MO), Sparte (PC, Van) und
+Markt. Was dort steht, wandert in **jede** weitere Aufnahme, bis es geändert
+wird – wer eine Reihe aufnimmt, nimmt sie in einer Sprache und für eine Rolle
+auf. Dieselben Felder stehen im Eingangsdialog, zusammen mit der Stelle im
+Handbuch: nachziehen, ohne in den Editor zu wechseln.
+
+**Die Sparten heißen PC und Van** – wie im Haus. Die Kennung bleibt `pkw`,
+damit abgelegte Bilder ihre Zuordnung behalten. Die Suche kennt beide Namen
+(`Pkw`, `Passenger Cars`, `PC`) und ebenso die deutschen Namen der Rollen
+(`Händler`, `Zentrale`, `Landesgesellschaft`, `Marktorganisation`).
+
+**Stelle wählen statt tippen** Im Editor und im Import stehen drei
+Auswahlfelder: **Kapitel → Unterkapitel → Stelle**, jedes mit Nummer *und*
+Namen, jede Ebene gefiltert nach der darüber. Das Textfeld bleibt daneben –
+wer die Nummer kennt, tippt sie; beide Wege halten sich gegenseitig aktuell.
+Eine zurückgenommene Wahl fällt auf die Ebene darüber zurück, statt die
+Zuordnung zu löschen. Die Nummern von Hand (für Bilder ohne Stelle) stehen
+hinter einem Aufklapper.
+
+**Zeichen je Wert** Jede Rolle und jede Sparte hat ihr eigenes Symbol
+(Dealer, Market, HQ, MO, PC, Van) – im Labelfeld, in den Teilschritten und
+**im Bild**: die eingebrannte Labelmarke zeichnet das Symbol aus demselben
+Vorrat wie die Oberfläche. Zwei Sätze Zeichen wären zwei Wahrheiten; darum
+liest die Leinwand das SVG der Seite und zeichnet es mit `Path2D` nach.

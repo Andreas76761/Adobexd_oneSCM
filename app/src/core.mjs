@@ -330,7 +330,7 @@ export const EINGANG_ZUSTAENDE = [
 
 /** Leerer Entwurf; `vorlage` uebernimmt die Angaben der letzten Aufnahme. */
 export function leereAufnahme(heute, vorlage = {}) {
-  return {
+  const entwurf = {
     titel: '',
     projekt: vorlage.projekt || '',
     seite: vorlage.seite || '',
@@ -341,8 +341,14 @@ export function leereAufnahme(heute, vorlage = {}) {
     autor: vorlage.autor || '',
     datum: vorlage.datum || heute,
     begriffe: [...(vorlage.begriffe || [])],
-    notiz: ''
+    notiz: '',
+    gliederung: String(vorlage.gliederung || '')
   };
+  // Sprache, Rolle, Sparte und Markt gehoeren an die Aufnahme, nicht erst an
+  // die Nachpflege: wer eine Reihe aufnimmt, nimmt sie in *einer* Sprache und
+  // fuer *eine* Rolle auf. Darum wandern sie aus der Vorlage mit.
+  for (const feld of LABEL_FELDER) entwurf[feld.id] = String(vorlage[feld.id] || '');
+  return entwurf;
 }
 
 /** Fortlaufende Kennung je Jahr: AUF-2025-001 */
@@ -463,7 +469,12 @@ export function baueAufnahme({ entwurf, bild, ausschnitt, quelle, kennung, erfas
     ausschnitt: { ...ausschnitt },
     quelle: { art: quelle.art, name: quelle.name || '', breite: quelle.breite, hoehe: quelle.hoehe },
     erfasst_am: erfasstAm,
-    bild
+    bild,
+    // Stelle und Labels, soweit schon bekannt - leere Felder bleiben leer.
+    ...(String(entwurf.gliederung || '').trim() ? { gliederung: String(entwurf.gliederung).trim() } : {}),
+    ...Object.fromEntries(
+      LABEL_FELDER.map((feld) => [feld.id, String(entwurf[feld.id] || '').trim()]).filter(([, wert]) => wert)
+    )
   };
 }
 
@@ -2090,15 +2101,20 @@ export const SPRACHEN = [
 ];
 
 export const ROLLEN_LABEL = [
-  { id: 'dealer', label: 'Dealer', symbol: 'rolle-dealer' },
-  { id: 'market', label: 'Market', symbol: 'rolle-market' },
-  { id: 'hq', label: 'HQ', symbol: 'rolle-hq' },
-  { id: 'mo', label: 'MO', symbol: 'rolle-mo' }
+  { id: 'dealer', label: 'Dealer', lang: 'Händler und Werkstatt', alias: ['Händler'], symbol: 'rolle-dealer' },
+  { id: 'market', label: 'Market', lang: 'Landesgesellschaft', alias: ['Landesgesellschaft'], symbol: 'rolle-market' },
+  { id: 'hq', label: 'HQ', lang: 'Zentrale', alias: ['Headquarter', 'Zentrale'], symbol: 'rolle-hq' },
+  { id: 'mo', label: 'MO', lang: 'Market Organisation', alias: ['Marktorganisation'], symbol: 'rolle-mo' }
 ];
 
+/**
+ * Die Sparten heissen im Haus PC (Passenger Cars) und Van. Die Kennung bleibt
+ * `pkw` - abgelegte Bilder sollen beim Umbenennen des Schildes nicht ihre
+ * Zuordnung verlieren.
+ */
 export const SPARTEN = [
-  { id: 'pkw', label: 'Pkw', symbol: 'sparte-pkw' },
-  { id: 'van', label: 'Van', symbol: 'sparte-van' }
+  { id: 'pkw', label: 'PC', lang: 'Passenger Cars (Pkw)', alias: ['Pkw', 'Passenger Cars'], symbol: 'sparte-pkw' },
+  { id: 'van', label: 'Van', lang: 'Vans', alias: ['Transporter'], symbol: 'sparte-van' }
 ];
 
 /**
@@ -2116,6 +2132,17 @@ export const LABEL_FELDER = [
   { id: 'reiter', label: 'Reiter', symbol: 'reiter', frei: true },
   { id: 'schritt_label', label: 'Schritt', symbol: 'schritt', frei: true }
 ];
+
+/**
+ * Das Zeichen zu einem *angezeigten* Labelwert. Gesucht wird am Klartext,
+ * weil Marken im Bild ihren Text tragen, nicht die Kennung.
+ */
+export function symbolZuLabel(feldId, text) {
+  const feld = LABEL_FELDER.find((f) => f.id === feldId);
+  if (!feld) return '';
+  const treffer = (feld.werte || []).find((w) => w.label === String(text || '').trim());
+  return (treffer && treffer.symbol) || feld.symbol || '';
+}
 
 /** Der angezeigte Wert eines Labels: aus der Liste oder wie getippt. */
 export function labelWert(feldId, wert) {
@@ -2179,7 +2206,9 @@ export function teilschritte(aufnahmen = [], stelle) {
       symbol: feld.symbol,
       werte: [...gezaehlt.entries()]
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .map(([wert, zahl]) => ({ wert, zahl }))
+        // Jeder Wert bringt sein eigenes Zeichen mit, wo es eines gibt -
+        // Dealer sieht anders aus als HQ, PC anders als Van.
+        .map(([wert, zahl]) => ({ wert, zahl, symbol: symbolZuLabel(feld.id, wert) }))
     };
   }).filter((f) => f.werte.length);
 }
@@ -2283,6 +2312,38 @@ export function sucheGliederung(eintraege = [], text) {
     const heuhaufen = normalisiereLang(`${e.nummer} ${e.thema}`);
     return teile.every((t) => heuhaufen.includes(t));
   });
+}
+
+/**
+ * Die Vorfahren einer Stelle samt ihr selbst: „7.5.2" wird zu
+ * `['7', '7.5', '7.5.2']`. Damit laesst sich eine Auswahl Kapitel →
+ * Unterkapitel → Stelle fuellen, ohne die Gliederung zu durchsuchen.
+ */
+export function stelleTeile(nummer) {
+  const text = String(nummer || '').trim();
+  if (!text) return [];
+  const teile = text.split('.');
+  return teile.map((_, i) => teile.slice(0, i + 1).join('.'));
+}
+
+/**
+ * Die Eintraege einer Ebene - wahlweise nur unterhalb einer Stelle. Daraus
+ * entstehen die Auswahlfelder: Kapitel (Ebene 1), Unterkapitel (Ebene 2),
+ * Stelle (Ebene 3). Uebergaenge sind keine Stellen und fallen weg.
+ */
+export function gliederungEbene(eintraege = [], ebene = 1, eltern = '') {
+  return eintraege.filter(
+    (e) =>
+      e.art !== 'uebergang' &&
+      e.ebene === ebene &&
+      (!eltern || (gehoertZu(e.nummer, eltern) && e.nummer !== eltern))
+  );
+}
+
+/** Nummer und Thema in einer Zeile - so steht eine Stelle in jeder Auswahl. */
+export function stelleLabel(eintrag) {
+  if (!eintrag) return '';
+  return `${eintrag.nummer}  ${eintrag.thema}`;
 }
 
 /** Die Stelle mit ihrem Thema, wie sie an einem Bild steht. */
@@ -2977,6 +3038,14 @@ export const CHAT_BEISPIELE = [
 ];
 
 /** Die Filterfelder, die eine Frage setzen kann - und nichts darüber hinaus. */
+/** Wörter, die eine Frage trägt, ohne sie einzuschränken. */
+const FUELLWOERTER = new Set([
+  'zeige','zeig','mir','alle','alles','gemacht','gemachte','gemachten','letzten','neuesten','ersten','bilder','bild',
+  'aufnahmen','aufnahme','screens','screen','von','vom','aus','dem','der','die','das','den','ein','eine','einen','in',
+  'im','auf','mit','und','fuer','zu','zum','bitte','welche','gibt','es','habe','hast','suche','finde','wo','ist','sind',
+  'nach','noch','ohne','nur','gib'
+]);
+
 export const CHAT_FELDER = ['sprache', 'rolle_label', 'sparte', 'markt', 'stelle', 'text', 'grenze', 'nur'];
 
 const CHAT_NUR = [
@@ -3008,16 +3077,40 @@ export function deuteFrage(frage, gliederung = []) {
     return treffer;
   };
 
-  // Rolle, Sparte, Sprache: feste Vokabulare, darum sicher zu erkennen.
+  // Trifft die ganze Frage genau eine Stelle der Gliederung, ist sie gemeint:
+  // „Market Settings" ist dann das Kapitel 6.2 und nicht die Rolle Market.
+  const ganzeFrage = klein
+    .split(/\s+/)
+    .filter((w) => w && !FUELLWOERTER.has(w))
+    .join(' ');
+  const alsStelle = ganzeFrage && gliederung.length ? sucheGliederung(gliederung, ganzeFrage) : [];
+  if (alsStelle.length === 1) {
+    filter.stelle = alsStelle[0].nummer;
+    erkannt.push(`Stelle ${alsStelle[0].nummer} (${alsStelle[0].thema})`);
+    return { filter, erkannt, frage: roh };
+  }
+
+  // Der Markt zuerst: „Markt Germany" nennt ein Land - und „Market" ist
+  // daneben auch eine Rolle. Wer das Feld nennt, meint das Feld.
+  const marktTreffer = rest.match(/\s(?:markt|market|land)\s+([a-z-]{2,})\s/);
+  if (marktTreffer && !FUELLWOERTER.has(marktTreffer[1])) {
+    rest = rest.replace(marktTreffer[0], ' ');
+    filter.markt = marktTreffer[1];
+    erkannt.push(`Markt ${marktTreffer[1]}`);
+  }
+
+  // Rolle, Sparte, Sprache: feste Vokabulare, darum sicher zu erkennen. Neben
+  // dem Schild gelten die gebräuchlichen Namen - wer „Pkw" tippt, meint PC.
+  const namen = (wert) => [wert.label, ...(wert.alias || [])].map(normalisiereLang).filter(Boolean);
   for (const rolle of ROLLEN_LABEL) {
-    if (nimm(new RegExp(`\\s${normalisiereLang(rolle.label)}\\s`))) {
+    if (namen(rolle).some((name) => nimm(new RegExp(`\\s${name}\\s`)))) {
       filter.rolle_label = rolle.id;
       erkannt.push(`Rolle ${rolle.label}`);
       break;
     }
   }
   for (const sparte of SPARTEN) {
-    if (nimm(new RegExp(`\\s${normalisiereLang(sparte.label)}\\s`))) {
+    if (namen(sparte).some((name) => nimm(new RegExp(`\\s${name}\\s`)))) {
       filter.sparte = sparte.id;
       erkannt.push(`Sparte ${sparte.label}`);
       break;
@@ -3060,18 +3153,16 @@ export function deuteFrage(frage, gliederung = []) {
     }
   }
 
-  // Markt: „Markt Deutschland", „für Germany".
-  const markt = nimm(/\s(?:markt|market|land)\s+([a-z-]{2,})\s/);
-  if (markt) {
+  // Markt, falls er oben noch nicht gelesen wurde.
+  const markt = filter.markt ? null : rest.match(/\s(?:markt|market|land)\s+([a-z-]{2,})\s/);
+  if (markt && !FUELLWOERTER.has(markt[1])) {
+    rest = rest.replace(markt[0], ' ');
     filter.markt = markt[1];
     erkannt.push(`Markt ${markt[1]}`);
   }
 
   // Was übrig bleibt, ist Freitext - ohne Füllwörter, die nichts filtern.
-  const fuellwoerter = new Set([
-    'zeige','zeig','mir','alle','alles','gemacht','gemachte','gemachten','letzten','neuesten','ersten','bilder','bild','aufnahmen','aufnahme','screens','screen','von','vom','aus','dem','der','die','das','den','ein','eine','einen','in','im','auf','mit','und','fuer','zu','zum','bitte','welche','gibt','es','habe','hast','suche','finde','wo','ist','sind','nach','noch','ohne','nur','gib'
-  ]);
-  const worte = rest.split(/\s+/).filter((w) => w && !fuellwoerter.has(w));
+  const worte = rest.split(/\s+/).filter((w) => w && !FUELLWOERTER.has(w));
   filter.text = worte.join(' ').trim();
 
   // Ein Thema der Gliederung statt einer Nummer: „Templates" findet 6.2.

@@ -105,7 +105,7 @@ s.test('der Plan zeigt jede Datei, bevor eine entsteht', () =>
     async (seite) => {
       await zweiBilder(seite);
       const plan = await seite.locator('#verzeichnis-plan').innerText();
-      wahr(plan.includes('pkw/de/6-2/dealer/'), 'die Ordnung nach Sparte, Sprache, Kapitel, Rolle fehlt: ' + plan);
+      wahr(plan.includes('pc/de/6-2/dealer/'), 'die Ordnung nach Sparte, Sprache, Kapitel, Rolle fehlt: ' + plan);
       wahr(plan.includes('ohne-sparte/ohne-sprache/ohne-kapitel/ohne-rolle/'), 'das ungelabelte Bild fehlt');
       wahr(plan.includes('index.json') && plan.includes('index.csv'), 'die Übersicht fehlt');
       gleich(await seite.evaluate(() => window.__geschrieben.length), 0, 'es wurde ohne Auftrag geschrieben');
@@ -149,10 +149,10 @@ s.test('die Galerie wird mit Unterordnern geschrieben und berichtet', () =>
       const dateien = await seite.evaluate(() => window.__geschrieben);
       const pfade = dateien.map((d) => d.pfad);
       wahr(
-        pfade.some((p) => /^pkw\/de\/6-2\/dealer\/.*\.png$/.test(p)),
+        pfade.some((p) => /^pc\/de\/6-2\/dealer\/.*\.png$/.test(p)),
         'das gelabelte Bild liegt nicht in seiner Ordnung: ' + pfade.join(' | ')
       );
-      wahr(pfade.some((p) => /^pkw\/de\/6-2\/dealer\/.*\.json$/.test(p)), 'der Beipackzettel fehlt');
+      wahr(pfade.some((p) => /^pc\/de\/6-2\/dealer\/.*\.json$/.test(p)), 'der Beipackzettel fehlt');
       wahr(pfade.includes('index.json') && pfade.includes('index.csv'), 'die Übersicht fehlt');
       // Die Bilder kommen in voller Auflösung, nicht als Vorschau.
       const bild = dateien.find((d) => d.pfad.endsWith('.png'));
