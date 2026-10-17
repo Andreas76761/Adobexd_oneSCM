@@ -2918,3 +2918,214 @@ export function beschreibeAblage(ablage, ordnername) {
   if (a.datei) teile.push('Datei');
   return teile.length ? teile.join(' + ') : 'kein Ziel';
 }
+
+/* =========================================================================
+   Suchchat – nach Bildern fragen, Bilder bekommen.
+
+   Die Frage wird *hier* gedeutet, nicht geraten: aus „Dealer in Kapitel 6 auf
+   Englisch" wird ein Filter mit Rolle, Stelle und Sprache, und was nicht
+   erkannt wird, bleibt Freitext. Das läuft ohne Netz und ist prüfbar.
+
+   Steht die Fähigkeit `sample` zur Verfügung, darf Claude dieselbe Frage in
+   denselben Filter übersetzen – angewendet wird er auch dann hier. Die
+   Oberfläche zeigt also nie etwas anderes, als dieser Filter hergibt.
+   ========================================================================= */
+
+export const CHAT_SCHLUESSEL = 'screenarchiv:chat';
+
+export const CHAT_BEISPIELE = [
+  'Bilder von Dealer in Kapitel 6',
+  'Templates auf Englisch',
+  'alles ohne Stelle',
+  'unkenntlich gemachte Bilder',
+  'die letzten 5 aus dem Import'
+];
+
+/** Die Filterfelder, die eine Frage setzen kann - und nichts darüber hinaus. */
+export const CHAT_FELDER = ['sprache', 'rolle_label', 'sparte', 'markt', 'stelle', 'text', 'grenze', 'nur'];
+
+const CHAT_NUR = [
+  { id: 'unkenntlich', worte: ['unkenntlich', 'geblurrt', 'blurrt', 'anonymisiert', 'verpixelt'] },
+  { id: 'markiert', worte: ['markiert', 'rahmen', 'kommentiert'] },
+  { id: 'import', worte: ['import', 'importiert', 'pptx', 'docx', 'pdf', 'powerpoint', 'word'] },
+  { id: 'ohneStelle', worte: ['ohne stelle', 'ohne kapitel', 'nicht zugeordnet', 'unzugeordnet'] },
+  { id: 'unvollstaendig', worte: ['unvollstaendig', 'offen', 'in pruefung'] }
+];
+
+/**
+ * Deutet eine Frage. Erkannt werden Rolle, Sparte, Sprache, Markt, Stelle in
+ * der Gliederung, eine Anzahl („die letzten 5") und eine Handvoll
+ * Eigenschaften; der Rest bleibt Freitext. Was erkannt wurde, wird genannt -
+ * eine stille Deutung wäre schlimmer als keine.
+ */
+export function deuteFrage(frage, gliederung = []) {
+  const roh = String(frage || '').trim();
+  // Satzzeichen raus - aber kein Punkt zwischen Ziffern: „6.2" ist eine Stelle.
+  const klein = ' ' + normalisiereLang(roh).replace(/[,;!?]/g, ' ').replace(/\.(?!\d)/g, ' ') + ' ';
+  const filter = { sprache: '', rolle_label: '', sparte: '', markt: '', stelle: '', text: '', grenze: 0, nur: [] };
+  const erkannt = [];
+  let rest = klein;
+
+  const nimm = (muster) => {
+    const treffer = rest.match(muster);
+    if (!treffer) return null;
+    rest = rest.replace(treffer[0], ' ');
+    return treffer;
+  };
+
+  // Rolle, Sparte, Sprache: feste Vokabulare, darum sicher zu erkennen.
+  for (const rolle of ROLLEN_LABEL) {
+    if (nimm(new RegExp(`\\s${normalisiereLang(rolle.label)}\\s`))) {
+      filter.rolle_label = rolle.id;
+      erkannt.push(`Rolle ${rolle.label}`);
+      break;
+    }
+  }
+  for (const sparte of SPARTEN) {
+    if (nimm(new RegExp(`\\s${normalisiereLang(sparte.label)}\\s`))) {
+      filter.sparte = sparte.id;
+      erkannt.push(`Sparte ${sparte.label}`);
+      break;
+    }
+  }
+  for (const sprache of SPRACHEN) {
+    const name = normalisiereLang(sprache.label).replace(/[()]/g, '');
+    if (nimm(new RegExp(`\\s(auf\\s)?${name}\\s`))) {
+      filter.sprache = sprache.id;
+      erkannt.push(`Sprache ${sprache.label}`);
+      break;
+    }
+  }
+
+  // Anzahl zuerst: „die letzten 5" ist keine Stelle 5.
+  const anzahl =
+    nimm(/\s(?:letzten|neuesten|ersten|top)\s+([0-9]{1,3})\s/) || nimm(/\s([0-9]{1,3})\s(?:bilder|aufnahmen|screens)\s/);
+  if (anzahl) {
+    filter.grenze = Number(anzahl[1]);
+    erkannt.push(`höchstens ${filter.grenze}`);
+  }
+
+  // Stelle: „Kapitel 6" nur mit Schlüsselwort, „6.2.3" auch ohne - eine
+  // nackte Zahl wäre sonst jede Mengenangabe.
+  const nummer =
+    nimm(/\s(?:kapitel|abschnitt|stelle)\s*([0-9]+(?:\.[0-9]+){0,3})\s/) || nimm(/\s([0-9]+(?:\.[0-9]+){1,3})\s/);
+  if (nummer) {
+    filter.stelle = nummer[1];
+    erkannt.push(`Stelle ${nummer[1]}`);
+  }
+
+  for (const eigenschaft of CHAT_NUR) {
+    for (const wort of eigenschaft.worte) {
+      if (rest.includes(' ' + normalisiereLang(wort) + ' ') || rest.includes(' ' + normalisiereLang(wort) + 'e ')) {
+        filter.nur.push(eigenschaft.id);
+        erkannt.push(eigenschaft.id === 'ohneStelle' ? 'ohne Stelle' : eigenschaft.id);
+        rest = rest.replace(new RegExp(`\\s${normalisiereLang(wort)}e?\\s`, 'g'), ' ');
+        break;
+      }
+    }
+  }
+
+  // Markt: „Markt Deutschland", „für Germany".
+  const markt = nimm(/\s(?:markt|market|land)\s+([a-z-]{2,})\s/);
+  if (markt) {
+    filter.markt = markt[1];
+    erkannt.push(`Markt ${markt[1]}`);
+  }
+
+  // Was übrig bleibt, ist Freitext - ohne Füllwörter, die nichts filtern.
+  const fuellwoerter = new Set([
+    'zeige','zeig','mir','alle','alles','gemacht','gemachte','gemachten','letzten','neuesten','ersten','bilder','bild','aufnahmen','aufnahme','screens','screen','von','vom','aus','dem','der','die','das','den','ein','eine','einen','in','im','auf','mit','und','fuer','zu','zum','bitte','welche','gibt','es','habe','hast','suche','finde','wo','ist','sind','nach','noch','ohne','nur','gib'
+  ]);
+  const worte = rest.split(/\s+/).filter((w) => w && !fuellwoerter.has(w));
+  filter.text = worte.join(' ').trim();
+
+  // Ein Thema der Gliederung statt einer Nummer: „Templates" findet 6.2.
+  if (!filter.stelle && filter.text && gliederung.length) {
+    const treffer = sucheGliederung(gliederung, filter.text);
+    if (treffer.length === 1) {
+      filter.stelle = treffer[0].nummer;
+      erkannt.push(`Stelle ${treffer[0].nummer} (${treffer[0].thema})`);
+    }
+  }
+  if (filter.text) erkannt.push(`Text „${filter.text}"`);
+
+  return { filter, erkannt, frage: roh };
+}
+
+/** Wendet den Filter an. Die Reihenfolge ist die der Gliederung, dann die Zeit. */
+export function findeBilder(eingang = [], filter = {}, gliederung = []) {
+  const nur = new Set(filter.nur || []);
+  const text = normalisiereLang(filter.text || '');
+  const gefunden = eingang.filter((a) => {
+    if (filter.sprache && a.sprache !== filter.sprache) return false;
+    if (filter.rolle_label && a.rolle_label !== filter.rolle_label) return false;
+    if (filter.sparte && a.sparte !== filter.sparte) return false;
+    if (filter.markt && !normalisiereLang(a.markt || '').includes(normalisiereLang(filter.markt))) return false;
+    if (filter.stelle && !gehoertZu(String(a.gliederung || ''), filter.stelle)) return false;
+    if (nur.has('ohneStelle') && String(a.gliederung || '').trim()) return false;
+    // Unkenntlich heißt: eine Fassung tragt eine Marke dieser Art - der
+    // Dateiname allein wäre nur eine Behauptung.
+    if (nur.has('unkenntlich') && !leseFassungen(a).some((f) => (f.marken || []).some((m) => m.art === 'unkenntlich')))
+      return false;
+    if (nur.has('markiert') && !leseFassungen(a).length) return false;
+    if (nur.has('import') && !a.einfuhr) return false;
+    if (nur.has('unvollstaendig') && istVollstaendig(a)) return false;
+    if (text && !eingangSuchIndex(a).includes(text)) return false;
+    return true;
+  });
+  const sortiert = sortiereNachKapitel(gefunden);
+  return filter.grenze ? sortiert.slice(0, filter.grenze) : sortiert;
+}
+
+/** Der Satz, mit dem die Antwort beginnt - nie „nichts gefunden" allein. */
+export function chatAntwortText({ erkannt = [], filter = {} }, treffer = [], gesamt = 0) {
+  const womit = erkannt.length ? erkannt.join(', ') : 'ohne erkennbare Einschränkung';
+  if (!gesamt) return `Im Eingang liegt noch kein Bild. ${womit} – da ist nichts zu finden.`;
+  if (!treffer.length) {
+    return `Kein Treffer für ${womit}. Von ${gesamt} Bildern passt keines; weniger einschränken oder die Stelle prüfen.`;
+  }
+  const mehr = filter.grenze && treffer.length === filter.grenze ? ' (auf die gewünschte Zahl gekürzt)' : '';
+  return `${treffer.length} von ${gesamt} Bildern: ${womit}${mehr}.`;
+}
+
+/** Die Lage des Fensters - beweglich heißt: sie bleibt, wo sie gelassen wurde. */
+export function leseChatlage(text) {
+  let inhalt = null;
+  try {
+    inhalt = JSON.parse(text || 'null');
+  } catch (fehler) {
+    return null;
+  }
+  if (!inhalt || typeof inhalt !== 'object') return null;
+  const zahl = (wert, ersatz) => (Number.isFinite(Number(wert)) ? Number(wert) : ersatz);
+  return {
+    x: zahl(inhalt.x, 24),
+    y: zahl(inhalt.y, 96),
+    breite: Math.max(280, zahl(inhalt.breite, 380)),
+    hoehe: Math.max(240, zahl(inhalt.hoehe, 460)),
+    offen: Boolean(inhalt.offen)
+  };
+}
+
+export function schreibeChatlage(lage = {}) {
+  return JSON.stringify({
+    x: Math.round(lage.x || 0),
+    y: Math.round(lage.y || 0),
+    breite: Math.round(lage.breite || 380),
+    hoehe: Math.round(lage.hoehe || 460),
+    offen: Boolean(lage.offen)
+  });
+}
+
+/** Hält das Fenster im Bild - außerhalb wäre es unerreichbar. */
+export function haltImBild(lage = {}, sicht = { breite: 1280, hoehe: 800 }) {
+  const breite = Math.min(Math.max(280, lage.breite || 380), Math.max(280, sicht.breite - 16));
+  const hoehe = Math.min(Math.max(240, lage.hoehe || 460), Math.max(240, sicht.hoehe - 16));
+  return {
+    ...lage,
+    breite,
+    hoehe,
+    x: Math.min(Math.max(8, lage.x || 0), Math.max(8, sicht.breite - breite - 8)),
+    y: Math.min(Math.max(8, lage.y || 0), Math.max(8, sicht.hoehe - hoehe - 8))
+  };
+}

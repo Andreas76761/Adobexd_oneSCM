@@ -970,3 +970,39 @@ an derselben Rechnung – was dort steht, steht in der Datei.
 **Dokumentation am Knoten** Jede Aufgabe trägt `bpmn:documentation` mit
 Aufnahmekennung und Stelle im Handbuch; so bleibt der Weg zurück zum Bild
 offen. Freitext wird maskiert – ein Name mit `<` zerlegt das Dokument nicht.
+
+---
+
+## F-42 · Suchchat – nach Bildern fragen
+
+**Seit** 1.26.0 · **überall** (frei bewegliches Fenster)
+
+**Zweck** Bei einer Galerie mit hunderten Bildern ist die Frage schneller als
+jeder Filter: „Dealer in Kapitel 6 auf Englisch“ – und die Bilder stehen da.
+
+**Frei beweglich** Das Fenster liegt über jeder Ansicht, lässt sich am Kopf
+ziehen, an der Ecke in der Größe ändern und behält Lage, Größe und Zustand
+(`screenarchiv:chat`). Es wird vom Rahmen im Bild gehalten: ein Fenster
+außerhalb des Fensters wäre unerreichbar. Escape schließt.
+
+**Was erkannt wird** Rolle (Dealer, Market, HQ, MO), Sparte (Pkw, Van),
+Sprache (21), Markt, Stelle der Gliederung (`Kapitel 6.2`, `6.2.3` oder ein
+Thema, wenn es eindeutig ist), eine Anzahl („die letzten 5“) und die
+Eigenschaften `unkenntlich`, `markiert`, `import`, `ohne Stelle`,
+`unvollständig`. Alles andere wird als Text über Titel, Notiz, Begriffe,
+Projekt und Kennung gesucht.
+
+**Die Antwort nennt die Deutung** „1 von 3 Bildern: Rolle Dealer, Stelle 6.2
+Market Settings.“ Eine stille Deutung wäre schlimmer als keine – und ohne
+Treffer steht da, woran es lag, nicht nur „nichts gefunden“.
+
+**Der Weg weiter** Jeder Treffer als Vorschau mit zwei Knöpfen: **Editor**
+(öffnet die Aufnahme) und **→ Strecke** (hängt sie an die offene Strecke; gibt
+es keine, entsteht eine).
+
+**Claude darf deuten, nicht antworten** Steht die Fähigkeit `sample` zur
+Verfügung, übersetzt Claude dieselbe Frage in denselben Filter – gefiltert
+wird in jedem Fall in der Seite, und was die Seite sicher erkannt hat (festes
+Vokabular), bleibt stehen. Damit kann im Fenster nie ein Bild stehen, das es
+nicht gibt. Fehlt die Fähigkeit oder scheitert der Aufruf, bleibt die Deutung
+der Seite – die Antwort kommt immer.

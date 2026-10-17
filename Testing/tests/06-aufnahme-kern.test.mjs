@@ -1489,4 +1489,129 @@ s.test('ein echtes PNG lässt sich bauen - sonst prüft die Oberfläche nichts',
   gleich(png.readUInt32BE(20), 16);
 });
 
+/* ------------------------------------------------------------- Suchchat */
+
+const chatGliederung = kern.leseGliederung({
+  eintraege: [
+    { nummer: '6', thema: 'Templates', ebene: 1 },
+    { nummer: '6.2', thema: 'Market Settings', ebene: 2 }
+  ]
+});
+
+const chatEingang = [
+  {
+    id: 'AUF-2026-001',
+    titel: 'Vorlagenliste',
+    begriffe: ['vorlage'],
+    gliederung: '6.2',
+    rolle_label: 'dealer',
+    sprache: 'de',
+    sparte: 'pkw',
+    markt: 'Germany',
+    datum: '2026-10-01'
+  },
+  {
+    id: 'AUF-2026-002',
+    titel: 'Template anlegen',
+    begriffe: ['vorlage'],
+    gliederung: '6',
+    rolle_label: 'market',
+    sprache: 'en',
+    datum: '2026-10-02',
+    fassungen: [
+      {
+        nummer: 1,
+        bild: 'data:image/png;base64,AAAA',
+        marken: [{ id: 'm1', art: 'unkenntlich', x: 0, y: 0, breite: 10, hoehe: 10, stufe: 'mittel' }]
+      }
+    ]
+  },
+  { id: 'AUF-2026-003', titel: 'Ohne Stelle', begriffe: [], datum: '2026-10-03', einfuhr: { datei: 'deck.pptx', art: 'pptx' } }
+];
+
+s.test('die Frage wird gedeutet, nicht geraten', () => {
+  const eins = kern.deuteFrage('Zeige mir Bilder von Dealer in Kapitel 6.2 auf Englisch', chatGliederung);
+  gleich(eins.filter.rolle_label, 'dealer');
+  gleich(eins.filter.sprache, 'en');
+  gleich(eins.filter.stelle, '6.2');
+  gleich(eins.filter.text, '', 'Füllwörter bleiben als Text hängen: ' + eins.filter.text);
+
+  const zwei = kern.deuteFrage('die letzten 5 aus dem Import');
+  gleich(zwei.filter.grenze, 5, 'die Anzahl wird als Stelle gelesen');
+  tieferGleich(zwei.filter.nur, ['import']);
+  gleich(zwei.filter.stelle, '');
+
+  const drei = kern.deuteFrage('unkenntlich gemachte Bilder Pkw');
+  gleich(drei.filter.sparte, 'pkw');
+  tieferGleich(drei.filter.nur, ['unkenntlich']);
+
+  const vier = kern.deuteFrage('alles ohne Stelle');
+  tieferGleich(vier.filter.nur, ['ohneStelle']);
+
+  // Ein Thema der Gliederung statt einer Nummer.
+  const fuenf = kern.deuteFrage('Market Settings', chatGliederung);
+  gleich(fuenf.filter.stelle, '6.2');
+  wahr(fuenf.erkannt.some((e) => e.includes('6.2')), 'die erkannte Stelle wird nicht genannt');
+
+  // Eine leere Frage deutet nichts hinein.
+  const leer = kern.deuteFrage('');
+  gleich(leer.filter.text, '');
+  gleich(leer.erkannt.length, 0);
+});
+
+s.test('der Filter findet genau die Bilder, die er nennt', () => {
+  const nurDealer = kern.findeBilder(chatEingang, kern.deuteFrage('Dealer').filter, chatGliederung);
+  tieferGleich(nurDealer.map((a) => a.id), ['AUF-2026-001']);
+
+  // Eine Stelle nimmt ihre Unterstellen mit.
+  const kapitel = kern.findeBilder(chatEingang, kern.deuteFrage('Kapitel 6', chatGliederung).filter, chatGliederung);
+  tieferGleich(kapitel.map((a) => a.id).sort(), ['AUF-2026-001', 'AUF-2026-002']);
+
+  tieferGleich(
+    kern.findeBilder(chatEingang, kern.deuteFrage('alles ohne Stelle').filter, chatGliederung).map((a) => a.id),
+    ['AUF-2026-003']
+  );
+  tieferGleich(
+    kern.findeBilder(chatEingang, kern.deuteFrage('unkenntlich').filter, chatGliederung).map((a) => a.id),
+    ['AUF-2026-002']
+  );
+  tieferGleich(
+    kern.findeBilder(chatEingang, kern.deuteFrage('aus dem Import').filter, chatGliederung).map((a) => a.id),
+    ['AUF-2026-003']
+  );
+  gleich(kern.findeBilder(chatEingang, kern.deuteFrage('Markt Germany').filter, chatGliederung).length, 1);
+  gleich(kern.findeBilder(chatEingang, { grenze: 2 }, chatGliederung).length, 2, 'die Grenze greift nicht');
+  gleich(kern.findeBilder(chatEingang, kern.deuteFrage('Koreanisch').filter, chatGliederung).length, 0);
+});
+
+s.test('die Antwort sagt, was gesucht wurde – auch wenn nichts da ist', () => {
+  const deutung = kern.deuteFrage('Dealer in Kapitel 6.2', chatGliederung);
+  const treffer = kern.findeBilder(chatEingang, deutung.filter, chatGliederung);
+  const satz = kern.chatAntwortText(deutung, treffer, chatEingang.length);
+  wahr(satz.startsWith('1 von 3 Bildern'), satz);
+  wahr(satz.includes('Rolle Dealer'), 'die Deutung fehlt in der Antwort');
+
+  const ohne = kern.chatAntwortText(kern.deuteFrage('Koreanisch'), [], 3);
+  wahr(ohne.startsWith('Kein Treffer für'), ohne);
+  wahr(ohne.includes('Von 3 Bildern passt keines'));
+  wahr(kern.chatAntwortText(kern.deuteFrage('x'), [], 0).includes('noch kein Bild'));
+});
+
+s.test('das Fenster bleibt im Bild und behält seine Lage', () => {
+  const lage = kern.leseChatlage(kern.schreibeChatlage({ x: 40, y: 120, breite: 420, hoehe: 500, offen: true }));
+  gleich(lage.x, 40);
+  gleich(lage.breite, 420);
+  gleich(lage.offen, true);
+  gleich(kern.leseChatlage('kein json'), null);
+  gleich(kern.leseChatlage(null), null);
+  // Zu klein wird aufgezogen, zu weit draußen zurückgeholt.
+  gleich(kern.leseChatlage(JSON.stringify({ breite: 10 })).breite, 280);
+  const eng = kern.haltImBild({ x: 5000, y: -40, breite: 400, hoehe: 400 }, { breite: 1000, hoehe: 700 });
+  gleich(eng.x, 592);
+  gleich(eng.y, 8);
+  const winzig = kern.haltImBild({ x: 0, y: 0, breite: 900, hoehe: 900 }, { breite: 500, hoehe: 400 });
+  gleich(winzig.breite, 484);
+  gleich(winzig.hoehe, 384);
+});
+
 export default s;

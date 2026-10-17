@@ -9,6 +9,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [versionen/v1.26.0.md](versionen/v1.26.0.md) | Suchchat – nach Bildern fragen, Bilder bekommen |
 | [versionen/v1.25.0.md](versionen/v1.25.0.md) | Strecke – parallele Bilder, Platzhalter, Prozess als BPMN |
 | [versionen/v1.24.0.md](versionen/v1.24.0.md) | Import – PNG, PPTX, DOCX, XLSX und PDF geben ihre Bilder ab |
 | [versionen/v1.23.0.md](versionen/v1.23.0.md) | Designstudio – Quick Guide, One Pager, Releaseletter, Handbuchseite |

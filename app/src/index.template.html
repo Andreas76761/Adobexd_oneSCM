@@ -73,6 +73,10 @@
         <input id="suche" type="search" placeholder="Titel, Projekt, Begründung, Schlagwort …" autocomplete="off">
         <span class="such-kuerzel" aria-hidden="true">/</span>
       </div>
+      <button type="button" class="knopf chat-knopf" id="chat-auf"
+              aria-expanded="false" aria-controls="chat-fenster">
+        Bilder suchen
+      </button>
     </div>
     <div class="kennzahlen" id="kennzahlen" aria-label="Kennzahlen der aktuellen Auswahl"></div>
   </div>
@@ -604,6 +608,23 @@
   </footer>
 </div>
 
+<section class="chat-fenster" id="chat-fenster" aria-label="Bilder suchen" hidden>
+  <header class="chat-kopf" id="chat-griff">
+    <h2 id="chat-titel">Bilder suchen</h2>
+    <span class="chat-stand" id="chat-stand"></span>
+    <button type="button" class="schliessen" id="chat-zu" aria-label="Schließen">×</button>
+  </header>
+  <div class="chat-verlauf" id="chat-verlauf" role="log" aria-live="polite"></div>
+  <div class="chat-beispiele" id="chat-beispiele"></div>
+  <form class="chat-zeile" id="chat-form">
+    <label class="sprung" for="chat-frage">Frage nach Bildern</label>
+    <input type="text" id="chat-frage" autocomplete="off"
+           placeholder="Dealer in Kapitel 6 auf Englisch">
+    <button type="submit" class="knopf knopf--haupt" id="chat-fragen">Fragen</button>
+  </form>
+  <div class="chat-griff-ecke" id="chat-groesse" title="Größe ändern" aria-hidden="true"></div>
+</section>
+
 <dialog class="detail" id="detail" aria-labelledby="detail-titel">
   <div class="detail-kopf" id="detail-kopf"></div>
   <div class="detail-koerper" id="detail-koerper">
@@ -631,5 +652,6 @@
 /*%MARKIEREN%*/
 /*%DESIGN%*/
 /*%IMPORT%*/
+/*%CHAT%*/
 })();
 </script>

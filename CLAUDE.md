@@ -31,10 +31,10 @@ npm test          # muss vollständig grün sein
 
 * **Kernlogik gehört in `app/src/core.mjs`**, nicht in die Oberflächenmodule. Nur so ist sie ohne Browser testbar. `core.mjs` darf kein DOM
   anfassen.
-* **`ui.js`, `aufnahme.js`, `schnipsel.js`, `markieren.js`, `design.js` und
-  `import.js` landen in einer gemeinsamen Klammer.** Sie teilen sich dadurch `el`, `$`, `zustand` und
+* **`ui.js`, `aufnahme.js`, `schnipsel.js`, `markieren.js`, `design.js`,
+  `import.js` und `chat.js` landen in einer gemeinsamen Klammer.** Sie teilen sich dadurch `el`, `$`, `zustand` und
   `zeichne`. Der Start steht in `starte()` (erklärt in `ui.js`) und wird in der
-  **letzten Zeile der letzten Datei** aufgerufen – derzeit `import.js`. Kommt ein
+  **letzten Zeile der letzten Datei** aufgerufen – derzeit `chat.js`. Kommt ein
   weiteres Oberflächenmodul dazu, wandert der Aufruf ans neue Ende; vorher
   stehen dortige `const`/`let` noch nicht bereit.
 * **Keine externen Ressourcen** in der Seite außer den Schriften von
@@ -67,4 +67,6 @@ npm test          # muss vollständig grün sein
 
 Nur `dist/index.html` an das Artifact-Werkzeug geben. Aktualisierungen gehen
 über denselben Dateipfad, damit die Adresse erhalten bleibt. Die Seite braucht
-beim Veröffentlichen die Fähigkeit `downloads` (Sichern des Eingangs).
+beim Veröffentlichen die Fähigkeiten `downloads` (Sichern des Eingangs) und
+`sample` (der Suchchat lässt Claude die Frage deuten; gefiltert wird in der
+Seite, die Seite läuft auch ohne diese Fähigkeit).

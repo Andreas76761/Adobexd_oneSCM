@@ -20,6 +20,29 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.26.0] – Suchchat: nach Bildern fragen
+
+### Neu
+* **Suchchat** (F-42) als frei bewegliches Fenster über jeder Ansicht:
+  ziehen, in der Größe ändern, Lage bleibt erhalten; Escape schließt
+* Die Frage wird in der Seite gedeutet: Rolle, Sparte, Sprache, Markt,
+  Stelle der Gliederung, Anzahl („die letzten 5“) und Eigenschaften wie
+  `unkenntlich`, `aus dem Import`, `ohne Stelle`. Der Rest ist Textsuche
+* Die Antwort **nennt ihre Deutung** und zeigt die Treffer als Vorschauen –
+  jede mit dem Weg weiter: Editor oder an die offene Strecke
+* Fünf Beispielfragen als Knöpfe; ein Klick genügt
+* **Claude darf deuten, nicht antworten**: steht `sample` zur Verfügung,
+  übersetzt Claude die Frage in denselben Filter; gefiltert wird in der Seite.
+  Ohne die Fähigkeit bleibt die Deutung der Seite
+
+### Kern
+* `deuteFrage`, `findeBilder`, `chatAntwortText`, `leseChatlage`,
+  `schreibeChatlage`, `haltImBild`, `CHAT_BEISPIELE`, `CHAT_FELDER`
+
+### Prüfung
+* Neue Datei `14-chat.e2e.mjs`; 4 neue Kernprüfungen, 6 Browserprüfungen,
+  zusammen 321
+
 ## [1.25.0] – Strecke: parallel, lückenlos, als Prozess
 
 ### Neu
