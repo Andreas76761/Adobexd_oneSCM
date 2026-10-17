@@ -46,24 +46,88 @@ function meldeSchnipsel(text, art = 'neutral') {
 const ORDNER_DB = 'screenarchiv';
 const ORDNER_LADEN = 'zugriffe';
 const BILD_LADEN = 'bilder';
+const VORSCHAU_LADEN = 'vorschauen';
 
 /**
  * Der Zugriff auf einen Ordner ist kein Text - er gehoert in die Datenbank.
- * Dort liegen seit 1.20.0 auch die Bilder in voller Aufloesung: der
- * localStorage fasst rund fuenf Megabyte, die Datenbank ein Vielfaches.
+ * Dort liegen seit 1.20.0 auch die Bilder in voller Aufloesung und seit
+ * 1.34.0 die Vorschauen: der localStorage fasst rund fuenf Megabyte, eine
+ * Vorschau allein wiegt 37 Kilobyte - damit waere bei 135 Aufnahmen Schluss.
+ * In der Datenbank liegt ein Vielfaches; im localStorage bleiben die
+ * Metadaten, und die wiegen ein halbes Kilobyte je Aufnahme.
  */
 function oeffneDatenbank() {
   return new Promise((fertig, scheitern) => {
     if (!window.indexedDB) return scheitern(new Error('keine Datenbank'));
-    const anfrage = indexedDB.open(ORDNER_DB, 2);
+    const anfrage = indexedDB.open(ORDNER_DB, 3);
     anfrage.onupgradeneeded = () => {
       const db = anfrage.result;
       if (!db.objectStoreNames.contains(ORDNER_LADEN)) db.createObjectStore(ORDNER_LADEN);
       if (!db.objectStoreNames.contains(BILD_LADEN)) db.createObjectStore(BILD_LADEN);
+      if (!db.objectStoreNames.contains(VORSCHAU_LADEN)) db.createObjectStore(VORSCHAU_LADEN);
     };
     anfrage.onsuccess = () => fertig(anfrage.result);
     anfrage.onerror = () => scheitern(anfrage.error);
   });
+}
+
+/**
+ * Die Vorschauen: je Aufnahme ein kleines JPEG. Geschrieben wird in einem
+ * Vorgang, nicht in einem je Bild - bei hundert Aufnahmen ist das der
+ * Unterschied zwischen einem Wimpernschlag und einer Pause.
+ */
+async function legeVorschauenAb(saetze = []) {
+  if (!saetze.length) return true;
+  try {
+    const db = await oeffneDatenbank();
+    await new Promise((fertig, scheitern) => {
+      const vorgang = db.transaction(VORSCHAU_LADEN, 'readwrite');
+      const speicher = vorgang.objectStore(VORSCHAU_LADEN);
+      for (const [schluessel, bild] of saetze) speicher.put(bild, schluessel);
+      vorgang.oncomplete = fertig;
+      vorgang.onerror = () => scheitern(vorgang.error);
+    });
+    return true;
+  } catch (fehler) {
+    return false;
+  }
+}
+
+/** Alle Vorschauen auf einmal - ein Vorgang, eine Karte. */
+async function holeAlleVorschauen() {
+  try {
+    const db = await oeffneDatenbank();
+    return await new Promise((fertig, scheitern) => {
+      const karte = new Map();
+      const vorgang = db.transaction(VORSCHAU_LADEN, 'readonly');
+      const anfrage = vorgang.objectStore(VORSCHAU_LADEN).openCursor();
+      anfrage.onsuccess = () => {
+        const zeiger = anfrage.result;
+        if (!zeiger) return fertig(karte);
+        karte.set(String(zeiger.key), zeiger.value);
+        zeiger.continue();
+      };
+      anfrage.onerror = () => scheitern(anfrage.error);
+    });
+  } catch (fehler) {
+    return new Map();
+  }
+}
+
+/** Räumt die Vorschauen gelöschter Aufnahmen weg. */
+async function entferneVorschauen(schluessel = []) {
+  if (!schluessel.length) return;
+  try {
+    const db = await oeffneDatenbank();
+    await new Promise((fertig) => {
+      const vorgang = db.transaction(VORSCHAU_LADEN, 'readwrite');
+      for (const s of schluessel) vorgang.objectStore(VORSCHAU_LADEN).delete(s);
+      vorgang.oncomplete = fertig;
+      vorgang.onerror = fertig;
+    });
+  } catch (fehler) {
+    /* Eine übrig gebliebene Vorschau schadet nicht. */
+  }
 }
 
 /**

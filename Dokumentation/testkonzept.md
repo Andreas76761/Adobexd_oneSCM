@@ -26,12 +26,12 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `03-aufnahmen.test.mjs` | erzeugte SVG-Aufnahmen: Vollständigkeit, Maße, Sauberkeit, Determinismus | 8 |
 | `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken, doppelte Selektoren | 14 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
-| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten, Handbuch, Labels am Entwurf und Kontaktbogen | 131 |
+| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten, Handbuch, Labels am Entwurf, Zählung, Suchtext und Kontaktbogen | 133 |
 | `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Bilderstapel, Zwischenablage, Live-Freigabe, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Labels am Entwurf, Kontaktbogen, Werkbank, Bild mit Zettel | 68 |
 
 | `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beipackzettel, Beenden, Sichtbarkeit im Archiv, Zettel im Ordnerband, Übernahme, Nachpflege, verwaiste Zettel, Tastatur, Filter, Metadaten im Bild, „Was hier geht“ | 34 |
 
-| `09-markieren.e2e.mjs` | Editor im Browser: unkenntlich machen, Rückgängig, Auflösung, Rahmen, Klickstrecke, Fassungen, Gliederung, Stellenwahl, Zeichen je Label, Direkteinstieg | 17 |
+| `09-markieren.e2e.mjs` | Editor im Browser: unkenntlich machen, Rückgängig, Auflösung, Rahmen, Klickstrecke, Fassungen, Gliederung, Stellenwahl, Zeichen je Label, Speicher und Vorschauen, Direkteinstieg | 18 |
 
 | `10-strecke.e2e.mjs` | Strecke im Browser: Folge anlegen, Reihenfolge, Blatt als Bild, Beständigkeit, parallele Bilder, Platzhalter, Prozess als BPMN und als Bild | 9 |
 
@@ -49,7 +49,9 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `17-varianten.e2e.mjs` | Varianten im Browser: verbinden und lösen, Deckungsmatrix, Ausgabe in einer anderen Sprache | 5 |
 
-Summe: **376 Prüfungen**.
+| `18-begehung.e2e.mjs` | Begehung: jeder sichtbare Befehl in jeder Ansicht, die zerstörenden Befehle, die Tastatur | 4 |
+
+Summe: **383 Prüfungen**.
 
 ## Eigene Helfer
 

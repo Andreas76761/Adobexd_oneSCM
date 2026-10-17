@@ -249,6 +249,28 @@ function verdrahteVerzeichnis() {
 
 verdrahteVerzeichnis();
 
+/**
+ * Holt die Vorschauen aus der Browserdatenbank zurück. Im localStorage stehen
+ * nur noch die Metadaten (seit 1.34.0); die Bilder kommen gleich nach dem
+ * ersten Zeichnen, in *einem* Vorgang. Bis dahin steht in der Liste ein
+ * Platzhalter statt eines kaputten Bildes.
+ */
+async function stelleVorschauenWieder() {
+  if (!eingang.some((a) => !a.bild)) return;
+  const vorschauen = await holeAlleVorschauen();
+  let geholt = 0;
+  for (const aufnahme of eingang) {
+    if (aufnahme.bild || !vorschauen.has(aufnahme.id)) continue;
+    aufnahme.bild = vorschauen.get(aufnahme.id);
+    geholt += 1;
+  }
+  for (const kennung of vorschauen.keys()) abgelegteVorschauen.add(kennung);
+  if (!geholt) return;
+  zeichneEingang();
+  zeigeAnsicht();
+}
+
 // starte() steht in der letzten Zeile der letzten Datei (siehe CLAUDE.md).
 starte();
 stelleOrdnerWiederHer();
+stelleVorschauenWieder();

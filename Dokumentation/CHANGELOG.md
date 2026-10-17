@@ -20,6 +20,34 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.34.0] – Begehung und Leistung: die Decke steigt von 135 auf 10 800
+
+### Neu
+* **Begehung** (F-49): eine Prüfung drückt jeden sichtbaren Befehl in jeder
+  Ansicht – über 90 – und achtet auf Seitenfehler, Konsolenfehler und eine
+  Seite, die nicht mehr antwortet; dazu die zerstörenden Befehle und die
+  Tastaturbefehle
+
+### Geändert
+* **Die Vorschauen liegen in der Browserdatenbank** (F-50), der
+  `localStorage` trägt nur noch die Metadaten: 502 Byte statt 37,9 kB je
+  Aufnahme, also rund **10 800 statt 135** Aufnahmen. Beim Start kommen sie
+  in einem Vorgang zurück; ein älterer Stand zieht beim nächsten Sichern um
+* Speicherformat `version: 2` mit `vorschauen: "datenbank"`
+* `zaehleBilder` summiert von unten nach oben – bei 1000 Bildern 15-mal
+  schneller; `eingangSuchIndex` merkt sich den Suchtext je Satz – Filtern
+  2,4-mal schneller
+* Fehlt eine Vorschau für einen Augenblick, steht ein Platzhalter statt eines
+  kaputten Bildes
+
+### Kern
+* `offeneVorschauen`, `PLATZHALTER_BILD`; `schreibeEingang` lässt die
+  Vorschauen draußen, `leseEingang` nimmt Sätze ohne Bild an
+
+### Prüfung
+* Neue Datei `18-begehung.e2e.mjs`; 2 neue Kernprüfungen (Zählung, Suchtext),
+  1 neue Browserprüfung (Speicher und Rückkehr der Vorschauen); zusammen 383
+
 ## [1.33.0] – Labels ab der Aufnahme, Stelle zum Auswählen
 
 ### Neu

@@ -44,9 +44,25 @@ function leseEingangAusSpeicher() {
  * eingebetteten Ansichten vor, wenn der Browser fremden Rahmen keinen Speicher
  * gibt. Dann ist die Aufnahme nicht verloren, sie überlebt nur kein Neuladen.
  */
+let abgelegteVorschauen = new Set(); // was schon in der Datenbank liegt
+
 function sichereEingang() {
   try {
     localStorage.setItem(EINGANG_SCHLUESSEL, schreibeEingang(eingang));
+    // Die Vorschauen wandern nebenher in die Datenbank - der Speicher traegt
+    // nur noch die Metadaten. Was dabei schief geht, faellt nicht auf das
+    // Sichern zurueck: die Aufnahme steht auch ohne Vorschau in der Liste.
+    const offen = offeneVorschauen(eingang, abgelegteVorschauen);
+    if (offen.length) {
+      legeVorschauenAb(offen).then((gelungen) => {
+        if (gelungen) for (const [kennung] of offen) abgelegteVorschauen.add(kennung);
+      });
+    }
+    const weg = [...abgelegteVorschauen].filter((kennung) => !eingang.some((a) => a.id === kennung));
+    if (weg.length) {
+      entferneVorschauen(weg);
+      for (const kennung of weg) abgelegteVorschauen.delete(kennung);
+    }
     return { ok: true };
   } catch (fehler) {
     const voll =
@@ -1192,7 +1208,7 @@ function zeichneWerkbank() {
     el('div', { klasse: 'beleg-seite' }, [
       el('span', { klasse: `aufnahme-schild aufnahme-schild--${rolle === 'vorher' ? 'v' : 'n'}`, text: rolle }),
       aufnahme
-        ? el('img', { src: aufnahme.bild, alt: `${rolle}: ${aufnahme.titel}` })
+        ? el('img', { src: aufnahme.bild || PLATZHALTER_BILD, alt: `${rolle}: ${aufnahme.titel}` })
         : el('p', { klasse: 'feld-hinweis', text: 'keine Aufnahme gewählt' }),
       wahl(rolle)
     ]);
@@ -1489,7 +1505,7 @@ function oeffneEingangDialog(kennung) {
 
   $('#eingang-dialog-inhalt').replaceChildren(
     el('div', { klasse: 'bearbeiten-bild' }, [
-      el('img', { src: aufnahme.bild, alt: aufnahme.titel }),
+      el('img', { src: aufnahme.bild || PLATZHALTER_BILD, alt: aufnahme.titel }),
       el('p', { klasse: 'quelle', text: `${quelleArtName(aufnahme.quelle.art)}: ${aufnahme.quelle.name || '–'} · Ausschnitt ${aufnahme.ausschnitt.breite} × ${aufnahme.ausschnitt.hoehe} bei x ${aufnahme.ausschnitt.x}, y ${aufnahme.ausschnitt.y}` })
     ]),
     el('form', { klasse: 'bearbeiten-form', id: 'bearbeiten-form' }, [

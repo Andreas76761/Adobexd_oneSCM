@@ -120,7 +120,22 @@ s.test('die gewählten Bilder landen mit Stelle und Rezept im Eingang', () =>
       gleich(ersteFolie.notiz, 'Template wählen');
       gleich(ersteFolie.einfuhr.datei, 'Quickguide oneSCM.pptx');
       gleich(ersteFolie.quelle.breite, 240, 'die volle Auflösung wurde nicht übernommen');
-      wahr(ersteFolie.bild.startsWith('data:image/'), 'die Vorschau fehlt');
+      // Die Vorschau liegt seit 1.34.0 in der Browserdatenbank, nicht im
+      // localStorage - sie wird dort geprüft.
+      const vorschau = await seite.evaluate(
+        (kennung) =>
+          new Promise((fertig) => {
+            const anfrage = indexedDB.open('screenarchiv');
+            anfrage.onsuccess = () => {
+              const holen = anfrage.result.transaction('vorschauen').objectStore('vorschauen').get(kennung);
+              holen.onsuccess = () => fertig(String(holen.result || '').slice(0, 20));
+              holen.onerror = () => fertig('');
+            };
+            anfrage.onerror = () => fertig('');
+          }),
+        ersteFolie.id
+      );
+      wahr(vorschau.startsWith('data:image/'), 'die Vorschau fehlt in der Datenbank');
       wahr((await seite.locator('#import-meldung').innerText()).includes('im Eingang'));
       // Das volle Bild liegt in der Datenbank, nicht im Browserspeicher.
       const inDatenbank = await seite.evaluate(

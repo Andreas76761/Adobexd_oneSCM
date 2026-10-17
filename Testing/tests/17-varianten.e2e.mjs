@@ -48,10 +48,32 @@ async function dreiMitSprachen(seite) {
   }
 }
 
+/**
+ * Der Eingang, wie ihn die Seite kennt: Metadaten aus dem localStorage, die
+ * Vorschauen aus der Browserdatenbank (seit 1.34.0 liegen sie dort).
+ */
 const eingangImSpeicher = (seite) =>
-  seite.evaluate(() => {
+  seite.evaluate(async () => {
     const roh = localStorage.getItem('screenarchiv:eingang');
-    return roh ? JSON.parse(roh).aufnahmen : [];
+    const aufnahmen = roh ? JSON.parse(roh).aufnahmen : [];
+    const vorschauen = await new Promise((fertig) => {
+      const anfrage = indexedDB.open('screenarchiv');
+      anfrage.onsuccess = () => {
+        const db = anfrage.result;
+        if (!db.objectStoreNames.contains('vorschauen')) return fertig(new Map());
+        const karte = new Map();
+        const zeiger = db.transaction('vorschauen').objectStore('vorschauen').openCursor();
+        zeiger.onsuccess = () => {
+          const stand = zeiger.result;
+          if (!stand) return fertig(karte);
+          karte.set(String(stand.key), stand.value);
+          stand.continue();
+        };
+        zeiger.onerror = () => fertig(karte);
+      };
+      anfrage.onerror = () => fertig(new Map());
+    });
+    return aufnahmen.map((a) => ({ ...a, bild: a.bild || vorschauen.get(a.id) || '' }));
   });
 
 s.test('ohne Aufnahme bleibt der Variantenblock stumm', () =>

@@ -167,24 +167,47 @@ s.test('Speicher wird nachsichtig gelesen', () => {
   gleich(kern.leseEingang(null).length, 0);
   gleich(kern.leseEingang('{kaputt').length, 0, 'kaputtes JSON wirft');
   gleich(kern.leseEingang(JSON.stringify(eingangProbe())).length, 3, 'reine Liste wird nicht angenommen');
+  // Seit 1.34.0 liegt die Vorschau in der Datenbank: ein Satz ohne Bild ist
+  // gültig, einer ohne Kennung nicht - und ein kaputter Bildwert fällt weg.
   const mitMuell = JSON.stringify({
-    version: 1,
-    aufnahmen: [...eingangProbe(), { id: 'ohne-bild' }, null, { bild: 'data:image/jpeg;base64,X' }]
+    version: 2,
+    aufnahmen: [...eingangProbe(), { id: 'ohne-bild' }, null, { bild: 'data:image/jpeg;base64,X' }, { id: 'x', bild: 'nein' }]
   });
-  gleich(kern.leseEingang(mitMuell).length, 3, 'unbrauchbare Sätze werden übernommen');
+  const gelesen = kern.leseEingang(mitMuell);
+  gleich(gelesen.length, 4, 'unbrauchbare Sätze werden übernommen');
+  gleich(gelesen[3].id, 'ohne-bild');
+  gleich(gelesen[3].bild, '', 'ein Satz ohne Vorschau bekommt kein erfundenes Bild');
   const kaputtesDatum = kern.leseEingang(
     JSON.stringify({ aufnahmen: [{ ...eingangProbe()[0], datum: 'gestern' }] })
   );
   gleich(kaputtesDatum[0].datum, '2025-06-01', 'unlesbares Datum wird nicht aus der Erfassung ersetzt');
 });
 
-s.test('Schreiben und Lesen ergeben denselben Stand', () => {
+s.test('Schreiben und Lesen ergeben denselben Stand – ohne die Vorschauen', () => {
   const liste = eingangProbe();
-  const zurueck = kern.leseEingang(kern.schreibeEingang(liste));
+  const geschrieben = kern.schreibeEingang(liste);
+  const zurueck = kern.leseEingang(geschrieben);
   gleich(zurueck.length, liste.length);
   gleich(zurueck[0].id, liste[0].id);
   tieferGleich(zurueck[2].begriffe, liste[2].begriffe);
-  gleich(JSON.parse(kern.schreibeEingang(liste)).version, kern.EINGANG_VERSION);
+  gleich(JSON.parse(geschrieben).version, kern.EINGANG_VERSION);
+
+  // Die Vorschauen stehen nicht mehr im Speicher - darum ist er klein.
+  gleich(JSON.parse(geschrieben).vorschauen, 'datenbank');
+  gleich(zurueck[0].bild, '', 'die Vorschau steht wieder im Speicher');
+  wahr(
+    geschrieben.length < kern.schreibeEingang([]).length + liste.length * 2000,
+    'der Speicherstand ist zu groß: ' + geschrieben.length
+  );
+  wahr(!geschrieben.includes('data:image/'), 'im Speicher steht noch ein Bild');
+
+  // Was noch nicht in der Datenbank liegt, wird benannt.
+  tieferGleich(
+    kern.offeneVorschauen(liste, new Set()).map(([kennung]) => kennung),
+    liste.map((a) => a.id)
+  );
+  tieferGleich(kern.offeneVorschauen(liste, new Set(liste.map((a) => a.id))), []);
+  tieferGleich(kern.offeneVorschauen([{ id: 'A', bild: '' }], new Set()), [], 'ein Satz ohne Bild hat nichts abzulegen');
 });
 
 s.test('Ausgabe enthält die Bilder nur auf Wunsch', () => {
@@ -2382,6 +2405,47 @@ s.test('die Sparten heißen PC und Van, die Suche kennt beide Namen', () => {
   // Das Feld Markt gewinnt gegen die Rolle Market.
   gleich(kern.deuteFrage('Markt Germany').filter.markt, 'germany');
   gleich(kern.deuteFrage('Markt Germany').filter.rolle_label, '');
+});
+
+s.test('die Zählung je Stelle bleibt bei vielen Bildern bezahlbar', () => {
+  const gliederung = [];
+  for (let k = 1; k <= 23; k++) {
+    gliederung.push({ nummer: String(k), thema: 'Kapitel ' + k, ebene: 1, art: 'kapitel' });
+    for (let u = 1; u <= 9; u++) {
+      gliederung.push({ nummer: `${k}.${u}`, thema: 'Unterkapitel', ebene: 2, art: 'kapitel' });
+      for (let s3 = 1; s3 <= 5; s3++) {
+        gliederung.push({ nummer: `${k}.${u}.${s3}`, thema: 'Stelle', ebene: 3, art: 'kapitel' });
+      }
+    }
+  }
+  const bilder = [];
+  for (let i = 0; i < 1000; i++) {
+    bilder.push({ id: 'A' + i, gliederung: `${1 + (i % 23)}.${1 + (i % 9)}.${1 + (i % 5)}` });
+  }
+  const begonnen = Date.now();
+  const { zahlen, ohneStelle } = kern.zaehleBilder(gliederung, bilder);
+  const gebraucht = Date.now() - begonnen;
+
+  // Die Summe eines Kapitels ist die seiner Stellen - das ist der Zweck.
+  const eigene = bilder.filter((b) => b.gliederung.startsWith('1.')).length;
+  gleich(zahlen.get('1').gesamt, eigene);
+  gleich(zahlen.get('1').eigene, 0, 'das Kapitel selbst trägt keine Bilder');
+  gleich(ohneStelle, 0);
+  // Gerechnet wird von unten nach oben; der alte Weg (jede Stelle gegen jede)
+  // brauchte dafür das Vielfache. Die Grenze ist großzügig, damit sie nicht
+  // an einem langsamen Rechner scheitert - sie schlägt erst an, wenn jemand
+  // zur Prüfung je Stelle zurückkehrt.
+  wahr(gebraucht < 120, `zaehleBilder brauchte ${gebraucht} ms für 1265 Stellen und 1000 Bilder`);
+});
+
+s.test('der Suchtext einer Aufnahme wird nur einmal gerechnet', () => {
+  const aufnahme = { id: 'A1', titel: 'Vorlagenliste', projekt: 'oneSCM', begriffe: ['vorlage'] };
+  const erst = kern.eingangSuchIndex(aufnahme);
+  gleich(kern.eingangSuchIndex(aufnahme), erst);
+  // Ein geänderter Satz ist ein neues Objekt - und bekommt seinen eigenen Text.
+  const geaendert = { ...aufnahme, titel: 'Formular' };
+  wahr(kern.eingangSuchIndex(geaendert).includes('formular'), 'der gemerkte Text bleibt am alten Satz hängen');
+  wahr(!kern.eingangSuchIndex(geaendert).includes('vorlagenliste'));
 });
 
 export default s;

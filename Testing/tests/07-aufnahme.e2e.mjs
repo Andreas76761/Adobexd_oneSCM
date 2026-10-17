@@ -65,10 +65,32 @@ async function mitBeispielquelle(seite) {
   await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
 }
 
+/**
+ * Der Eingang, wie ihn die Seite kennt: Metadaten aus dem localStorage, die
+ * Vorschauen aus der Browserdatenbank (seit 1.34.0 liegen sie dort).
+ */
 const eingangImSpeicher = (seite) =>
-  seite.evaluate(() => {
+  seite.evaluate(async () => {
     const roh = localStorage.getItem('screenarchiv:eingang');
-    return roh ? JSON.parse(roh).aufnahmen : [];
+    const aufnahmen = roh ? JSON.parse(roh).aufnahmen : [];
+    const vorschauen = await new Promise((fertig) => {
+      const anfrage = indexedDB.open('screenarchiv');
+      anfrage.onsuccess = () => {
+        const db = anfrage.result;
+        if (!db.objectStoreNames.contains('vorschauen')) return fertig(new Map());
+        const karte = new Map();
+        const zeiger = db.transaction('vorschauen').objectStore('vorschauen').openCursor();
+        zeiger.onsuccess = () => {
+          const stand = zeiger.result;
+          if (!stand) return fertig(karte);
+          karte.set(String(stand.key), stand.value);
+          stand.continue();
+        };
+        zeiger.onerror = () => fertig(karte);
+      };
+      anfrage.onerror = () => fertig(new Map());
+    });
+    return aufnahmen.map((a) => ({ ...a, bild: a.bild || vorschauen.get(a.id) || '' }));
   });
 
 /* ------------------------------------------------------------ Navigation */
@@ -832,15 +854,16 @@ s.test('das gespeicherte Bild trägt die Maße des Ausschnitts', () =>
       await seite.locator('#quelle-buehne').focus();
       await seite.keyboard.press('Space');
       await seite.waitForFunction(() => document.getElementById('aufnahme-meldung').textContent.includes('AUF-'));
-      const masse = await seite.evaluate(async () => {
-        const a = JSON.parse(localStorage.getItem('screenarchiv:eingang')).aufnahmen[0];
+      const [satz] = await eingangImSpeicher(seite);
+      const masse = await seite.evaluate(async (quelle) => {
         const bild = new Image();
         await new Promise((fertig) => {
           bild.onload = fertig;
-          bild.src = a.bild;
+          bild.src = quelle;
         });
-        return { breite: bild.naturalWidth, hoehe: bild.naturalHeight, ausschnitt: a.ausschnitt };
-      });
+        return { breite: bild.naturalWidth, hoehe: bild.naturalHeight };
+      }, satz.bild);
+      masse.ausschnitt = satz.ausschnitt;
       gleich(masse.breite, 390, 'die Bildbreite passt nicht zum Ausschnitt');
       gleich(masse.hoehe, 844);
       gleich(masse.ausschnitt.breite, 390);

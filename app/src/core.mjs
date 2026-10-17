@@ -305,7 +305,7 @@ export function bereiteVor(eintraege) {
    ========================================================================= */
 
 export const EINGANG_SCHLUESSEL = 'screenarchiv:eingang';
-export const EINGANG_VERSION = 1;
+export const EINGANG_VERSION = 2;
 export const MINDEST_AUSSCHNITT = 32;
 export const HOECHSTZAHL_BEGRIFFE = 12;
 
@@ -489,7 +489,16 @@ export function istVollstaendig(aufnahme) {
   );
 }
 
+/**
+ * Der Suchtext einer Aufnahme wird je Satz einmal gerechnet und gemerkt. Bei
+ * tausend Aufnahmen spart das je Tastendruck tausend Zusammenbauten; weil
+ * Aufnahmen beim Aendern ersetzt werden, verfaellt der Merkzettel von selbst.
+ */
+const SUCHINDEX = new WeakMap();
+
 export function eingangSuchIndex(aufnahme) {
+  const gemerkt = aufnahme && typeof aufnahme === 'object' ? SUCHINDEX.get(aufnahme) : undefined;
+  if (gemerkt !== undefined) return gemerkt;
   const roh = [
     aufnahme.id,
     aufnahme.titel,
@@ -505,7 +514,9 @@ export function eingangSuchIndex(aufnahme) {
   ]
     .filter(Boolean)
     .join('   ');
-  return normalisiere(roh) + '   ' + normalisiereLang(roh);
+  const text = normalisiere(roh) + '   ' + normalisiereLang(roh);
+  if (aufnahme && typeof aufnahme === 'object') SUCHINDEX.set(aufnahme, text);
+  return text;
 }
 
 export function filtereEingang(liste, auswahl = {}) {
@@ -569,19 +580,43 @@ export function leseEingang(text) {
     return [];
   }
   const liste = Array.isArray(inhalt) ? inhalt : inhalt && Array.isArray(inhalt.aufnahmen) ? inhalt.aufnahmen : [];
-  return liste
-    .filter((a) => a && typeof a === 'object' && a.id && typeof a.bild === 'string' && a.bild.startsWith('data:image/'))
-    .map((a) => ({
-      ...a,
-      titel: String(a.titel || a.id),
-      begriffe: normalisiereBegriffe(a.begriffe || []),
-      datum: istGueltigesDatum(a.datum) ? a.datum : String(a.erfasst_am || '').slice(0, 10),
-      ausschnitt: a.ausschnitt || { x: 0, y: 0, breite: 0, hoehe: 0 }
-    }));
+  return (
+    liste
+      // Seit 1.34.0 liegt die Vorschau in der Browserdatenbank, nicht mehr im
+      // localStorage: ein Satz *ohne* Bild ist darum gueltig - es kommt gleich
+      // nach. Ein Satz mit Bild (aelterer Stand) behaelt es.
+      .filter((a) => a && typeof a === 'object' && a.id)
+      .filter((a) => a.bild === undefined || a.bild === '' || String(a.bild).startsWith('data:image/'))
+      .map((a) => ({
+        ...a,
+        bild: typeof a.bild === 'string' ? a.bild : '',
+        titel: String(a.titel || a.id),
+        begriffe: normalisiereBegriffe(a.begriffe || []),
+        datum: istGueltigesDatum(a.datum) ? a.datum : String(a.erfasst_am || '').slice(0, 10),
+        ausschnitt: a.ausschnitt || { x: 0, y: 0, breite: 0, hoehe: 0 }
+      }))
+  );
 }
 
+/**
+ * Schreibt den Eingang **ohne** die Vorschauen: sie liegen in der
+ * Browserdatenbank. Eine Vorschau wiegt 37 Kilobyte, die Metadaten einer
+ * Aufnahme ein halbes - so reicht derselbe Speicher statt fuer 135 Aufnahmen
+ * fuer einige tausend.
+ */
 export function schreibeEingang(liste) {
-  return JSON.stringify({ version: EINGANG_VERSION, aufnahmen: liste || [] });
+  return JSON.stringify({
+    version: EINGANG_VERSION,
+    vorschauen: 'datenbank',
+    aufnahmen: (liste || []).map(({ bild, ...rest }) => rest)
+  });
+}
+
+/** Die Vorschauen, die neu in die Datenbank gehoeren. */
+export function offeneVorschauen(liste = [], schonAbgelegt = new Set()) {
+  return liste
+    .filter((a) => a && a.id && a.bild && !schonAbgelegt.has(a.id))
+    .map((a) => [a.id, a.bild]);
 }
 
 /**
@@ -2062,10 +2097,21 @@ export function neuesteFassung(aufnahme = {}) {
   return fassungen.length ? fassungen[fassungen.length - 1] : null;
 }
 
+/**
+ * Ein Platzhalter fuer den Augenblick, in dem eine Vorschau noch aus der
+ * Datenbank kommt. Ein leeres `src` laedt die Seite selbst und zeigt ein
+ * kaputtes Bild - das sieht nach Fehler aus, wo keiner ist.
+ */
+export const PLATZHALTER_BILD =
+  'data:image/svg+xml;charset=utf-8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="10"><rect width="16" height="10" fill="%23E4E8EF"/></svg>'
+  );
+
 /** Was gezeigt wird: die juengste Fassung, sonst das Original. */
 export function anzeigeBild(aufnahme = {}) {
   const fassung = neuesteFassung(aufnahme);
-  return (fassung && fassung.bild) || aufnahme.bild || '';
+  return (fassung && fassung.bild) || aufnahme.bild || PLATZHALTER_BILD;
 }
 
 /* ------------------------------------------- Labels: wer, wo, womit */
@@ -2291,12 +2337,18 @@ export function zaehleBilder(eintraege = [], aufnahmen = []) {
     if (!stelle) continue;
     eigene.set(stelle, (eigene.get(stelle) || 0) + 1);
   }
+  // Die Summe je Stelle entsteht von unten nach oben: jede belegte Stelle
+  // zaehlt sich ihren Vorfahren zu. Der umgekehrte Weg - jede der 1153
+  // Stellen gegen jede belegte pruefen - kostet bei vielen Bildern ein
+  // Vielfaches und liefert dasselbe.
+  const summen = new Map();
+  for (const [stelle, zahl] of eigene) {
+    for (const teil of stelleTeile(stelle)) summen.set(teil, (summen.get(teil) || 0) + zahl);
+  }
   const zahlen = new Map();
   for (const eintrag of eintraege) {
     if (eintrag.art === 'uebergang') continue;
-    let summe = 0;
-    for (const [stelle, zahl] of eigene) if (gehoertZu(stelle, eintrag.nummer)) summe += zahl;
-    zahlen.set(eintrag.nummer, { eigene: eigene.get(eintrag.nummer) || 0, gesamt: summe });
+    zahlen.set(eintrag.nummer, { eigene: eigene.get(eintrag.nummer) || 0, gesamt: summen.get(eintrag.nummer) || 0 });
   }
   const ohneStelle = aufnahmen.filter((a) => !String(a.gliederung || '').trim()).length;
   const unbekannt = [...eigene.keys()].filter((stelle) => !zahlen.has(stelle));

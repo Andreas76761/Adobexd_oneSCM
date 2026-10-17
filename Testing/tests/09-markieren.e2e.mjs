@@ -41,10 +41,32 @@ async function ziehe(seite, x1, y1, x2, y2) {
 
 const letzteMarke = (seite) => seite.locator('.marke-zeile').last().getAttribute('data-marke');
 
+/**
+ * Der Eingang, wie ihn die Seite kennt: Metadaten aus dem localStorage, die
+ * Vorschauen aus der Browserdatenbank (seit 1.34.0 liegen sie dort).
+ */
 const eingangImSpeicher = (seite) =>
-  seite.evaluate(() => {
+  seite.evaluate(async () => {
     const roh = localStorage.getItem('screenarchiv:eingang');
-    return roh ? JSON.parse(roh).aufnahmen : [];
+    const aufnahmen = roh ? JSON.parse(roh).aufnahmen : [];
+    const vorschauen = await new Promise((fertig) => {
+      const anfrage = indexedDB.open('screenarchiv');
+      anfrage.onsuccess = () => {
+        const db = anfrage.result;
+        if (!db.objectStoreNames.contains('vorschauen')) return fertig(new Map());
+        const karte = new Map();
+        const zeiger = db.transaction('vorschauen').objectStore('vorschauen').openCursor();
+        zeiger.onsuccess = () => {
+          const stand = zeiger.result;
+          if (!stand) return fertig(karte);
+          karte.set(String(stand.key), stand.value);
+          stand.continue();
+        };
+        zeiger.onerror = () => fertig(karte);
+      };
+      anfrage.onerror = () => fertig(new Map());
+    });
+    return aufnahmen.map((a) => ({ ...a, bild: a.bild || vorschauen.get(a.id) || '' }));
   });
 
 s.test('die Navigation führt in die Ansicht Markieren', () =>
@@ -469,10 +491,11 @@ s.test('Aufnahmen behalten ihre volle Auflösung, der Eingang nur die Vorschau',
   mitSeite(
     async (seite) => {
       await mitAufnahme(seite);
-      const stand = await seite.evaluate(() => {
-        const a = JSON.parse(localStorage.getItem('screenarchiv:eingang')).aufnahmen[0];
-        return { vorschau: a.bild.length, breite: a.breite, hoehe: a.hoehe, voll: a.voll === true };
-      });
+      const [satz] = await eingangImSpeicher(seite);
+      const stand = { vorschau: satz.bild.length, breite: satz.breite, hoehe: satz.hoehe, voll: satz.voll === true };
+      // Der Speicher selbst trägt die Vorschau nicht mehr - nur die Metadaten.
+      const imSpeicher = await seite.evaluate(() => localStorage.getItem('screenarchiv:eingang').length);
+      wahr(imSpeicher < 4000, 'die Vorschau steht noch im localStorage: ' + imSpeicher + ' Zeichen');
       gleich(stand.voll, true, 'das volle Bild wurde nicht abgelegt');
       gleich(stand.breite, 1440, 'die Quelle wurde heruntergerechnet');
       wahr(stand.vorschau < 400000, 'die Vorschau im Speicher ist zu groß: ' + stand.vorschau);
@@ -613,6 +636,47 @@ s.test('die Labels tragen ihr Zeichen – auch im Bild', () =>
         [...document.querySelectorAll('#markier-liste .marke-art')].map((k) => k.textContent)
       );
       wahr(marken.length >= 2, 'die Labels stehen nicht im Bild: ' + marken.join(', '));
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('der Speicher trägt Metadaten, die Datenbank die Vorschauen', () =>
+  mitSeite(
+    async (seite) => {
+      await mitAufnahme(seite);
+      // Zehn Aufnahmen – im alten Stand wären das 380 kB im localStorage.
+      await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+      for (let i = 0; i < 9; i++) {
+        await seite.fill('#feld-titel', 'Maske ' + i);
+        await seite.fill('#feld-projekt', 'oneSCM Portal');
+        await seite.selectOption('#feld-kategorie', 'Formular');
+        await seite.fill('#feld-begriffe', 'reihe');
+        await seite.click('#ausloesen');
+        await seite.waitForTimeout(120);
+      }
+      const stand = await seite.evaluate(() => {
+        const roh = localStorage.getItem('screenarchiv:eingang');
+        return { zeichen: roh.length, anzahl: JSON.parse(roh).aufnahmen.length, mitBild: roh.includes('data:image/') };
+      });
+      gleich(stand.anzahl, 10);
+      gleich(stand.mitBild, false, 'im Speicher steht noch ein Bild');
+      wahr(stand.zeichen / stand.anzahl < 1200, 'je Aufnahme zu viel im Speicher: ' + Math.round(stand.zeichen / stand.anzahl));
+
+      // Nach dem Neuladen sind die Vorschauen wieder da.
+      await seite.reload({ waitUntil: 'load' });
+      await seite.waitForSelector('html[data-bereit="ja"]');
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.waitForFunction(
+        () => {
+          const bilder = [...document.querySelectorAll('.eingang-karte img')];
+          return bilder.length === 10 && bilder.every((b) => b.src.startsWith('data:image/jpeg'));
+        },
+        null,
+        { timeout: 10000 }
+      );
+      const nachher = await eingangImSpeicher(seite);
+      gleich(nachher.length, 10);
+      wahr(nachher.every((a) => a.bild.startsWith('data:image/')), 'eine Vorschau kam nicht zurück');
     },
     { hash: AUFNAHME }
   ));

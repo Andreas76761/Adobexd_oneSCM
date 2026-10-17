@@ -261,7 +261,7 @@ function zeichneEigeneAufnahmen() {
             title: `${a.id} · ${a.titel}`,
             onclick: () => setze({ ansicht: 'eingang' })
           },
-          [el('img', { src: a.bild, alt: a.titel, loading: 'lazy' }), el('span', { klasse: 'kennung', text: a.id })]
+          [el('img', { src: a.bild || PLATZHALTER_BILD, alt: a.titel, loading: 'lazy' }), el('span', { klasse: 'kennung', text: a.id })]
         )
       )
   );

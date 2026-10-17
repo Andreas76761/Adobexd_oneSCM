@@ -56,10 +56,12 @@ npm test          # muss vollständig grün sein
 * Version in `package.json` und Datenversion in `data/eintraege.json` werden
   getrennt geführt; die Regeln stehen im `CHANGELOG.md`.
 
-* **Aufnahmen liegen im Browser des Betrachters**: die Vorschau im
-  `localStorage` (Schlüssel `screenarchiv:eingang`), das Bild in voller
-  Auflösung in der Browserdatenbank `screenarchiv` (Speicher `bilder`,
-  Schlüssel `AUF-…` bzw. `AUF-…:<Fassung>`), ebenso der Ordnerzugriff. Kein Schreibzugriff auf `data/` zur Laufzeit – der Weg
+* **Aufnahmen liegen im Browser des Betrachters**: im `localStorage`
+  (Schlüssel `screenarchiv:eingang`) stehen **nur die Metadaten**, in der
+  Browserdatenbank `screenarchiv` die Vorschauen (Speicher `vorschauen`) und
+  die Bilder in voller Auflösung (Speicher `bilder`, Schlüssel `AUF-…` bzw.
+  `AUF-…:<Fassung>`), ebenso der Ordnerzugriff. Eine Vorschau wiegt 37 kB –
+  im Speicher wäre bei 135 Aufnahmen Schluss. Kein Schreibzugriff auf `data/` zur Laufzeit – der Weg
   dorthin führt über „Als JSON sichern“ oder den Kontaktbogen.
 * **Der Belegbestand des Archivs und die eigenen Aufnahmen sind getrennt.**
   Ein Beleg braucht zwei Aufnahmen und eine Begründung. Die Bänder oben im

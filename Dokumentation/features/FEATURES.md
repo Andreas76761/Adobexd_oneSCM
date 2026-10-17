@@ -1225,3 +1225,50 @@ hinter einem Aufklapper.
 **im Bild**: die eingebrannte Labelmarke zeichnet das Symbol aus demselben
 Vorrat wie die Oberfläche. Zwei Sätze Zeichen wären zwei Wahrheiten; darum
 liest die Leinwand das SVG der Seite und zeichnet es mit `Path2D` nach.
+
+---
+
+## F-49 · Begehung: jeder Befehl wird gedrückt
+
+**Seit** 1.34.0 · `Testing/tests/18-begehung.e2e.mjs`
+
+Die übrigen Prüfungen fragen, ob ein Weg zum richtigen Ergebnis führt. Diese
+fragt etwas Gröberes und darum Wichtiges: **bricht irgendwo etwas, wenn man
+einfach alles drückt?** Sie legt einen Grundbestand an, bereitet jede Ansicht
+so vor, dass ihre Befehle etwas zu tun haben, und drückt dann jeden
+sichtbaren, nicht gesperrten Knopf – über 90 in elf Ansichten. Gezählt werden
+Seitenfehler, Fehler in der Konsole und eine Seite, die nicht mehr antwortet.
+Ein eigener Fall drückt zuletzt die zerstörenden Befehle (Löschen, Verwerfen,
+Leeren), ein dritter die Tastaturbefehle (`/`, Leertaste, Strg+Z).
+
+---
+
+## F-50 · Die Vorschauen liegen in der Datenbank
+
+**Seit** 1.34.0 · betrifft Eingang, Start, Speicher
+
+**Das Problem** Eine Vorschau wiegt 37 kB, die Metadaten einer Aufnahme ein
+halbes. Beides zusammen im `localStorage` heißt: bei **135 Aufnahmen** ist
+Schluss – bei einem Handbuch mit 1153 Stellen eine ernste Grenze.
+
+**Die Lösung** Der `localStorage` trägt nur noch die Metadaten
+(`version: 2`, `vorschauen: "datenbank"`), die Vorschauen liegen in der
+Browserdatenbank (`screenarchiv` → `vorschauen`, Schlüssel ist die Kennung).
+Geschrieben wird in *einem* Vorgang je Sicherung, und nur, was noch nicht
+abgelegt ist. Beim Start holt die Seite alle Vorschauen auf einmal zurück und
+zeichnet nach; bis dahin steht ein Platzhalter statt eines kaputten Bildes.
+Ein älterer Stand mit eingebetteten Vorschauen wird gelesen und beim nächsten
+Sichern umgezogen.
+
+**Wirkung** 502 Byte statt 37,9 kB je Aufnahme: rund **10 800 statt 135**
+Aufnahmen. Mit 300 Aufnahmen startet die Seite in 194 ms, der Eingang
+zeichnet in 227 ms.
+
+**Dazu zwei Rechnungen, die mitwuchsen**
+
+* `zaehleBilder` summiert jetzt von unten nach oben (jede belegte Stelle
+  zählt sich ihren Vorfahren zu) statt jede der 1153 Stellen gegen jede
+  belegte zu prüfen: bei 1000 Bildern **15-mal** schneller.
+* `eingangSuchIndex` merkt sich den Suchtext je Satz (`WeakMap`); er verfällt
+  von selbst, weil geänderte Aufnahmen neue Objekte sind. Filtern über 1000
+  Aufnahmen: **2,4-mal** schneller.
