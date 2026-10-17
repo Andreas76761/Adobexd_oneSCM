@@ -585,6 +585,91 @@ s.test('eine Ordnerdatei wird samt Zettel in den Eingang übernommen', () =>
     { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
   ));
 
+s.test('nachgetragene Metadaten gehen in den Zettel im Ordner zurück', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.fill('#ablage-muster', 'schirm-{nummer}');
+      await seite.click('#ordner-waehlen');
+      await seite.waitForFunction(() => document.getElementById('ziel-ordner').checked, null, { timeout: 5000 });
+      await starteFreigabe(seite);
+      await ziehe(seite, 40, 30, 300, 220);
+      await seite.waitForFunction(() => (window.__geschrieben || []).length === 2, null, { timeout: 5000 });
+
+      // Die Aufnahme im Eingang kennt ihre Datei im Ordner.
+      const [vorher] = await eingangImSpeicher(seite);
+      gleich(vorher.herkunft.datei, 'schirm-001.png', 'die Herkunft fehlt der Aufnahme');
+      gleich(vorher.herkunft.zettel, 'schirm-001.json');
+      gleich(vorher.kategorie, '', 'die Kategorie war beim Ausschneiden nicht gesetzt');
+
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.locator('.eingang-karte').first().click();
+      await seite.waitForSelector('#eingang-dialog[open]');
+      await seite.selectOption('#bearbeite-kategorie', 'Barrierefreiheit');
+      await seite.fill('#bearbeite-begriffe', 'kontrast, nachgetragen');
+      await seite.click('#bearbeite-zettel');
+      await seite.waitForFunction(
+        () => /neu geschrieben/.test(document.getElementById('bearbeite-meldung').textContent),
+        null,
+        { timeout: 5000 }
+      );
+
+      const zettel = await seite.evaluate(async () => {
+        const treffer = window.__inhalt.filter((e) => e.name === 'schirm-001.json').pop();
+        return JSON.parse(await treffer.blob.text());
+      });
+      gleich(zettel.kategorie, 'Barrierefreiheit', 'die Nachpflege steht nicht in der Datei');
+      gleich(zettel.begriffe.join(','), 'kontrast,nachgetragen');
+      gleich(zettel.bild, 'schirm-001.png', 'der Zettel verliert sein Bild');
+      gleich(zettel.herkunft, undefined, 'die Herkunft gehört nicht in den Zettel');
+      gleich(
+        (await eingangImSpeicher(seite))[0].kategorie,
+        'Barrierefreiheit',
+        'der Eingang behält den alten Stand'
+      );
+    },
+    { hash: SCHNEIDEN, initSkript: bildschirm + ordnerNachbau }
+  ));
+
+s.test('ohne offenen Ordner sagt der Eingang, warum der Zettel nicht geht', () =>
+  mitSeite(
+    async (seite) => {
+      // Eine Aufnahme mit Herkunft, aber ohne geoeffneten Ordner.
+      await seite.evaluate(() => {
+        const stand = {
+          version: 1,
+          aufnahmen: [
+            {
+              id: 'AUF-2026-001',
+              titel: 'Aus einer früheren Sitzung',
+              projekt: 'oneSCM Portal',
+              kategorie: 'Layout',
+              status: 'in Prüfung',
+              rolle: 'einzeln',
+              datum: '2026-01-05',
+              begriffe: ['tabelle'],
+              notiz: '',
+              ausschnitt: { x: 0, y: 0, breite: 300, hoehe: 200 },
+              quelle: { art: 'bildschirm', name: 'Freigabe', breite: 1440, hoehe: 900 },
+              erfasst_am: '2026-01-05T08:00:00.000Z',
+              bild: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==',
+              herkunft: { ordner: 'Bildschirmfotos', datei: 'schirm-001.png', zettel: 'schirm-001.json' }
+            }
+          ]
+        };
+        localStorage.setItem('screenarchiv:eingang', JSON.stringify(stand));
+      });
+      await seite.reload({ waitUntil: 'load' });
+      await seite.waitForSelector('html[data-bereit="ja"]');
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.locator('.eingang-karte').first().click();
+      await seite.waitForSelector('#eingang-dialog[open]');
+      gleich(await seite.locator('#bearbeite-zettel').count(), 0, 'ohne Ordner darf der Knopf nichts versprechen');
+      const hinweis = await seite.locator('#bearbeite-zettel-hinweis').innerText();
+      wahr(/Bildschirmfotos/.test(hinweis) && /Ausschneiden/.test(hinweis), 'der Hinweis nennt den Weg nicht: ' + hinweis);
+    },
+    { hash: SCHNEIDEN }
+  ));
+
 s.test('ein Bild ohne Zettel wird im Ordnerband als solches gezeigt', () =>
   mitSeite(
     async (seite) => {

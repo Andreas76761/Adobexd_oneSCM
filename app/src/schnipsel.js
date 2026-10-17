@@ -172,6 +172,33 @@ async function liesOrdnerBilder(grenze = 24) {
   });
 }
 
+/**
+ * Schreibt den Beipackzettel einer Aufnahme neu - mit dem Stand, der jetzt im
+ * Eingang steht. Ohne diesen Weg blieben Kategorie und Begriffe, die erst
+ * nachtraeglich entstehen, nur in der Seite und nie in der Datei.
+ */
+async function schreibeZettelNach(aufnahme) {
+  const ziel = zettelZiel(aufnahme, ordnerZugriff ? ordnerZugriff.name : '');
+  if (!ziel.moeglich) return { ok: false, text: ziel.grund };
+  const zettel = baueBeipackzettel({
+    entwurf: aufnahme,
+    bildname: ziel.bild,
+    ausschnitt: aufnahme.ausschnitt,
+    quelle: aufnahme.quelle,
+    erfasstAm: aufnahme.erfasst_am,
+    anwendung: DATEN.anwendung
+  });
+  try {
+    await schreibeInOrdner(ziel.datei, new Blob([zettel], { type: 'application/json' }));
+  } catch (fehler) {
+    return {
+      ok: false,
+      text: 'Der Zettel ließ sich nicht schreiben: ' + (fehler && fehler.message ? fehler.message : 'unbekannter Grund')
+    };
+  }
+  return { ok: true, datei: ziel.datei, text: `${ziel.datei} im Ordner ${ordnerZugriff.name} neu geschrieben.` };
+}
+
 /* ----------------------------------------------------------- Ablageziele */
 
 const ordnerMoeglich = () => typeof window.showDirectoryPicker === 'function';
@@ -474,6 +501,8 @@ async function nimmSchnipsel() {
   const wohin = [];
   const fehler = [];
 
+  let eingangsAufnahme = null;
+
   if (ablage.eingang) {
     const kennung = naechsteAufnahmeKennung(eingang, entwurf.datum);
     const aufnahme = baueAufnahme({
@@ -485,6 +514,7 @@ async function nimmSchnipsel() {
       erfasstAm: jetzt.toISOString()
     });
     eingang = [aufnahme, ...eingang];
+    eingangsAufnahme = aufnahme;
     const ergebnis = sichereEingang();
     if (ergebnis.ok) wohin.push(`Eingang (${kennung})`);
     else if (ergebnis.voll) {
@@ -514,6 +544,17 @@ async function nimmSchnipsel() {
         if (ablage.beipack) {
           await schreibeInOrdner(zettelName, new Blob([zettel], { type: 'application/json' }));
           wohin.push(zettelName);
+        }
+        // Die Aufnahme im Eingang merkt sich ihre Datei - sonst waere spaeter
+        // nicht zu erkennen, welcher Zettel zu ihr gehoert.
+        if (eingangsAufnahme) {
+          eingangsAufnahme.herkunft = {
+            ordner: ordnerZugriff.name,
+            datei: name,
+            zettel: ablage.beipack ? zettelName : '',
+            uebernommen_am: jetzt.toISOString()
+          };
+          sichereEingang();
         }
         zeigeOrdnerImArchiv();
       } catch (f) {

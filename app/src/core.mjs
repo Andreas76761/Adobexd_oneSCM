@@ -961,6 +961,34 @@ export function aufnahmeAusZettel({ daten = {}, bild, kennung, ordner, datei, ze
   return aufnahme;
 }
 
+/**
+ * Kann der Beipackzettel dieser Aufnahme im Ordner nachgeschrieben werden?
+ * Jede Absage nennt ihren Grund - "geht nicht" allein hilft niemandem weiter.
+ */
+export function zettelZiel(aufnahme, ordnername) {
+  const herkunft = (aufnahme && aufnahme.herkunft) || null;
+  if (!herkunft || !herkunft.datei) {
+    return { moeglich: false, grund: 'Diese Aufnahme stammt nicht aus einer Datei im Ordner.' };
+  }
+  if (!String(ordnername || '').trim()) {
+    return {
+      moeglich: false,
+      grund: `Der Ordner ${herkunft.ordner} ist nicht geöffnet – in der Ansicht Ausschneiden wählen.`
+    };
+  }
+  if (String(ordnername).trim().toLowerCase() !== String(herkunft.ordner || '').trim().toLowerCase()) {
+    return {
+      moeglich: false,
+      grund: `Geöffnet ist ${ordnername}, diese Aufnahme stammt aus ${herkunft.ordner}.`
+    };
+  }
+  return {
+    moeglich: true,
+    bild: herkunft.datei,
+    datei: herkunft.zettel || beipackzettelName(herkunft.datei)
+  };
+}
+
 export const ABLAGE_ZIELE = [
   { id: 'eingang', label: 'Eingang in dieser Seite', hinweis: 'Bleibt im Browser, überlebt kein Löschen der Browserdaten.' },
   { id: 'ordner', label: 'Ordner auf dem Rechner', hinweis: 'Einmal wählen, danach schreibt die Seite jede Aufnahme still hinein.' },

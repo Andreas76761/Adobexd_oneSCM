@@ -478,6 +478,63 @@ s.test('eine übernommene Aufnahme überlebt das Speichern', () => {
   tieferGleich(gelesen[0].herkunft, aufnahme.herkunft, 'die Herkunft überlebt den Speicher nicht');
 });
 
+s.test('der Zettel wird nur im richtigen, geöffneten Ordner nachgeschrieben', () => {
+  const ausOrdner = {
+    id: 'AUF-2026-001',
+    herkunft: { ordner: 'Bildschirmfotos', datei: 'schirm-001.png', zettel: 'schirm-001.json' }
+  };
+  const ziel = kern.zettelZiel(ausOrdner, 'Bildschirmfotos');
+  gleich(ziel.moeglich, true);
+  gleich(ziel.datei, 'schirm-001.json');
+  gleich(ziel.bild, 'schirm-001.png');
+
+  const ohneZettel = { herkunft: { ordner: 'Bildschirmfotos', datei: 'schirm-002.png', zettel: '' } };
+  gleich(kern.zettelZiel(ohneZettel, 'Bildschirmfotos').datei, 'schirm-002.json', 'ohne Zettel muss der Name entstehen');
+
+  const zu = kern.zettelZiel(ausOrdner, '');
+  gleich(zu.moeglich, false);
+  wahr(/Bildschirmfotos/.test(zu.grund) && /Ausschneiden/.test(zu.grund), 'der Grund nennt den Weg nicht: ' + zu.grund);
+
+  const falsch = kern.zettelZiel(ausOrdner, 'Andere Bilder');
+  gleich(falsch.moeglich, false);
+  wahr(/Andere Bilder/.test(falsch.grund) && /Bildschirmfotos/.test(falsch.grund), 'der Grund nennt beide Ordner nicht');
+
+  const eigene = kern.zettelZiel({ id: 'AUF-2026-009' }, 'Bildschirmfotos');
+  gleich(eigene.moeglich, false);
+  wahr(/Ordner/.test(eigene.grund));
+});
+
+s.test('der nachgeschriebene Zettel trägt den gepflegten Stand', () => {
+  const gepflegt = {
+    titel: 'Kopfzeile ohne Kontrast',
+    projekt: 'oneSCM Portal',
+    kategorie: 'Barrierefreiheit',
+    begriffe: ['kontrast'],
+    notiz: 'nachgetragen',
+    datum: '2026-03-01',
+    status: 'übernommen',
+    rolle: 'vorher',
+    ausschnitt: { x: 1, y: 2, breite: 300, hoehe: 200 },
+    quelle: { art: 'bildschirm', name: 'Freigabe', breite: 1440, hoehe: 900 },
+    erfasst_am: '2026-03-01T09:00:00.000Z',
+    herkunft: { ordner: 'Bildschirmfotos', datei: 'schirm-001.png', zettel: 'schirm-001.json' }
+  };
+  const zettel = JSON.parse(
+    kern.baueBeipackzettel({
+      entwurf: gepflegt,
+      bildname: kern.zettelZiel(gepflegt, 'Bildschirmfotos').bild,
+      ausschnitt: gepflegt.ausschnitt,
+      quelle: gepflegt.quelle,
+      erfasstAm: gepflegt.erfasst_am
+    })
+  );
+  gleich(zettel.bild, 'schirm-001.png');
+  gleich(zettel.kategorie, 'Barrierefreiheit', 'die nachgetragene Kategorie fehlt');
+  tieferGleich(zettel.begriffe, ['kontrast']);
+  gleich(zettel.erfasst_am, '2026-03-01T09:00:00.000Z', 'der Zeitpunkt der Aufnahme wird überschrieben');
+  gleich(zettel.herkunft, undefined, 'die Herkunft gehört nicht in den Zettel');
+});
+
 s.test('die Wahl des Beipackzettels wird gespeichert', () => {
   gleich(kern.ABLAGE_STANDARD.beipack, true, 'der Zettel ist nicht voreingestellt');
   gleich(kern.leseAblage(kern.schreibeAblage({ beipack: false })).beipack, false);

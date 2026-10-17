@@ -533,6 +533,14 @@ Ordner, Datei, Zettel, Zeitpunkt). Daran wird die Datei wiedererkannt – über
 Ordner und Namen, Groß- und Kleinschreibung egal, auch nach einem Neuladen.
 Die Kachel trägt dann die Kennung, und der Knopf heißt **Im Eingang zeigen**.
 
+**Nachpflegen bis in die Datei** (ab 1.12.0) Kategorie und Begriffe entstehen
+oft erst später. Im Eingangsdialog steht darum bei jeder Aufnahme aus einer
+Ordnerdatei **Zettel ⟨name⟩ neu schreiben** – der gepflegte Stand geht damit
+zurück in die `.json` neben dem Bild. Das Bild selbst bleibt unangetastet.
+Ist der Ordner nicht geöffnet oder ein anderer, steht dort statt des Knopfes
+der Grund samt Ordnername. Seit 1.12.0 merkt sich **jede** in einen Ordner
+geschriebene Aufnahme ihre Datei, nicht nur die übernommene.
+
 **Grenzen** Ein Bild ohne Zettel lässt sich nicht übernehmen: ohne Metadaten
 wäre es nur ein Bild ohne Zusammenhang. Ein unlesbarer Zettel ebenso – das
 sagt die Schau dann auch.

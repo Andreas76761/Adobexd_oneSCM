@@ -907,6 +907,43 @@ function zeichneEingang() {
 
 /* ------------------------------------------------------- Eingangsdialog */
 
+/**
+ * Der Knopf, der den Beipackzettel im Ordner nachzieht. Er steht nur bei
+ * Aufnahmen, die aus einer Datei stammen - und sagt, wenn der Ordner dafuer
+ * nicht offen ist, statt stumm zu bleiben.
+ */
+function zettelNachKnopf(aufnahme, sichern) {
+  const ziel = zettelZiel(aufnahme, ordnerZugriff ? ordnerZugriff.name : '');
+  if (!aufnahme.herkunft || !aufnahme.herkunft.datei) return null;
+  if (!ziel.moeglich) {
+    return el('p', { klasse: 'feld-hinweis', id: 'bearbeite-zettel-hinweis', text: ziel.grund });
+  }
+  return el('button', {
+    klasse: 'knopf',
+    type: 'button',
+    id: 'bearbeite-zettel',
+    text: `Zettel ${ziel.datei} neu schreiben`,
+    onclick: async (e) => {
+      const gepflegt = sichern();
+      if (!gepflegt) return;
+      e.target.disabled = true;
+      const ergebnis = await schreibeZettelNach(gepflegt);
+      e.target.disabled = false;
+      // Der Dialog bleibt offen - die Rueckmeldung muss darin stehen.
+      const zeile = document.getElementById('bearbeite-meldung');
+      if (zeile) {
+        zeile.textContent = ergebnis.text;
+        zeile.className = 'feld-hinweis ' + (ergebnis.ok ? 'zettel-meldung--gut' : 'zettel-meldung--warnung');
+      }
+      meldeEingang(ergebnis.text, ergebnis.ok ? 'gut' : 'warnung');
+      if (ergebnis.ok) {
+        zeichneEingang();
+        zeigeOrdnerImArchiv();
+      }
+    }
+  });
+}
+
 function oeffneEingangDialog(kennung) {
   const aufnahme = eingang.find((a) => a.id === kennung);
   if (!aufnahme) return;
@@ -969,23 +1006,16 @@ function oeffneEingangDialog(kennung) {
         id: 'bearbeite-speichern',
         text: 'Änderungen sichern',
         onclick: () => {
-          const gepflegt = {
-            ...arbeitskopie,
-            titel: String(arbeitskopie.titel || '').trim() || aufnahme.titel,
-            begriffe: normalisiereBegriffe(arbeitskopie.begriffe),
-            datum: istGueltigesDatum(arbeitskopie.datum) ? arbeitskopie.datum : aufnahme.datum
-          };
-          eingang = eingang.map((a) => (a.id === kennung ? gepflegt : a));
-          const ergebnis = sichereEingang();
-          if (!ergebnis.ok) {
-            meldeEingang(ergebnis.text, 'warnung');
-            return;
-          }
+          if (!sichereBearbeitung()) return;
           $('#eingang-dialog').close();
           zeichneEingang();
           meldeEingang(`${kennung} aktualisiert.`, 'gut');
         }
       }),
+      zettelNachKnopf(aufnahme, () => sichereBearbeitung()),
+      aufnahme.herkunft && aufnahme.herkunft.datei
+        ? el('p', { klasse: 'feld-hinweis', id: 'bearbeite-meldung' })
+        : null,
       el('button', {
         klasse: 'knopf',
         type: 'button',
@@ -1002,6 +1032,23 @@ function oeffneEingangDialog(kennung) {
       })
     ])
   );
+  /** Übernimmt die Arbeitskopie in den Eingang. Rückgabe: der gesicherte Stand. */
+  function sichereBearbeitung() {
+    const gepflegt = {
+      ...arbeitskopie,
+      titel: String(arbeitskopie.titel || '').trim() || aufnahme.titel,
+      begriffe: normalisiereBegriffe(arbeitskopie.begriffe),
+      datum: istGueltigesDatum(arbeitskopie.datum) ? arbeitskopie.datum : aufnahme.datum
+    };
+    eingang = eingang.map((a) => (a.id === kennung ? gepflegt : a));
+    const ergebnis = sichereEingang();
+    if (!ergebnis.ok) {
+      meldeEingang(ergebnis.text, 'warnung');
+      return null;
+    }
+    return gepflegt;
+  }
+
   const dialogTitel = $('#eingang-dialog-titel');
   dialogTitel.textContent = `${aufnahme.id} bearbeiten`;
   const dialog = $('#eingang-dialog');

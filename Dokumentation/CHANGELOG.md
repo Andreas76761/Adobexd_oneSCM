@@ -20,6 +20,25 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.12.0] – Nachpflegen bis in die Datei
+
+### Neu
+* Im Eingangsdialog steht bei jeder Aufnahme aus einer Ordnerdatei **Zettel
+  ⟨name⟩ neu schreiben**: nachgetragene Kategorie, Begriffe, Notiz und Titel
+  gehen damit zurück in die `.json` neben dem Bild (F-28)
+* Ist der Ordner nicht geöffnet oder ein anderer, steht dort statt des Knopfes
+  der Grund – mit dem Ordnernamen und dem Weg dorthin
+* Jede in einen Ordner geschriebene Aufnahme merkt sich jetzt ihre Datei
+  (`herkunft`), nicht nur die übernommenen. Damit ist überhaupt erst bekannt,
+  welcher Zettel zu welcher Aufnahme gehört
+
+### Kern
+* `zettelZiel`: entscheidet ohne DOM, ob und wohin nachgeschrieben werden kann,
+  und nennt bei einer Absage den Grund
+
+### Prüfung
+* 4 neue Prüfungen, zusammen 200, alle bestanden
+
 ## [1.11.0] – Übernahme aus dem Ordner
 
 ### Neu
