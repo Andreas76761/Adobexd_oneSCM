@@ -400,6 +400,3 @@ function verdrahteDesign() {
 
 verdrahteDesign();
 
-// starte() steht in der letzten Zeile der letzten Datei (siehe CLAUDE.md).
-starte();
-stelleOrdnerWiederHer();

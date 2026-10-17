@@ -21,7 +21,7 @@ export const STANDARD_ZUSTAND = {
 export const ARCHIV_ANSICHTEN = ['aktiv', 'archiv', 'alle'];
 
 /** Hauptansichten der Seite (Navigation oben links). */
-export const ANSICHTEN = ['archiv', 'aufnahme', 'ausschneiden', 'markieren', 'strecke', 'design', 'gliederung', 'eingang'];
+export const ANSICHTEN = ['archiv', 'aufnahme', 'import', 'ausschneiden', 'markieren', 'strecke', 'design', 'gliederung', 'eingang'];
 
 export const SORTIERUNGEN = [
   { id: 'datum-neu', label: 'Neueste zuerst' },
@@ -1122,6 +1122,227 @@ export function leseBeipackzettel(text) {
 /** Gleicher Name wie das Bild, andere Endung. */
 export function beipackzettelName(bildname) {
   return String(bildname || '').replace(/\.[a-z0-9]+$/i, '') + '.json';
+}
+
+/* ------------------------------------------- Import: ZIP, PDF, Bilder */
+
+/**
+ * PPTX, DOCX und XLSX sind ZIP-Archive. Ausgepackt wird mit Bordmitteln:
+ * `DecompressionStream('deflate-raw')` kann Deflate, und das ist das
+ * Verfahren, das Office verwendet. Eine Fremdbibliothek waere in der
+ * Inhaltsrichtlinie des Artifacts ohnehin gesperrt.
+ */
+const ZIP_ENDE = 0x06054b50;
+const ZIP_EINTRAG = 0x02014b50;
+
+function leseU16(bytes, ab) {
+  return bytes[ab] | (bytes[ab + 1] << 8);
+}
+function leseU32(bytes, ab) {
+  return (bytes[ab] | (bytes[ab + 1] << 8) | (bytes[ab + 2] << 16) | (bytes[ab + 3] << 24)) >>> 0;
+}
+
+/** Das Inhaltsverzeichnis eines ZIP: Name, Verfahren, Lage, Groesse. */
+export function leseZipVerzeichnis(bytes) {
+  const daten = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+  // Das Ende steht hinten und ist hoechstens 64 KiB vom Dateiende entfernt.
+  let ende = -1;
+  for (let i = daten.length - 22; i >= Math.max(0, daten.length - 66000); i--) {
+    if (leseU32(daten, i) === ZIP_ENDE) {
+      ende = i;
+      break;
+    }
+  }
+  if (ende < 0) return [];
+  const anzahl = leseU16(daten, ende + 10);
+  let ab = leseU32(daten, ende + 16);
+  const eintraege = [];
+  for (let i = 0; i < anzahl && ab + 46 <= daten.length; i++) {
+    if (leseU32(daten, ab) !== ZIP_EINTRAG) break;
+    const verfahren = leseU16(daten, ab + 10);
+    const komprimiert = leseU32(daten, ab + 20);
+    const roh = leseU32(daten, ab + 24);
+    const nameLaenge = leseU16(daten, ab + 28);
+    const zusatz = leseU16(daten, ab + 30);
+    const kommentar = leseU16(daten, ab + 32);
+    const lage = leseU32(daten, ab + 42);
+    const name = new TextDecoder('utf-8').decode(daten.subarray(ab + 46, ab + 46 + nameLaenge));
+    eintraege.push({ name, verfahren, komprimiert, roh, lage });
+    ab += 46 + nameLaenge + zusatz + kommentar;
+  }
+  return eintraege;
+}
+
+/** Packt einen Eintrag aus; nur „gespeichert" und „Deflate" kommen vor. */
+export async function entpackeZipEintrag(bytes, eintrag) {
+  const daten = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+  const kopf = eintrag.lage;
+  if (leseU32(daten, kopf) !== 0x04034b50) return null;
+  const nameLaenge = leseU16(daten, kopf + 26);
+  const zusatz = leseU16(daten, kopf + 28);
+  const ab = kopf + 30 + nameLaenge + zusatz;
+  const roh = daten.subarray(ab, ab + eintrag.komprimiert);
+  if (eintrag.verfahren === 0) return roh.slice();
+  if (eintrag.verfahren !== 8 || typeof DecompressionStream !== 'function') return null;
+  try {
+    const strom = new Blob([roh]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(strom).arrayBuffer());
+  } catch (fehler) {
+    return null;
+  }
+}
+
+export const BILD_ENDUNGEN = /\.(png|jpe?g|gif|webp|bmp|tiff?|emf|wmf)$/i;
+
+const BILD_TYPEN = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  bmp: 'image/bmp'
+};
+
+export function bildTyp(name) {
+  const endung = String(name || '').split('.').pop().toLowerCase();
+  return BILD_TYPEN[endung] || '';
+}
+
+/**
+ * Die Bilder eines Office-Dokuments. PPTX und DOCX legen sie unter
+ * `ppt/media/` bzw. `word/media/`; EMF und WMF kommen vor, kann der Browser
+ * aber nicht anzeigen - sie werden genannt und uebergangen.
+ */
+export function officeBilder(eintraege = []) {
+  const medien = eintraege.filter((e) => /^(ppt|word|xl)\/media\//i.test(e.name) && BILD_ENDUNGEN.test(e.name));
+  const lesbar = medien.filter((e) => bildTyp(e.name));
+  return {
+    bilder: lesbar.sort((a, b) => natuerlich(a.name, b.name)),
+    uebergangen: medien.filter((e) => !bildTyp(e.name)).map((e) => e.name)
+  };
+}
+
+/** image10 gehoert hinter image9, nicht dazwischen. */
+export function natuerlich(a, b) {
+  const teileA = String(a).match(/\d+|\D+/g) || [];
+  const teileB = String(b).match(/\d+|\D+/g) || [];
+  for (let i = 0; i < Math.max(teileA.length, teileB.length); i++) {
+    const x = teileA[i] || '';
+    const y = teileB[i] || '';
+    const beideZahl = /^\d+$/.test(x) && /^\d+$/.test(y);
+    const vergleich = beideZahl ? Number(x) - Number(y) : x.localeCompare(y);
+    if (vergleich) return vergleich;
+  }
+  return 0;
+}
+
+/** Text aus einer Office-XML: die Textknoten in ihrer Reihenfolge. */
+export function officeText(xml) {
+  const text = typeof xml === 'string' ? xml : new TextDecoder('utf-8').decode(xml || new Uint8Array());
+  // <a:t> in Folien, <w:t> in Word, <t> in Tabellen.
+  const stuecke = [...text.matchAll(/<(?:a:|w:)?t(?:\s[^>]*)?>([\s\S]*?)<\/(?:a:|w:)?t>/g)].map((t) =>
+    t[1]
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+  );
+  return stuecke.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Die Textträger eines Office-Archivs in ihrer Reihenfolge: bei PPTX die
+ * Folien, bei DOCX das eine Dokument, bei XLSX die Zeichenkettentabelle. Zu
+ * jedem gehoert die Beziehungsdatei - sie sagt, welche Medien darin stecken
+ * und in welcher Reihenfolge. Nur darum laesst sich ein Bild einer Folie
+ * zuordnen: im Archiv liegen alle Medien in einem Topf.
+ */
+export function officeFolien(eintraege = []) {
+  const finde = (name) => eintraege.find((e) => String(e.name).toLowerCase() === name) || null;
+  const folien = eintraege
+    .filter((e) => /^ppt\/slides\/slide\d+\.xml$/i.test(e.name))
+    .sort((a, b) => natuerlich(a.name, b.name));
+  if (folien.length) {
+    return folien.map((e, i) => ({
+      nummer: i + 1,
+      name: `Folie ${i + 1}`,
+      xml: e,
+      rels: finde(String(e.name).toLowerCase().replace(/slides\/(slide\d+\.xml)$/, 'slides/_rels/$1.rels'))
+    }));
+  }
+  const wort = finde('word/document.xml');
+  if (wort) return [{ nummer: 1, name: 'Dokument', xml: wort, rels: finde('word/_rels/document.xml.rels') }];
+  const tabelle = finde('xl/sharedstrings.xml');
+  if (tabelle) return [{ nummer: 1, name: 'Tabelle', xml: tabelle, rels: null }];
+  return [];
+}
+
+/** Die Mediennamen einer Beziehungsdatei - in der Reihenfolge des Traegers. */
+export function medienAusRels(xml) {
+  const text = typeof xml === 'string' ? xml : new TextDecoder('utf-8').decode(xml || new Uint8Array());
+  const namen = [];
+  for (const treffer of text.matchAll(/Target="([^"]*media\/[^"]+)"/g)) {
+    const name = treffer[1].split('/').pop();
+    if (BILD_ENDUNGEN.test(name) && !namen.includes(name)) namen.push(name);
+  }
+  return namen;
+}
+
+/**
+ * Eingebettete Bilder einer PDF-Datei. Gelesen werden Bildstroeme mit
+ * `/DCTDecode` - das sind JPEG-Daten, die sich unveraendert herausloesen
+ * lassen. Ganze Seiten zu zeichnen ist etwas anderes: dafuer braucht es
+ * einen PDF-Zeichner, und den gibt es hier nicht.
+ */
+export function pdfBilder(bytes) {
+  const daten = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+  if (daten.length < 5 || String.fromCharCode(...daten.subarray(0, 5)) !== '%PDF-') {
+    return { bilder: [], hinweis: 'Das ist keine PDF-Datei.' };
+  }
+  const bilder = [];
+  // JPEG-Stroeme beginnen mit FF D8 FF und enden mit FF D9 - zwischen
+  // "stream" und "endstream" liegt genau dieser Block.
+  for (let i = 0; i + 3 < daten.length; i++) {
+    if (daten[i] !== 0xff || daten[i + 1] !== 0xd8 || daten[i + 2] !== 0xff) continue;
+    let ende = -1;
+    for (let j = i + 3; j + 1 < daten.length; j++) {
+      if (daten[j] === 0xff && daten[j + 1] === 0xd9) {
+        ende = j + 2;
+        break;
+      }
+    }
+    if (ende < 0) break;
+    if (ende - i > 1024) bilder.push({ name: `bild-${bilder.length + 1}.jpg`, typ: 'image/jpeg', daten: daten.slice(i, ende) });
+    i = ende;
+  }
+  return {
+    bilder,
+    hinweis: bilder.length
+      ? ''
+      : 'In dieser PDF-Datei stehen keine JPEG-Bilder. Seiten als Bild zu zeichnen kann diese Seite nicht – dafür bräuchte es einen PDF-Zeichner, den die Inhaltsrichtlinie des Artifacts nicht zulässt.'
+  };
+}
+
+/** Woran eine Datei erkannt wird - an der Endung, nicht am Zufall. */
+export function dateiArt(name) {
+  const text = String(name || '').toLowerCase();
+  if (/\.(png|jpe?g|gif|webp)$/.test(text)) return 'bild';
+  if (text.endsWith('.pptx')) return 'pptx';
+  if (text.endsWith('.docx')) return 'docx';
+  if (text.endsWith('.xlsx')) return 'xlsx';
+  if (text.endsWith('.pdf')) return 'pdf';
+  if (/\.(ppt|doc|xls)$/.test(text)) return 'alt';
+  return 'unbekannt';
+}
+
+/** Ein Titel aus Dateiname und Nummer - ohne Endung, lesbar. */
+export function importTitel(dateiname, nummer, gesamt) {
+  const basis = String(dateiname || 'Import')
+    .replace(/\.[a-z0-9]+$/i, '')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+  return gesamt > 1 ? `${basis} (${nummer}/${gesamt})` : basis;
 }
 
 /* --------------------------------- Designvorlagen und Seitenaufbau */

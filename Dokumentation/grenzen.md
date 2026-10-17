@@ -56,3 +56,18 @@ darum gibt es die Ablage, den Beipackzettel und den Rückweg in den Eingang.
 ist der Übergabepunkt: eine Datei im Format des Bestands, die im Projekt
 eingepflegt wird – dort entstehen auch die gezeichneten Aufnahmen aus Archetyp
 und Schaltern. Der Skill `beleg-aufnehmen` beschreibt die Schritte.
+
+## PDF-Seiten werden nicht gezeichnet
+
+Der Import (ab 1.24.0) liest aus einer PDF-Datei die **eingebetteten
+JPEG-Bilder** – bei Unterlagen aus Screenshots ist das der Normalfall. Eine
+ganze **Seite** als Bild zu zeichnen ist etwas anderes: dafür bräuchte es
+einen PDF-Zeichner. Ein fremdes Skript lässt die Inhaltsrichtlinie des
+Artifacts nicht zu, und ein selbstgebauter Zeichner wäre schlechter als gar
+keiner. Der Weg: die Seite im PDF-Betrachter als Bild exportieren und das Bild
+importieren.
+
+Ebenso übergangen werden **EMF** und **WMF** aus Office-Dateien – der Browser
+zeigt diese Vektorformate nicht. Sie werden namentlich genannt, nicht still
+weggelassen. Und `.ppt`, `.doc`, `.xls` sind keine ZIP-Archive: ein Speichern
+als `.pptx` bzw. `.docx` genügt.

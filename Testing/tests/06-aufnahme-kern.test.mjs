@@ -2,6 +2,7 @@
 import { suite, wahr, gleich, tieferGleich } from '../hilfen/pruefe.mjs';
 import * as kern from '../../app/src/core.mjs';
 import { erzeugePng } from '../hilfen/bild.mjs';
+import { baueZip, bauePptx, baueDocx, bauePdf, baueTestPng } from '../hilfen/dateien.mjs';
 
 const s = suite('Aufnahme – Kernlogik');
 
@@ -1288,6 +1289,102 @@ s.test('ein leerer Kontaktbogen bleibt lesbar', () => {
 
 s.test('die Größengrenze der Ablage ist bekannt', () => {
   gleich(kern.HOECHSTGROESSE_DATEI, 16 * 1024 * 1024);
+});
+
+/* ------------------------------------------------------- Import: Archive */
+
+s.test('das Verzeichnis eines ZIP wird gelesen', () => {
+  const zip = baueZip([
+    { name: 'ordner/eins.txt', inhalt: 'eins' },
+    { name: 'zwei.bin', inhalt: Buffer.alloc(40, 7), gepackt: false }
+  ]);
+  const eintraege = kern.leseZipVerzeichnis(zip);
+  gleich(eintraege.length, 2);
+  gleich(eintraege[0].name, 'ordner/eins.txt');
+  gleich(eintraege[0].verfahren, 8, 'Deflate wird nicht erkannt');
+  gleich(eintraege[1].verfahren, 0, 'Gespeichert wird nicht erkannt');
+  gleich(eintraege[1].roh, 40);
+  tieferGleich(kern.leseZipVerzeichnis(Buffer.from('kein Archiv')), [], 'Nicht-Archive müssen leer bleiben');
+});
+
+s.test('gespeicherte und gepackte Einträge kommen heil heraus', async () => {
+  const zip = baueZip([
+    { name: 'gepackt.txt', inhalt: 'Template wählen und Aktion ausführen' },
+    { name: 'blank.txt', inhalt: 'unverändert', gepackt: false }
+  ]);
+  const eintraege = kern.leseZipVerzeichnis(zip);
+  const lies = async (name) =>
+    new TextDecoder().decode(await kern.entpackeZipEintrag(zip, eintraege.find((e) => e.name === name)));
+  gleich(await lies('gepackt.txt'), 'Template wählen und Aktion ausführen');
+  gleich(await lies('blank.txt'), 'unverändert');
+});
+
+s.test('eine Präsentation gibt Bilder je Folie samt Text', async () => {
+  const pptx = bauePptx();
+  const eintraege = kern.leseZipVerzeichnis(pptx);
+  const { bilder, uebergangen } = kern.officeBilder(eintraege);
+  tieferGleich(bilder.map((b) => b.name), ['ppt/media/image1.png', 'ppt/media/image2.png']);
+  tieferGleich(uebergangen, ['ppt/media/image3.emf'], 'EMF muss genannt und übergangen werden');
+
+  const folien = kern.officeFolien(eintraege);
+  gleich(folien.length, 2);
+  gleich(folien[0].name, 'Folie 1');
+  wahr(folien[0].rels, 'die Beziehungsdatei der Folie fehlt');
+  const text = kern.officeText(await kern.entpackeZipEintrag(pptx, folien[1].xml));
+  gleich(text, 'Create Template');
+  tieferGleich(kern.medienAusRels(await kern.entpackeZipEintrag(pptx, folien[1].rels)), ['image2.png']);
+});
+
+s.test('ein Word-Dokument hat einen Träger und ein Bild', async () => {
+  const docx = baueDocx();
+  const eintraege = kern.leseZipVerzeichnis(docx);
+  const folien = kern.officeFolien(eintraege);
+  gleich(folien.length, 1);
+  gleich(folien[0].name, 'Dokument');
+  gleich(kern.officeText(await kern.entpackeZipEintrag(docx, folien[0].xml)), 'Vertrag anlegen');
+  tieferGleich(kern.medienAusRels(await kern.entpackeZipEintrag(docx, folien[0].rels)), ['image1.png']);
+  tieferGleich(kern.officeBilder(eintraege).bilder.map((b) => b.name), ['word/media/image1.png']);
+});
+
+s.test('image10 steht hinter image9', () => {
+  const namen = ['image10.png', 'image2.png', 'image1.png'].sort(kern.natuerlich);
+  tieferGleich(namen, ['image1.png', 'image2.png', 'image10.png']);
+});
+
+s.test('aus einer PDF kommen die eingebetteten JPEG-Bilder', () => {
+  const mit = kern.pdfBilder(bauePdf({ mitJpeg: true }));
+  gleich(mit.bilder.length, 1);
+  gleich(mit.bilder[0].typ, 'image/jpeg');
+  gleich(mit.hinweis, '');
+  const ohne = kern.pdfBilder(bauePdf());
+  gleich(ohne.bilder.length, 0);
+  wahr(ohne.hinweis.includes('keine JPEG-Bilder'), 'der Grund wird nicht genannt');
+  wahr(kern.pdfBilder(Buffer.from('nix')).hinweis.includes('keine PDF-Datei'));
+});
+
+s.test('die Dateiart hängt an der Endung, nicht am Zufall', () => {
+  gleich(kern.dateiArt('Screen Market.PNG'), 'bild');
+  gleich(kern.dateiArt('a.jpeg'), 'bild');
+  gleich(kern.dateiArt('deck.pptx'), 'pptx');
+  gleich(kern.dateiArt('text.docx'), 'docx');
+  gleich(kern.dateiArt('liste.xlsx'), 'xlsx');
+  gleich(kern.dateiArt('brief.pdf'), 'pdf');
+  gleich(kern.dateiArt('alt.ppt'), 'alt');
+  gleich(kern.dateiArt('irgendwas.zip'), 'unbekannt');
+  gleich(kern.bildTyp('x.jpg'), 'image/jpeg');
+  gleich(kern.bildTyp('x.emf'), '', 'EMF hat keinen Browsertyp');
+});
+
+s.test('der Titel eines Imports nennt die Folge nur, wenn es mehrere sind', () => {
+  gleich(kern.importTitel('Template_Market-Settings.png', 1, 1), 'Template Market Settings');
+  gleich(kern.importTitel('image2.png', 2, 7), 'image2 (2/7)');
+});
+
+s.test('ein echtes PNG lässt sich bauen - sonst prüft die Oberfläche nichts', () => {
+  const png = baueTestPng(32, 16);
+  gleich([...png.subarray(1, 4)].map((b) => String.fromCharCode(b)).join(''), 'PNG');
+  gleich(png.readUInt32BE(16), 32);
+  gleich(png.readUInt32BE(20), 16);
 });
 
 export default s;

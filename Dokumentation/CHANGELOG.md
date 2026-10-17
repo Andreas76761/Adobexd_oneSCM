@@ -20,6 +20,32 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.24.0] – Import: aus bestehenden Dateien wird Galerie
+
+### Neu
+* Neue Ansicht **Import** (F-39): **PNG, JPEG, GIF, WebP** unmittelbar,
+  **PPTX, DOCX, XLSX** als Archiv, **PDF** mit seinen eingebetteten
+  JPEG-Bildern. Wählen oder hierher ziehen
+* Bei einer Präsentation steht jedes Bild **an seiner Folie** – gelesen aus
+  der Beziehungsdatei der Folie –, der Text der Folie wird zum **Rezept**
+* Je Bild: Titel aus dem Dateinamen, Rezept, Stelle im Handbuch (einzeln oder
+  für alle), Haken zum Wählen, **Lupe auf volle Auflösung**
+* Übernommene Bilder gehen in den Eingang: Vorschau in den Browserspeicher,
+  volles Bild in die Datenbank; `einfuhr` hält Datei, Art, Bildname und Folie
+* Was nicht geht, steht da: ganze PDF-**Seiten** zu zeichnen braucht einen
+  PDF-Zeichner, den die Inhaltsrichtlinie nicht zulässt; EMF und WMF werden
+  genannt und übergangen; `.ppt`, `.doc`, `.xls` sind keine Archive
+
+### Kern
+* `leseZipVerzeichnis`, `entpackeZipEintrag`, `officeBilder`, `officeFolien`,
+  `medienAusRels`, `officeText`, `pdfBilder`, `dateiArt`, `bildTyp`,
+  `natuerlich`, `importTitel` – das Auspacken läuft ohne DOM und ist prüfbar
+
+### Prüfung
+* Neue Hilfe `Testing/hilfen/dateien.mjs`: baut PNG, ZIP, PPTX, DOCX und PDF
+  im Test selbst – es liegt keine Beispieldatei im Repo
+* Neue Datei `13-import.e2e.mjs`; 17 neue Prüfungen, zusammen 304
+
 ## [1.23.0] – Designstudio: aus Bildern wird ein Blatt
 
 ### Neu

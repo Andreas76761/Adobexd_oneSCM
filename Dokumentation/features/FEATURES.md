@@ -885,3 +885,44 @@ halb leer zu bleiben.
 HTML-Datei mit allen Blättern, eingerichtet für den Druck: `@page` auf A4 in
 der richtigen Lage, ein Blatt je Seite. Das PDF macht der Browser – ein
 selbstgebautes PDF wäre schlechter als der Druckweg.
+
+---
+
+## F-39 · Import bestehender Dateien
+
+**Seit** 1.24.0 · **Ansicht** Import
+
+**Zweck** Was schon gezeichnet ist, muss nicht neu aufgenommen werden:
+Screenshots, Präsentationen und Dokumente geben ihre Bilder an die Galerie ab.
+
+| Dateiart | Was gelesen wird |
+| --- | --- |
+| PNG, JPEG, GIF, WebP | das Bild selbst, in voller Auflösung |
+| PPTX | die eingebetteten Bilder **je Folie**, dazu der Text der Folie |
+| DOCX | die eingebetteten Bilder, dazu der Text des Dokuments |
+| XLSX | die eingebetteten Bilder, dazu die Zeichenkettentabelle |
+| PDF | die eingebetteten **JPEG**-Bilder |
+| PPT, DOC, XLS | nichts – das alte Format ist kein Archiv; der Hinweis sagt es |
+
+**Wie das ohne Fremdcode geht** PPTX, DOCX und XLSX sind ZIP-Archive. Das
+Verzeichnis am Dateiende wird selbst gelesen (`leseZipVerzeichnis`), die
+Einträge mit `DecompressionStream('deflate-raw')` ausgepackt – das bringt der
+Browser mit. Welches Bild zu welcher Folie gehört, steht nicht in den Medien
+selbst, sondern in der Beziehungsdatei der Folie (`medienAusRels`); erst
+darüber wird aus einem Topf voller `image7.png` eine Folge von Folien.
+
+**Grenze, ausdrücklich** Ganze PDF-**Seiten** zu zeichnen kann die Seite
+nicht. Dafür bräuchte es einen PDF-Zeichner, und ein fremdes Skript lässt die
+Inhaltsrichtlinie des Artifacts nicht zu. Eingebettete JPEG-Bilder kommen
+heraus, EMF und WMF werden genannt und übergangen – der Browser zeigt sie
+nicht.
+
+**Je Bild** Titel (Vorschlag aus dem Dateinamen), Rezept (Vorschlag aus dem
+Text der Folie), Stelle im Handbuch (einzeln oder für alle), Haken zum
+Wählen, Lupe auf volle Auflösung.
+
+**Übernehmen** Die gewählten Bilder gehen in den Eingang: die Vorschau in den
+Browserspeicher, das volle Bild in die Datenbank. An der Aufnahme bleibt
+`einfuhr` stehen – Datei, Dateiart, Bildname, Folie –, damit später zu
+erkennen ist, woher sie kam. Von dort aus stehen sie dem Editor, der Strecke
+und dem Designstudio zur Verfügung.

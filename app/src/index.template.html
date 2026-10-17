@@ -57,6 +57,7 @@
             <span class="portal-schild">Portal</span>
             <button type="button" data-ansicht="archiv">Archiv</button>
             <button type="button" data-ansicht="aufnahme">Aufnahme</button>
+            <button type="button" data-ansicht="import">Import</button>
             <button type="button" data-ansicht="ausschneiden">Ausschneiden</button>
             <button type="button" data-ansicht="markieren">Editor</button>
             <button type="button" data-ansicht="strecke">Strecke</button>
@@ -441,6 +442,36 @@
     </div>
   </section>
 
+  <section id="import-ansicht" aria-label="Import" hidden>
+    <div class="import-kopf">
+      <div class="import-wahl" id="import-flaeche">
+        <input type="file" id="import-eingabe" multiple
+               accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.pptx,.docx,.xlsx,image/*,application/pdf">
+        <button type="button" class="knopf knopf--haupt" id="import-waehlen">Dateien wählen</button>
+        <span class="feld-hinweis">oder hierher ziehen</span>
+      </div>
+      <div class="feld feld--stelle">
+        <label for="import-stelle">Stelle im Handbuch für alle</label>
+        <input type="text" id="import-stelle" list="gliederung-vorschlaege" autocomplete="off"
+               placeholder="6.2.3 oder Thema suchen">
+      </div>
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--haupt" id="import-uebernehmen" disabled>Gewählte übernehmen</button>
+        <button type="button" class="knopf" id="import-leeren" disabled>Liste leeren</button>
+      </div>
+    </div>
+    <p class="band-hinweis">
+      Eingelesen werden <b>PNG, JPEG, GIF, WebP</b> unmittelbar, <b>PPTX, DOCX
+      und XLSX</b> als Archiv (die eingebetteten Bilder samt Text je Folie oder
+      Abschnitt) und <b>PDF</b> mit seinen eingebetteten JPEG-Bildern. Ganze
+      PDF-Seiten zu zeichnen kann diese Seite nicht – dafür bräuchte es einen
+      PDF-Zeichner, den die Inhaltsrichtlinie des Artifacts nicht zulässt.
+      Die Bilder bleiben in voller Auflösung; der Dateiname wird zum Titel.
+    </p>
+    <p class="studio-meldung" id="import-meldung" role="status" aria-live="polite"></p>
+    <div class="import-liste" id="import-liste"></div>
+  </section>
+
   <section id="design-ansicht" aria-label="Designvorlagen" hidden>
     <div class="design-kopf">
       <div class="feld">
@@ -586,5 +617,6 @@
 /*%SCHNIPSEL%*/
 /*%MARKIEREN%*/
 /*%DESIGN%*/
+/*%IMPORT%*/
 })();
 </script>

@@ -36,7 +36,7 @@ for (const e of daten.eintraege) {
 
 /* Kernlogik einbetten: die export-Schluesselwoerter entfallen, damit die
    Funktionen im selben <script>-Bereich wie die Oberflaeche liegen. */
-const kern = lies('app', 'src', 'core.mjs').replace(/^export\s+(const|function|let|class)\b/gm, '$1');
+const kern = lies('app', 'src', 'core.mjs').replace(/^export\s+(async\s+)?(const|function|let|class)\b/gm, '$1$2');
 if (/\bexport\b/.test(kern)) throw new Error('core.mjs enthält eine nicht entfernte export-Anweisung.');
 
 const nutzlast = {
@@ -64,6 +64,7 @@ const seite = lies('app', 'src', 'index.template.html')
   .replace('/*%SCHNIPSEL%*/', () => lies('app', 'src', 'schnipsel.js'))
   .replace('/*%MARKIEREN%*/', () => lies('app', 'src', 'markieren.js'))
   .replace('/*%DESIGN%*/', () => lies('app', 'src', 'design.js'))
+  .replace('/*%IMPORT%*/', () => lies('app', 'src', 'import.js'))
   .replace('/*%STAND%*/', daten.stand.split('-').reverse().join('.'))
   .replace('/*%ANZAHL%*/', String(daten.eintraege.length))
   .replace('/*%AUFNAHMEN%*/', String(manifest.anzahl))
