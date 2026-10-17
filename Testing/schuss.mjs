@@ -10,6 +10,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { baueVorschau, findeChromium } from './hilfen/seite.mjs';
+import { legeTestdateienAb } from './hilfen/dateien.mjs';
 
 const wurzel = join(import.meta.dirname, '..');
 const ziel = process.argv[2] || join(wurzel, 'Testing', 'berichte');
@@ -405,6 +406,127 @@ const geteilterBildschirm = `
     console.log(name + '.png');
     await kontext.close();
   }
+}
+
+/* Import: eine Präsentation und ein Bild einlesen. */
+{
+  const dateien = legeTestdateienAb();
+  for (const [name, thema] of [['import', 'light'], ['import-dunkel', 'dark']]) {
+    const kontext = await browser.newContext({ viewport: { width: 1500, height: 1100 }, colorScheme: thema });
+    const seite = await kontext.newPage();
+    await seite.goto(adresse + '#ans=import', { waitUntil: 'load' });
+    await seite.waitForSelector('html[data-bereit="ja"]');
+    await seite.setInputFiles('#import-eingabe', [dateien.pptx, dateien.png]);
+    await seite.waitForFunction(() => document.querySelectorAll('.import-datei').length === 2, null, { timeout: 20000 });
+    await seite.fill('#import-stelle', '6.2');
+    await seite.waitForTimeout(400);
+    await seite.screenshot({ path: join(ziel, name + '.png') });
+    console.log(name + '.png');
+    await kontext.close();
+  }
+}
+
+/* Die drei Agenten über einem kleinen Bestand. */
+{
+  const kontext = await browser.newContext({ viewport: { width: 1500, height: 1200 } });
+  const seite = await kontext.newPage();
+  await seite.goto(adresse + '#ans=aufnahme', { waitUntil: 'load' });
+  await seite.waitForSelector('html[data-bereit="ja"]');
+  await fuelleEingang(seite);
+  await seite.click('.portal-nav button[data-ansicht="pruefung"]');
+  await seite.click('#pruef-alle');
+  await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 3, null, { timeout: 15000 });
+  await seite.waitForTimeout(400);
+  await seite.screenshot({ path: join(ziel, 'pruefung.png') });
+  console.log('pruefung.png');
+  await kontext.close();
+}
+
+/* Das Verzeichnis: der Plan, bevor eine Datei entsteht. */
+{
+  const kontext = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
+  await kontext.addInitScript(`
+    const baueOrdner = (pfad) => ({
+      name: pfad.length ? pfad[pfad.length - 1] : 'Screens',
+      queryPermission: async () => 'granted',
+      requestPermission: async () => 'granted',
+      getDirectoryHandle: async (n) => baueOrdner([...pfad, n]),
+      getFileHandle: async () => ({ createWritable: async () => ({ write: async () => {}, close: async () => {} }) }),
+      values: async function* () {}
+    });
+    window.showDirectoryPicker = async () => baueOrdner([]);`);
+  const seite = await kontext.newPage();
+  await seite.goto(adresse + '#ans=aufnahme', { waitUntil: 'load' });
+  await seite.waitForSelector('html[data-bereit="ja"]');
+  await fuelleEingang(seite);
+  await seite.click('.portal-nav button[data-ansicht="verzeichnis"]');
+  await seite.click('#verzeichnis-waehlen');
+  await seite.waitForFunction(() => !document.getElementById('verzeichnis-schreiben').disabled, null, { timeout: 8000 });
+  await seite.waitForTimeout(300);
+  await seite.screenshot({ path: join(ziel, 'verzeichnis.png') });
+  console.log('verzeichnis.png');
+  await kontext.close();
+}
+
+/* Der Suchchat mit einer Antwort. */
+{
+  const kontext = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
+  const seite = await kontext.newPage();
+  await seite.goto(adresse + '#ans=eingang', { waitUntil: 'load' });
+  await seite.waitForSelector('html[data-bereit="ja"]');
+  await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+  await fuelleEingang(seite);
+  await seite.click('#chat-auf');
+  await seite.fill('#chat-frage', 'Bilder zu Navigation');
+  await seite.click('#chat-fragen');
+  await seite.waitForFunction(() => document.querySelectorAll('.chat-antwort').length === 1, null, { timeout: 20000 });
+  await seite.waitForTimeout(400);
+  await seite.screenshot({ path: join(ziel, 'suchchat.png') });
+  console.log('suchchat.png');
+  await kontext.close();
+}
+
+/* Die Deckungsmatrix: zwei Stellen, zwei Sprachen, eine Lücke. */
+{
+  const kontext = await browser.newContext({ viewport: { width: 1500, height: 1200 } });
+  const seite = await kontext.newPage();
+  await seite.goto(adresse + '#ans=aufnahme', { waitUntil: 'load' });
+  await seite.waitForSelector('html[data-bereit="ja"]');
+  await seite.click('#quelle-beispiel');
+  await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled);
+  const satz = [
+    ['Vorlagenliste deutsch', '7.5.1', 'de'],
+    ['Vorlagenliste englisch', '7.5.1', 'en'],
+    ['Formular deutsch', '7.5.2', 'de']
+  ];
+  for (const [titel, stelle, sprache] of satz) {
+    await seite.fill('#feld-titel', titel);
+    await seite.fill('#feld-projekt', 'oneSCM Portal');
+    await seite.selectOption('#feld-kategorie', 'Formular');
+    await seite.fill('#feld-begriffe', 'vorlage');
+    await seite.click('#ausloesen');
+    await seite.waitForTimeout(150);
+    await seite.click('#letzte-editor');
+    await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden, null, { timeout: 8000 });
+    await seite.fill('#markier-stelle', stelle);
+    await seite.evaluate(() => {
+      document.getElementById('markier-labels').open = true;
+    });
+    await seite.selectOption('#label-sprache', sprache);
+    await seite.selectOption('#label-rolle_label', 'dealer');
+    await seite.waitForTimeout(150);
+    await seite.click('#markier-sichern');
+    await seite.waitForTimeout(200);
+    await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+    await seite.waitForTimeout(120);
+  }
+  await seite.click('.portal-nav button[data-ansicht="gliederung"]');
+  await seite.waitForSelector('.matrix-gitter');
+  await seite.evaluate(() => document.querySelector('.matrix').scrollIntoView());
+  await seite.waitForTimeout(400);
+  await seite.screenshot({ path: join(ziel, 'deckungsmatrix.png') });
+  console.log('deckungsmatrix.png');
+  await kontext.close();
 }
 
 await browser.close();

@@ -1338,7 +1338,8 @@ div.streifen-bild { cursor: default; }
 
 /* ------------------------------------------------- Suchchat (1.26.0) */
 
-.chat-knopf { align-self: start; white-space: nowrap; }
+/* Der Knopf bleibt rechts, auch wenn die Archivsuche daneben fehlt. */
+.chat-knopf { align-self: start; margin-left: auto; white-space: nowrap; }
 .chat-fenster {
   position: fixed; z-index: 60; display: grid; gap: 8px;
   grid-template-rows: auto minmax(0, 1fr) auto auto;

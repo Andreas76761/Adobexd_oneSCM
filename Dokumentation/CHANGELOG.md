@@ -20,6 +20,25 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.31.0] – Symbole, Sichtprüfung und drei Behebungen
+
+### Neu
+* **Symbole in der Portalnavigation**: jede der elf Ansichten trägt ihr
+  Zeichen – im selben Strichstil wie die Labelsymbole, als Teil des
+  eingebetteten SVG-Vorrats (keine Datei von außen)
+* Die **Sichtprüfung** (`node Testing/schuss.mjs`) deckt nun auch Import,
+  Prüfung, Verzeichnis, Suchchat und Deckungsmatrix ab – 36 Bilder
+
+### Behoben
+* **Prüfung und Verzeichnis standen außerhalb der Seite**: beide Abschnitte
+  lagen hinter dem Seitenfuß und damit ohne Breitenbegrenzung und Rand. Sie
+  stehen jetzt bei den übrigen Ansichten
+* **„null" in der Importkarte**: eine leere Stelle wurde als Wort angezeigt,
+  weil `append(null)` die Zeichenfolge schreibt. Die Karte sammelt ihre Teile
+  jetzt und wirft die leeren weg; eine Prüfung hält das fest
+* Der **Suchchat** öffnet sich unten rechts statt über dem Kopf, und sein
+  Knopf bleibt rechts, auch wo die Archivsuche daneben fehlt
+
 ## [1.30.0] – Varianten: dieselbe Maske in jeder Sprache
 
 ### Neu

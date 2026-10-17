@@ -12,7 +12,18 @@
    im Fenster nie etwas stehen, was der Eingang nicht hergibt.
    ========================================================================= */
 
-let chatLage = leseChatlage(leseChatSpeicher()) || { x: 24, y: 96, breite: 380, hoehe: 480, offen: false };
+/**
+ * Ohne gemerkte Lage steht das Fenster unten rechts - dort verdeckt es weder
+ * Kopf noch Navigation. Gezogen wird es ohnehin dorthin, wo es gebraucht wird.
+ */
+const standardLage = () => ({
+  breite: 380,
+  hoehe: 480,
+  x: Math.max(16, (window.innerWidth || 1280) - 396),
+  y: Math.max(16, (window.innerHeight || 800) - 512),
+  offen: false
+});
+let chatLage = leseChatlage(leseChatSpeicher()) || standardLage();
 let chatVerlauf = []; // { art: 'frage' | 'antwort', text, treffer, erkannt, wer }
 let chatClaude = null; // die Fähigkeit sample, wenn der Betrachter sie gibt
 let chatClaudeGeprueft = false;

@@ -51,6 +51,11 @@ s.test('ein PNG wird mit voller Auflösung gelesen', () =>
       wahr((await seite.locator('.import-art').first().innerText()).includes('BILD'));
       const vorschlag = await seite.locator('.import-figur input[type=text]').first().getAttribute('placeholder');
       gleich(vorschlag, 'Screen Template Market', 'der Dateiname wird nicht zum Titel');
+      // Eine leere Stelle in der Karte darf nicht als Wort „null" erscheinen.
+      wahr(
+        !(await seite.locator('.import-figur').first().innerText()).includes('null'),
+        'in der Karte steht „null"'
+      );
       wahr((await seite.locator('#import-uebernehmen').innerText()).includes('1 Bild'), 'der Knopf zählt nicht');
     },
     { hash: IMPORT }

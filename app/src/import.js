@@ -263,7 +263,9 @@ function importBildkarte(datei, bild) {
       ])
     : null;
 
-  kasten.append(
+  // `append(null)` schriebe das Wort „null" in die Karte - darum erst sammeln,
+  // dann die leeren Stellen wegwerfen.
+  const teile = [
     el('div', { klasse: 'import-figur-kopf' }, [haken, el('label', { for: 'wahl-' + bild.id, text: bild.name })]),
     schau,
     el('figcaption', {
@@ -306,7 +308,8 @@ function importBildkarte(datei, bild) {
       })
     ]),
     stand
-  );
+  ];
+  kasten.append(...teile.filter(Boolean));
   return kasten;
 }
 

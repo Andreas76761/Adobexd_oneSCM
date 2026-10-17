@@ -149,12 +149,17 @@ Browserdatenbank kopieren – echte Zugriffe sind dafür eigens vorgesehen.
 Geprüft ist, dass das Merken stattfindet; das Zurückholen bleibt der
 Sichtprüfung im Browser vorbehalten.
 
-Das Aussehen selbst. Dafür gibt es `npm run schuss`: das Skript legt dreizehn
-Bildschirmaufnahmen der fertigen Seite ab (Liste, Detailansicht, Telefon,
-Aufnahmestudio, Kompaktmodus, Ausschneiden, Eingang, Nachpflege – hell und
-dunkel) sowie
-einen echten Kontaktbogen samt Bild davon. Zum Ansehen, nicht zum automatischen
+Das Aussehen selbst. Dafür gibt es `npm run schuss`: das Skript legt
+Bildschirmaufnahmen der fertigen Seite ab – Liste, Detailansicht, Telefon,
+Aufnahmestudio, Kompaktmodus, Ausschneiden, Eingang, Nachpflege, Werkbank,
+Editor, Strecke, Gliederung, Designstudio, Import, Prüfung, Verzeichnis,
+Suchchat und Deckungsmatrix, die wichtigsten hell und dunkel – sowie einen
+echten Kontaktbogen samt Bild davon. Zum Ansehen, nicht zum automatischen
 Vergleichen: Automatisiert wird nur, was sich eindeutig entscheiden lässt.
+
+Dass auch das nötig bleibt, hat 1.31.0 gezeigt: Prüfung und Verzeichnis
+standen hinter dem Seitenfuß und damit ohne Rand – jede Zusicherung war grün,
+das Bild zeigte es sofort. Ebenso das Wort „null" in einer Importkarte.
 
 Dass das nötig bleibt, hat v1.5.0 gezeigt – der liegen gebliebene Auslöseblitz
 war für jede Zusicherung unsichtbar und fiel erst auf einem Bild mit

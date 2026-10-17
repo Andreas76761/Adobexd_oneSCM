@@ -34,6 +34,38 @@
     <symbol id="sym-kapitel" viewBox="0 0 24 24">
       <path d="M5 4.5h9a3 3 0 0 1 3 3v12a2.4 2.4 0 0 0-2.4-2.4H5z"/><path d="M19 4.5v12.1"/>
     </symbol>
+    <symbol id="sym-nav-archiv" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="5" rx="1.4"/><rect x="3" y="11" width="18" height="9" rx="1.4"/>
+      <path d="M8 15.5h8"/>
+    </symbol>
+    <symbol id="sym-nav-aufnahme" viewBox="0 0 24 24">
+      <path d="M3.5 8.5h3.2l1.6-2.4h7.4l1.6 2.4h3.2v10H3.5z"/><circle cx="12" cy="13" r="3.4"/>
+    </symbol>
+    <symbol id="sym-nav-import" viewBox="0 0 24 24">
+      <path d="M12 3.5v9"/><path d="M8.4 9.4l3.6 3.6 3.6-3.6"/><path d="M4 15v4.5h16V15"/>
+    </symbol>
+    <symbol id="sym-nav-ausschneiden" viewBox="0 0 24 24">
+      <path d="M7 3.5v13.5h13.5"/><path d="M3.5 7H17v13.5"/>
+    </symbol>
+    <symbol id="sym-nav-editor" viewBox="0 0 24 24">
+      <path d="M4 20h4.2L20 8.2 15.8 4 4 15.8z"/><path d="M13.8 6l4.2 4.2"/>
+    </symbol>
+    <symbol id="sym-nav-strecke" viewBox="0 0 24 24">
+      <rect x="2.8" y="9" width="6" height="6" rx="1.3"/><rect x="15.2" y="9" width="6" height="6" rx="1.3"/>
+      <path d="M8.8 12h6.4"/><path d="M13 10l2.2 2-2.2 2"/>
+    </symbol>
+    <symbol id="sym-nav-design" viewBox="0 0 24 24">
+      <rect x="4" y="3.5" width="16" height="17" rx="1.6"/><path d="M7 7.5h6v5H7z"/><path d="M15.5 7.5H17M7 15.5h10M7 18h7"/>
+    </symbol>
+    <symbol id="sym-nav-pruefung" viewBox="0 0 24 24">
+      <path d="M12 3.5l7 2.4v5.6c0 4-2.9 7.3-7 9-4.1-1.7-7-5-7-9V5.9z"/><path d="M8.8 12.2l2.3 2.3 4.1-4.6"/>
+    </symbol>
+    <symbol id="sym-nav-verzeichnis" viewBox="0 0 24 24">
+      <path d="M3.5 6.5h6l2 2.5h9v11h-17z"/><path d="M3.5 11.5h17"/>
+    </symbol>
+    <symbol id="sym-nav-eingang" viewBox="0 0 24 24">
+      <path d="M3.5 13.5h4l1.6 3h5.8l1.6-3h4"/><path d="M3.5 13.5L6 5h12l2.5 8.5v6h-17z"/>
+    </symbol>
     <symbol id="sym-bild" viewBox="0 0 24 24">
       <rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M4.5 17l4.8-4.3 3.3 2.8 3-2.5 4 3.6"/>
     </symbol>
@@ -55,17 +87,17 @@
           </p>
           <nav class="portal-nav" aria-label="Portal">
             <span class="portal-schild">Portal</span>
-            <button type="button" data-ansicht="archiv">Archiv</button>
-            <button type="button" data-ansicht="aufnahme">Aufnahme</button>
-            <button type="button" data-ansicht="import">Import</button>
-            <button type="button" data-ansicht="ausschneiden">Ausschneiden</button>
-            <button type="button" data-ansicht="markieren">Editor</button>
-            <button type="button" data-ansicht="strecke">Strecke</button>
-            <button type="button" data-ansicht="design">Design</button>
-            <button type="button" data-ansicht="gliederung">Gliederung</button>
-            <button type="button" data-ansicht="pruefung">Prüfung</button>
-            <button type="button" data-ansicht="verzeichnis">Verzeichnis</button>
-            <button type="button" data-ansicht="eingang">Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
+            <button type="button" data-ansicht="archiv"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-archiv"/></svg>Archiv</button>
+            <button type="button" data-ansicht="aufnahme"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-aufnahme"/></svg>Aufnahme</button>
+            <button type="button" data-ansicht="import"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-import"/></svg>Import</button>
+            <button type="button" data-ansicht="ausschneiden"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-ausschneiden"/></svg>Ausschneiden</button>
+            <button type="button" data-ansicht="markieren"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-editor"/></svg>Editor</button>
+            <button type="button" data-ansicht="strecke"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-strecke"/></svg>Strecke</button>
+            <button type="button" data-ansicht="design"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-design"/></svg>Design</button>
+            <button type="button" data-ansicht="gliederung"><svg class="symbol" aria-hidden="true"><use href="#sym-kapitel"/></svg>Gliederung</button>
+            <button type="button" data-ansicht="pruefung"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-pruefung"/></svg>Prüfung</button>
+            <button type="button" data-ansicht="verzeichnis"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-verzeichnis"/></svg>Verzeichnis</button>
+            <button type="button" data-ansicht="eingang"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-eingang"/></svg>Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
         </div>
       </div>
@@ -659,68 +691,6 @@
     </section>
   </section>
 
-  <section id="eingang-ansicht" aria-label="Eingang" hidden>
-    <div class="eingang-kennzahlen" id="eingang-kennzahlen"></div>
-    <div class="eingang-leiste">
-      <div class="suchfeld suchfeld--klein">
-        <span class="such-symbol" aria-hidden="true">⌕</span>
-        <label class="sprung" for="eingang-suche">Eingang durchsuchen</label>
-        <input id="eingang-suche" type="search" placeholder="Titel, Projekt, Begriff, Notiz …" autocomplete="off">
-      </div>
-      <div class="segment eingang-zustand" role="group" aria-label="Vollständigkeit">
-        <button type="button" data-zustand="alle" aria-pressed="true">Alle</button>
-        <button type="button" data-zustand="offen" aria-pressed="false">Unvollständig</button>
-        <button type="button" data-zustand="fertig" aria-pressed="false">Vollständig</button>
-      </div>
-      <div class="sortierung">
-        <label for="eingang-sortierung">Sortierung</label>
-        <select id="eingang-sortierung"></select>
-      </div>
-      <div class="eingang-aktionen">
-        <button type="button" class="knopf" id="beleg-oeffnen">Beleg bilden</button>
-        <button type="button" class="knopf knopf--haupt" id="eingang-kontaktbogen">Kontaktbogen sichern</button>
-        <button type="button" class="knopf" id="eingang-sichern">Als JSON sichern</button>
-        <button type="button" class="knopf" id="eingang-leeren">Eingang leeren</button>
-      </div>
-    </div>
-    <div class="ergebnis-kopf">
-      <p class="treffer" id="eingang-treffer" role="status" aria-live="polite"></p>
-      <p class="studio-meldung" id="eingang-meldung" role="status" aria-live="polite"></p>
-    </div>
-    <section class="werkbank" id="beleg-werkbank" aria-labelledby="beleg-werkbank-titel" hidden>
-      <div class="band-kopf">
-        <h2 class="abschnitt-titel" id="beleg-werkbank-titel">Beleg bilden</h2>
-        <span class="band-stand" id="beleg-stand"></span>
-        <button type="button" class="knopf knopf--klein" id="beleg-zu">Schließen</button>
-      </div>
-      <p class="band-hinweis">
-        Ein Beleg ist mehr als zwei Bilder: er braucht Anlass, Änderung, Wirkung,
-        Quelle und mindestens eine Kennzahl. Heraus kommt ein Eintrag im Format
-        von <code>data/eintraege.json</code>; im Projekt fehlt daran nur noch
-        <code>screen</code> – Archetyp und Schalter für die gezeichneten
-        Aufnahmen. Die beiden echten Bilder liegen als Vorlage daneben.
-      </p>
-      <div class="beleg-paar" id="beleg-paar"></div>
-      <div class="beleg-form" id="beleg-form"></div>
-      <p class="beleg-probleme" id="beleg-probleme" role="status" aria-live="polite" hidden></p>
-      <div class="bearbeiten-aktionen">
-        <button type="button" class="knopf knopf--haupt" id="beleg-sichern">Belegentwurf sichern</button>
-        <span class="feld-hinweis" id="beleg-meldung"></span>
-      </div>
-    </section>
-    <div class="eingang-raster" id="eingang-raster"></div>
-    <div class="leermeldung" id="eingang-leer" hidden>
-      <h3>Nichts im Eingang</h3>
-      <p id="eingang-leer-text"></p>
-    </div>
-  </section>
-
-  <footer class="fuss">
-    <span>Beispielbestand · Stand <code>/*%STAND%*/</code> · <code>/*%ANZAHL%*/</code> Belege, <code>/*%AUFNAHMEN%*/</code> Aufnahmen · Anwendung <code>v/*%VERSION%*/</code></span>
-    <span>Aufnahmen als SVG in die Seite eingebettet · Tastatur: <code>/</code> Suche, <code>Leertaste</code> auslösen, <code>←</code> <code>→</code> blättern, <code>Esc</code> schließen</span>
-  </footer>
-</div>
-
   <section id="pruefung-ansicht" aria-label="Prüfung" hidden>
     <div class="pruef-kopf">
       <div class="markier-knoepfe">
@@ -789,6 +759,68 @@
       </aside>
     </div>
   </section>
+
+  <section id="eingang-ansicht" aria-label="Eingang" hidden>
+    <div class="eingang-kennzahlen" id="eingang-kennzahlen"></div>
+    <div class="eingang-leiste">
+      <div class="suchfeld suchfeld--klein">
+        <span class="such-symbol" aria-hidden="true">⌕</span>
+        <label class="sprung" for="eingang-suche">Eingang durchsuchen</label>
+        <input id="eingang-suche" type="search" placeholder="Titel, Projekt, Begriff, Notiz …" autocomplete="off">
+      </div>
+      <div class="segment eingang-zustand" role="group" aria-label="Vollständigkeit">
+        <button type="button" data-zustand="alle" aria-pressed="true">Alle</button>
+        <button type="button" data-zustand="offen" aria-pressed="false">Unvollständig</button>
+        <button type="button" data-zustand="fertig" aria-pressed="false">Vollständig</button>
+      </div>
+      <div class="sortierung">
+        <label for="eingang-sortierung">Sortierung</label>
+        <select id="eingang-sortierung"></select>
+      </div>
+      <div class="eingang-aktionen">
+        <button type="button" class="knopf" id="beleg-oeffnen">Beleg bilden</button>
+        <button type="button" class="knopf knopf--haupt" id="eingang-kontaktbogen">Kontaktbogen sichern</button>
+        <button type="button" class="knopf" id="eingang-sichern">Als JSON sichern</button>
+        <button type="button" class="knopf" id="eingang-leeren">Eingang leeren</button>
+      </div>
+    </div>
+    <div class="ergebnis-kopf">
+      <p class="treffer" id="eingang-treffer" role="status" aria-live="polite"></p>
+      <p class="studio-meldung" id="eingang-meldung" role="status" aria-live="polite"></p>
+    </div>
+    <section class="werkbank" id="beleg-werkbank" aria-labelledby="beleg-werkbank-titel" hidden>
+      <div class="band-kopf">
+        <h2 class="abschnitt-titel" id="beleg-werkbank-titel">Beleg bilden</h2>
+        <span class="band-stand" id="beleg-stand"></span>
+        <button type="button" class="knopf knopf--klein" id="beleg-zu">Schließen</button>
+      </div>
+      <p class="band-hinweis">
+        Ein Beleg ist mehr als zwei Bilder: er braucht Anlass, Änderung, Wirkung,
+        Quelle und mindestens eine Kennzahl. Heraus kommt ein Eintrag im Format
+        von <code>data/eintraege.json</code>; im Projekt fehlt daran nur noch
+        <code>screen</code> – Archetyp und Schalter für die gezeichneten
+        Aufnahmen. Die beiden echten Bilder liegen als Vorlage daneben.
+      </p>
+      <div class="beleg-paar" id="beleg-paar"></div>
+      <div class="beleg-form" id="beleg-form"></div>
+      <p class="beleg-probleme" id="beleg-probleme" role="status" aria-live="polite" hidden></p>
+      <div class="bearbeiten-aktionen">
+        <button type="button" class="knopf knopf--haupt" id="beleg-sichern">Belegentwurf sichern</button>
+        <span class="feld-hinweis" id="beleg-meldung"></span>
+      </div>
+    </section>
+    <div class="eingang-raster" id="eingang-raster"></div>
+    <div class="leermeldung" id="eingang-leer" hidden>
+      <h3>Nichts im Eingang</h3>
+      <p id="eingang-leer-text"></p>
+    </div>
+  </section>
+
+  <footer class="fuss">
+    <span>Beispielbestand · Stand <code>/*%STAND%*/</code> · <code>/*%ANZAHL%*/</code> Belege, <code>/*%AUFNAHMEN%*/</code> Aufnahmen · Anwendung <code>v/*%VERSION%*/</code></span>
+    <span>Aufnahmen als SVG in die Seite eingebettet · Tastatur: <code>/</code> Suche, <code>Leertaste</code> auslösen, <code>←</code> <code>→</code> blättern, <code>Esc</code> schließen</span>
+  </footer>
+</div>
 
 <section class="chat-fenster" id="chat-fenster" aria-label="Bilder suchen" hidden>
   <header class="chat-kopf" id="chat-griff">
