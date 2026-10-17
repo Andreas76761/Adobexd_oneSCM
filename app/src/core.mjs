@@ -21,7 +21,7 @@ export const STANDARD_ZUSTAND = {
 export const ARCHIV_ANSICHTEN = ['aktiv', 'archiv', 'alle'];
 
 /** Hauptansichten der Seite (Navigation oben links). */
-export const ANSICHTEN = ['archiv', 'aufnahme', 'ausschneiden', 'markieren', 'eingang'];
+export const ANSICHTEN = ['archiv', 'aufnahme', 'ausschneiden', 'markieren', 'strecke', 'eingang'];
 
 export const SORTIERUNGEN = [
   { id: 'datum-neu', label: 'Neueste zuerst' },
@@ -1122,6 +1122,143 @@ export function leseBeipackzettel(text) {
 /** Gleicher Name wie das Bild, andere Endung. */
 export function beipackzettelName(bildname) {
   return String(bildname || '').replace(/\.[a-z0-9]+$/i, '') + '.json';
+}
+
+/* ------------------------------- Strecken: mehrere Bilder, eine Folge */
+
+export const STRECKEN_SCHLUESSEL = 'screenarchiv:strecken';
+export const STRECKEN_VERSION = 1;
+export const BLATT_SPALTEN = [
+  { id: '1', label: 'untereinander', spalten: 1 },
+  { id: '2', label: 'zwei nebeneinander', spalten: 2 },
+  { id: '3', label: 'drei nebeneinander', spalten: 3 }
+];
+
+/** Eine leere Strecke; der Name traegt sie durch die Ablage. */
+export function leereStrecke(name = '', zeit = Date.now()) {
+  return {
+    id: `STR-${zeit.toString(36)}`,
+    name: String(name || '').trim(),
+    spalten: 2,
+    schritte: [],
+    geaendert_am: new Date(zeit).toISOString()
+  };
+}
+
+/** Ein Schritt: eine Aufnahme, ihre Anweisung, ihre Stelle in der Folge. */
+export function streckeSchritt(aufnahme, text = '') {
+  return { aufnahme: String(aufnahme && aufnahme.id ? aufnahme.id : aufnahme || ''), text: String(text || '') };
+}
+
+/** Verschiebt einen Schritt; ausserhalb der Folge passiert nichts. */
+export function verschiebeSchritt(schritte = [], index, richtung) {
+  const ziel = index + richtung;
+  if (index < 0 || index >= schritte.length || ziel < 0 || ziel >= schritte.length) return schritte;
+  const kopie = [...schritte];
+  [kopie[index], kopie[ziel]] = [kopie[ziel], kopie[index]];
+  return kopie;
+}
+
+/**
+ * Die Schritte mit ihren Aufnahmen - ohne die Aufnahme ist ein Schritt
+ * wertlos, und eine geloeschte Aufnahme soll die Strecke nicht sprengen.
+ */
+export function streckeMitAufnahmen(strecke = {}, eingang = []) {
+  return (strecke.schritte || [])
+    .map((schritt, i) => ({
+      nummer: i + 1,
+      text: String(schritt.text || ''),
+      aufnahme: eingang.find((a) => a.id === schritt.aufnahme) || null,
+      kennung: schritt.aufnahme
+    }))
+    .filter((schritt) => schritt.aufnahme);
+}
+
+/** Was der Strecke noch fehlt, bevor sie ein Blatt werden kann. */
+export function pruefeStrecke(strecke = {}, eingang = []) {
+  const probleme = [];
+  if (!String(strecke.name || '').trim()) probleme.push({ feld: 'name', text: 'Die Strecke braucht einen Namen.' });
+  const schritte = strecke.schritte || [];
+  if (schritte.length < 2) probleme.push({ feld: 'schritte', text: 'Eine Strecke braucht mindestens zwei Schritte.' });
+  schritte.forEach((schritt, i) => {
+    if (!eingang.some((a) => a.id === schritt.aufnahme)) {
+      probleme.push({ feld: 'schritt-' + i, text: `Schritt ${i + 1}: die Aufnahme ${schritt.aufnahme} fehlt im Eingang.` });
+    }
+    if (!String(schritt.text || '').trim()) {
+      probleme.push({ feld: 'text-' + i, text: `Schritt ${i + 1} hat keine Anweisung.` });
+    }
+  });
+  return probleme;
+}
+
+/** Die Strecke als Text - dieselbe Folge, nur ohne Bilder. */
+export function streckeAlsText(strecke = {}, eingang = []) {
+  const zeilen = streckeMitAufnahmen(strecke, eingang).map(
+    (s) =>
+      `${s.nummer}. ${String(s.text || '').trim() || '(ohne Anweisung)'}` +
+      (kapitelKennung(s.aufnahme) ? `  [${kapitelKennung(s.aufnahme)}]` : '')
+  );
+  return [String(strecke.name || '').trim(), ...zeilen].filter(Boolean).join('\n');
+}
+
+/**
+ * Rechnet den Platzbedarf eines Blattes aus: wie viele Spalten, wie breit
+ * jede Kachel, wie hoch die Zeilen. Ohne DOM, damit es pruefbar bleibt.
+ */
+export function blattRaster(bilder = [], { spalten = 2, breite = 1600, abstand = 24, textHoehe = 64, kopfHoehe = 96 } = {}) {
+  const anzahl = bilder.length;
+  if (!anzahl) return { breite, hoehe: kopfHoehe, spalten: 0, kacheln: [] };
+  const spaltenZahl = Math.max(1, Math.min(spalten, anzahl));
+  const kachelBreite = Math.floor((breite - abstand * (spaltenZahl + 1)) / spaltenZahl);
+  const kacheln = [];
+  let y = kopfHoehe;
+  let zeilenHoehe = 0;
+  bilder.forEach((bild, i) => {
+    const spalte = i % spaltenZahl;
+    const massstab = kachelBreite / Math.max(1, bild.breite);
+    const hoehe = Math.round(bild.hoehe * massstab) + textHoehe;
+    if (spalte === 0 && i > 0) {
+      y += zeilenHoehe + abstand;
+      zeilenHoehe = 0;
+    }
+    zeilenHoehe = Math.max(zeilenHoehe, hoehe);
+    kacheln.push({
+      x: abstand + spalte * (kachelBreite + abstand),
+      y,
+      breite: kachelBreite,
+      bildHoehe: hoehe - textHoehe,
+      hoehe,
+      nummer: i + 1
+    });
+  });
+  return { breite, hoehe: y + zeilenHoehe + abstand, spalten: spaltenZahl, kacheln };
+}
+
+/** Liest abgelegte Strecken; unbrauchbares faellt weg. */
+export function leseStrecken(text) {
+  if (!text) return [];
+  let inhalt;
+  try {
+    inhalt = JSON.parse(text);
+  } catch (fehler) {
+    return [];
+  }
+  const liste = Array.isArray(inhalt) ? inhalt : inhalt && Array.isArray(inhalt.strecken) ? inhalt.strecken : [];
+  return liste
+    .filter((s) => s && typeof s === 'object' && s.id)
+    .map((s) => ({
+      id: String(s.id),
+      name: String(s.name || ''),
+      spalten: Number(s.spalten) || 2,
+      geaendert_am: String(s.geaendert_am || ''),
+      schritte: Array.isArray(s.schritte)
+        ? s.schritte.filter((x) => x && x.aufnahme).map((x) => ({ aufnahme: String(x.aufnahme), text: String(x.text || '') }))
+        : []
+    }));
+}
+
+export function schreibeStrecken(strecken = []) {
+  return JSON.stringify({ version: STRECKEN_VERSION, stand: new Date().toISOString(), strecken });
 }
 
 /* ----------------------------- Fassungen: das Original und seine Stufen */

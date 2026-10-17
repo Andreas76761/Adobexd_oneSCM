@@ -274,6 +274,51 @@ const geteilterBildschirm = `
   }
 }
 
+/* Die Strecke: drei Screens, eine Folge, ein Blatt. */
+{
+  for (const [name, thema] of [['strecke', 'light'], ['strecke-dunkel', 'dark']]) {
+    const kontext = await browser.newContext({ viewport: { width: 1500, height: 1150 }, colorScheme: thema });
+    const seite = await kontext.newPage();
+    await seite.goto(adresse + '#ans=aufnahme', { waitUntil: 'load' });
+    await seite.waitForSelector('html[data-bereit="ja"]');
+    await seite.click('#quelle-beispiel');
+    await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled);
+    for (const titel of ['Vorlagenliste öffnen', 'Filter setzen', 'Vorlage anlegen']) {
+      await seite.fill('#feld-titel', titel);
+      await seite.fill('#feld-projekt', 'oneSCM Portal');
+      await seite.selectOption('#feld-kategorie', 'Navigation');
+      await seite.fill('#feld-begriffe', 'vorlage');
+      await seite.click('#ausloesen');
+      await seite.waitForTimeout(120);
+    }
+    await seite.click('.portal-nav button[data-ansicht="strecke"]');
+    await seite.waitForSelector('#strecke-ansicht:not([hidden])');
+    await seite.click('#strecke-neu');
+    await seite.fill('#strecke-name', 'Vorlage anlegen');
+    const texte = [
+      'Im Menü „Contract Generation“ öffnen',
+      'Market auf Germany filtern',
+      'Auf „Create Template“ klicken'
+    ];
+    for (let i = 0; i < texte.length; i++) {
+      const kennung = await seite.locator('#strecke-aufnahme option').nth(i).getAttribute('value');
+      await seite.selectOption('#strecke-aufnahme', kennung);
+      await seite.click('#strecke-anhaengen');
+      await seite.waitForTimeout(120);
+      await seite.fill('#schritt-text-' + i, texte[i]);
+    }
+    await seite.waitForTimeout(900);
+    await seite.screenshot({ path: join(ziel, name + '.png') });
+    console.log(name + '.png');
+    if (name === 'strecke') {
+      const blatt = await seite.evaluate(() => document.getElementById('strecke-vorschau').toDataURL('image/png'));
+      writeFileSync(join(ziel, 'strecke-blatt.png'), Buffer.from(blatt.split(',')[1], 'base64'));
+      console.log('strecke-blatt.png');
+    }
+    await kontext.close();
+  }
+}
+
 /* Der Kontaktbogen zum Herunterladen: erzeugen, ablegen, ansehen. */
 {
   const kontext = await browser.newContext({ viewport: { width: 1440, height: 960 } });

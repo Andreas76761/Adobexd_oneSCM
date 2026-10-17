@@ -20,6 +20,30 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.19.0] – Strecke: mehrere Screens, ein Blatt
+
+### Neu
+* Neue Ansicht **Strecke**: mehrere Aufnahmen als Folge ablegen, jede mit
+  ihrer Anweisung und ihrer Stelle in der Reihenfolge. Verschieben mit ↑ ↓,
+  entfernen, umbenennen; mehrere Strecken nebeneinander (F-35)
+* **Blatt als Bild sichern**: alle Schritte in einem Bild – Kopfzeile mit
+  Name und Datum, je Kachel Nummernkreis, Anweisung und die Bildunterschrift
+  mit Gliederung und Zeitstempel. Aufteilung wahlweise ein-, zwei- oder
+  dreispaltig (F-35)
+* Gezeigt wird immer die **jüngste Fassung** einer Aufnahme – also mit
+  abgedeckten Stellen und Marken, nicht das Original
+* Die Vorschau im Panel zeigt dasselbe Blatt und läuft beim Tippen mit
+* Strecken liegen im Browser (`screenarchiv:strecken`) und überleben das
+  Neuladen; eine gelöschte Strecke lässt die Aufnahmen unberührt
+
+### Kern
+* `leereStrecke`, `streckeSchritt`, `verschiebeSchritt`, `streckeMitAufnahmen`,
+  `pruefeStrecke`, `streckeAlsText`, `blattRaster`, `leseStrecken`,
+  `schreibeStrecken`
+
+### Prüfung
+* Neue Datei `10-strecke.e2e.mjs`; 11 neue Prüfungen, zusammen 258
+
 ## [1.18.0] – Editor, Fassungen, Gliederung
 
 ### Neu

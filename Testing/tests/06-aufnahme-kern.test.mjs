@@ -573,6 +573,97 @@ s.test('jede fehlende Fähigkeit nennt einen Weg, der statt dessen geht', () => 
   wahr(/Telefon/.test(amTelefon.text) && /Bild öffnen/.test(amTelefon.text), 'am Telefon fehlt der Ausweg');
 });
 
+/* ------------------------------------------------------------ Strecken */
+
+const streckenEingang = [
+  { id: 'AUF-2026-001', titel: 'Liste', kapitel: 1, unterkapitel: 1 },
+  { id: 'AUF-2026-002', titel: 'Filter', kapitel: 1, unterkapitel: 2 }
+];
+
+s.test('eine Strecke braucht Namen, zwei Schritte und je eine Anweisung', () => {
+  const leer = kern.leereStrecke('');
+  const felder = kern.pruefeStrecke(leer, streckenEingang).map((p) => p.feld);
+  wahr(felder.includes('name') && felder.includes('schritte'), 'Name und Schritte werden nicht verlangt');
+
+  const halb = {
+    ...kern.leereStrecke('Vorlage anlegen'),
+    schritte: [kern.streckeSchritt(streckenEingang[0], 'Menü öffnen'), kern.streckeSchritt(streckenEingang[1], '')]
+  };
+  const probleme = kern.pruefeStrecke(halb, streckenEingang);
+  gleich(probleme.length, 1, 'die fehlende zweite Anweisung fällt nicht auf');
+  gleich(probleme[0].feld, 'text-1');
+
+  const fertig = { ...halb, schritte: halb.schritte.map((s) => ({ ...s, text: s.text || 'Filter setzen' })) };
+  gleich(kern.pruefeStrecke(fertig, streckenEingang).length, 0);
+
+  // Eine gelöschte Aufnahme sprengt die Strecke nicht, wird aber genannt.
+  const verwaist = { ...fertig, schritte: [...fertig.schritte, kern.streckeSchritt('AUF-2026-099', 'weg')] };
+  wahr(
+    kern.pruefeStrecke(verwaist, streckenEingang).some((p) => /fehlt im Eingang/.test(p.text)),
+    'die fehlende Aufnahme wird verschwiegen'
+  );
+  gleich(kern.streckeMitAufnahmen(verwaist, streckenEingang).length, 2, 'der verwaiste Schritt wird mitgezählt');
+});
+
+s.test('die Reihenfolge lässt sich verschieben, ohne etwas zu verlieren', () => {
+  const schritte = [
+    kern.streckeSchritt(streckenEingang[0], 'eins'),
+    kern.streckeSchritt(streckenEingang[1], 'zwei')
+  ];
+  gleich(kern.verschiebeSchritt(schritte, 0, 1).map((s) => s.text).join(','), 'zwei,eins');
+  gleich(kern.verschiebeSchritt(schritte, 0, -1).map((s) => s.text).join(','), 'eins,zwei', 'über den Rand hinaus wird verschoben');
+  gleich(kern.verschiebeSchritt(schritte, 1, 1).map((s) => s.text).join(','), 'eins,zwei');
+  gleich(kern.verschiebeSchritt(schritte, 9, 1).length, 2);
+});
+
+s.test('die Strecke als Text trägt Nummer, Anweisung und Gliederung', () => {
+  const strecke = {
+    ...kern.leereStrecke('Vorlage anlegen'),
+    schritte: [
+      kern.streckeSchritt(streckenEingang[0], 'Menü öffnen'),
+      kern.streckeSchritt(streckenEingang[1], 'Filter setzen')
+    ]
+  };
+  gleich(
+    kern.streckeAlsText(strecke, streckenEingang),
+    'Vorlage anlegen\n1. Menü öffnen  [1.1]\n2. Filter setzen  [1.2]'
+  );
+});
+
+s.test('das Blatt teilt die Kacheln auf und wächst mit den Zeilen', () => {
+  const bilder = [
+    { breite: 1600, hoehe: 900 },
+    { breite: 1600, hoehe: 900 },
+    { breite: 1600, hoehe: 900 }
+  ];
+  const zwei = kern.blattRaster(bilder, { spalten: 2, breite: 1600, abstand: 24, textHoehe: 64, kopfHoehe: 96 });
+  gleich(zwei.spalten, 2);
+  gleich(zwei.kacheln.length, 3);
+  gleich(zwei.kacheln[0].y, zwei.kacheln[1].y, 'die erste Zeile steht nicht auf einer Höhe');
+  wahr(zwei.kacheln[2].y > zwei.kacheln[0].y, 'die zweite Zeile beginnt nicht tiefer');
+  gleich(zwei.kacheln[0].x, 24);
+  wahr(zwei.hoehe > zwei.kacheln[2].y + zwei.kacheln[2].hoehe - 1, 'das Blatt ist zu kurz für die letzte Zeile');
+
+  const eins = kern.blattRaster(bilder, { spalten: 1, breite: 1600 });
+  gleich(eins.spalten, 1);
+  wahr(eins.hoehe > zwei.hoehe, 'untereinander braucht nicht mehr Platz als nebeneinander');
+  gleich(kern.blattRaster([], { spalten: 2 }).kacheln.length, 0);
+  gleich(kern.blattRaster([{ breite: 100, hoehe: 100 }], { spalten: 3 }).spalten, 1, 'ein Bild braucht keine drei Spalten');
+});
+
+s.test('Strecken überleben das Ablegen; Unbrauchbares fällt weg', () => {
+  const strecke = {
+    ...kern.leereStrecke('Vorlage anlegen'),
+    schritte: [kern.streckeSchritt(streckenEingang[0], 'Menü öffnen')]
+  };
+  const zurueck = kern.leseStrecken(kern.schreibeStrecken([strecke]));
+  gleich(zurueck.length, 1);
+  gleich(zurueck[0].name, 'Vorlage anlegen');
+  gleich(zurueck[0].schritte[0].aufnahme, 'AUF-2026-001');
+  tieferGleich(kern.leseStrecken('kein json'), []);
+  gleich(kern.leseStrecken(JSON.stringify({ strecken: [{ name: 'ohne Kennung' }] })).length, 0);
+});
+
 /* ------------------------------------------ Fassungen und Gliederung */
 
 s.test('jede Bearbeitung ist eine eigene Fassung, das Original bleibt', () => {

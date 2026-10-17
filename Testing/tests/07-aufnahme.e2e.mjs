@@ -73,12 +73,12 @@ const eingangImSpeicher = (seite) =>
 
 /* ------------------------------------------------------------ Navigation */
 
-s.test('die Portalnavigation führt zu den fünf Ansichten', () =>
+s.test('die Portalnavigation führt zu den sechs Ansichten', () =>
   mitSeite(async (seite) => {
-    gleich(await seite.locator('.portal-nav button').count(), 5);
+    gleich(await seite.locator('.portal-nav button').count(), 6);
     gleich(
       (await seite.locator('.portal-nav button').allInnerTexts()).map((t) => t.split('\n')[0].trim()).join('|'),
-      'Archiv|Aufnahme|Ausschneiden|Editor|Eingang'
+      'Archiv|Aufnahme|Ausschneiden|Editor|Strecke|Eingang'
     );
     gleich(await seite.locator('.portal-nav button[aria-current="page"]').innerText(), 'Archiv');
     gleich(await seite.locator('#archiv-ansicht').isVisible(), true);

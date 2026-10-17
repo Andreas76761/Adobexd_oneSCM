@@ -729,3 +729,39 @@ verlässt damit die Seite mit dem Bild. Abschaltbar über das Kästchen
 **Wo die Nummer sonst steht** Auf der Karte im Eingang vor der Kennung, im
 Kontaktbogen in der Kopfzeile des Satzes und über den Baustein `{kapitel}` im
 Namensmuster (aus `2.3` wird dort `2-3`).
+
+
+---
+
+## F-35 · Strecke: mehrere Screens, ein Blatt
+
+**Zweck** Ein Ablauf besteht selten aus einem Bild. Wer erklären will, wie
+eine Vorlage angelegt wird, braucht drei, vier Screens in Reihenfolge – und
+am Ende ein Blatt, das man weitergeben kann.
+
+**Die Folge** In der Ansicht **Strecke** entsteht eine benannte Folge: oben
+eine Aufnahme wählen und anhängen, darunter steht sie als Schritt mit
+Vorschau, Anweisung und Gliederungsnummer. ↑ und ↓ verschieben, **Entfernen**
+nimmt heraus. Mehrere Strecken liegen nebeneinander; die Auswahl oben wechselt
+zwischen ihnen.
+
+**Gezeigt wird die jüngste Fassung** – also mit abgedeckten Stellen und
+Marken aus dem Editor (F-33). Was herausgeht, ist das Bearbeitete, nicht das
+Original.
+
+**Das Blatt** **Blatt als Bild sichern** rechnet alle Schritte in ein PNG:
+Kopfzeile mit Name, Schrittzahl und Datum; je Kachel das Bild, ein
+Nummernkreis, die Anweisung und darunter die Bildunterschrift mit Gliederung
+und Zeitstempel (F-34). Die Aufteilung ist wählbar – untereinander, zwei oder
+drei nebeneinander –, die Kacheln rechnen sich auf die Spaltenbreite, und die
+Zeilen wachsen mit dem höchsten Bild. Die Vorschau daneben zeigt dasselbe
+Blatt und läuft beim Tippen mit.
+
+**Was geprüft wird** Name gesetzt, mindestens zwei Schritte, jede Anweisung
+gefüllt, jede Aufnahme noch im Eingang. Fehlt etwas, steht es in einem Satz
+darunter und der Knopf bleibt gesperrt. Eine gelöschte Aufnahme sprengt die
+Strecke nicht – der Schritt wird benannt und beim Zeichnen übergangen.
+
+**Ablage** Strecken liegen im Browser unter `screenarchiv:strecken` und
+überleben das Neuladen. Eine gelöschte Strecke lässt die Aufnahmen unberührt;
+sie verweist nur auf sie.

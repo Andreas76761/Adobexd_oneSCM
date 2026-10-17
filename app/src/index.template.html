@@ -25,6 +25,7 @@
             <button type="button" data-ansicht="aufnahme">Aufnahme</button>
             <button type="button" data-ansicht="ausschneiden">Ausschneiden</button>
             <button type="button" data-ansicht="markieren">Editor</button>
+            <button type="button" data-ansicht="strecke">Strecke</button>
             <button type="button" data-ansicht="eingang">Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
         </div>
@@ -331,6 +332,55 @@
           <h3 class="abschnitt-titel">Klickstrecke</h3>
           <pre id="klickstrecke-text"></pre>
         </div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="strecke-ansicht" aria-label="Klickstrecke" hidden>
+    <div class="strecke-kopf">
+      <div class="feld">
+        <label for="strecke-wahl">Strecke</label>
+        <select id="strecke-wahl"></select>
+      </div>
+      <div class="feld">
+        <label for="strecke-name">Name</label>
+        <input type="text" id="strecke-name" placeholder="Bestellung anlegen" autocomplete="off">
+      </div>
+      <div class="feld feld--schmal">
+        <label for="strecke-spalten">Blattaufteilung</label>
+        <select id="strecke-spalten"></select>
+      </div>
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf" id="strecke-neu">Neue Strecke</button>
+        <button type="button" class="knopf knopf--haupt" id="strecke-blatt" disabled>Blatt als Bild sichern</button>
+        <button type="button" class="knopf" id="strecke-loeschen" disabled>Strecke löschen</button>
+      </div>
+    </div>
+
+    <p class="band-hinweis">
+      Mehrere Screens in einer Folge: jeder Schritt eine Aufnahme und eine
+      Anweisung. Gezeigt wird die jüngste Fassung – also mit abgedeckten
+      Stellen und Marken. „Blatt als Bild sichern“ fasst alle Schritte in
+      einem Bild zusammen.
+    </p>
+
+    <div class="strecke-raster">
+      <div class="strecke-liste-spalte">
+        <div class="strecke-zufuegen">
+          <div class="feld">
+            <label for="strecke-aufnahme">Aufnahme anhängen</label>
+            <select id="strecke-aufnahme"></select>
+          </div>
+          <button type="button" class="knopf" id="strecke-anhaengen">Als Schritt anhängen</button>
+        </div>
+        <p class="studio-meldung" id="strecke-meldung" role="status" aria-live="polite"></p>
+        <div class="strecke-schritte" id="strecke-schritte"></div>
+      </div>
+      <aside class="strecke-text-spalte">
+        <h2 class="abschnitt-titel">Anweisungen</h2>
+        <pre id="strecke-text"></pre>
+        <h2 class="abschnitt-titel">Vorschau des Blattes</h2>
+        <canvas id="strecke-vorschau"></canvas>
       </aside>
     </div>
   </section>
