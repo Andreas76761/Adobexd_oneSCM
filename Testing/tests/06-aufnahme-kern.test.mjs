@@ -1614,4 +1614,195 @@ s.test('das Fenster bleibt im Bild und behält seine Lage', () => {
   gleich(winzig.hoehe, 384);
 });
 
+/* ----------------------------------------------------------- Drei Agenten */
+
+const agentenGliederung = kern.leseGliederung({
+  eintraege: [
+    { nummer: '6', thema: 'Templates', ebene: 1 },
+    { nummer: '6.1', thema: 'Documents', ebene: 2 },
+    { nummer: '6.2', thema: 'Emails', ebene: 2 },
+    { nummer: '6.3', thema: 'System Notifications', ebene: 2 },
+    { nummer: '7', thema: 'Verträge', ebene: 1 },
+    { nummer: '7.1', thema: 'Anlegen', ebene: 2 }
+  ]
+});
+
+const fertigesBild = (zusatz) => ({
+  titel: 'Vorlagenliste öffnen',
+  projekt: 'oneSCM Portal',
+  kategorie: 'Navigation',
+  begriffe: ['vorlage'],
+  voll: true,
+  breite: 1920,
+  sprache: 'de',
+  rolle_label: 'dealer',
+  sparte: 'pkw',
+  ...zusatz
+});
+
+s.test('der rote Faden findet Lücken, Sprünge und Folgen ohne Anweisung', () => {
+  const eingang = [
+    fertigesBild({ id: 'A1', gliederung: '6.1' }),
+    fertigesBild({ id: 'A2', gliederung: '6.3', titel: 'Template anlegen' }),
+    fertigesBild({ id: 'A3', gliederung: '', titel: 'Noch ohne Stelle' })
+  ];
+  const strecken = [
+    {
+      id: 'S1',
+      name: 'Weg',
+      spalten: 2,
+      schritte: [
+        { art: 'schritt', aufnahmen: ['A2'], text: 'zuerst anlegen' },
+        { art: 'schritt', aufnahmen: ['A1'], text: '' },
+        { art: 'platzhalter', aufnahmen: [], text: 'Freigabe fehlt' }
+      ]
+    }
+  ];
+  const ergebnis = kern.pruefeFaden(eingang, agentenGliederung, strecken);
+  gleich(ergebnis.agent, 'faden');
+  const titel = ergebnis.befunde.map((b) => b.titel);
+  wahr(titel.some((x) => /ohne Anweisung/.test(x)), 'der Schritt ohne Anweisung fehlt: ' + titel.join(' | '));
+  wahr(titel.some((x) => /Platzhalter/.test(x)));
+  wahr(titel.some((x) => /L(ü|ue)cke/.test(x)), 'die Lücke bei 6.2 fehlt');
+  wahr(titel.some((x) => /gegen die Gliederung/.test(x)), 'der Rücksprung fehlt');
+  wahr(titel.some((x) => /ohne Stelle/.test(x)));
+  // Das Wichtigste steht oben.
+  gleich(ergebnis.befunde[0].art, 'fehler');
+  const inFolge = ergebnis.kennzahlen.find((k) => k.schild === 'in einer Folge');
+  gleich(inFolge.wert, '2');
+  gleich(inFolge.zusatz, '67 %');
+});
+
+s.test('eine saubere Folge gibt dem roten Faden nichts zu sagen', () => {
+  const eingang = [
+    fertigesBild({ id: 'A1', gliederung: '6.1' }),
+    fertigesBild({ id: 'A2', gliederung: '6.2', titel: 'Emails pflegen' })
+  ];
+  const strecken = [
+    {
+      id: 'S1',
+      name: 'Weg',
+      spalten: 2,
+      schritte: [
+        { art: 'schritt', aufnahmen: ['A1'], text: 'eins' },
+        { art: 'schritt', aufnahmen: ['A2'], text: 'zwei' }
+      ]
+    }
+  ];
+  const ergebnis = kern.pruefeFaden(eingang, agentenGliederung, strecken);
+  gleich(ergebnis.befunde.length, 0, 'es wird etwas beanstandet: ' + ergebnis.befunde.map((b) => b.titel).join(' | '));
+});
+
+s.test('das Audit prüft jedes Bild für sich', () => {
+  const eingang = [
+    fertigesBild({ id: 'A1', gliederung: '6.1' }),
+    fertigesBild({ id: 'A2', gliederung: '6.1', voll: false, breite: 800, sprache: '', titel: 'kurz' }),
+    fertigesBild({ id: 'A3', gliederung: '9.9', titel: 'FIN eingeben und prüfen' }),
+    { id: 'A4', titel: 'Vorlagenliste öffnen', begriffe: [], voll: true, breite: 1920 }
+  ];
+  const ergebnis = kern.pruefeAudit(eingang, agentenGliederung, [
+    { id: 'S1', name: 'x', schritte: [{ art: 'schritt', aufnahmen: ['A9'], text: 'weg' }] }
+  ]);
+  const titel = ergebnis.befunde.map((b) => b.titel);
+  wahr(titel.some((x) => /nur als Vorschau/.test(x)), titel.join(' | '));
+  wahr(titel.some((x) => /unter 1280 px/.test(x)));
+  wahr(titel.some((x) => /unvollständig/.test(x)));
+  wahr(titel.some((x) => /ohne Sprache/.test(x)));
+  wahr(titel.some((x) => /Titel doppelt/.test(x)), 'zwei gleiche Titel fallen nicht auf');
+  wahr(titel.some((x) => /Titel zu knapp/.test(x)));
+  wahr(titel.some((x) => /personenbezogene Daten/.test(x)), 'der Hinweis auf die FIN fehlt');
+  wahr(titel.some((x) => /Stelle, die es nicht gibt/.test(x)), '9.9 fällt nicht auf');
+  wahr(titel.some((x) => /gelöschte Bilder/.test(x)), 'der verwaiste Schritt fehlt');
+  gleich(ergebnis.kennzahlen[0].wert, '4');
+
+  // Ein abgedecktes Bild steht nicht mehr im Verdacht.
+  const abgedeckt = kern.pruefeAudit(
+    [
+      fertigesBild({
+        id: 'A1',
+        gliederung: '6.1',
+        titel: 'FIN eingeben und prüfen',
+        fassungen: [
+          { nummer: 1, bild: 'data:image/png;base64,AA', marken: [{ id: 'm', art: 'unkenntlich', x: 0, y: 0, breite: 5, hoehe: 5 }] }
+        ]
+      })
+    ],
+    agentenGliederung,
+    []
+  );
+  wahr(
+    !abgedeckt.befunde.some((b) => /personenbezogene Daten/.test(b.titel)),
+    'das abgedeckte Bild steht weiter im Verdacht'
+  );
+});
+
+s.test('die Empfehlung sagt, was als nächstes zu tun ist', () => {
+  const eingang = [
+    fertigesBild({ id: 'A1', gliederung: '6.1' }),
+    fertigesBild({ id: 'A2', gliederung: '6.1', titel: 'Zweiter Schritt' }),
+    fertigesBild({ id: 'A3', gliederung: '6.1', titel: 'Dritter Schritt' }),
+    fertigesBild({ id: 'A4', gliederung: '', titel: 'Noch ohne Stelle' })
+  ];
+  const ergebnis = kern.empfehlungen(eingang, agentenGliederung, []);
+  const titel = ergebnis.befunde.map((b) => b.titel);
+  wahr(titel.some((x) => /zuordnen/.test(x)), titel.join(' | '));
+  wahr(titel.some((x) => /Folge für 6.1 anlegen/.test(x)), 'aus drei Bildern wird keine Folge empfohlen');
+  wahr(titel.some((x) => /Kapitel 7 aufnehmen/.test(x)), 'das leere Kapitel fehlt');
+  wahr(titel.some((x) => /Zweite Sprache/.test(x)));
+  wahr(titel.some((x) => /Nur eine Rolle/.test(x)));
+  // Das Dringendste steht oben.
+  gleich(ergebnis.befunde[0].gewicht, 5);
+  gleich(ergebnis.kennzahlen.find((k) => k.schild === 'Deckung').wert, '50 %');
+
+  // Eine fertige Folge führt ins Designstudio.
+  const mitFolge = kern.empfehlungen(eingang, agentenGliederung, [
+    {
+      id: 'S1',
+      name: 'Weg',
+      schritte: [
+        { art: 'schritt', aufnahmen: ['A1'], text: 'eins' },
+        { art: 'schritt', aufnahmen: ['A2'], text: 'zwei' }
+      ]
+    }
+  ]);
+  const blatt = mitFolge.befunde.find((b) => /Blatt aus/.test(b.titel));
+  wahr(blatt, 'die fertige Folge führt nicht ins Designstudio');
+  gleich(blatt.weg, 'design');
+});
+
+s.test('ein leerer Bestand bringt alle drei Agenten nicht aus der Ruhe', () => {
+  for (const id of ['faden', 'audit', 'empfehlung']) {
+    const ergebnis = kern.fuehreAgent(id, [], agentenGliederung, []);
+    gleich(ergebnis.agent, id);
+    wahr(Array.isArray(ergebnis.befunde), id + ' gibt keine Liste zurück');
+    wahr(ergebnis.kennzahlen.length > 0, id + ' hat keine Kennzahlen');
+  }
+  tieferGleich(kern.fuehreAgent('unbekannt', [], [], []).befunde, []);
+  // Ohne Bestand ist das Kapitel-Aufnehmen die einzige sinnvolle Empfehlung.
+  const leer = kern.empfehlungen([], agentenGliederung, []);
+  wahr(leer.befunde.some((b) => /aufnehmen/.test(b.titel)), leer.befunde.map((b) => b.titel).join(' | '));
+});
+
+s.test('der Bericht ist lesbarer Text mit allen Befunden', () => {
+  const ergebnisse = ['faden', 'audit', 'empfehlung'].map((id) =>
+    kern.fuehreAgent(id, [fertigesBild({ id: 'A1', gliederung: '6.1' })], agentenGliederung, [])
+  );
+  const text = kern.berichtAlsText(ergebnisse, { stand: '2026-10-17T10:00:00Z', anwendung: '1.27.0' });
+  wahr(text.startsWith('Prüfbericht Screenarchiv 1.27.0'), text.slice(0, 60));
+  wahr(text.includes('Stand: 17.10.2026, 10:00'));
+  for (const label of ['Roter Faden', 'Audit', 'Empfehlung']) wahr(text.includes('## ' + label), label + ' fehlt');
+  wahr(text.includes('Betrifft:') || text.includes('Kein Befund.'));
+  const mitKommentar = kern.berichtAlsText([{ ...ergebnisse[1], kommentar: 'Der Bestand ist dünn.' }]);
+  wahr(mitKommentar.includes('Kommentar von Claude:'));
+  wahr(mitKommentar.includes('Der Bestand ist dünn.'));
+});
+
+s.test('Gliederungsnummern vergleichen sich Teil für Teil', () => {
+  wahr(kern.vergleicheKapitel('6.2', '6.10') < 0, '6.2 steht nicht vor 6.10');
+  wahr(kern.vergleicheKapitel('6.10', '6.2') > 0);
+  gleich(kern.vergleicheKapitel('6', '6'), 0);
+  wahr(kern.vergleicheKapitel('6', '6.1') < 0, 'das Kapitel steht nicht vor seinem Unterkapitel');
+  wahr(kern.vergleicheKapitel('A.1', '6.1') > 0, 'Anhänge stehen nicht hinter Zahlen');
+});
+
 export default s;

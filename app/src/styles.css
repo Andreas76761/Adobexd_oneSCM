@@ -1392,3 +1392,52 @@ div.streifen-bild { cursor: default; }
 @media (max-width: 760px) {
   .chat-fenster { left: 8px !important; top: auto !important; bottom: 8px; width: calc(100vw - 16px) !important; }
 }
+
+/* ------------------------------------------------- Prüfung (1.27.0) */
+
+.pruef-kopf { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; padding: 18px 0 10px; }
+.pruef-agenten {
+  display: grid; gap: 18px; padding: 12px 0 60px;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+.pruef-agent {
+  display: grid; gap: 12px; align-content: start; padding: 14px 16px 18px;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche);
+}
+.pruef-agent-kopf { display: grid; gap: 6px; }
+.pruef-agent-kopf h3 { margin: 0; font-size: 15px; }
+.pruef-agent-kopf .markier-knoepfe { margin-left: 0; }
+.pruef-kennzahlen {
+  display: grid; gap: 1px; background: var(--linie);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  border: 1px solid var(--linie); border-radius: var(--radius); overflow: hidden;
+}
+.pruef-befunde { display: grid; gap: 10px; }
+.pruef-befund {
+  display: grid; gap: 6px; padding: 10px 12px; border-left: 3px solid var(--linie-stark);
+  border-radius: 0 var(--radius) var(--radius) 0; background: var(--flaeche-2);
+}
+.pruef-befund p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--tinte-2); }
+.pruef-befund--fehler { border-left-color: var(--akzent); }
+.pruef-befund--warnung { border-left-color: var(--warn); }
+.pruef-befund--hinweis { border-left-color: var(--linie-stark); }
+.pruef-befund-kopf { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.pruef-befund-kopf h4 { margin: 0; font-size: 13px; }
+.pruef-art {
+  padding: 1px 7px; border-radius: 10px; background: var(--flaeche-3); color: var(--tinte-2);
+  font-family: var(--schrift-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
+}
+.pruef-befund--fehler .pruef-art { background: var(--akzent-hauch); color: var(--akzent-tief); }
+.pruef-kennungen { display: flex; flex-wrap: wrap; gap: 4px; }
+.pruef-kennung {
+  padding: 2px 7px; border: 1px solid var(--linie); border-radius: 10px; background: var(--flaeche);
+  color: var(--tinte-2); font-family: var(--schrift-mono); font-size: 10.5px; cursor: pointer;
+}
+.pruef-kennung:hover { border-color: var(--akzent); color: var(--akzent); }
+.pruef-befund-knoepfe { display: flex; flex-wrap: wrap; gap: 6px; }
+.pruef-kommentar {
+  display: grid; gap: 6px; padding: 10px 12px; border: 1px dashed var(--linie-stark);
+  border-radius: var(--radius); background: var(--flaeche-2);
+}
+.pruef-kommentar h4 { margin: 0; font-size: 12.5px; }
+.pruef-kommentar p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--tinte-2); }

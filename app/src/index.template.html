@@ -63,6 +63,7 @@
             <button type="button" data-ansicht="strecke">Strecke</button>
             <button type="button" data-ansicht="design">Design</button>
             <button type="button" data-ansicht="gliederung">Gliederung</button>
+            <button type="button" data-ansicht="pruefung">Prüfung</button>
             <button type="button" data-ansicht="eingang">Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
           </nav>
         </div>
@@ -608,6 +609,24 @@
   </footer>
 </div>
 
+  <section id="pruefung-ansicht" aria-label="Prüfung" hidden>
+    <div class="pruef-kopf">
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--haupt" id="pruef-alle">Alle drei prüfen</button>
+        <button type="button" class="knopf" id="pruef-bericht" disabled>Bericht sichern</button>
+      </div>
+    </div>
+    <p class="band-hinweis">
+      Drei Agenten sehen sich den Bestand an: der <b>rote Faden</b> prüft die
+      Folge, das <b>Audit</b> jedes Bild für sich, die <b>Empfehlung</b> sagt,
+      was als nächstes zu tun ist. Alle drei prüfen nach Regeln – jeder Befund
+      nennt die Bilder, um die es geht, und den Weg dorthin. Claude darf das
+      Ergebnis hinterher kommentieren; entscheiden tun die Regeln.
+    </p>
+    <p class="studio-meldung" id="pruef-meldung" role="status" aria-live="polite"></p>
+    <div class="pruef-agenten" id="pruef-agenten"></div>
+  </section>
+
 <section class="chat-fenster" id="chat-fenster" aria-label="Bilder suchen" hidden>
   <header class="chat-kopf" id="chat-griff">
     <h2 id="chat-titel">Bilder suchen</h2>
@@ -653,5 +672,6 @@
 /*%DESIGN%*/
 /*%IMPORT%*/
 /*%CHAT%*/
+/*%PRUEFUNG%*/
 })();
 </script>

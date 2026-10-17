@@ -20,6 +20,28 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.27.0] – Drei Agenten: roter Faden, Audit, Empfehlung
+
+### Neu
+* Neue Ansicht **Prüfung** mit drei Agenten (F-43), die nach Regeln prüfen:
+  **Roter Faden** (Folge, Lücken, Sprünge, gemischte Sprachen und Rollen),
+  **Audit** (Vollständigkeit, Auflösung, Labels, doppelte Titel, verwaiste
+  Verweise, Hinweis auf personenbezogene Daten ohne Abdeckung) und
+  **Empfehlung** (was als nächstes zu tun ist, nach Gewicht sortiert)
+* Jeder Befund nennt **Art, Gewicht, betroffene Bilder und den Weg dorthin**;
+  eine Kennung öffnet das Bild im Editor
+* **Bericht sichern** als Textdatei mit allen gelaufenen Agenten
+* **Claude kommentiert** den fertigen Bericht, wenn `sample` da ist – als
+  Kommentar gekennzeichnet, nach den Befunden, nie an ihrer Stelle
+
+### Kern
+* `AGENTEN`, `PRUEF_GRENZEN`, `pruefeFaden`, `pruefeAudit`, `empfehlungen`,
+  `fuehreAgent`, `berichtAlsText`, `vergleicheKapitel`
+
+### Prüfung
+* Neue Datei `15-pruefung.e2e.mjs`; 7 neue Kernprüfungen, 6 Browserprüfungen,
+  zusammen 334
+
 ## [1.26.0] – Suchchat: nach Bildern fragen
 
 ### Neu

@@ -109,6 +109,7 @@ function setze(aenderung, neuZeichnen = true) {
   if (zustand.ansicht === 'gliederung') zeichneGliederung();
   if (zustand.ansicht === 'design') zeichneDesign();
   if (zustand.ansicht === 'import') zeichneImport();
+  if (zustand.ansicht === 'pruefung') zeichnePruefung();
 }
 
 function schalte(dimension, wert) {
@@ -549,6 +550,7 @@ const ABSCHNITTE = {
   strecke: 'strecke-ansicht',
   design: 'design-ansicht',
   gliederung: 'gliederung-ansicht',
+  pruefung: 'pruefung-ansicht',
   eingang: 'eingang-ansicht'
 };
 
@@ -866,6 +868,7 @@ if (zustand.ansicht === 'strecke') zeichneStrecke();
 if (zustand.ansicht === 'gliederung') zeichneGliederung();
 if (zustand.ansicht === 'design') zeichneDesign();
 if (zustand.ansicht === 'import') zeichneImport();
+if (zustand.ansicht === 'pruefung') zeichnePruefung();
 if (zustand.auswahl) oeffneDetail(zustand.auswahl, false);
 document.documentElement.dataset.bereit = 'ja';
 }

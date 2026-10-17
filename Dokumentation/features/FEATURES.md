@@ -1006,3 +1006,45 @@ wird in jedem Fall in der Seite, und was die Seite sicher erkannt hat (festes
 Vokabular), bleibt stehen. Damit kann im Fenster nie ein Bild stehen, das es
 nicht gibt. Fehlt die Fähigkeit oder scheitert der Aufruf, bleibt die Deutung
 der Seite – die Antwort kommt immer.
+
+---
+
+## F-43 · Drei Agenten: roter Faden, Audit, Empfehlung
+
+**Seit** 1.27.0 · **Ansicht** Prüfung
+
+Alle drei prüfen **nach Regeln** (im Kern, ohne DOM): was sie sagen, lässt
+sich am Bestand nachrechnen, und jeder Befund nennt die Bilder, um die es
+geht, samt dem Weg dorthin (Editor, Gliederung, Strecke, Designstudio,
+Aufnahme). Befunde sind `fehler`, `warnung` oder `hinweis` und nach Gewicht
+sortiert – das Wichtigste oben.
+
+**Roter Faden** – prüft die Folge: Schritte ohne Anweisung, Platzhalter,
+Folgen mit weniger als zwei Schritten, gemischte Sprachen oder Rollen in
+einer Folge, Folgen, die gegen die Gliederung laufen, Stellen mit Bildern
+ohne Folge, Lücken mitten in einer Reihe von Unterkapiteln, Bilder ohne
+Stelle und Nummern, die es in der Gliederung nicht gibt.
+
+**Audit** – prüft jedes Bild: Vollständigkeit, Auflösung unter 1280 px (für
+A4 bei 300 dpi zu wenig), Bilder, von denen nur die Vorschau da ist,
+fehlende Labels, doppelte und zu knappe Titel, Verweise auf gelöschte
+Bilder, Stellen, die es nicht gibt. Dazu ein Hinweis, wo im Text
+personenbezogene Daten genannt sind (FIN, User ID, Adresse …), ohne dass am
+Bild etwas unkenntlich gemacht wurde – kein Urteil, nur ein Blick, der sich
+lohnt.
+
+**Empfehlung** – sagt, was als nächstes zu tun ist: Bilder zuordnen,
+Platzhalter füllen, aus Bildern eine Folge machen, aus einer fertigen Folge
+ein Blatt, das größte leere Kapitel aufnehmen, die zweite Sprache und die
+fehlenden Rollen. Kennzahlen: belegte Kapitel, Deckung in Prozent, fertige
+Folgen, Platzhalter.
+
+**Bericht** Alle gelaufenen Agenten als Textdatei
+(`pruefbericht-2026-10-17.txt`) mit Kennzahlen, Befunden und betroffenen
+Kennungen.
+
+**Claude kommentiert** Steht `sample` zur Verfügung, liest Claude den
+fertigen Bericht eines Agenten und schreibt höchstens fünf Sätze dazu. Der
+Kommentar steht als Kommentar da und ist so gekennzeichnet; die Befunde
+stehen fest, bevor er kommt. Fehlt die Fähigkeit, sagt die Seite das – und
+die Befunde bleiben.

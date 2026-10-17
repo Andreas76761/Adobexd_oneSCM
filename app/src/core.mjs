@@ -21,7 +21,18 @@ export const STANDARD_ZUSTAND = {
 export const ARCHIV_ANSICHTEN = ['aktiv', 'archiv', 'alle'];
 
 /** Hauptansichten der Seite (Navigation oben links). */
-export const ANSICHTEN = ['archiv', 'aufnahme', 'import', 'ausschneiden', 'markieren', 'strecke', 'design', 'gliederung', 'eingang'];
+export const ANSICHTEN = [
+  'archiv',
+  'aufnahme',
+  'import',
+  'ausschneiden',
+  'markieren',
+  'strecke',
+  'design',
+  'gliederung',
+  'pruefung',
+  'eingang'
+];
 
 export const SORTIERUNGEN = [
   { id: 'datum-neu', label: 'Neueste zuerst' },
@@ -2311,6 +2322,29 @@ export function naechsteUnterkapitelnummer(liste = [], kapitel) {
 }
 
 /** Sortiert nach Gliederung; was keine Nummer hat, steht hinten. */
+/**
+ * Vergleicht zwei Gliederungsnummern Teil fuer Teil: „6.2" steht vor „6.10",
+ * und „A.1" neben Zahlen. Der Vergleich ist die Grundlage fuer die Frage, ob
+ * eine Folge gegen die Gliederung laeuft.
+ */
+export function vergleicheKapitel(a, b) {
+  const teile = (text) => String(text || '').split('.').map((t) => (/^\d+$/.test(t) ? Number(t) : t));
+  const x = teile(a);
+  const y = teile(b);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const p = x[i];
+    const q = y[i];
+    if (p === undefined) return -1;
+    if (q === undefined) return 1;
+    if (typeof p === 'number' && typeof q === 'number') {
+      if (p !== q) return p - q;
+    } else if (String(p) !== String(q)) {
+      return String(p).localeCompare(String(q));
+    }
+  }
+  return 0;
+}
+
 export function sortiereNachKapitel(liste = []) {
   const schluessel = (a) => [Number(a.kapitel) || 9999, Number(a.unterkapitel) || 9999];
   return [...liste].sort((a, b) => {
@@ -3128,4 +3162,496 @@ export function haltImBild(lage = {}, sicht = { breite: 1280, hoehe: 800 }) {
     x: Math.min(Math.max(8, lage.x || 0), Math.max(8, sicht.breite - breite - 8)),
     y: Math.min(Math.max(8, lage.y || 0), Math.max(8, sicht.hoehe - hoehe - 8))
   };
+}
+
+/* =========================================================================
+   Drei Agenten – roter Faden, Audit, Empfehlung.
+
+   Alle drei prüfen nach Regeln, nicht nach Gefühl: was sie sagen, lässt sich
+   am Bestand nachrechnen, und jeder Befund nennt die Bilder, um die es geht.
+   Claude darf das Ergebnis hinterher kommentieren – entscheiden tun die
+   Regeln. Ein Agent, der raten müsste, sagte besser nichts.
+   ========================================================================= */
+
+export const AGENTEN = [
+  {
+    id: 'faden',
+    label: 'Roter Faden',
+    zweck: 'Erzählt die Galerie eine Geschichte? Folge, Lücken, Sprünge, gemischte Sprachen und Rollen.'
+  },
+  {
+    id: 'audit',
+    label: 'Audit',
+    zweck: 'Ist jedes Bild vollständig, zugeordnet, gelabelt und in der Auflösung, die der Druck braucht?'
+  },
+  {
+    id: 'empfehlung',
+    label: 'Empfehlung',
+    zweck: 'Was als nächstes zu tun ist – nach Gewicht sortiert, mit dem Weg dorthin.'
+  }
+];
+
+/** Die Grenzen, an denen die Agenten messen. Offen, damit sie prüfbar sind. */
+export const PRUEF_GRENZEN = {
+  druckbreite: 1280, // darunter wird die Schrift im Druck unscharf
+  titelLaenge: 8,
+  strecke: 3, // ab so vielen Bildern je Stelle lohnt eine Folge
+  personendaten: ['fin', 'vin', 'user id', 'userid', 'benutzer-id', 'adresse', 'kundennummer', 'iban', 'kennwort', 'passwort', 'e-mail', 'email']
+};
+
+const befund = (art, titel, text, zusatz = {}) => ({
+  art,
+  titel,
+  text,
+  kennungen: zusatz.kennungen || [],
+  stelle: zusatz.stelle || '',
+  weg: zusatz.weg || '',
+  gewicht: zusatz.gewicht || (art === 'fehler' ? 3 : art === 'warnung' ? 2 : 1)
+});
+
+/** Nach Gewicht, dann nach Art - das Wichtigste steht oben. */
+function sortiereBefunde(befunde) {
+  const rang = { fehler: 0, warnung: 1, hinweis: 2 };
+  return [...befunde].sort((a, b) => b.gewicht - a.gewicht || rang[a.art] - rang[b.art] || a.titel.localeCompare(b.titel));
+}
+
+/* ------------------------------------------------------------ Roter Faden */
+
+/**
+ * Der rote Faden prüft die *Folge*: ob die Bilder einer Stelle eine Reihe
+ * bilden, ob eine Folge Lücken hat und ob in einer Folge Sprache oder Rolle
+ * mitten im Weg wechseln. Ein Wechsel ist kein Fehler - er muss nur gewollt
+ * sein, und darum wird er genannt.
+ */
+export function pruefeFaden(eingang = [], gliederung = [], strecken = []) {
+  const befunde = [];
+  const { zahlen, ohneStelle, unbekannt } = zaehleBilder(gliederung, eingang);
+  const inStrecken = new Set();
+  for (const strecke of strecken) {
+    for (const schritt of strecke.schritte || []) for (const k of schritt.aufnahmen || []) inStrecken.add(k);
+  }
+
+  for (const strecke of strecken) {
+    const name = strecke.name || 'ohne Namen';
+    const schritte = streckeMitAufnahmen(strecke, eingang);
+    if (schritte.length < 2) {
+      befunde.push(
+        befund('warnung', `Folge „${name}" ist keine Folge`, `Sie hat ${schritte.length} Schritt(e). Eine Folge beginnt bei zwei.`, {
+          weg: 'strecke',
+          gewicht: 2
+        })
+      );
+    }
+    const ohneText = schritte.filter((s) => !String(s.text || '').trim());
+    if (ohneText.length) {
+      befunde.push(
+        befund('fehler', `Folge „${name}": ${ohneText.length} Schritt(e) ohne Anweisung`, 'Ein Bild ohne Anweisung erzählt nichts.', {
+          kennungen: ohneText.map((s) => (s.aufnahme ? s.aufnahme.id : `Schritt ${s.nummer}`)),
+          weg: 'strecke',
+          gewicht: 4
+        })
+      );
+    }
+    const luecken = schritte.filter((s) => s.art === 'platzhalter');
+    if (luecken.length) {
+      befunde.push(
+        befund('warnung', `Folge „${name}": ${luecken.length} Platzhalter`, `Es fehlen noch Bilder: ${luecken.map((s) => s.text || `Schritt ${s.nummer}`).join('; ')}`, {
+          weg: 'strecke',
+          gewicht: 3
+        })
+      );
+    }
+    // Sprache und Rolle dürfen wechseln - aber nicht unbemerkt.
+    for (const feld of ['sprache', 'rolle_label']) {
+      const werte = [...new Set(schritte.flatMap((s) => s.aufnahmen.map((a) => a[feld]).filter(Boolean)))];
+      if (werte.length > 1) {
+        befunde.push(
+          befund(
+            'hinweis',
+            `Folge „${name}" mischt ${feld === 'sprache' ? 'Sprachen' : 'Rollen'}`,
+            `In einer Folge stehen ${werte.map((w) => labelWert(feld, w)).join(', ')}. Für ein Handbuch ist je Sprache und Rolle eine eigene Folge klarer.`,
+            { weg: 'strecke', gewicht: 2 }
+          )
+        );
+      }
+    }
+    // Läuft die Folge gegen die Gliederung, ist entweder die Folge oder die
+    // Zuordnung falsch - beides lohnt einen Blick.
+    const stellen = schritte.map((s) => (s.aufnahme ? String(s.aufnahme.gliederung || '') : '')).filter(Boolean);
+    const rueckwaerts = stellen.filter((stelle, i) => i > 0 && vergleicheKapitel(stelle, stellen[i - 1]) < 0);
+    if (rueckwaerts.length) {
+      befunde.push(
+        befund('hinweis', `Folge „${name}" läuft gegen die Gliederung`, `Nach ${stellen.join(' → ')} springt sie zurück. Entweder ist die Reihenfolge gewollt – oder eine Zuordnung sitzt falsch.`, {
+          weg: 'strecke',
+          gewicht: 1
+        })
+      );
+    }
+  }
+
+  // Stellen mit Bildern, die keine Folge erzählt.
+  for (const eintrag of gliederung) {
+    const zahl = zahlen.get(eintrag.nummer) || { eigene: 0, gesamt: 0 };
+    if (zahl.eigene < PRUEF_GRENZEN.strecke) continue;
+    const bilder = eingang.filter((a) => String(a.gliederung || '') === eintrag.nummer);
+    if (bilder.every((a) => !inStrecken.has(a.id))) {
+      befunde.push(
+        befund('warnung', `${eintrag.nummer} hat ${zahl.eigene} Bilder, aber keine Folge`, `„${eintrag.thema}" wäre eine Anleitung – bisher sind es einzelne Bilder.`, {
+          kennungen: bilder.map((a) => a.id),
+          stelle: eintrag.nummer,
+          weg: 'strecke',
+          gewicht: 3
+        })
+      );
+    }
+  }
+
+  // Eine Lücke mitten in einer Reihe von Unterkapiteln.
+  for (const eintrag of gliederung.filter((e) => e.ebene === 1)) {
+    const kinder = gliederung.filter((e) => e.ebene === 2 && gehoertZu(e.nummer, eintrag.nummer));
+    const mit = kinder.filter((k) => (zahlen.get(k.nummer) || {}).gesamt);
+    if (mit.length < 2 || mit.length === kinder.length) continue;
+    const ersteMit = kinder.indexOf(mit[0]);
+    const letzteMit = kinder.indexOf(mit[mit.length - 1]);
+    const luecken = kinder.slice(ersteMit, letzteMit + 1).filter((k) => !(zahlen.get(k.nummer) || {}).gesamt);
+    if (luecken.length) {
+      befunde.push(
+        befund('warnung', `Kapitel ${eintrag.nummer}: ${luecken.length} Lücke(n) mitten in der Reihe`, `Belegt sind ${mit.length} von ${kinder.length} Unterkapiteln; ohne Bild bleiben ${luecken.map((l) => l.nummer).join(', ')}. Eine Lücke zwischen belegten Stellen fällt im Handbuch auf.`, {
+          stelle: eintrag.nummer,
+          weg: 'gliederung',
+          gewicht: 3
+        })
+      );
+    }
+  }
+
+  if (ohneStelle) {
+    befunde.push(
+      befund('warnung', `${ohneStelle} Bild(er) ohne Stelle`, 'Ohne Stelle im Handbuch stehen sie in keinem Kapitel und in keiner Vorlage.', {
+        kennungen: eingang.filter((a) => !String(a.gliederung || '').trim()).map((a) => a.id),
+        weg: 'editor',
+        gewicht: 3
+      })
+    );
+  }
+  if (unbekannt.length) {
+    befunde.push(
+      befund('fehler', `${unbekannt.length} unbekannte Stelle(n)`, `Diese Nummern stehen an Bildern, aber nicht in der Gliederung: ${unbekannt.join(', ')}.`, {
+        weg: 'gliederung',
+        gewicht: 4
+      })
+    );
+  }
+
+  const inFolge = eingang.filter((a) => inStrecken.has(a.id)).length;
+  return {
+    agent: 'faden',
+    befunde: sortiereBefunde(befunde),
+    kennzahlen: [
+      { schild: 'Bilder', wert: String(eingang.length) },
+      { schild: 'in einer Folge', wert: `${inFolge}`, zusatz: eingang.length ? `${Math.round((inFolge / eingang.length) * 100)} %` : '–' },
+      { schild: 'Folgen', wert: String(strecken.length) },
+      { schild: 'ohne Stelle', wert: String(ohneStelle) }
+    ]
+  };
+}
+
+/* ------------------------------------------------------------------ Audit */
+
+/**
+ * Das Audit prüft jedes Bild für sich: Vollständigkeit, Zuordnung, Labels,
+ * Auflösung. Dazu ein Hinweis, wo im Text personenbezogene Daten genannt
+ * sind, ohne dass etwas unkenntlich gemacht wurde - das ist kein Urteil,
+ * sondern ein Blick, der sich lohnt.
+ */
+export function pruefeAudit(eingang = [], gliederung = [], strecken = []) {
+  const befunde = [];
+  const sammle = (pruefung) => eingang.filter(pruefung).map((a) => a.id);
+
+  const unvollstaendig = sammle((a) => !istVollstaendig(a));
+  if (unvollstaendig.length) {
+    befunde.push(
+      befund('warnung', `${unvollstaendig.length} Bild(er) unvollständig`, 'Es fehlt Titel, Projekt, Kategorie oder ein Schlagwort.', {
+        kennungen: unvollstaendig,
+        weg: 'eingang',
+        gewicht: 3
+      })
+    );
+  }
+
+  const klein = eingang.filter((a) => Number(a.breite || a.quelle?.breite || 0) > 0 && Number(a.breite || a.quelle?.breite || 0) < PRUEF_GRENZEN.druckbreite);
+  if (klein.length) {
+    befunde.push(
+      befund('warnung', `${klein.length} Bild(er) unter ${PRUEF_GRENZEN.druckbreite} px breit`, 'Für A4 bei 300 dpi ist das zu wenig – im Druck wird die Schrift unscharf.', {
+        kennungen: klein.map((a) => a.id),
+        weg: 'eingang',
+        gewicht: 3
+      })
+    );
+  }
+
+  const nurVorschau = sammle((a) => !a.voll);
+  if (nurVorschau.length) {
+    befunde.push(
+      befund('fehler', `${nurVorschau.length} Bild(er) nur als Vorschau`, 'Das volle Bild liegt nicht in der Browserdatenbank – für den Druck fehlt die Auflösung. Neu aufnehmen oder neu importieren.', {
+        kennungen: nurVorschau,
+        weg: 'eingang',
+        gewicht: 4
+      })
+    );
+  }
+
+  for (const feld of ['sprache', 'rolle_label', 'sparte']) {
+    const ohne = sammle((a) => !a[feld]);
+    if (!ohne.length) continue;
+    befunde.push(
+      befund(ohne.length === eingang.length ? 'warnung' : 'hinweis', `${ohne.length} Bild(er) ohne ${LABEL_FELDER.find((f) => f.id === feld).label}`, 'Ohne dieses Label lässt sich nicht nach ihm suchen und es steht in keiner Bildunterschrift.', {
+        kennungen: ohne,
+        weg: 'editor',
+        gewicht: 2
+      })
+    );
+  }
+
+  // Zwei Bilder mit demselben Titel sind im Handbuch nicht zu unterscheiden.
+  const nachTitel = new Map();
+  for (const a of eingang) {
+    const schluessel = normalisiereLang(a.titel || '');
+    if (!schluessel) continue;
+    nachTitel.set(schluessel, [...(nachTitel.get(schluessel) || []), a.id]);
+  }
+  const doppelt = [...nachTitel.values()].filter((liste) => liste.length > 1);
+  if (doppelt.length) {
+    befunde.push(
+      befund('hinweis', `${doppelt.length} Titel doppelt belegt`, 'Gleiche Titel sind in einer Bildunterschrift nicht zu unterscheiden.', {
+        kennungen: doppelt.flat(),
+        weg: 'eingang',
+        gewicht: 2
+      })
+    );
+  }
+
+  const kurz = sammle((a) => String(a.titel || '').trim().length < PRUEF_GRENZEN.titelLaenge);
+  if (kurz.length) {
+    befunde.push(
+      befund('hinweis', `${kurz.length} Titel zu knapp`, `Unter ${PRUEF_GRENZEN.titelLaenge} Zeichen sagt ein Titel in der Regel nichts.`, {
+        kennungen: kurz,
+        weg: 'eingang',
+        gewicht: 1
+      })
+    );
+  }
+
+  // Personenbezogene Daten im Text, aber nichts abgedeckt.
+  const verdacht = eingang.filter((a) => {
+    const text = normalisiereLang(`${a.titel || ''} ${a.notiz || ''} ${(a.begriffe || []).join(' ')}`);
+    const genannt = PRUEF_GRENZEN.personendaten.some((wort) => text.includes(normalisiereLang(wort)));
+    const abgedeckt = leseFassungen(a).some((f) => (f.marken || []).some((m) => m.art === 'unkenntlich'));
+    return genannt && !abgedeckt;
+  });
+  if (verdacht.length) {
+    befunde.push(
+      befund('warnung', `${verdacht.length} Bild(er) nennen personenbezogene Daten, ohne etwas abzudecken`, 'Im Text stehen Begriffe wie FIN, User ID oder Adresse, am Bild ist aber nichts unkenntlich gemacht. Das ist kein Urteil – nur ein Blick, der sich lohnt.', {
+        kennungen: verdacht.map((a) => a.id),
+        weg: 'editor',
+        gewicht: 4
+      })
+    );
+  }
+
+  // Verwaiste Schritte: die Folge verweist auf ein Bild, das es nicht gibt.
+  const verwaist = [];
+  for (const strecke of strecken) {
+    for (const schritt of strecke.schritte || []) {
+      for (const k of schritt.aufnahmen || []) if (!eingang.some((a) => a.id === k)) verwaist.push(k);
+    }
+  }
+  if (verwaist.length) {
+    befunde.push(
+      befund('fehler', `${verwaist.length} Verweis(e) auf gelöschte Bilder`, `In Folgen stehen Schritte, deren Bild im Eingang fehlt: ${[...new Set(verwaist)].join(', ')}.`, {
+        weg: 'strecke',
+        gewicht: 4
+      })
+    );
+  }
+
+  const stellen = new Set(gliederung.map((e) => e.nummer));
+  const falsch = sammle((a) => String(a.gliederung || '').trim() && !stellen.has(String(a.gliederung).trim()));
+  if (falsch.length) {
+    befunde.push(
+      befund('fehler', `${falsch.length} Bild(er) an einer Stelle, die es nicht gibt`, 'Die Nummer steht nicht in der Gliederung – im Handbuch landet das Bild nirgends.', {
+        kennungen: falsch,
+        weg: 'editor',
+        gewicht: 4
+      })
+    );
+  }
+
+  const sauber = eingang.length - new Set(befunde.flatMap((b) => b.kennungen)).size;
+  return {
+    agent: 'audit',
+    befunde: sortiereBefunde(befunde),
+    kennzahlen: [
+      { schild: 'Bilder', wert: String(eingang.length) },
+      { schild: 'ohne Befund', wert: String(Math.max(0, sauber)) },
+      { schild: 'Befunde', wert: String(befunde.length) },
+      { schild: 'davon Fehler', wert: String(befunde.filter((b) => b.art === 'fehler').length) }
+    ]
+  };
+}
+
+/* ------------------------------------------------------------- Empfehlung */
+
+/**
+ * Die Empfehlung sagt, was als nächstes zu tun ist. Sie urteilt nicht über
+ * Bilder, sondern über den Weg zum Handbuch: wo Bilder fehlen, wo aus
+ * Bildern eine Folge werden kann und wo aus einer Folge eine Seite.
+ */
+export function empfehlungen(eingang = [], gliederung = [], strecken = []) {
+  const befunde = [];
+  const { zahlen, ohneStelle } = zaehleBilder(gliederung, eingang);
+  const kapitel = gliederung.filter((e) => e.ebene === 1 && e.art !== 'uebergang');
+  const belegt = kapitel.filter((e) => (zahlen.get(e.nummer) || {}).gesamt);
+
+  if (ohneStelle) {
+    befunde.push(
+      befund('hinweis', `${ohneStelle} Bild(er) zuordnen`, 'Im Editor eine Stelle im Handbuch setzen – danach stehen sie in Gliederung und Designstudio zur Verfügung.', {
+        kennungen: eingang.filter((a) => !String(a.gliederung || '').trim()).map((a) => a.id),
+        weg: 'editor',
+        gewicht: 5
+      })
+    );
+  }
+
+  // Aus Bildern eine Folge machen.
+  const ohneFolge = gliederung.filter((e) => {
+    const zahl = zahlen.get(e.nummer) || {};
+    if ((zahl.eigene || 0) < PRUEF_GRENZEN.strecke) return false;
+    const bilder = eingang.filter((a) => String(a.gliederung || '') === e.nummer).map((a) => a.id);
+    return !strecken.some((s) => (s.schritte || []).some((sch) => (sch.aufnahmen || []).some((k) => bilder.includes(k))));
+  });
+  for (const e of ohneFolge.slice(0, 5)) {
+    befunde.push(
+      befund('hinweis', `Folge für ${e.nummer} anlegen`, `„${e.thema}" hat ${(zahlen.get(e.nummer) || {}).eigene} Bilder. Als Folge mit Anweisungen wird daraus eine Anleitung – und daraus ein Blatt.`, {
+        stelle: e.nummer,
+        weg: 'strecke',
+        gewicht: 4
+      })
+    );
+  }
+
+  // Aus einer Folge eine Seite machen.
+  for (const strecke of strecken) {
+    const schritte = streckeMitAufnahmen(strecke, eingang);
+    if (schritte.length < 2) continue;
+    if (schritte.some((s) => !String(s.text || '').trim() || s.art === 'platzhalter')) continue;
+    befunde.push(
+      befund('hinweis', `Blatt aus „${strecke.name || 'ohne Namen'}" erzeugen`, `${schritte.length} Schritte, alle mit Anweisung – im Designstudio wird daraus ein Quick Guide, One Pager, Releaseletter oder eine Handbuchseite.`, {
+        weg: 'design',
+        gewicht: 4
+      })
+    );
+  }
+
+  // Kapitel ohne jedes Bild - die größten zuerst.
+  const leer = kapitel
+    .filter((e) => !(zahlen.get(e.nummer) || {}).gesamt)
+    .map((e) => ({ eintrag: e, kinder: gliederung.filter((k) => k.ebene > 1 && gehoertZu(k.nummer, e.nummer)).length }))
+    .sort((a, b) => b.kinder - a.kinder);
+  for (const { eintrag, kinder } of leer.slice(0, 3)) {
+    befunde.push(
+      befund('hinweis', `Kapitel ${eintrag.nummer} aufnehmen`, `„${eintrag.thema}" hat ${kinder} Stellen und kein einziges Bild – das größte offene Stück.`, {
+        stelle: eintrag.nummer,
+        weg: 'aufnahme',
+        gewicht: 3
+      })
+    );
+  }
+
+  // Übersetzungen: wo eine Sprache steht und eine zweite fehlt.
+  const sprachen = new Set(eingang.map((a) => a.sprache).filter(Boolean));
+  if (sprachen.size === 1 && eingang.length >= 3) {
+    const [eine] = [...sprachen];
+    befunde.push(
+      befund('hinweis', 'Zweite Sprache fehlt vollständig', `Alle gelabelten Bilder stehen auf ${labelWert('sprache', eine)}. Für ein Handbuch in mehreren Märkten braucht es dieselbe Folge je Sprache.`, {
+        weg: 'editor',
+        gewicht: 2
+      })
+    );
+  }
+
+  // Rollen: eine Rolle allein deckt oneSCM nicht ab.
+  const rollen = new Set(eingang.map((a) => a.rolle_label).filter(Boolean));
+  if (rollen.size === 1 && eingang.length >= 3) {
+    const fehlen = ROLLEN_LABEL.filter((r) => !rollen.has(r.id)).map((r) => r.label);
+    befunde.push(
+      befund('hinweis', 'Nur eine Rolle belegt', `Bisher nur ${labelWert('rolle_label', [...rollen][0])}; es fehlen ${fehlen.join(', ')}.`, {
+        weg: 'editor',
+        gewicht: 2
+      })
+    );
+  }
+
+  const platzhalter = strecken.reduce(
+    (summe, s) => summe + (s.schritte || []).filter((sch) => sch.art === 'platzhalter').length,
+    0
+  );
+  if (platzhalter) {
+    befunde.push(
+      befund('hinweis', `${platzhalter} Platzhalter füllen`, 'In den Folgen stehen Lücken, die auf ein Bild warten – sie sind die kürzeste Liste offener Aufnahmen.', {
+        weg: 'strecke',
+        gewicht: 5
+      })
+    );
+  }
+
+  if (!befunde.length) {
+    befunde.push(
+      befund('hinweis', 'Nichts zu empfehlen', 'Jedes Bild ist zugeordnet, jede Folge vollständig, jedes Kapitel belegt. Das ist selten – dann lohnt der Blick ins Designstudio.', {
+        weg: 'design',
+        gewicht: 1
+      })
+    );
+  }
+
+  return {
+    agent: 'empfehlung',
+    befunde: sortiereBefunde(befunde),
+    kennzahlen: [
+      { schild: 'Kapitel belegt', wert: `${belegt.length}`, zusatz: `von ${kapitel.length}` },
+      {
+        schild: 'Deckung',
+        wert: kapitel.length ? `${Math.round((belegt.length / kapitel.length) * 100)} %` : '–'
+      },
+      { schild: 'Folgen fertig', wert: String(strecken.filter((s) => !pruefeStrecke(s, eingang).length).length) },
+      { schild: 'Platzhalter', wert: String(platzhalter) }
+    ]
+  };
+}
+
+/** Führt einen der drei Agenten aus. Ein unbekannter Name liefert nichts. */
+export function fuehreAgent(id, eingang = [], gliederung = [], strecken = []) {
+  if (id === 'faden') return pruefeFaden(eingang, gliederung, strecken);
+  if (id === 'audit') return pruefeAudit(eingang, gliederung, strecken);
+  if (id === 'empfehlung') return empfehlungen(eingang, gliederung, strecken);
+  return { agent: String(id || ''), befunde: [], kennzahlen: [] };
+}
+
+/** Der Bericht als Text - zum Sichern, Weitergeben und Nachlesen. */
+export function berichtAlsText(ergebnisse = [], { stand = new Date().toISOString(), anwendung = '' } = {}) {
+  const zeilen = [`Prüfbericht Screenarchiv${anwendung ? ' ' + anwendung : ''}`, `Stand: ${formatiereZeitpunkt(stand)}`, ''];
+  for (const ergebnis of ergebnisse) {
+    const agent = AGENTEN.find((a) => a.id === ergebnis.agent);
+    zeilen.push(`## ${agent ? agent.label : ergebnis.agent}`, '');
+    zeilen.push((ergebnis.kennzahlen || []).map((k) => `${k.schild}: ${k.wert}${k.zusatz ? ` (${k.zusatz})` : ''}`).join(' · '), '');
+    if (!(ergebnis.befunde || []).length) zeilen.push('Kein Befund.', '');
+    for (const b of ergebnis.befunde || []) {
+      zeilen.push(`[${b.art}] ${b.titel}`);
+      zeilen.push(`    ${b.text}`);
+      if (b.kennungen.length) zeilen.push(`    Betrifft: ${b.kennungen.slice(0, 20).join(', ')}${b.kennungen.length > 20 ? ' …' : ''}`);
+      zeilen.push('');
+    }
+    if (ergebnis.kommentar) zeilen.push('Kommentar von Claude:', ergebnis.kommentar, '');
+  }
+  return zeilen.join('\n');
 }
