@@ -1666,3 +1666,25 @@ Gelesen wird nachsichtig: eine Datei aus einer neueren Fassung wird
 eingelesen und als solche genannt; ein Bild, das sich nicht entpacken lässt,
 fehlt und wird im Bericht benannt; eine fremde Datei bekommt den Grund
 gesagt, statt stumm zu scheitern.
+
+## F-64 · Das Fortschrittsblatt – wie weit ist das Handbuch?
+
+**Seit** 1.46.0 · betrifft Gliederung
+
+**Das Problem** Die Gliederung hat 1153 Stellen. „Wie weit sind wir?“ lässt
+sich daran nicht ablesen, und eine Zahl allein („312 Bilder“) sagt nicht, ob
+das viel ist. Für die Statusrunde fehlte ein Blatt.
+
+**Die Lösung** Unter der Deckungsmatrix entsteht ein **Blatt in A4 quer und
+300 dpi**: oben der Stand in einem Satz und als Balken, darunter je Kapitel
+eine Zeile mit Balken, `belegt/gesamt Stellen`, Zahl der Bilder und – wenn
+eine zweite Achse gewählt ist – wie viele Stellen je Sprache, Rolle, Sparte,
+Markt, Version oder Land belegt sind.
+
+**Gezählt werden Stellen, nicht Bilder.** Zehn Bilder an einer Stelle machen
+ein Kapitel nicht fertiger als eines; das steht auch auf dem Blatt.
+
+Alle Kapitel kommen aufs Blatt – statt zu kürzen wird die Schrift kleiner:
+ein Stand, dem Kapitel fehlen, ist keiner. Das Blatt folgt der Arbeitsmenge
+(F-52) und der Hausmarke (F-62) und lässt sich als **PNG** oder **PDF**
+sichern.

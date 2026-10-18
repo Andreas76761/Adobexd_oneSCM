@@ -828,6 +828,31 @@
       </p>
       <div class="matrix-tabelle" id="matrix-tabelle"></div>
     </section>
+
+    <section class="fortschritt" aria-label="Fortschritt">
+      <div class="matrix-kopf">
+        <h2 class="abschnitt-titel">Fortschrittsblatt</h2>
+        <div class="feld feld--schmal">
+          <label for="fortschritt-achse">Zweite Achse</label>
+          <select id="fortschritt-achse"></select>
+        </div>
+        <span class="band-stand" id="fortschritt-stand"></span>
+        <div class="markier-knoepfe">
+          <button type="button" class="knopf knopf--klein" id="fortschritt-bild">Als Bild sichern</button>
+          <button type="button" class="knopf knopf--klein" id="fortschritt-pdf">Als PDF sichern</button>
+        </div>
+      </div>
+      <p class="band-hinweis">
+        Ein Blatt für die Statusrunde: je Kapitel ein Balken, wie viele seiner
+        Stellen belegt sind, dazu die Zahl der Bilder und – wenn eine zweite
+        Achse gewählt ist – wie viele Stellen je Sprache, Rolle oder Sparte
+        stehen. Gezählt werden <b>Stellen</b>, nicht Bilder: zehn Bilder an
+        einer Stelle machen ein Kapitel nicht fertiger als eines. A4 quer,
+        300 dpi.
+      </p>
+      <div class="fortschritt-schau" id="fortschritt-schau"></div>
+      <p class="studio-meldung" id="fortschritt-meldung" role="status" aria-live="polite"></p>
+    </section>
   </section>
 
   <section id="pruefung-ansicht" aria-label="Prüfung" hidden>

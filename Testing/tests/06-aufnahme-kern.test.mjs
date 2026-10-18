@@ -3408,4 +3408,59 @@ s.test('beim Ergänzen behält keiner sein Bild auf Kosten des anderen', () => {
   gleich(ersetzt.umbenannt.size, 0);
 });
 
+/* ------------------------------- Das Fortschrittsblatt (1.46.0) */
+
+const fortschrittGliederung = kern.leseGliederung({
+  eintraege: [
+    { nummer: '6', thema: 'Markt', ebene: 1 },
+    { nummer: '6.1', thema: 'Einstellungen', ebene: 2 },
+    { nummer: '6.2', thema: 'Vorlagen', ebene: 2 },
+    { nummer: '7', thema: 'Zahlung', ebene: 1 },
+    { nummer: '7.1', thema: 'Konten', ebene: 2 }
+  ]
+});
+
+s.test('der Fortschritt zählt Stellen, nicht Bilder', () => {
+  const bilder = [
+    { id: 'A1', gliederung: '6.1', sprache: 'de' },
+    { id: 'A2', gliederung: '6.1', sprache: 'en' },
+    { id: 'A3', gliederung: '6.1', sprache: 'de' },
+    { id: 'A4', gliederung: '7.1', sprache: 'de' },
+    { id: 'A5', gliederung: '', sprache: 'de' }
+  ];
+  const daten = kern.fortschrittDaten(fortschrittGliederung, bilder, { achse: 'sprache' });
+  gleich(daten.kapitel.length, 2);
+
+  // Kapitel 6 hat zwei Stellen, belegt ist eine - trotz dreier Bilder.
+  const sechs = daten.kapitel.find((k) => k.nummer === '6');
+  gleich(sechs.stellen, 2);
+  gleich(sechs.belegt, 1);
+  gleich(sechs.anteil, 0.5);
+  gleich(sechs.bilder, 3);
+  tieferGleich(sechs.jeWert.map((w) => `${w.label}:${w.stellen}`), ['Deutsch:1', 'Englisch:1']);
+
+  const sieben = daten.kapitel.find((k) => k.nummer === '7');
+  gleich(sieben.belegt, 1);
+  gleich(sieben.anteil, 1);
+  gleich(sieben.jeWert.find((w) => w.wert === 'en').stellen, 0, 'Englisch fehlt in Kapitel 7');
+
+  // Insgesamt: zwei von drei Stellen, ein Bild ohne Stelle.
+  gleich(daten.gesamt.stellen, 3);
+  gleich(daten.gesamt.belegt, 2);
+  gleich(daten.gesamt.bilder, 5);
+  gleich(daten.gesamt.ohneStelle, 1);
+  wahr(kern.fortschrittText(daten).includes('2 von 3 Stellen belegt (67 %)'), kern.fortschrittText(daten));
+  wahr(kern.fortschrittText(daten).includes('1 ohne Stelle'), kern.fortschrittText(daten));
+
+  // Ohne Achse gibt es keine zweite Zeile.
+  const ohne = kern.fortschrittDaten(fortschrittGliederung, bilder, { achse: '' });
+  tieferGleich(ohne.werte, []);
+  tieferGleich(ohne.kapitel[0].jeWert, []);
+  // Ein leerer Bestand ist kein Fehler, sondern null Prozent.
+  const leer = kern.fortschrittDaten(fortschrittGliederung, []);
+  gleich(leer.gesamt.belegt, 0);
+  gleich(leer.gesamt.anteil, 0);
+  wahr(kern.fortschrittText(leer).includes('0 von 3'), kern.fortschrittText(leer));
+});
+
 export default s;

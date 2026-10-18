@@ -5783,6 +5783,84 @@ export function vergleichsPaare(aufnahmen = [], wahlA = '', wahlB = '', gliederu
 }
 
 /* =========================================================================
+   Das Fortschrittsblatt – wie weit ist das Handbuch?
+
+   Die Gliederung hat 1153 Stellen. „Wie weit sind wir?" lässt sich daran
+   nicht ablesen, und eine Zahl allein („312 Bilder") sagt nichts darüber,
+   ob das viel ist. Hier wird je Kapitel gezählt: wie viele seiner Stellen
+   belegt sind, wie viele Bilder daran hängen und wie es um die gewählte
+   Achse steht (etwa: in wie vielen Sprachen).
+
+   Gezählt werden **Stellen**, nicht Bilder: zehn Bilder an einer Stelle
+   machen ein Kapitel nicht fertiger als eines.
+   ========================================================================= */
+
+export function fortschrittDaten(gliederung = [], eingang = [], { achse = '', stelle = '' } = {}) {
+  const gefiltert = stelle ? gliederung.filter((e) => gehoertZu(e.nummer, stelle)) : gliederung;
+  const stellen = gefiltert.filter((e) => e.art !== 'uebergang');
+  const { zahlen, ohneStelle } = zaehleBilder(stellen, eingang);
+  const belegteStelle = (nummer) => (zahlen.get(nummer) || { eigene: 0 }).eigene > 0;
+
+  // Die Werte der Achse, die im Bestand überhaupt vorkommen.
+  const werte = achse
+    ? [...new Set(eingang.map((a) => String(a[achse] || '')).filter(Boolean))].sort((a, b) =>
+        labelWert(achse, a).localeCompare(labelWert(achse, b))
+      )
+    : [];
+
+  const kapitel = stellen
+    .filter((e) => e.ebene === 1 || (stelle && e.nummer === stelle))
+    .map((kopf) => {
+      const darunter = stellen.filter((e) => gehoertZu(e.nummer, kopf.nummer) && e.nummer !== kopf.nummer);
+      const eigene = darunter.length ? darunter : [kopf];
+      const belegt = eigene.filter((e) => belegteStelle(e.nummer)).length;
+      const bilder = (zahlen.get(kopf.nummer) || { gesamt: 0 }).gesamt;
+      const jeWert = werte.map((wert) => {
+        const passende = eingang.filter((a) => String(a[achse] || '') === wert);
+        const belegteHier = new Set(
+          passende.map((a) => String(a.gliederung || '').trim()).filter((n) => n && gehoertZu(n, kopf.nummer))
+        );
+        return { wert, label: labelWert(achse, wert), stellen: belegteHier.size };
+      });
+      return {
+        nummer: kopf.nummer,
+        thema: kopf.thema,
+        stellen: eigene.length,
+        belegt,
+        anteil: eigene.length ? belegt / eigene.length : 0,
+        bilder,
+        jeWert
+      };
+    });
+
+  const alleStellen = stellen.filter((e) => e.ebene > 1 || !stellen.some((x) => x.ebene > 1 && gehoertZu(x.nummer, e.nummer)));
+  const belegtGesamt = alleStellen.filter((e) => belegteStelle(e.nummer)).length;
+  return {
+    achse,
+    werte: werte.map((wert) => ({ wert, label: labelWert(achse, wert) })),
+    kapitel,
+    gesamt: {
+      kapitel: kapitel.length,
+      stellen: alleStellen.length,
+      belegt: belegtGesamt,
+      anteil: alleStellen.length ? belegtGesamt / alleStellen.length : 0,
+      bilder: eingang.length,
+      ohneStelle
+    }
+  };
+}
+
+/** Der Fortschritt in einem Satz - für Kopfzeile, Bericht und Meldung. */
+export function fortschrittText(daten = {}) {
+  const g = daten.gesamt || { belegt: 0, stellen: 0, bilder: 0, ohneStelle: 0 };
+  const anteil = Math.round((g.anteil || 0) * 100);
+  return (
+    `${g.belegt} von ${g.stellen} Stellen belegt (${anteil} %) · ${g.bilder} Bilder` +
+    (g.ohneStelle ? ` · ${g.ohneStelle} ohne Stelle` : '')
+  );
+}
+
+/* =========================================================================
    Die Projektdatei – den ganzen Bestand weitergeben.
 
    Der Eingang liegt im Browser eines Menschen. Zwischen zwei Menschen gab

@@ -20,6 +20,22 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.46.0] – Das Fortschrittsblatt
+
+### Neu
+* **Fortschrittsblatt** (F-64) in der Gliederung: je Kapitel ein Balken aus
+  belegten Stellen, die Zahl der Bilder und eine wählbare zweite Achse
+  (Sprache, Rolle, Sparte, Markt, Version, Land) – A4 quer, 300 dpi, als PNG
+  oder PDF zu sichern
+* Alle Kapitel kommen aufs Blatt; statt zu kürzen wird die Schrift kleiner
+
+### Kern
+* `fortschrittDaten`, `fortschrittText`
+
+### Prüfung
+* 1 neue Kernprüfung, 1 neue Browserprüfung (sie misst die Maße des Blattes
+  und sieht nach, dass es gezeichnet ist); zusammen 460
+
 ## [1.45.0] – Die Projektdatei
 
 ### Neu

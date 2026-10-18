@@ -1938,6 +1938,7 @@ function zeichneGliederung() {
     )
   );
   $('#gliederung-stand').textContent = `${sichtbar.length} von ${GLIEDERUNG.length} Stellen`;
+  zeichneFortschritt();
 
   const baum = gliederungBaum(GLIEDERUNG);
   $('#gliederung-baum').replaceChildren(
@@ -2154,12 +2155,192 @@ function zeichneMatrix() {
   );
 }
 
+
+/* ------------------------------------- Fortschrittsblatt (1.46.0) */
+
+let fortschrittAchse = 'sprache';
+let fortschrittBlatt = null; // die gerechnete Leinwand, zum Sichern
+
+function meldeFortschritt(text, art = 'neutral') {
+  const zeile = $('#fortschritt-meldung');
+  if (!zeile) return;
+  zeile.textContent = text;
+  zeile.className = 'studio-meldung studio-meldung--' + art;
+}
+
+/**
+ * Das Blatt: je Kapitel ein Balken aus belegten Stellen, rechts die Zahlen,
+ * darunter die zweite Achse. Gezeichnet wird in 300 dpi auf A4 quer - so
+ * liegt es gleich druckfertig in der Statusrunde.
+ */
+function zeichneFortschrittsblatt(daten) {
+  const fmt = format('a4-quer');
+  const leinwand = document.createElement('canvas');
+  leinwand.width = fmt.breite;
+  leinwand.height = fmt.hoehe;
+  const stift = leinwand.getContext('2d');
+  const rand = Math.round(fmt.breite * 0.05);
+  const breite = fmt.breite - 2 * rand;
+
+  stift.fillStyle = designFarbe('--flaeche', '#FFFFFF');
+  stift.fillRect(0, 0, fmt.breite, fmt.hoehe);
+  stift.fillStyle = designFarbe('--akzent', '#B4432B');
+  stift.fillRect(0, 0, fmt.breite, Math.round(fmt.hoehe * 0.012));
+
+  // Kopf
+  stift.textAlign = 'left';
+  stift.textBaseline = 'top';
+  const titelGross = Math.round(fmt.breite * 0.028);
+  stift.fillStyle = designFarbe('--tinte', '#141A24');
+  stift.font = `600 ${titelGross}px ${designSchriftart('--schrift-display', 'sans-serif')}`;
+  stift.fillText(studio.titel || 'Stand des Handbuchs', rand, Math.round(fmt.hoehe * 0.055));
+
+  const klein = Math.round(titelGross * 0.42);
+  stift.font = `400 ${klein}px ${designSchriftart('--schrift-mono', 'monospace')}`;
+  stift.fillStyle = designFarbe('--tinte-3', '#77839A');
+  const kopfzeile = [
+    fortschrittText(daten),
+    projektwahl ? projektWahlText(projektwahl, projekte) : 'alle Projekte',
+    formatiereZeitpunkt(new Date().toISOString())
+  ].join('  ·  ');
+  stift.fillText(kopfzeile, rand, Math.round(fmt.hoehe * 0.055) + Math.round(titelGross * 1.35));
+
+  // Der große Balken: der Stand insgesamt.
+  const bandOben = Math.round(fmt.hoehe * 0.17);
+  const bandHoehe = Math.round(fmt.hoehe * 0.035);
+  stift.fillStyle = designFarbe('--flaeche-2', '#F6F7FA');
+  stift.fillRect(rand, bandOben, breite, bandHoehe);
+  stift.fillStyle = designFarbe('--akzent', '#B4432B');
+  stift.fillRect(rand, bandOben, Math.round(breite * (daten.gesamt.anteil || 0)), bandHoehe);
+  stift.fillStyle = designFarbe('--tinte', '#141A24');
+  stift.font = `600 ${Math.round(klein * 1.2)}px ${designSchriftart('--schrift-display', 'sans-serif')}`;
+  stift.fillText(`${Math.round((daten.gesamt.anteil || 0) * 100)} %`, rand, bandOben + bandHoehe + Math.round(klein * 0.5));
+
+  // Je Kapitel eine Zeile. Alle Kapitel kommen aufs Blatt: statt zu kürzen
+  // wird die Schrift kleiner - ein Stand, dem Kapitel fehlen, ist keiner.
+  const kapitel = daten.kapitel;
+  const oben = Math.round(fmt.hoehe * 0.26);
+  const platz = fmt.hoehe - oben - Math.round(fmt.hoehe * 0.09);
+  const zeilenHoehe = Math.floor(platz / Math.max(1, kapitel.length));
+  // Die zweite Achse braucht eine zweite Zeile - die Schrift richtet sich
+  // danach, nicht umgekehrt.
+  const zeilenSchrift = Math.min(
+    klein,
+    Math.floor(zeilenHoehe / (daten.werte.length ? 2.6 : 1.5))
+  );
+  const balkenBreite = Math.round(breite * 0.42);
+  const balkenX = rand + Math.round(breite * 0.3);
+
+  kapitel.forEach((k, i) => {
+    const y = oben + i * zeilenHoehe;
+    stift.textAlign = 'left';
+    stift.fillStyle = designFarbe('--tinte', '#141A24');
+    stift.font = `500 ${zeilenSchrift}px ${designSchriftart('--schrift-text', 'sans-serif')}`;
+    const name = beschneide(stift, `${k.nummer} ${k.thema || ''}`.trim(), Math.round(breite * 0.28));
+    stift.fillText(name, rand, y);
+
+    const hoehe = Math.round(zeilenSchrift * 0.8);
+    stift.fillStyle = designFarbe('--flaeche-2', '#F6F7FA');
+    stift.fillRect(balkenX, y, balkenBreite, hoehe);
+    stift.fillStyle = designFarbe('--akzent', '#B4432B');
+    stift.fillRect(balkenX, y, Math.round(balkenBreite * k.anteil), hoehe);
+
+    stift.fillStyle = designFarbe('--tinte-2', '#4A5769');
+    stift.font = `400 ${Math.round(zeilenSchrift * 0.9)}px ${designSchriftart('--schrift-mono', 'monospace')}`;
+    stift.fillText(
+      `${k.belegt}/${k.stellen} Stellen · ${k.bilder} Bilder`,
+      balkenX + balkenBreite + Math.round(rand * 0.4),
+      y
+    );
+
+    // Die zweite Achse steht klein darunter.
+    if (k.jeWert.length) {
+      stift.fillStyle = designFarbe('--tinte-3', '#77839A');
+      stift.font = `400 ${Math.round(zeilenSchrift * 0.8)}px ${designSchriftart('--schrift-mono', 'monospace')}`;
+      const text = k.jeWert
+        .filter((w) => w.stellen)
+        .map((w) => `${w.label} ${w.stellen}`)
+        .join('  ');
+      if (text) {
+        stift.fillText(beschneide(stift, text, Math.round(breite * 0.28)), rand, y + Math.round(zeilenSchrift * 1.15));
+      }
+    }
+  });
+
+  // Fuß
+  stift.fillStyle = designFarbe('--tinte-3', '#77839A');
+  stift.font = `400 ${Math.round(klein * 0.85)}px ${designSchriftart('--schrift-mono', 'monospace')}`;
+  stift.fillText(
+    `Screenarchiv ${DATEN.anwendung} · gezählt werden Stellen, nicht Bilder`,
+    rand,
+    fmt.hoehe - Math.round(fmt.hoehe * 0.055)
+  );
+  return leinwand;
+}
+
+function zeichneFortschritt() {
+  const wahl = $('#fortschritt-achse');
+  if (!wahl) return;
+  wahl.replaceChildren(
+    el('option', { value: '', text: 'keine', selected: !fortschrittAchse }),
+    ...VARIANTEN_FELDER.map((feld) =>
+      el('option', {
+        value: feld,
+        text: (LABEL_FELDER.find((f) => f.id === feld) || { label: feld }).label,
+        selected: feld === fortschrittAchse
+      })
+    )
+  );
+  const daten = fortschrittDaten(GLIEDERUNG, imProjekt(), { achse: fortschrittAchse });
+  $('#fortschritt-stand').textContent = fortschrittText(daten);
+  fortschrittBlatt = zeichneFortschrittsblatt(daten);
+  const schau = el('canvas');
+  schau.width = fortschrittBlatt.width;
+  schau.height = fortschrittBlatt.height;
+  schau.getContext('2d').drawImage(fortschrittBlatt, 0, 0);
+  $('#fortschritt-schau').replaceChildren(schau);
+}
+
+async function sichereFortschritt(alsPdf) {
+  if (!fortschrittBlatt) return;
+  const tag = new Date().toISOString().slice(0, 10);
+  if (alsPdf) {
+    const blob = await new Promise((f) => fortschrittBlatt.toBlob(f, 'image/jpeg', 0.92));
+    const pdf = pdfAusSeiten(
+      [{ daten: new Uint8Array(await blob.arrayBuffer()), breite: fortschrittBlatt.width, hoehe: fortschrittBlatt.height }],
+      { titel: 'Stand des Handbuchs', anwendung: DATEN.anwendung }
+    );
+    const ergebnis = await uebergebeDatei(`fortschritt-${tag}.pdf`, new Blob([pdf], { type: 'application/pdf' }));
+    meldeFortschritt(
+      ergebnis.art === 'gesichert'
+        ? `fortschritt-${tag}.pdf gesichert (${formatiereBytes(ergebnis.groesse)}) – A4 quer, 300 dpi.`
+        : 'Das Sichern wurde abgebrochen oder ist fehlgeschlagen.',
+      ergebnis.art === 'gesichert' ? 'gut' : 'warnung'
+    );
+    return;
+  }
+  const blob = await new Promise((f) => fortschrittBlatt.toBlob(f, 'image/png'));
+  const ergebnis = await uebergebeDatei(`fortschritt-${tag}.png`, blob);
+  meldeFortschritt(
+    ergebnis.art === 'gesichert'
+      ? `fortschritt-${tag}.png gesichert (${formatiereBytes(ergebnis.groesse)}).`
+      : 'Das Sichern wurde abgebrochen oder ist fehlgeschlagen.',
+    ergebnis.art === 'gesichert' ? 'gut' : 'warnung'
+  );
+}
+
 function verdrahteGliederung() {
   let takt = null;
   $('#matrix-feld').addEventListener('change', (e) => {
     matrixFeld = e.target.value;
     zeichneMatrix();
   });
+  $('#fortschritt-achse').addEventListener('change', (e) => {
+    fortschrittAchse = e.target.value;
+    zeichneFortschritt();
+  });
+  $('#fortschritt-bild').addEventListener('click', () => sichereFortschritt(false));
+  $('#fortschritt-pdf').addEventListener('click', () => sichereFortschritt(true));
   $('#gliederung-suche').addEventListener('input', (e) => {
     gliederungSuche = e.target.value;
     clearTimeout(takt);
