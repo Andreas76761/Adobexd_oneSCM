@@ -179,6 +179,121 @@ s.test('das Muster überlebt das Neuladen', () =>
     { hash: VERZEICHNIS, initSkript: ordnerNachbau }
   ));
 
+/* --------------------------------------- Die Projektdatei (1.45.0) */
+
+/** Die Ablage, die das Paket als Bytes festhält. */
+const paketNachbau = `
+  window.__dateien = [];
+  window.claude = { use: async (n) => n !== 'downloads' ? null : { save: async (a) => {
+    const puffer = await a.data.arrayBuffer();
+    window.__paket = Array.from(new Uint8Array(puffer));
+    window.__dateien.push({ name: a.filename, groesse: puffer.byteLength });
+    return { status: 'saved' };
+  } } };`;
+
+s.test('der ganze Bestand wandert in eine Projektdatei und wieder zurück', () => {
+  let paket = null;
+  return mitSeite(
+    async (seite) => {
+      await zweiBilder(seite);
+      // zweiBilder endet im Verzeichnis.
+      wahr(
+        (await seite.locator('#paket-stand').innerText()).includes('2 Aufnahme'),
+        await seite.locator('#paket-stand').innerText()
+      );
+      await seite.click('#paket-sichern');
+      await seite.waitForFunction(() => (window.__dateien || []).length === 1, null, { timeout: 60000 });
+      const [datei] = await seite.evaluate(() => window.__dateien);
+      wahr(/^screenarchiv-\d{4}-\d{2}-\d{2}\.zip$/.test(datei.name), datei.name);
+      wahr(datei.groesse > 50000, 'die Projektdatei ist zu klein: ' + datei.groesse);
+      wahr(
+        /2 Aufnahmen, \d+ Bilder/.test(await seite.locator('#paket-meldung').innerText()),
+        await seite.locator('#paket-meldung').innerText()
+      );
+      paket = await seite.evaluate(() => window.__paket);
+    },
+    { hash: AUFNAHME, initSkript: paketNachbau }
+  ).then(() =>
+    // Ein zweiter Browser, leer: dort wird die Datei eingelesen.
+    mitSeite(
+      async (seite) => {
+        gleich(await seite.locator('.eingang-karte').count(), 0);
+        await seite.click('.portal-nav button[data-ansicht="verzeichnis"]');
+        await seite.waitForSelector('#verzeichnis-ansicht:not([hidden])');
+        await seite.evaluate(async (bytes) => {
+          const datei = new File([new Uint8Array(bytes)], 'screenarchiv.zip', { type: 'application/zip' });
+          const liste = new DataTransfer();
+          liste.items.add(datei);
+          const eingabe = document.getElementById('paket-datei');
+          eingabe.files = liste.files;
+          eingabe.dispatchEvent(new Event('change', { bubbles: true }));
+        }, paket);
+        await seite.waitForFunction(
+          () => /ergänzt|nicht einlesen/.test(document.getElementById('paket-meldung').textContent),
+          null,
+          { timeout: 60000 }
+        );
+        const meldung = await seite.locator('#paket-meldung').innerText();
+        wahr(/2 Aufnahme\(n\) und \d+ Bild\(er\) ergänzt/.test(meldung), meldung);
+        wahr(
+          (await seite.locator('#paket-bericht').innerText()).includes('Aufnahme(n)'),
+          await seite.locator('#paket-bericht').innerText()
+        );
+
+        // Die Bilder sind da - samt frisch gerechneter Vorschau.
+        await seite.click('.portal-nav button[data-ansicht="eingang"]');
+        await seite.waitForSelector('#eingang-ansicht:not([hidden])');
+        gleich(await seite.locator('.eingang-karte').count(), 2);
+        const quellen = await seite.locator('.eingang-karte img').evaluateAll((liste) => liste.map((i) => i.src.slice(0, 15)));
+        wahr(quellen.every((q) => q === 'data:image/jpeg'), quellen.join(' | '));
+        // Und das volle Bild liegt in der Datenbank, nicht nur die Vorschau.
+        const volle = await seite.evaluate(
+          () =>
+            new Promise((fertig) => {
+              const anfrage = indexedDB.open('screenarchiv');
+              anfrage.onsuccess = () => {
+                const db = anfrage.result;
+                if (!db.objectStoreNames.contains('bilder')) return fertig(0);
+                const zaehler = db.transaction('bilder').objectStore('bilder').count();
+                zaehler.onsuccess = () => fertig(zaehler.result);
+                zaehler.onerror = () => fertig(0);
+              };
+              anfrage.onerror = () => fertig(0);
+            })
+        );
+        wahr(volle >= 2, 'die vollen Bilder fehlen in der Datenbank: ' + volle);
+      },
+      { hash: AUFNAHME }
+    )
+  );
+});
+
+s.test('eine fremde Datei wird benannt, nicht verschluckt', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('.portal-nav button[data-ansicht="verzeichnis"]');
+      await seite.waitForSelector('#verzeichnis-ansicht:not([hidden])');
+      await seite.evaluate(() => {
+        const datei = new File(['kein zip'], 'fremd.zip', { type: 'application/zip' });
+        const liste = new DataTransfer();
+        liste.items.add(datei);
+        const eingabe = document.getElementById('paket-datei');
+        eingabe.files = liste.files;
+        eingabe.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await seite.waitForFunction(
+        () => /nicht einlesen/.test(document.getElementById('paket-meldung').textContent),
+        null,
+        { timeout: 20000 }
+      );
+      wahr(
+        /ZIP-Archiv/.test(await seite.locator('#paket-meldung').innerText()),
+        await seite.locator('#paket-meldung').innerText()
+      );
+    },
+    { hash: AUFNAHME }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

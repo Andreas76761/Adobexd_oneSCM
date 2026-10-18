@@ -20,6 +20,29 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.45.0] – Die Projektdatei
+
+### Neu
+* **Projektdatei** (F-63) im Register Verzeichnis: ein ZIP mit Aufnahmen,
+  Strecken, Projekten, Studio-Einstellungen, Wortliste, Lesungen und allen
+  Bildern in voller Auflösung – zum Weitergeben an einen Kollegen oder auf
+  einen anderen Rechner
+* Einlesen wahlweise **ergänzend** (doppelte Kennungen werden umbenannt, die
+  Strecken des Pakets mitgeschrieben) oder **ersetzend**; der Bericht nennt,
+  was ankam und was umbenannt wurde
+* Die Vorschauen liegen nicht im Paket – sie werden beim Einlesen aus dem
+  vollen Bild neu gerechnet
+
+### Kern
+* `paketAngaben`, `lesePaketAngaben`, `paketBildname`, `paketBildschluessel`,
+  `fuehrePaketZusammen`, `streckenMitNeuenKennungen`, `paketBericht`,
+  `PAKET_VERSION`, `PAKET_NAME`
+
+### Prüfung
+* 3 neue Kernprüfungen, 2 neue Browserprüfungen (darunter ein vollständiger
+  Umlauf: schreiben, in einem leeren Browser einlesen, Bilder und
+  Datenbank nachsehen); zusammen 458
+
 ## [1.44.0] – Die Hausmarke
 
 ### Neu

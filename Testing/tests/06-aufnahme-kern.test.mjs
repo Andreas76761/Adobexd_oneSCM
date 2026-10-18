@@ -3316,4 +3316,96 @@ s.test('die Hausmarke überlebt in den Einstellungen des Studios', () => {
   tieferGleich(kern.leseDesignEinstellungen(JSON.stringify({ vorlage: 'onepager' })).marke, kern.leereHausmarke());
 });
 
+/* ------------------------------- Die Projektdatei (1.45.0) */
+
+const paketBestand = [
+  { ...kern.leereAufnahme('2026-10-17'), id: 'AUF-2026-001', titel: 'Liste', gliederung: '6.2', begriffe: ['vorlage'] },
+  { ...kern.leereAufnahme('2026-10-17'), id: 'AUF-2026-002', titel: 'Formular', gliederung: '6.3', begriffe: [] }
+];
+
+s.test('ein Paket trägt alles außer den Vorschauen', () => {
+  const angaben = kern.paketAngaben({
+    eingang: paketBestand.map((a) => ({ ...a, bild: 'data:image/jpeg;base64,AAAA' })),
+    strecken: [{ id: 'STR-1', name: 'Weg', spalten: 2, schritte: [{ art: 'schritt', aufnahmen: ['AUF-2026-001'], text: 'eins' }] }],
+    projekte: [kern.projektSatz({ name: 'oneSCM Portal', version: '2.4', land: 'Germany' })],
+    ocr: { 'AUF-2026-001': { text: 'Übersicht', erkannt_am: '', teile: 1, quelle: 'claude' } },
+    wortliste: [{ falsch: 'Dealer', richtig: 'Händler', sprache: 'de' }],
+    stand: '2026-10-18T08:00:00.000Z',
+    anwendung: '1.45.0'
+  });
+  gleich(angaben.paket, kern.PAKET_VERSION);
+  gleich(angaben.anzahl, 2);
+  gleich(angaben.erzeugt_von, 'Screenarchiv 1.45.0');
+  // Die Vorschau bleibt draußen: sie entsteht beim Einlesen neu.
+  wahr(!('bild' in angaben.aufnahmen[0]), 'die Vorschau liegt im Paket');
+
+  const gelesen = kern.lesePaketAngaben(JSON.stringify(angaben));
+  gleich(gelesen.ok, true);
+  gleich(gelesen.aufnahmen.length, 2);
+  gleich(gelesen.strecken.length, 1);
+  gleich(gelesen.projekte.length, 1);
+  gleich(gelesen.wortliste.length, 1);
+  gleich(Object.keys(gelesen.ocr).length, 1);
+  wahr(kern.paketBericht(gelesen, 3).includes('3 Bild(er)'), kern.paketBericht(gelesen, 3));
+
+  // Eine fremde oder kaputte Datei wird benannt, nicht verschluckt.
+  gleich(kern.lesePaketAngaben('{kaputt').ok, false);
+  gleich(kern.lesePaketAngaben(JSON.stringify({ irgendwas: 1 })).ok, false);
+  wahr(kern.paketBericht(kern.lesePaketAngaben('[]')).includes('keine Projektdatei'), 'der Grund fehlt');
+  // Eine neuere Fassung wird gelesen und als solche genannt.
+  const kuenftig = kern.lesePaketAngaben(JSON.stringify({ ...angaben, paket: 99 }));
+  gleich(kuenftig.kuenftig, true);
+  wahr(kern.paketBericht(kuenftig, 0).includes('neueren Fassung'), kern.paketBericht(kuenftig, 0));
+});
+
+s.test('Bildnamen im Paket führen zurück auf Kennung und Fassung', () => {
+  gleich(kern.paketBildname('AUF-2026-001'), 'bilder/auf-2026-001.jpeg');
+  gleich(kern.paketBildname('AUF-2026-001', 2, 'png'), 'bilder/auf-2026-001--f2.png');
+  tieferGleich(kern.paketBildschluessel('bilder/auf-2026-001.jpeg'), {
+    kennung: 'AUF-2026-001',
+    fassung: 0,
+    schluessel: 'AUF-2026-001'
+  });
+  tieferGleich(kern.paketBildschluessel('bilder/auf-2026-001--f3.png'), {
+    kennung: 'AUF-2026-001',
+    fassung: 3,
+    schluessel: 'AUF-2026-001:3'
+  });
+  // Was nicht im Bilderordner liegt, ist kein Bild des Pakets.
+  gleich(kern.paketBildschluessel('screenarchiv.json'), null);
+  gleich(kern.paketBildschluessel('bilder/liesmich.txt'), null);
+});
+
+s.test('beim Ergänzen behält keiner sein Bild auf Kosten des anderen', () => {
+  const eigene = [{ ...paketBestand[0], titel: 'Meine Liste' }];
+  const fremde = [
+    { ...paketBestand[0], titel: 'Fremde Liste' },
+    { ...paketBestand[1], titel: 'Fremdes Formular' }
+  ];
+  const zusammen = kern.fuehrePaketZusammen(eigene, fremde, 'ergaenzen', '2026-10-18');
+  gleich(zusammen.eingang.length, 3, 'nichts darf verloren gehen');
+  gleich(zusammen.neu, 2);
+  gleich(zusammen.umbenannt.size, 1, 'die doppelte Kennung muss weichen');
+  const neueKennung = zusammen.umbenannt.get('AUF-2026-001');
+  wahr(neueKennung && neueKennung !== 'AUF-2026-001', neueKennung);
+  wahr(
+    zusammen.eingang.some((a) => a.titel === 'Meine Liste' && a.id === 'AUF-2026-001'),
+    'die eigene Aufnahme hat ihre Kennung verloren'
+  );
+  wahr(zusammen.eingang.some((a) => a.titel === 'Fremde Liste' && a.id === neueKennung), 'die fremde fehlt');
+
+  // Die Strecken des Pakets zeigen danach auf die neuen Kennungen.
+  const strecken = kern.streckenMitNeuenKennungen(
+    [{ id: 'S', name: 'Weg', schritte: [{ art: 'schritt', aufnahmen: ['AUF-2026-001', 'AUF-2026-002'], text: 'x' }] }],
+    zusammen.umbenannt
+  );
+  tieferGleich(strecken[0].schritte[0].aufnahmen, [neueKennung, 'AUF-2026-002']);
+
+  // Ersetzen räumt den eigenen Bestand ab - und sagt es.
+  const ersetzt = kern.fuehrePaketZusammen(eigene, fremde, 'ersetzen');
+  gleich(ersetzt.eingang.length, 2);
+  gleich(ersetzt.ersetzt, 1);
+  gleich(ersetzt.umbenannt.size, 0);
+});
+
 export default s;

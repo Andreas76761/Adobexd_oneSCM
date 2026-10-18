@@ -5783,6 +5783,153 @@ export function vergleichsPaare(aufnahmen = [], wahlA = '', wahlB = '', gliederu
 }
 
 /* =========================================================================
+   Die Projektdatei – den ganzen Bestand weitergeben.
+
+   Der Eingang liegt im Browser eines Menschen. Zwischen zwei Menschen gab
+   es bisher keinen Weg: „Als JSON sichern" nimmt die Metadaten mit, nicht
+   die Bilder; der Ordner liegt auf einer Platte. Eine Projektdatei ist ein
+   ZIP mit allem darin - Metadaten, Strecken, Projekte, Einstellungen,
+   Wortliste, Lesungen und die Bilder in voller Auflösung.
+
+   Gelesen wird nachsichtig: eine Datei aus einer älteren Fassung soll
+   ankommen, auch wenn sie weniger enthält. Was fehlt, fehlt - was
+   unverständlich ist, wird genannt.
+   ========================================================================= */
+
+export const PAKET_VERSION = 1;
+export const PAKET_NAME = 'screenarchiv.json';
+
+/** Die Angaben eines Pakets, ohne die Bilder - die liegen als Dateien daneben. */
+export function paketAngaben({
+  eingang = [],
+  strecken = [],
+  projekte = [],
+  design = null,
+  ocr = {},
+  wortliste = [],
+  stand = new Date().toISOString(),
+  anwendung = ''
+} = {}) {
+  return {
+    paket: PAKET_VERSION,
+    erzeugt_von: `Screenarchiv ${anwendung}`.trim(),
+    erzeugt_am: stand,
+    anzahl: eingang.length,
+    // Die Vorschauen bleiben draußen: sie entstehen beim Einlesen neu aus
+    // dem vollen Bild und wären sonst der größte Teil der Datei.
+    aufnahmen: eingang.map(({ bild, ...rest }) => rest),
+    strecken,
+    projekte,
+    design,
+    ocr,
+    wortliste
+  };
+}
+
+/** Der Dateiname eines Bildes im Paket - die Kennung trägt ihn. */
+export function paketBildname(kennung, fassung = 0, typ = 'jpeg') {
+  const endung = typ === 'png' ? 'png' : 'jpeg';
+  return `bilder/${bereinigeDateiname(kennung) || 'bild'}${fassung ? `--f${fassung}` : ''}.${endung}`;
+}
+
+/** Aus einem Bildnamen zurück auf Kennung und Fassung. */
+export function paketBildschluessel(name = '') {
+  const treffer = String(name).match(/^bilder\/(.+?)(?:--f(\d+))?\.(?:jpeg|jpg|png)$/i);
+  if (!treffer) return null;
+  const kennung = treffer[1].toUpperCase();
+  return { kennung, fassung: Number(treffer[2]) || 0, schluessel: treffer[2] ? `${kennung}:${treffer[2]}` : kennung };
+}
+
+/**
+ * Liest die Angaben eines Pakets. Nachsichtig: was fehlt, wird leer; was
+ * nicht lesbar ist, führt zu einer Meldung statt zu einem Absturz.
+ */
+export function lesePaketAngaben(text) {
+  let inhalt = null;
+  try {
+    inhalt = JSON.parse(text || 'null');
+  } catch (fehler) {
+    return { ok: false, grund: 'Die Datei enthält keine lesbaren Angaben.' };
+  }
+  if (!inhalt || typeof inhalt !== 'object' || !Array.isArray(inhalt.aufnahmen)) {
+    return { ok: false, grund: 'Das ist keine Projektdatei des Screenarchivs.' };
+  }
+  const version = Number(inhalt.paket) || 0;
+  return {
+    ok: true,
+    version,
+    kuenftig: version > PAKET_VERSION,
+    erzeugt_von: String(inhalt.erzeugt_von || ''),
+    erzeugt_am: String(inhalt.erzeugt_am || ''),
+    aufnahmen: leseEingang(JSON.stringify({ version: EINGANG_VERSION, aufnahmen: inhalt.aufnahmen })),
+    strecken: leseStrecken(JSON.stringify({ version: STRECKEN_VERSION, strecken: inhalt.strecken || [] })),
+    projekte: leseProjekte(JSON.stringify({ version: PROJEKTE_VERSION, projekte: inhalt.projekte || [] })),
+    design: inhalt.design ? leseDesignEinstellungen(JSON.stringify(inhalt.design)) : null,
+    ocr: leseOcr(JSON.stringify({ texte: inhalt.ocr || {} })),
+    wortliste: Array.isArray(inhalt.wortliste) ? leseWortliste(JSON.stringify({ regeln: inhalt.wortliste })) : []
+  };
+}
+
+/**
+ * Zwei Bestände zusammenführen. `art` entscheidet:
+ * - `ergaenzen`: was es schon gibt, bleibt; Neues kommt dazu. Eine Kennung,
+ *   die doppelt vorkommt, bekommt eine neue - sonst verlöre einer der
+ *   beiden sein Bild.
+ * - `ersetzen`: der eigene Bestand weicht dem fremden.
+ */
+export function fuehrePaketZusammen(eigene = [], fremde = [], art = 'ergaenzen', heute = '') {
+  if (art === 'ersetzen') {
+    return { eingang: fremde, umbenannt: new Map(), neu: fremde.length, ersetzt: eigene.length };
+  }
+  const vergeben = new Set(eigene.map((a) => a.id));
+  const umbenannt = new Map();
+  const dazu = [];
+  // Eine neue Kennung weicht nicht nur dem eigenen Bestand aus, sondern auch
+  // den übrigen Aufnahmen des Pakets - sonst schöbe sich die Umbenennung
+  // durch die ganze Liste.
+  const belegt = () => [...eigene, ...dazu, ...fremde.filter((f) => !umbenannt.has(f.id))];
+  for (const fremd of fremde) {
+    let kennung = fremd.id;
+    if (vergeben.has(kennung)) {
+      kennung = naechsteAufnahmeKennung(belegt(), heute || fremd.datum || new Date().toISOString().slice(0, 10));
+      umbenannt.set(fremd.id, kennung);
+    }
+    vergeben.add(kennung);
+    dazu.push({ ...fremd, id: kennung });
+  }
+  return { eingang: [...dazu, ...eigene], umbenannt, neu: dazu.length, ersetzt: 0 };
+}
+
+/** Die Strecken des Pakets, auf die neuen Kennungen umgeschrieben. */
+export function streckenMitNeuenKennungen(strecken = [], umbenannt = new Map()) {
+  if (!umbenannt.size) return strecken;
+  return strecken.map((strecke) => ({
+    ...strecke,
+    schritte: (strecke.schritte || []).map((schritt) => ({
+      ...schritt,
+      aufnahmen: (schritt.aufnahmen || []).map((k) => umbenannt.get(k) || k)
+    }))
+  }));
+}
+
+/** Was eine Projektdatei enthält, in einem Satz. */
+export function paketBericht(gelesen = {}, bilder = 0) {
+  if (!gelesen.ok) return gelesen.grund || 'Die Datei ließ sich nicht lesen.';
+  const teile = [
+    `${gelesen.aufnahmen.length} Aufnahme(n)`,
+    `${bilder} Bild(er)`,
+    gelesen.strecken.length ? `${gelesen.strecken.length} Strecke(n)` : '',
+    gelesen.projekte.length ? `${gelesen.projekte.length} Projekt(e)` : '',
+    Object.keys(gelesen.ocr || {}).length ? `${Object.keys(gelesen.ocr).length} Lesung(en)` : '',
+    gelesen.wortliste.length ? `${gelesen.wortliste.length} Wortregel(n)` : '',
+    gelesen.design ? 'Einstellungen des Studios' : ''
+  ].filter(Boolean);
+  const woher = gelesen.erzeugt_von ? ` · aus ${gelesen.erzeugt_von}` : '';
+  const kuenftig = gelesen.kuenftig ? ' · aus einer neueren Fassung, Unbekanntes bleibt liegen' : '';
+  return teile.join(' · ') + woher + kuenftig;
+}
+
+/* =========================================================================
    Die Lupe – ein Bild groß, mit allem, was dazugehört.
 
    Im Großformat ist die Frage nicht mehr „welches Bild ist das", sondern

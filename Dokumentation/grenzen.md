@@ -52,6 +52,14 @@ Eingang. Dauerhaft
 wird eine Aufnahme erst, wenn sie in einem Ordner oder einer Datei liegt –
 darum gibt es die Ablage, den Beipackzettel und den Rückweg in den Eingang.
 
+## Von Mensch zu Mensch nur als Datei
+
+Zwei Browser kennen einander nicht, und die Seite erreicht kein Netz. Der Weg
+zwischen zwei Menschen ist darum die **Projektdatei** (F-63): ein ZIP mit
+allem darin, das der andere in seinem Browser einliest. Gleichzeitiges
+Arbeiten am selben Bestand gibt es nicht – wer ergänzt, bekommt beim Einlesen
+neue Kennungen für das, was doppelt ist.
+
 ## Der Bestand bleibt im Projekt
 
 `data/eintraege.json` kann die Seite nicht schreiben. Der Belegentwurf (F-29)

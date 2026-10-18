@@ -1025,6 +1025,36 @@
         <pre id="verzeichnis-plan"></pre>
       </aside>
     </div>
+
+    <div class="band paket" id="paket-block">
+      <div class="band-kopf">
+        <h2 class="abschnitt-titel">Projektdatei – den Bestand weitergeben</h2>
+        <span class="band-stand" id="paket-stand"></span>
+      </div>
+      <p class="band-hinweis">
+        Eine Datei mit <b>allem</b>: Aufnahmen samt Bildern in voller
+        Auflösung, Strecken, Projekte, Einstellungen des Studios, Wortliste
+        und die Lesungen aus dem Register OCR. Wer sie bekommt, liest sie in
+        seinem Browser ein und arbeitet weiter – der Bestand liegt sonst nur
+        in einem Browser und auf einer Platte.
+      </p>
+      <div class="paket-wahl">
+        <button type="button" class="knopf knopf--haupt" id="paket-sichern">Projektdatei sichern</button>
+        <div class="feld">
+          <label for="paket-datei">Projektdatei einlesen</label>
+          <input type="file" id="paket-datei" accept=".zip,application/zip">
+        </div>
+        <div class="feld feld--wahl">
+          <label for="paket-art">Beim Einlesen</label>
+          <select id="paket-art">
+            <option value="ergaenzen">ergänzen – Vorhandenes bleibt</option>
+            <option value="ersetzen">ersetzen – der eigene Bestand weicht</option>
+          </select>
+        </div>
+      </div>
+      <p class="studio-meldung" id="paket-meldung" role="status" aria-live="polite"></p>
+      <pre id="paket-bericht" hidden></pre>
+    </div>
   </section>
 
   <section id="eingang-ansicht" aria-label="Eingang" hidden>

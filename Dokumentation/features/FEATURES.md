@@ -1634,3 +1634,35 @@ untereinander.
 
 Ein Logo wird nicht nachgeladen, sondern als Datei übernommen und eingebettet
 – die Seite erreicht kein Netz.
+
+## F-63 · Die Projektdatei – den Bestand weitergeben
+
+**Seit** 1.45.0 · betrifft Verzeichnis, Eingang, Strecke, Design, OCR
+
+**Das Problem** Der Bestand liegt im Browser eines Menschen. „Als JSON
+sichern“ nimmt die Metadaten mit, nicht die Bilder; das Verzeichnis legt
+Dateien auf eine Platte, aber keinen Arbeitsstand. Zwischen zwei Menschen gab
+es keinen Weg – und zwischen zwei Rechnern derselben Person auch nicht.
+
+**Die Lösung** Eine **Projektdatei**: ein ZIP mit allem darin.
+
+| Im Paket | Form |
+| --- | --- |
+| Aufnahmen samt Labels, Stellen, Marken, Fassungen | `screenarchiv.json` |
+| Strecken, Projekte, Einstellungen des Studios, Wortliste, Lesungen aus OCR | dieselbe Datei |
+| Jedes Bild in **voller Auflösung**, jede Fassung einzeln | `bilder/auf-2026-001.jpeg`, `…--f2.jpeg` |
+| Wie man sie einliest | `LIESMICH.txt` |
+
+Die **Vorschauen bleiben draußen** – sie wären der größte Teil der Datei und
+entstehen beim Einlesen neu aus dem vollen Bild.
+
+**Beim Einlesen** entscheidet eine Wahl: *ergänzen* behält den eigenen
+Bestand und hängt das Paket an; *ersetzen* gibt ihn auf. Beim Ergänzen
+bekommt eine Kennung, die schon vergeben ist, eine neue – und die Strecken
+des Pakets werden auf die neuen Kennungen umgeschrieben, damit kein Schritt
+ins Leere zeigt. Was umbenannt wurde, steht im Bericht.
+
+Gelesen wird nachsichtig: eine Datei aus einer neueren Fassung wird
+eingelesen und als solche genannt; ein Bild, das sich nicht entpacken lässt,
+fehlt und wird im Bericht benannt; eine fremde Datei bekommt den Grund
+gesagt, statt stumm zu scheitern.
