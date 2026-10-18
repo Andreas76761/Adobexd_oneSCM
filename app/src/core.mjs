@@ -4117,6 +4117,7 @@ export function markenSchrift(id) {
 export function leereDesignEinstellungen() {
   return {
     marke: leereHausmarke(),
+    sprache: 'de',
     vorlage: 'quickguide',
     format: '',
     texte: true,
@@ -4157,6 +4158,7 @@ export function leseDesignEinstellungen(text) {
     untertitel: String(inhalt.untertitel || ''),
     hinweis: String(inhalt.hinweis || ''),
     marke: leseHausmarke(inhalt.marke || {}),
+    sprache: AUSGABE_SPRACHEN.some((s) => s.id === inhalt.sprache) ? inhalt.sprache : 'de',
     eigene: (Array.isArray(inhalt.eigene) ? inhalt.eigene : []).map(eigeneVorlage).filter(Boolean)
   };
 }
@@ -4205,13 +4207,98 @@ export function vorlageAus(id, eigene = []) {
  * Die Zeile fuer Kopf oder Fuss. Gebaut wird aus Teilen, die der Nutzer
  * gewaehlt hat - fehlt ein Wert, faellt sein Teil weg und nicht die Zeile.
  */
+/* =========================================================================
+   Die Sprache der Unterlagen.
+
+   Die Oberfläche ist deutsch - sie bedient das Team. Was die Seite
+   *erzeugt*, geht in den Markt: Deckblatt, Kopf- und Fußzeile,
+   Bildunterschriften, Handbuch, Fortschrittsblatt. Diese Rahmentexte lassen
+   sich umstellen.
+
+   Was NICHT übersetzt wird: die Inhalte. Titel, Notizen und die Texte der
+   Gliederung stehen so da, wie sie erfasst wurden - eine Maschine, die sie
+   überträgt, würde behaupten, sie verstünde sie. Für eine andere Sprache
+   gibt es die Varianten (F-46) und die eigenen Texte (F-65).
+   ========================================================================= */
+
+export const AUSGABE_SPRACHEN = [
+  { id: 'de', label: 'Deutsch' },
+  { id: 'en', label: 'English' }
+];
+
+export const WORTE = {
+  de: {
+    unterlage: 'Unterlage',
+    inhalt: 'Inhalt',
+    stelle: 'Stelle im Handbuch',
+    bilder: 'Bilder',
+    seiten: 'Seiten',
+    vorlage: 'Vorlage',
+    labels: 'Sparte, Rolle, Sprache',
+    projekt: 'Projekt',
+    stand: 'Stand',
+    handbuch: 'Benutzerhandbuch',
+    fertigWenn: 'Fertig, wenn:',
+    abschluss: 'Abschlusskriterium',
+    nachweis: 'Nachweis und Quelle',
+    uebergang: 'Übergang',
+    folge: 'Folge:',
+    keinBild: 'Zu dieser Stelle liegt noch kein Bild vor.',
+    bildFehlt: 'Bild nicht verfügbar',
+    schritt: 'Schritt',
+    fortschritt: 'Stand des Handbuchs',
+    stellen: 'Stellen',
+    belegt: 'belegt',
+    ohneStelle: 'ohne Stelle',
+    gezaehlt: 'gezählt werden Stellen, nicht Bilder',
+    alleProjekte: 'alle Projekte'
+  },
+  en: {
+    unterlage: 'Document',
+    inhalt: 'Content',
+    stelle: 'Section in the manual',
+    bilder: 'Images',
+    seiten: 'Pages',
+    vorlage: 'Template',
+    labels: 'Division, role, language',
+    projekt: 'Project',
+    stand: 'As of',
+    handbuch: 'User manual',
+    fertigWenn: 'Done when:',
+    abschluss: 'Completion criterion',
+    nachweis: 'Evidence and source',
+    uebergang: 'Transition',
+    folge: 'Sequence:',
+    keinBild: 'No image for this section yet.',
+    bildFehlt: 'Image not available',
+    schritt: 'Step',
+    fortschritt: 'State of the manual',
+    stellen: 'sections',
+    belegt: 'covered',
+    ohneStelle: 'without a section',
+    gezaehlt: 'sections are counted, not images',
+    alleProjekte: 'all projects'
+  }
+};
+
+/** Ein Rahmentext in der gewählten Sprache; unbekannt heißt deutsch. */
+export function sagen(schluessel, sprache = 'de') {
+  const satz = WORTE[sprache] || WORTE.de;
+  return satz[schluessel] || WORTE.de[schluessel] || String(schluessel);
+}
+
+/** „Seite 3 von 4" - in der Sprache der Unterlage. */
+export function seitenzahlText(nummer, von, sprache = 'de') {
+  return sprache === 'en' ? `Page ${nummer} of ${von}` : `Seite ${nummer} von ${von}`;
+}
+
 export function zeilenTeile(teile = [], kontext = {}) {
   const werte = {
     titel: kontext.titel,
     kapitel: kontext.kapitel,
     projekt: kontext.projekt,
     vorlage: kontext.vorlage,
-    seitenzahl: kontext.von ? `Seite ${kontext.nummer} von ${kontext.von}` : '',
+    seitenzahl: kontext.von ? seitenzahlText(kontext.nummer, kontext.von, kontext.sprache) : '',
     herkunft: kontext.herkunft,
     stand: kontext.stand ? formatiereZeitpunkt(kontext.stand) : '',
     labels: kontext.labels,
@@ -4225,18 +4312,19 @@ export function zeilenTeile(teile = [], kontext = {}) {
  * Paare. Ohne DOM gerechnet, damit prüfbar ist, was auf dem Blatt steht.
  */
 export function deckblattZeilen(info = {}) {
+  const s = info.sprache || 'de';
   const paare = [
-    ['Inhalt', info.quelle],
-    ['Stelle im Handbuch', info.kapitel],
-    ['Bilder', info.anzahl ? String(info.anzahl) : ''],
-    ['Seiten', info.seiten ? String(info.seiten) : ''],
-    ['Vorlage', info.vorlage],
-    ['Sparte, Rolle, Sprache', info.labels],
-    ['Projekt', info.projekt],
-    ['Stand', info.stand ? formatiereZeitpunkt(info.stand) : '']
+    [sagen('inhalt', s), info.quelle],
+    [sagen('stelle', s), info.kapitel],
+    [sagen('bilder', s), info.anzahl ? String(info.anzahl) : ''],
+    [sagen('seiten', s), info.seiten ? String(info.seiten) : ''],
+    [sagen('vorlage', s), info.vorlage],
+    [sagen('labels', s), info.labels],
+    [sagen('projekt', s), info.projekt],
+    [sagen('stand', s), info.stand ? formatiereZeitpunkt(info.stand) : '']
   ].filter(([, wert]) => String(wert || '').trim());
   return {
-    titel: String(info.titel || 'Unterlage').trim(),
+    titel: String(info.titel || sagen('unterlage', s)).trim(),
     untertitel: String(info.untertitel || '').trim(),
     paare,
     hinweis: String(info.hinweis || '').trim()
@@ -4711,9 +4799,20 @@ export function handbuchUmfang(teile = []) {
  */
 export function handbuchHtml(
   teile = [],
-  { titel = 'Benutzerhandbuch', untertitel = '', hinweis = '', stand = new Date().toISOString(), anwendung = '', bilder = new Map(), mitTexten = true } = {}
+  {
+    titel = '',
+    untertitel = '',
+    hinweis = '',
+    stand = new Date().toISOString(),
+    anwendung = '',
+    bilder = new Map(),
+    mitTexten = true,
+    sprache = 'de'
+  } = {}
 ) {
   const m = maskiereHtml;
+  const w = (schluessel) => sagen(schluessel, sprache);
+  titel = titel || w('handbuch');
   const anker = (nummer) => 'stelle-' + String(nummer).replace(/[^0-9A-Za-z]/g, '-');
   const umfang = handbuchUmfang(teile);
 
@@ -4732,9 +4831,9 @@ export function handbuchHtml(
       const ueberschrift = `h${Math.min(4, Math.max(2, t.ebene + 1))}`;
       const texte = mitTexten
         ? [
-            t.kriterium ? `<p class="schild">Abschlusskriterium</p><p>${m(t.kriterium)}</p>` : '',
-            t.notiz ? `<p class="schild">Nachweis und Quelle</p><p>${m(t.notiz)}</p>` : '',
-            t.text ? `<p class="schild">Übergang</p><p>${m(t.text)}</p>` : ''
+            t.kriterium ? `<p class="schild">${m(w('abschluss'))}</p><p>${m(t.kriterium)}</p>` : '',
+            t.notiz ? `<p class="schild">${m(w('nachweis'))}</p><p>${m(t.notiz)}</p>` : '',
+            t.text ? `<p class="schild">${m(w('uebergang'))}</p><p>${m(t.text)}</p>` : ''
           ]
             .filter(Boolean)
             .join('\n')
@@ -4746,7 +4845,7 @@ export function handbuchHtml(
           const quelle = bilder.get(a.id) || a.bild || '';
           return [
             '<figure>',
-            quelle ? `<img src="${quelle}" alt="${m(a.titel)}">` : '<p class="fehlt">Bild nicht verfügbar</p>',
+            quelle ? `<img src="${quelle}" alt="${m(a.titel)}">` : `<p class="fehlt">${m(w('bildFehlt'))}</p>`,
             `<figcaption>${schritt ? `<b>${m(String(schritt.nummer))}. ${m(schritt.text || a.titel)}</b><br>` : ''}${m(
               bildunterschrift(a)
             )}${labelKette(a) ? ` · ${m(labelKette(a))}` : ''}</figcaption>`,
@@ -4757,9 +4856,9 @@ export function handbuchHtml(
       return [
         `<section class="stelle ebene-${t.ebene}" id="${anker(t.nummer)}">`,
         `<${ueberschrift}><span class="nummer">${m(t.nummer)}</span> ${m(t.thema)}</${ueberschrift}>`,
-        t.folge ? `<p class="folge">Folge: ${m(t.folge)}</p>` : '',
+        t.folge ? `<p class="folge">${m(w('folge'))} ${m(t.folge)}</p>` : '',
         texte,
-        abbildungen || (t.nachkommen ? '' : '<p class="fehlt">Zu dieser Stelle liegt noch kein Bild vor.</p>'),
+        abbildungen || (t.nachkommen ? '' : `<p class="fehlt">${m(w('keinBild'))}</p>`),
         '</section>'
       ]
         .filter(Boolean)
@@ -4768,7 +4867,7 @@ export function handbuchHtml(
     .join('\n');
 
   return `<!doctype html>
-<html lang="de"><head><meta charset="utf-8">
+<html lang="${sprache}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${m(titel)}</title>
 <style>
@@ -5395,8 +5494,9 @@ const DOCX_VORLAGEN =
  */
 export function docxAusHandbuch(
   teile = [],
-  { titel = '', untertitel = '', hinweis = '', anwendung = '', bilder = new Map(), mitTexten = true } = {}
+  { titel = '', untertitel = '', hinweis = '', anwendung = '', bilder = new Map(), mitTexten = true, sprache = 'de' } = {}
 ) {
+  const w = (schluessel) => sagen(schluessel, sprache);
   const hole = (kennung) => (bilder instanceof Map ? bilder.get(kennung) : bilder[kennung]);
   const gueltig = teile.filter((t) => t && t.nummer);
   if (!gueltig.length) return null;
@@ -5438,7 +5538,7 @@ export function docxAusHandbuch(
   };
 
   const koerper = [
-    absatz(titel || 'Benutzerhandbuch', { vorlage: 'Heading1' }),
+    absatz(titel || w('handbuch'), { vorlage: 'Heading1' }),
     untertitel ? absatz(untertitel, { kursiv: true }) : '',
     hinweis ? absatz(hinweis, { groesse: 18 }) : '',
     ...gueltig.flatMap((teil) => {
@@ -5447,11 +5547,11 @@ export function docxAusHandbuch(
       return [
         absatz(`${teil.nummer} ${teil.thema || ''}`.trim(), { vorlage: `Heading${ebene}` }),
         mitTexten && teil.text ? absatz(teil.text) : '',
-        mitTexten && teil.kriterium ? absatz(`Fertig, wenn: ${teil.kriterium}`, { kursiv: true }) : '',
+        mitTexten && teil.kriterium ? absatz(`${w('fertigWenn')} ${teil.kriterium}`, { kursiv: true }) : '',
         ...(teil.bilder || []).flatMap((aufnahme) => {
           const schritt = schrittZu.get(aufnahme.id);
           const unterschrift = [
-            schritt ? `Schritt ${schritt.nummer}` : '',
+            schritt ? `${w('schritt')} ${schritt.nummer}` : '',
             schritt && schritt.text ? schritt.text : aufnahme.titel,
             labelKette(aufnahme)
           ]
@@ -5518,7 +5618,7 @@ export function docxAusHandbuch(
         '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" ' +
         'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" ' +
         'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
-        `<dc:title>${maskiereXml(titel || 'Benutzerhandbuch')}</dc:title>` +
+        `<dc:title>${maskiereXml(titel || w('handbuch'))}</dc:title>` +
         `<dc:creator>${maskiereXml(`Screenarchiv ${anwendung}`.trim())}</dc:creator>` +
         '</cp:coreProperties>'
     },
@@ -6008,9 +6108,15 @@ export function fortschrittDaten(gliederung = [], eingang = [], { achse = '', st
 }
 
 /** Der Fortschritt in einem Satz - für Kopfzeile, Bericht und Meldung. */
-export function fortschrittText(daten = {}) {
+export function fortschrittText(daten = {}, sprache = 'de') {
   const g = daten.gesamt || { belegt: 0, stellen: 0, bilder: 0, ohneStelle: 0 };
   const anteil = Math.round((g.anteil || 0) * 100);
+  if (sprache === 'en') {
+    return (
+      `${g.belegt} of ${g.stellen} sections covered (${anteil} %) · ${g.bilder} images` +
+      (g.ohneStelle ? ` · ${g.ohneStelle} without a section` : '')
+    );
+  }
   return (
     `${g.belegt} von ${g.stellen} Stellen belegt (${anteil} %) · ${g.bilder} Bilder` +
     (g.ohneStelle ? ` · ${g.ohneStelle} ohne Stelle` : '')

@@ -1717,3 +1717,33 @@ Stand des Projekts wieder her.
 
 Damit ist der Kreis geschlossen: Gliederung → Blätter und Word-Handbuch →
 Änderungen im Haus → zurück in die Seite → nächste Ausgabe.
+
+## F-66 · Die Sprache der Unterlagen
+
+**Seit** 1.48.0 · betrifft Designstudio, Handbuch, Fortschrittsblatt
+
+**Das Problem** Die Bilder gibt es in jeder Sprache (Varianten, F-46) – der
+**Rahmen** um sie herum war immer deutsch: „Seite 2 von 5“, „Stelle im
+Handbuch“, „Fertig, wenn:“, „Stand“. Für einen Markt außerhalb DACH ist eine
+Unterlage damit nicht fertig.
+
+**Die Lösung** Im Studio steht „Sprache der Unterlagen“ (Deutsch, English).
+Umgestellt werden alle Texte, die die Seite **selbst schreibt**:
+
+| Ort | Beispiel |
+| --- | --- |
+| Deckblatt | `Content`, `Section in the manual`, `Images`, `As of` |
+| Kopf- und Fußzeile | `Page 2 of 5` |
+| Handbuch (HTML und Word) | `User manual`, `Completion criterion`, `Sequence:`, `Done when:` |
+| Bildunterschriften | `Step 3 · …` |
+| Fortschrittsblatt | `State of the manual`, `87 of 1123 sections covered` |
+| Sprachkennung | `<html lang="en">`, Titel in den Word-Angaben |
+
+**Was nicht übersetzt wird: die Inhalte.** Titel, Notizen und die Texte der
+Gliederung stehen so da, wie sie erfasst wurden – eine Maschine, die sie
+überträgt, würde behaupten, sie verstünde sie. Für eine andere Sprache gibt
+es die Varianten (dieselbe Maske auf Englisch) und die eigenen Texte (F-65).
+
+**Die Oberfläche bleibt deutsch.** Sie bedient das Team; die Unterlagen gehen
+in den Markt. Eine weitere Sprache braucht nur einen Eintrag in `WORTE` –
+unbekannte Schlüssel fallen auf Deutsch zurück, es bleibt also nie etwas leer.

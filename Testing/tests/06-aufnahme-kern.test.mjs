@@ -3550,4 +3550,77 @@ s.test('die eigenen Texte legen sich über die Gliederung, ohne sie zu ändern',
   tieferGleich(kern.leseStellentexte(null), {});
 });
 
+/* ------------------------------- Die Sprache der Unterlagen (1.48.0) */
+
+s.test('die Rahmentexte der Unterlagen wechseln die Sprache, die Inhalte nicht', () => {
+  const info = {
+    titel: '',
+    quelle: 'Vorlagenliste öffnen',
+    kapitel: '7.5.1',
+    anzahl: 3,
+    seiten: 2,
+    vorlage: 'Quick Guide',
+    projekt: 'oneSCM Portal',
+    stand: '2026-10-18T08:00:00.000Z'
+  };
+  const deutsch = kern.deckblattZeilen(info);
+  const englisch = kern.deckblattZeilen({ ...info, sprache: 'en' });
+  gleich(deutsch.titel, 'Unterlage');
+  gleich(englisch.titel, 'Document');
+  tieferGleich(deutsch.paare.map(([schild]) => schild).slice(0, 3), ['Inhalt', 'Stelle im Handbuch', 'Bilder']);
+  tieferGleich(englisch.paare.map(([schild]) => schild).slice(0, 3), ['Content', 'Section in the manual', 'Images']);
+  // Der Inhalt bleibt, wie er erfasst wurde - übersetzt wird der Rahmen.
+  gleich(englisch.paare.find(([, wert]) => wert === 'Vorlagenliste öffnen')[1], 'Vorlagenliste öffnen');
+
+  gleich(kern.seitenzahlText(2, 5, 'de'), 'Seite 2 von 5');
+  gleich(kern.seitenzahlText(2, 5, 'en'), 'Page 2 of 5');
+  tieferGleich(kern.zeilenTeile(['seitenzahl'], { nummer: 1, von: 3, sprache: 'en' }), ['Page 1 of 3']);
+
+  // Ein unbekannter Schlüssel oder eine unbekannte Sprache fällt auf Deutsch
+  // zurück, statt leer zu bleiben.
+  gleich(kern.sagen('fertigWenn', 'en'), 'Done when:');
+  gleich(kern.sagen('fertigWenn', 'kl'), 'Fertig, wenn:');
+  gleich(kern.sagen('gibtsnicht', 'en'), 'gibtsnicht');
+});
+
+s.test('Handbuch und Fortschritt sprechen dieselbe gewählte Sprache', () => {
+  const teile = [
+    {
+      nummer: '7.5',
+      thema: 'Digitale Unterschrift',
+      ebene: 2,
+      text: 'Hier wird unterschrieben.',
+      kriterium: 'Beleg liegt vor',
+      notiz: '',
+      bilder: [{ id: 'A1', titel: 'Liste', sprache: 'de', begriffe: [] }],
+      schritte: [{ nummer: 1, text: 'Liste öffnen', aufnahme: 'A1' }],
+      nachkommen: 1,
+      folge: 'Weg A'
+    }
+  ];
+  const html = kern.handbuchHtml(teile, { sprache: 'en', bilder: new Map() });
+  wahr(html.includes('<html lang="en"'), 'die Sprache steht nicht am Dokument');
+  wahr(html.includes('Completion criterion'), 'das Kriterium ist nicht übersetzt');
+  wahr(html.includes('Sequence: Weg A'), 'die Folge ist nicht übersetzt');
+  wahr(html.includes('<title>User manual</title>'), 'der Titel fehlt');
+  // Der Inhalt bleibt deutsch - er wurde deutsch erfasst.
+  wahr(html.includes('Hier wird unterschrieben.'), 'der Inhalt wurde angefasst');
+
+  const docx = Buffer.from(
+    kern.docxAusHandbuch(teile, { sprache: 'en', bilder: new Map() })
+  ).toString('utf8');
+  wahr(docx.includes('Done when: Beleg liegt vor'), 'das Word-Kriterium ist nicht übersetzt');
+  wahr(docx.includes('<dc:title>User manual</dc:title>'), 'der Word-Titel fehlt');
+  wahr(docx.includes('Step 1 · Liste öffnen'), 'die Bildunterschrift ist nicht übersetzt');
+
+  const daten = kern.fortschrittDaten(fortschrittGliederung, [{ id: 'A', gliederung: '6.1' }]);
+  wahr(kern.fortschrittText(daten, 'en').includes('sections covered'), kern.fortschrittText(daten, 'en'));
+  wahr(kern.fortschrittText(daten).includes('Stellen belegt'), kern.fortschrittText(daten));
+
+  // Die Wahl liegt bei den Einstellungen des Studios.
+  gleich(kern.leseDesignEinstellungen(JSON.stringify({ sprache: 'en' })).sprache, 'en');
+  gleich(kern.leseDesignEinstellungen(JSON.stringify({ sprache: 'kl' })).sprache, 'de', 'eine fremde Sprache gilt nicht');
+  gleich(kern.leereDesignEinstellungen().sprache, 'de');
+});
+
 export default s;

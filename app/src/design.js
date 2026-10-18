@@ -176,7 +176,8 @@ function zeichneBlattkopf(stift, seite, aufbau, titel, info = {}) {
     projekt: info.projekt || '',
     vorlage: vor.label,
     nummer: seite.nummer,
-    von: seite.von
+    von: seite.von,
+    sprache: ausgabeSprache()
   };
   const links = zeilenTeile(
     studio.kopf.filter((k) => k !== 'seitenzahl'),
@@ -222,7 +223,8 @@ function zeichneBlattfuss(stift, seite, aufbau, info = {}) {
     labels: info.labels || '',
     hinweis: studio.hinweis,
     nummer: seite.nummer,
-    von: seite.von
+    von: seite.von,
+    sprache: ausgabeSprache()
   };
   const links = zeilenTeile(
     studio.fuss.filter((f) => f !== 'seitenzahl'),
@@ -466,6 +468,7 @@ async function baueBlaetter() {
       titel: studio.titel || titel,
       untertitel: studio.untertitel,
       hinweis: studio.hinweis,
+      sprache: ausgabeSprache(),
       quelle: titel,
       kapitel: info.kapitel,
       anzahl: schritte.length,
@@ -565,7 +568,16 @@ function zeichneStudioeinstellungen() {
 
 /* --------------------------------------------- Hausmarke (1.44.0) */
 
+/** Die Sprache, in der die Unterlagen erscheinen. */
+const ausgabeSprache = () => (studio.sprache === 'en' ? 'en' : 'de');
+
 function zeichneHausmarke() {
+  const sprachwahl = $('#design-sprache');
+  if (sprachwahl) {
+    sprachwahl.replaceChildren(
+      ...AUSGABE_SPRACHEN.map((s) => el('option', { value: s.id, text: s.label, selected: s.id === ausgabeSprache() }))
+    );
+  }
   const marke = studio.marke || leereHausmarke();
   const setze = (kennung, wert, ersatz) => {
     const feld = document.getElementById(kennung);
@@ -911,14 +923,15 @@ async function sichereHandbuchWord() {
   }
 
   const eintrag = stelle ? GLIEDERUNG.find((e) => e.nummer === stelle) : null;
-  const titel = studio.titel || (eintrag ? `${eintrag.nummer} ${eintrag.thema}` : 'Benutzerhandbuch');
+  const titel = studio.titel || (eintrag ? `${eintrag.nummer} ${eintrag.thema}` : sagen('handbuch', ausgabeSprache()));
   const daten = docxAusHandbuch(teile, {
     titel,
     untertitel: studio.untertitel,
     hinweis: studio.hinweis,
     anwendung: DATEN.anwendung,
     bilder,
-    mitTexten: studio.texte
+    mitTexten: studio.texte,
+    sprache: ausgabeSprache()
   });
   $('#handbuch-word').disabled = false;
   if (!daten) {
@@ -986,14 +999,15 @@ async function sichereHandbuch() {
   }
 
   const eintrag = stelle ? GLIEDERUNG.find((e) => e.nummer === stelle) : null;
-  const titel = studio.titel || (eintrag ? `${eintrag.nummer} ${eintrag.thema}` : 'Benutzerhandbuch');
+  const titel = studio.titel || (eintrag ? `${eintrag.nummer} ${eintrag.thema}` : sagen('handbuch', ausgabeSprache()));
   const html = handbuchHtml(teile, {
     titel,
     untertitel: studio.untertitel,
     hinweis: studio.hinweis,
     anwendung: DATEN.anwendung,
     bilder,
-    mitTexten: studio.texte
+    mitTexten: studio.texte,
+    sprache: ausgabeSprache()
   });
   const name = `handbuch-${bereinigeDateiname(titel) || 'oneSCM'}.html`;
   const ergebnis = await uebergebeDatei(name, new Blob([html], { type: 'text/html' }));
@@ -1049,6 +1063,7 @@ function verdrahteDesign() {
   $('#design-pdf').addEventListener('click', sichereAlsPdf);
   $('#handbuch-sichern').addEventListener('click', sichereHandbuch);
   $('#handbuch-word').addEventListener('click', sichereHandbuchWord);
+  $('#design-sprache').addEventListener('change', (e) => aendereStudio({ sprache: e.target.value }));
   $('#marke-akzent').addEventListener('change', (e) => aendereMarke('akzent', e.target.value));
   $('#marke-tinte').addEventListener('change', (e) => aendereMarke('tinte', e.target.value));
   $('#marke-schrift').addEventListener('change', (e) => aendereMarke('schrift', e.target.value));

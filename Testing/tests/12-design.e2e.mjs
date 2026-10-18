@@ -507,6 +507,41 @@ s.test('ein Logo wird übernommen, gezeigt und wieder entfernt', () =>
     { hash: AUFNAHME }
   ));
 
+/* ------------------------------ Sprache der Unterlagen (1.48.0) */
+
+s.test('die Unterlagen lassen sich auf Englisch ausgeben', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1']);
+      await oeffneStudio(seite);
+      gleich(await seite.locator('#design-sprache').inputValue(), 'de');
+      await seite.check('#design-deckblatt');
+      await seite.waitForFunction(() => document.querySelectorAll('.design-blatt').length > 1, null, { timeout: 25000 });
+
+      await seite.selectOption('#design-sprache', 'en');
+      await seite.waitForFunction(
+        () => document.getElementById('design-blaetter').dataset.vorlage !== '',
+        null,
+        { timeout: 25000 }
+      );
+      await seite.waitForTimeout(600);
+
+      // Das Handbuch kommt englisch heraus - der Inhalt bleibt deutsch.
+      await seite.click('#handbuch-sichern');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 40000 });
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      wahr(datei.inhalt.includes('<html lang="en"'), 'das Handbuch ist nicht englisch');
+      wahr(datei.inhalt.includes('Completion criterion') || datei.inhalt.includes('User manual'), 'die Rahmentexte fehlen');
+
+      // Die Wahl überlebt das Neuladen.
+      await seite.reload();
+      await seite.waitForFunction(() => document.querySelectorAll('.design-blatt').length > 0, null, { timeout: 25000 });
+      await oeffneStudio(seite);
+      gleich(await seite.locator('#design-sprache').inputValue(), 'en');
+    },
+    { hash: AUFNAHME, initSkript: pdfNachbau }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

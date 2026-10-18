@@ -20,6 +20,24 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.48.0] – Die Sprache der Unterlagen
+
+### Neu
+* **Sprache der Unterlagen** (F-66) im Studio: Deutsch oder English für alle
+  Texte, die die Seite selbst schreibt – Deckblatt, Kopf- und Fußzeile,
+  Bildunterschriften, Handbuch (HTML und Word) und Fortschrittsblatt, samt
+  `<html lang>` und Word-Titel
+* Die Inhalte bleiben unangetastet: übersetzt wird der Rahmen, nicht das
+  Erfasste
+
+### Kern
+* `AUSGABE_SPRACHEN`, `WORTE`, `sagen`, `seitenzahlText`; `sprache` in
+  `deckblattZeilen`, `zeilenTeile`, `handbuchHtml`, `docxAusHandbuch`,
+  `fortschrittText` und den Studio-Einstellungen
+
+### Prüfung
+* 2 neue Kernprüfungen, 1 neue Browserprüfung; zusammen 467
+
 ## [1.47.0] – Der Rückweg aus Word
 
 ### Neu

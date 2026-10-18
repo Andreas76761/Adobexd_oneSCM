@@ -2354,14 +2354,15 @@ function zeichneFortschrittsblatt(daten) {
   const titelGross = Math.round(fmt.breite * 0.028);
   stift.fillStyle = designFarbe('--tinte', '#141A24');
   stift.font = `600 ${titelGross}px ${designSchriftart('--schrift-display', 'sans-serif')}`;
-  stift.fillText(studio.titel || 'Stand des Handbuchs', rand, Math.round(fmt.hoehe * 0.055));
+  const sprache = ausgabeSprache();
+  stift.fillText(studio.titel || sagen('fortschritt', sprache), rand, Math.round(fmt.hoehe * 0.055));
 
   const klein = Math.round(titelGross * 0.42);
   stift.font = `400 ${klein}px ${designSchriftart('--schrift-mono', 'monospace')}`;
   stift.fillStyle = designFarbe('--tinte-3', '#77839A');
   const kopfzeile = [
-    fortschrittText(daten),
-    projektwahl ? projektWahlText(projektwahl, projekte) : 'alle Projekte',
+    fortschrittText(daten, sprache),
+    projektwahl ? projektWahlText(projektwahl, projekte) : sagen('alleProjekte', sprache),
     formatiereZeitpunkt(new Date().toISOString())
   ].join('  ·  ');
   stift.fillText(kopfzeile, rand, Math.round(fmt.hoehe * 0.055) + Math.round(titelGross * 1.35));
@@ -2409,7 +2410,7 @@ function zeichneFortschrittsblatt(daten) {
     stift.fillStyle = designFarbe('--tinte-2', '#4A5769');
     stift.font = `400 ${Math.round(zeilenSchrift * 0.9)}px ${designSchriftart('--schrift-mono', 'monospace')}`;
     stift.fillText(
-      `${k.belegt}/${k.stellen} Stellen · ${k.bilder} Bilder`,
+      `${k.belegt}/${k.stellen} ${sagen('stellen', sprache)} · ${k.bilder} ${sagen('bilder', sprache)}`,
       balkenX + balkenBreite + Math.round(rand * 0.4),
       y
     );
@@ -2432,7 +2433,7 @@ function zeichneFortschrittsblatt(daten) {
   stift.fillStyle = designFarbe('--tinte-3', '#77839A');
   stift.font = `400 ${Math.round(klein * 0.85)}px ${designSchriftart('--schrift-mono', 'monospace')}`;
   stift.fillText(
-    `Screenarchiv ${DATEN.anwendung} · gezählt werden Stellen, nicht Bilder`,
+    `Screenarchiv ${DATEN.anwendung} · ${sagen('gezaehlt', sprache)}`,
     rand,
     fmt.hoehe - Math.round(fmt.hoehe * 0.055)
   );

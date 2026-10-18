@@ -82,6 +82,15 @@ zeigt diese Vektorformate nicht. Sie werden namentlich genannt, nicht still
 weggelassen. Und `.ppt`, `.doc`, `.xls` sind keine ZIP-Archive: ein Speichern
 als `.pptx` bzw. `.docx` genügt.
 
+## Die Oberfläche ist deutsch, die Unterlagen nicht zwingend
+
+Seit 1.48.0 lassen sich die **Rahmentexte** der erzeugten Unterlagen auf
+Englisch stellen (F-66). Die Oberfläche selbst bleibt deutsch – sie bedient
+das Team. Und die **Inhalte** werden nicht übersetzt: Titel, Notizen und die
+Texte der Gliederung stehen so da, wie sie erfasst wurden. Eine Maschine, die
+sie überträgt, würde behaupten, sie verstünde sie; für eine andere Sprache
+gibt es die Varianten und die eigenen Texte.
+
 ## Satz und Layout macht nicht die Seite
 
 Die Blätter des Studios sind gerechnete Bilder: was dort steht, steht an der
