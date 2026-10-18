@@ -1713,3 +1713,12 @@ div.streifen-bild { cursor: default; }
   padding: 8px 10px; margin: 8px 0; color: var(--tinte); background: var(--flaeche);
   border: 1px solid var(--linie-stark); border-radius: var(--radius); resize: vertical;
 }
+
+/* ------------------------- Hausmarke im Designstudio (1.44.0) */
+
+.marke-schau { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
+.marke-schau img {
+  max-width: 140px; max-height: 48px; object-fit: contain;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche); padding: 4px;
+}
+#marke-akzent, #marke-tinte { height: 34px; padding: 2px; cursor: pointer; }

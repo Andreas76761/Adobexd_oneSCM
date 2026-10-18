@@ -4075,8 +4075,48 @@ export const FUSS_TEILE = [
 ];
 
 /** Die Vorgaben des Studios - so sieht es aus, bevor etwas eingestellt wird. */
+/**
+ * Die Marke: Farbe, Schrift und Logo der Unterlagen. Ohne Angabe gelten die
+ * Token der Seite - wer ein Haus hat, trägt sie hier ein. Mehr als diese
+ * drei Dinge macht ein Erscheinungsbild nicht aus, solange die Ordnung
+ * stimmt; und mehr kann eine Seite ohne die Hausschrift auch nicht.
+ */
+export const MARKEN_SCHRIFTEN = [
+  { id: '', label: 'wie die Seite (Archivo)', familie: '' },
+  { id: 'plex', label: 'IBM Plex Sans', familie: "'IBM Plex Sans', system-ui, sans-serif" },
+  { id: 'arial', label: 'Arial', familie: 'Arial, Helvetica, sans-serif' },
+  { id: 'helvetica', label: 'Helvetica', familie: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
+  { id: 'georgia', label: 'Georgia (Serife)', familie: "Georgia, 'Times New Roman', serif" },
+  { id: 'verdana', label: 'Verdana', familie: 'Verdana, Geneva, sans-serif' }
+];
+
+/** Ein Logo größer als das wäre im Speicher des Browsers ein Klotz. */
+export const LOGO_GRENZE = 200 * 1024;
+
+export function leereHausmarke() {
+  return { akzent: '', tinte: '', schrift: '', logo: '' };
+}
+
+/** Nimmt nur an, was sich zeichnen lässt: Farbe als #rrggbb, Logo als Bild. */
+export function leseHausmarke(roh = {}) {
+  const farbe = (wert) => (/^#[0-9a-fA-F]{6}$/.test(String(wert || '')) ? String(wert).toLowerCase() : '');
+  const logo = String(roh.logo || '');
+  return {
+    akzent: farbe(roh.akzent),
+    tinte: farbe(roh.tinte),
+    schrift: MARKEN_SCHRIFTEN.some((s) => s.id && s.id === roh.schrift) ? String(roh.schrift) : '',
+    logo: /^data:image\/(png|jpeg|gif|webp|svg\+xml);/.test(logo) && logo.length <= LOGO_GRENZE ? logo : ''
+  };
+}
+
+/** Die Schriftfamilie zu einer Wahl - leer heißt: die der Seite. */
+export function markenSchrift(id) {
+  return (MARKEN_SCHRIFTEN.find((s) => s.id === id) || { familie: '' }).familie;
+}
+
 export function leereDesignEinstellungen() {
   return {
+    marke: leereHausmarke(),
     vorlage: 'quickguide',
     format: '',
     texte: true,
@@ -4116,6 +4156,7 @@ export function leseDesignEinstellungen(text) {
     titel: String(inhalt.titel || ''),
     untertitel: String(inhalt.untertitel || ''),
     hinweis: String(inhalt.hinweis || ''),
+    marke: leseHausmarke(inhalt.marke || {}),
     eigene: (Array.isArray(inhalt.eigene) ? inhalt.eigene : []).map(eigeneVorlage).filter(Boolean)
   };
 }

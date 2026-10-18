@@ -655,6 +655,40 @@
       <summary>Studio: Deckblatt, Kopf- und Fußzeile, eigene Vorlage</summary>
       <div class="design-studio-raster">
         <div class="design-studio-feld">
+          <h3 class="abschnitt-titel">Hausmarke</h3>
+          <p class="feld-hinweis">
+            Farbe, Schrift und Logo der Unterlagen. Ohne Angabe gilt das
+            Aussehen der Anwendung. Die Hausschrift selbst kann die Seite
+            nicht laden – gewählt wird aus den Schriften, die überall da sind.
+          </p>
+          <div class="feld-paar">
+            <div class="feld">
+              <label for="marke-akzent">Akzentfarbe</label>
+              <input type="color" id="marke-akzent" value="#b4432b">
+            </div>
+            <div class="feld">
+              <label for="marke-tinte">Textfarbe</label>
+              <input type="color" id="marke-tinte" value="#141a24">
+            </div>
+          </div>
+          <div class="feld">
+            <label for="marke-schrift">Schrift</label>
+            <select id="marke-schrift"></select>
+          </div>
+          <div class="feld">
+            <label for="marke-logo">Logo (PNG, JPEG oder SVG, höchstens 200 kB)</label>
+            <input type="file" id="marke-logo" accept="image/png,image/jpeg,image/svg+xml,image/webp">
+          </div>
+          <div class="marke-schau" id="marke-schau" hidden>
+            <img id="marke-logo-schau" alt="Logo der Hausmarke">
+            <button type="button" class="knopf knopf--klein" id="marke-logo-weg">Logo entfernen</button>
+          </div>
+          <div class="markier-knoepfe">
+            <button type="button" class="knopf knopf--klein" id="marke-zurueck">Hausmarke zurücksetzen</button>
+          </div>
+        </div>
+
+        <div class="design-studio-feld">
           <h3 class="abschnitt-titel">Deckblatt und Zeilen</h3>
           <div class="feld">
             <label for="design-titel">Titel (leer = Name des Inhalts)</label>

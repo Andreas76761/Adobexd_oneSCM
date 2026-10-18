@@ -20,6 +20,29 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.44.0] – Die Hausmarke
+
+### Neu
+* **Hausmarke** (F-62) im Designstudio: Akzentfarbe, Textfarbe, Schrift und
+  Logo gelten für alle Blätter und Deckblätter; ohne Angabe gilt das Aussehen
+  der Anwendung, „Hausmarke zurücksetzen“ stellt es wieder her
+* Das Logo wird als Datei übernommen (PNG, JPEG, SVG, WebP bis 200 kB) und
+  eingebettet – die Seite lädt nichts von außen; es steht oben rechts auf dem
+  Deckblatt
+
+### Geändert
+* Die Zeichenfunktionen des Studios fragen `designFarbe` und
+  `designSchriftart` statt der Token der Seite; die Festbreitenschrift bleibt
+  unangetastet, damit Kennungen und Zahlen untereinander stehen
+
+### Kern
+* `leereHausmarke`, `leseHausmarke`, `markenSchrift`, `MARKEN_SCHRIFTEN`,
+  `LOGO_GRENZE`; `marke` in den Studio-Einstellungen
+
+### Prüfung
+* 2 neue Kernprüfungen, 2 neue Browserprüfungen (darunter eine, die die Farbe
+  im gezeichneten Blatt Punkt für Punkt nachmisst); zusammen 453
+
 ## [1.43.0] – Das Handbuch als Word-Datei
 
 ### Neu

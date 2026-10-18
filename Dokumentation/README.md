@@ -9,6 +9,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [versionen/v1.44.0.md](versionen/v1.44.0.md) | Die Hausmarke – Farbe, Schrift und Logo der Unterlagen |
 | [versionen/v1.43.0.md](versionen/v1.43.0.md) | Das Handbuch als Word-Datei – Text bleibt Text |
 | [versionen/v1.42.0.md](versionen/v1.42.0.md) | Der Agent Sprache – Wortliste, Schreibweisen, Sprache gegen Label |
 | [versionen/v1.41.0.md](versionen/v1.41.0.md) | Bildvergleich – was sich zwischen zwei Fassungen geändert hat |

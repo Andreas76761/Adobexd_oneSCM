@@ -47,6 +47,55 @@ let designVariante = ''; // '' oder 'sprache:en' – die Ausgabe in einer Varian
 let designFehlendeVarianten = []; // Schritte ohne Entsprechung, zuletzt gerechnet
 let studioTakt = 0; // gedrosseltes Neuzeichnen beim Tippen
 
+/**
+ * Farben und Schriften der Blätter. Erst die Hausmarke (F-62), dann die
+ * Token der Seite: wer nichts einträgt, bekommt das Aussehen der Anwendung.
+ */
+function designFarbe(name, ersatz) {
+  const marke = studio.marke || {};
+  if (marke.akzent && (name === '--akzent' || name === '--akzent-tief')) return marke.akzent;
+  if (marke.tinte && (name === '--tinte' || name === '--tinte-2')) return marke.tinte;
+  return token(name, ersatz);
+}
+
+function designSchriftart(name, ersatz) {
+  const familie = markenSchrift((studio.marke || {}).schrift);
+  // Die Festbreitenschrift bleibt, auch wenn das Haus eine andere hat -
+  // Kennungen und Zahlen stehen sonst nicht mehr untereinander.
+  if (familie && name !== '--schrift-mono') return familie;
+  return token(name, ersatz);
+}
+
+/** Das Logo der Hausmarke, einmal geladen und danach gemerkt. */
+let logoBild = null;
+let logoQuelle = '';
+async function holeLogo() {
+  const quelle = (studio.marke || {}).logo || '';
+  if (!quelle) {
+    logoBild = null;
+    logoQuelle = '';
+    return null;
+  }
+  if (logoQuelle === quelle && logoBild) return logoBild;
+  try {
+    const geladen = await ladeBild(quelle, 'logo', 'Logo');
+    logoBild = geladen;
+    logoQuelle = quelle;
+    return logoBild;
+  } catch (fehler) {
+    logoBild = null;
+    return null;
+  }
+}
+
+/** Zeichnet das Logo in eine Ecke - mit fester Höhe, nie verzerrt. */
+function zeichneLogo(stift, x, y, hoehe, ausrichtung = 'links') {
+  if (!logoBild || !logoBild.breite) return 0;
+  const breite = Math.round(hoehe * (logoBild.breite / logoBild.hoehe));
+  stift.drawImage(logoBild.element, ausrichtung === 'rechts' ? x - breite : x, y, breite, hoehe);
+  return breite;
+}
+
 /** Die Inhalte, aus denen ein Blatt entstehen kann. */
 function designQuellen() {
   const ausStrecken = strecken.map((s) => ({
@@ -140,19 +189,19 @@ function zeichneBlattkopf(stift, seite, aufbau, titel, info = {}) {
   if (!links && !rechtsTeile.length) return;
   // Erst rechts setzen, dann weiß der Titel, wie viel Platz ihm bleibt.
   const rechts = rechtsTeile.join(' · ');
-  stift.fillStyle = token('--tinte-3', '#77839A');
-  stift.font = `400 ${Math.round(seite.kopfHoehe * 0.2)}px ${token('--schrift-mono', 'monospace')}`;
+  stift.fillStyle = designFarbe('--tinte-3', '#77839A');
+  stift.font = `400 ${Math.round(seite.kopfHoehe * 0.2)}px ${designSchriftart('--schrift-mono', 'monospace')}`;
   stift.textAlign = 'right';
   stift.textBaseline = 'alphabetic';
   stift.fillText(rechts, fmt.breite - seite.rand, Math.round(seite.kopfHoehe * 0.62));
   const belegt = rechts ? stift.measureText(rechts).width : 0;
 
-  stift.fillStyle = token('--tinte', '#141A24');
-  stift.font = `600 ${Math.round(seite.kopfHoehe * 0.34)}px ${token('--schrift-display', 'sans-serif')}`;
+  stift.fillStyle = designFarbe('--tinte', '#141A24');
+  stift.font = `600 ${Math.round(seite.kopfHoehe * 0.34)}px ${designSchriftart('--schrift-display', 'sans-serif')}`;
   stift.textAlign = 'left';
   const platz = fmt.breite - 2 * seite.rand - belegt - Math.round(seite.rand * 0.8);
   stift.fillText(beschneide(stift, links, platz), seite.rand, Math.round(seite.kopfHoehe * 0.62));
-  stift.strokeStyle = token('--linie', '#D6DBE4');
+  stift.strokeStyle = designFarbe('--linie', '#D6DBE4');
   stift.lineWidth = 2;
   stift.beginPath();
   stift.moveTo(seite.rand, Math.round(seite.kopfHoehe * 0.78));
@@ -184,8 +233,8 @@ function zeichneBlattfuss(stift, seite, aufbau, info = {}) {
     kontext
   ).join('');
   const y = fmt.hoehe - Math.round(seite.fussHoehe * 0.35);
-  stift.fillStyle = token('--tinte-3', '#77839A');
-  stift.font = `400 ${Math.round(seite.fussHoehe * 0.38)}px ${token('--schrift-mono', 'monospace')}`;
+  stift.fillStyle = designFarbe('--tinte-3', '#77839A');
+  stift.font = `400 ${Math.round(seite.fussHoehe * 0.38)}px ${designSchriftart('--schrift-mono', 'monospace')}`;
   stift.textBaseline = 'alphabetic';
   if (rechts) {
     stift.textAlign = 'right';
@@ -206,20 +255,22 @@ function zeichneDeckblatt(stift, aufbau, info) {
   const fmt = aufbau.format;
   const rand = Math.round(fmt.breite * 0.09);
   const blatt = deckblattZeilen(info);
-  stift.fillStyle = token('--flaeche', '#FFFFFF');
+  stift.fillStyle = designFarbe('--flaeche', '#FFFFFF');
   stift.fillRect(0, 0, fmt.breite, fmt.hoehe);
 
   // Ein Band oben gibt dem Blatt eine Kante, ohne Bild von außen.
-  stift.fillStyle = token('--akzent', '#B4432B');
+  stift.fillStyle = designFarbe('--akzent', '#B4432B');
   stift.fillRect(0, 0, fmt.breite, Math.round(fmt.hoehe * 0.012));
+  // Das Logo der Hausmarke steht oben rechts - dort, wo es gesucht wird.
+  zeichneLogo(stift, fmt.breite - rand, Math.round(fmt.hoehe * 0.055), Math.round(fmt.hoehe * 0.05), 'rechts');
 
   stift.textAlign = 'left';
   stift.textBaseline = 'top';
   let y = Math.round(fmt.hoehe * 0.2);
 
   const titelGross = Math.round(fmt.breite * 0.055);
-  stift.fillStyle = token('--tinte', '#141A24');
-  stift.font = `600 ${titelGross}px ${token('--schrift-display', 'sans-serif')}`;
+  stift.fillStyle = designFarbe('--tinte', '#141A24');
+  stift.font = `600 ${titelGross}px ${designSchriftart('--schrift-display', 'sans-serif')}`;
   for (const zeile of umbrich(stift, blatt.titel, fmt.breite - 2 * rand).slice(0, 3)) {
     stift.fillText(zeile, rand, y);
     y += Math.round(titelGross * 1.22);
@@ -228,8 +279,8 @@ function zeichneDeckblatt(stift, aufbau, info) {
   if (blatt.untertitel) {
     const schrift = Math.round(titelGross * 0.42);
     y += Math.round(schrift * 0.6);
-    stift.fillStyle = token('--tinte-2', '#4A5769');
-    stift.font = `400 ${schrift}px ${token('--schrift-text', 'sans-serif')}`;
+    stift.fillStyle = designFarbe('--tinte-2', '#4A5769');
+    stift.font = `400 ${schrift}px ${designSchriftart('--schrift-text', 'sans-serif')}`;
     for (const zeile of umbrich(stift, blatt.untertitel, fmt.breite - 2 * rand).slice(0, 3)) {
       stift.fillText(zeile, rand, y);
       y += Math.round(schrift * 1.4);
@@ -237,7 +288,7 @@ function zeichneDeckblatt(stift, aufbau, info) {
   }
 
   y += Math.round(fmt.hoehe * 0.05);
-  stift.strokeStyle = token('--linie', '#D6DBE4');
+  stift.strokeStyle = designFarbe('--linie', '#D6DBE4');
   stift.lineWidth = 2;
   stift.beginPath();
   stift.moveTo(rand, y);
@@ -247,18 +298,18 @@ function zeichneDeckblatt(stift, aufbau, info) {
 
   const schrift = Math.round(fmt.breite * 0.016);
   for (const [schild, wert] of blatt.paare) {
-    stift.font = `400 ${schrift}px ${token('--schrift-mono', 'monospace')}`;
-    stift.fillStyle = token('--tinte-3', '#77839A');
+    stift.font = `400 ${schrift}px ${designSchriftart('--schrift-mono', 'monospace')}`;
+    stift.fillStyle = designFarbe('--tinte-3', '#77839A');
     stift.fillText(schild, rand, y);
-    stift.font = `500 ${Math.round(schrift * 1.1)}px ${token('--schrift-text', 'sans-serif')}`;
-    stift.fillStyle = token('--tinte', '#141A24');
+    stift.font = `500 ${Math.round(schrift * 1.1)}px ${designSchriftart('--schrift-text', 'sans-serif')}`;
+    stift.fillStyle = designFarbe('--tinte', '#141A24');
     stift.fillText(beschneide(stift, String(wert), fmt.breite - rand - (rand + Math.round(fmt.breite * 0.3))), rand + Math.round(fmt.breite * 0.3), y);
     y += Math.round(schrift * 2.1);
   }
 
   if (blatt.hinweis) {
-    stift.font = `400 ${Math.round(schrift * 0.95)}px ${token('--schrift-mono', 'monospace')}`;
-    stift.fillStyle = token('--tinte-3', '#77839A');
+    stift.font = `400 ${Math.round(schrift * 0.95)}px ${designSchriftart('--schrift-mono', 'monospace')}`;
+    stift.fillStyle = designFarbe('--tinte-3', '#77839A');
     stift.fillText(beschneide(stift, blatt.hinweis, fmt.breite - 2 * rand), rand, fmt.hoehe - Math.round(fmt.hoehe * 0.07));
   }
 }
@@ -303,10 +354,10 @@ function zeichneKachel(stift, kachel, bild, aufbau) {
   // Der Kasten sitzt eng am Bild: eine graue Fläche darunter sähe aus wie
   // ein Fehler, und der Text darf gleich anschließen.
   const kastenX = bildX + Math.round((kachel.bildBreite - breite) / 2);
-  stift.fillStyle = token('--flaeche-2', '#F6F7FA');
+  stift.fillStyle = designFarbe('--flaeche-2', '#F6F7FA');
   stift.fillRect(kastenX, bildY, breite, hoehe);
   stift.drawImage(bild.element, kastenX, bildY, breite, hoehe);
-  stift.strokeStyle = token('--linie', '#D6DBE4');
+  stift.strokeStyle = designFarbe('--linie', '#D6DBE4');
   stift.lineWidth = 2;
   stift.strokeRect(kastenX + 1, bildY + 1, breite - 2, hoehe - 2);
 
@@ -314,10 +365,10 @@ function zeichneKachel(stift, kachel, bild, aufbau) {
   const r = Math.round(breite * 0.035);
   stift.beginPath();
   stift.arc(kastenX + r + 10, bildY + r + 10, r, 0, Math.PI * 2);
-  stift.fillStyle = token('--akzent', '#B4432B');
+  stift.fillStyle = designFarbe('--akzent', '#B4432B');
   stift.fill();
-  stift.fillStyle = token('--auf-farbe', '#FFFFFF');
-  stift.font = `600 ${Math.round(r * 1.2)}px ${token('--schrift-display', 'sans-serif')}`;
+  stift.fillStyle = designFarbe('--auf-farbe', '#FFFFFF');
+  stift.font = `600 ${Math.round(r * 1.2)}px ${designSchriftart('--schrift-display', 'sans-serif')}`;
   stift.textAlign = 'center';
   stift.textBaseline = 'middle';
   stift.fillText(String(kachel.nummer), kastenX + r + 10, bildY + r + 11);
@@ -366,8 +417,8 @@ function zeichneKachel(stift, kachel, bild, aufbau) {
     const unterschrift = [kapitelKennung(schritt.aufnahme || {}), kette].filter(Boolean).join('  ·  ');
     if (unterschrift) {
       const schrift = Math.round(grund * 0.6);
-      stift.font = `400 ${schrift}px ${token('--schrift-mono', 'monospace')}`;
-      stift.fillStyle = token('--tinte-3', '#77839A');
+      stift.font = `400 ${schrift}px ${designSchriftart('--schrift-mono', 'monospace')}`;
+      stift.fillStyle = designFarbe('--tinte-3', '#77839A');
       stift.fillText(
         beschneide(stift, unterschrift, textBreite),
         textX,
@@ -386,6 +437,8 @@ async function baueBlaetter() {
     format: studio.format || designVorlageSatz().format,
     mitTexten: studio.texte
   });
+  // Das Logo der Hausmarke einmal laden; ohne Logo kostet das nichts.
+  await holeLogo();
   // Die Bilder einmal laden, nicht je Seite.
   const bilder = new Map();
   for (const schritt of schritte) {
@@ -430,7 +483,7 @@ async function baueBlaetter() {
     leinwand.width = aufbau.format.breite;
     leinwand.height = aufbau.format.hoehe;
     const stift = leinwand.getContext('2d');
-    stift.fillStyle = token('--flaeche', '#FFFFFF');
+    stift.fillStyle = designFarbe('--flaeche', '#FFFFFF');
     stift.fillRect(0, 0, leinwand.width, leinwand.height);
     zeichneBlattkopf(stift, seite, aufbau, titel, info);
     for (const kachel of seite.kacheln) {
@@ -484,6 +537,7 @@ function designVariantenwahl() {
 }
 
 function zeichneStudioeinstellungen() {
+  zeichneHausmarke();
   $('#design-deckblatt').checked = studio.deckblatt;
   $('#design-texte').checked = studio.texte;
   $('#design-labels').checked = studio.labels;
@@ -507,6 +561,58 @@ function zeichneStudioeinstellungen() {
     $('#eigen-textspalte').value = String(Math.round(eigen.textspalte * 100));
     $('#eigen-textlaenge').value = String(eigen.textlaenge);
   }
+}
+
+/* --------------------------------------------- Hausmarke (1.44.0) */
+
+function zeichneHausmarke() {
+  const marke = studio.marke || leereHausmarke();
+  const setze = (kennung, wert, ersatz) => {
+    const feld = document.getElementById(kennung);
+    if (feld && feld !== document.activeElement) feld.value = wert || ersatz;
+  };
+  setze('marke-akzent', marke.akzent, token('--akzent', '#b4432b'));
+  setze('marke-tinte', marke.tinte, token('--tinte', '#141a24'));
+  const wahl = $('#marke-schrift');
+  if (wahl) {
+    wahl.replaceChildren(
+      ...MARKEN_SCHRIFTEN.map((s) => el('option', { value: s.id, text: s.label, selected: s.id === marke.schrift }))
+    );
+  }
+  const schau = $('#marke-schau');
+  if (schau) {
+    schau.hidden = !marke.logo;
+    if (marke.logo) $('#marke-logo-schau').src = marke.logo;
+  }
+}
+
+/** Eine Angabe der Hausmarke ändern und die Blätter neu rechnen. */
+function aendereMarke(teil, wert) {
+  return aendereStudio({ marke: leseHausmarke({ ...(studio.marke || {}), [teil]: wert }) });
+}
+
+async function waehleLogo(datei) {
+  if (!datei) return;
+  if (datei.size > LOGO_GRENZE) {
+    meldeDesign(
+      `Das Logo ist ${formatiereBytes(datei.size)} groß – mehr als ${formatiereBytes(LOGO_GRENZE)} nimmt der Speicher des Browsers nicht auf. Eine kleinere Fassung wählen.`,
+      'warnung'
+    );
+    return;
+  }
+  const adresse = await new Promise((fertig, fehler) => {
+    const leser = new FileReader();
+    leser.onload = () => fertig(String(leser.result || ''));
+    leser.onerror = () => fehler(leser.error);
+    leser.readAsDataURL(datei);
+  });
+  const gelesen = leseHausmarke({ ...(studio.marke || {}), logo: adresse });
+  if (!gelesen.logo) {
+    meldeDesign('Diese Datei lässt sich nicht als Logo verwenden – PNG, JPEG, SVG oder WebP bis 200 kB.', 'warnung');
+    return;
+  }
+  await aendereStudio({ marke: gelesen });
+  meldeDesign(`Logo übernommen (${formatiereBytes(datei.size)}) – es steht auf dem Deckblatt.`, 'gut');
 }
 
 async function sichereEigeneVorlage() {
@@ -943,6 +1049,20 @@ function verdrahteDesign() {
   $('#design-pdf').addEventListener('click', sichereAlsPdf);
   $('#handbuch-sichern').addEventListener('click', sichereHandbuch);
   $('#handbuch-word').addEventListener('click', sichereHandbuchWord);
+  $('#marke-akzent').addEventListener('change', (e) => aendereMarke('akzent', e.target.value));
+  $('#marke-tinte').addEventListener('change', (e) => aendereMarke('tinte', e.target.value));
+  $('#marke-schrift').addEventListener('change', (e) => aendereMarke('schrift', e.target.value));
+  $('#marke-logo').addEventListener('change', (e) => waehleLogo(e.target.files && e.target.files[0]));
+  $('#marke-logo-weg').addEventListener('click', async () => {
+    await aendereMarke('logo', '');
+    $('#marke-logo').value = '';
+    meldeDesign('Logo entfernt.', 'neutral');
+  });
+  $('#marke-zurueck').addEventListener('click', async () => {
+    await aendereStudio({ marke: leereHausmarke() });
+    $('#marke-logo').value = '';
+    meldeDesign('Die Hausmarke ist wieder die der Anwendung.', 'neutral');
+  });
   $('#eigen-sichern').addEventListener('click', sichereEigeneVorlage);
   $('#eigen-loeschen').addEventListener('click', loescheEigeneVorlage);
   $('#design-sichern').addEventListener('click', sichereBlaetter);

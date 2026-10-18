@@ -3275,4 +3275,45 @@ s.test('das Word-Handbuch trägt Überschriften, Texte und Bilder', () => {
   gleich(kern.docxAusHandbuch([]), null);
 });
 
+/* ------------------------------- Die Hausmarke (1.44.0) */
+
+s.test('die Hausmarke nimmt nur an, was sich zeichnen lässt', () => {
+  const gelesen = kern.leseHausmarke({
+    akzent: '#00ADEF',
+    tinte: 'dunkelblau',
+    schrift: 'arial',
+    logo: 'data:image/png;base64,AAAA'
+  });
+  gleich(gelesen.akzent, '#00adef', 'die Farbe wird nicht vereinheitlicht');
+  gleich(gelesen.tinte, '', 'ein Farbname ist kein Farbwert');
+  gleich(gelesen.schrift, 'arial');
+  wahr(gelesen.logo.startsWith('data:image/png'), gelesen.logo);
+
+  // Eine fremde Adresse ist kein Logo - die Seite lädt nichts von außen.
+  gleich(kern.leseHausmarke({ logo: 'https://example.com/logo.png' }).logo, '');
+  // Ein zu großes Logo wird abgelehnt, nicht gekürzt.
+  gleich(kern.leseHausmarke({ logo: 'data:image/png;base64,' + 'A'.repeat(kern.LOGO_GRENZE) }).logo, '');
+  // Eine unbekannte Schrift fällt auf die der Seite zurück.
+  gleich(kern.leseHausmarke({ schrift: 'hausschrift' }).schrift, '');
+  tieferGleich(kern.leseHausmarke({}), kern.leereHausmarke());
+
+  gleich(kern.markenSchrift('arial'), 'Arial, Helvetica, sans-serif');
+  gleich(kern.markenSchrift(''), '', 'ohne Wahl gilt die Schrift der Seite');
+  gleich(kern.markenSchrift('gibtsnicht'), '');
+});
+
+s.test('die Hausmarke überlebt in den Einstellungen des Studios', () => {
+  const einstellungen = kern.leseDesignEinstellungen(
+    kern.schreibeDesignEinstellungen({
+      ...kern.leereDesignEinstellungen(),
+      marke: { akzent: '#00adef', tinte: '#1a1a1a', schrift: 'georgia', logo: 'data:image/svg+xml;base64,AAA' }
+    })
+  );
+  gleich(einstellungen.marke.akzent, '#00adef');
+  gleich(einstellungen.marke.schrift, 'georgia');
+  wahr(einstellungen.marke.logo.startsWith('data:image/svg+xml'), einstellungen.marke.logo);
+  // Ein älterer Stand ohne Hausmarke bekommt die leere.
+  tieferGleich(kern.leseDesignEinstellungen(JSON.stringify({ vorlage: 'onepager' })).marke, kern.leereHausmarke());
+});
+
 export default s;

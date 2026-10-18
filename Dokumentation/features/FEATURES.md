@@ -1601,3 +1601,36 @@ der Wahl im Studio.
 
 Gegengeprüft mit LibreOffice: das Dokument öffnet, die Überschriften stehen
 in der Gliederung, die Bilder sind drin, der Umlaut im Titel stimmt.
+
+## F-62 · Die Hausmarke – Farbe, Schrift und Logo der Unterlagen
+
+**Seit** 1.44.0 · betrifft Designstudio, alle Blätter und Deckblätter
+
+**Das Problem** Die Blätter sahen aus wie die Anwendung. Für eine Unterlage,
+die im Haus herumgeht, ist das die falsche Handschrift – und ohne die
+Vorlagen des Hauses lässt sich das Richtige nicht erraten.
+
+**Die Lösung** Ein Block **Hausmarke** im Studio mit drei Angaben und einem
+Bild:
+
+| Angabe | Wirkung |
+| --- | --- |
+| **Akzentfarbe** | das Band auf dem Deckblatt, die Schrittnummern, die Marken |
+| **Textfarbe** | Überschriften und Fließtext der Blätter |
+| **Schrift** | Archivo (wie die Seite), IBM Plex Sans, Arial, Helvetica, Georgia oder Verdana |
+| **Logo** | PNG, JPEG, SVG oder WebP bis 200 kB – steht oben rechts auf dem Deckblatt |
+
+Ohne Angabe gilt das Aussehen der Anwendung; „Hausmarke zurücksetzen“ stellt
+das wieder her. Die Angaben liegen bei den Studio-Einstellungen
+(`screenarchiv:design`) und überleben das Neuladen.
+
+**Was die Seite nicht kann:** die Hausschrift laden. Die Inhaltsrichtlinie
+des Artifacts lässt nur die Schriften von Google Fonts zu, und eine
+Unternehmensschrift liegt dort nicht. Zur Wahl stehen darum die Schriften der
+Seite und die, die auf jedem Rechner vorhanden sind – Arial ist in den
+meisten Häusern die zugelassene Ersatzschrift. Die Festbreitenschrift für
+Kennungen und Zahlen bleibt in jedem Fall, sonst stünden Spalten nicht mehr
+untereinander.
+
+Ein Logo wird nicht nachgeladen, sondern als Datei übernommen und eingebettet
+– die Seite erreicht kein Netz.

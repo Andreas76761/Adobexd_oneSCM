@@ -405,6 +405,108 @@ s.test('das ganze Handbuch entsteht als eine HTML-Datei', () =>
     { hash: AUFNAHME, initSkript: ablageNachbau }
   ));
 
+/* --------------------------------------------- Die Hausmarke (1.44.0) */
+
+s.test('die Hausmarke färbt die Blätter und steht auf dem Deckblatt', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1', '7.5.2']);
+      await oeffneStudio(seite);
+      await seite.check('#design-deckblatt');
+      await seite.waitForFunction(() => document.querySelectorAll('.design-blatt').length > 1, null, { timeout: 25000 });
+
+      // Das Band oben auf dem Deckblatt trägt die Akzentfarbe der Seite.
+      const farbeVorher = await seite.evaluate(() => {
+        const l = document.querySelector('.design-blatt');
+        const p = l.getContext('2d').getImageData(10, 4, 1, 1).data;
+        return [p[0], p[1], p[2]].join(',');
+      });
+
+      await seite.evaluate(() => {
+        const feld = document.getElementById('marke-akzent');
+        feld.value = '#00adef';
+        feld.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await seite.waitForFunction(
+        () => {
+          const l = document.querySelector('.design-blatt');
+          if (!l || !l.getContext) return false;
+          const p = l.getContext('2d').getImageData(10, 4, 1, 1).data;
+          return p[0] === 0 && p[1] === 173 && p[2] === 239;
+        },
+        null,
+        { timeout: 25000 }
+      );
+      wahr(farbeVorher !== '0,173,239', 'die Farbe war schon vorher die der Hausmarke');
+
+      // Die Wahl überlebt das Neuladen.
+      await seite.reload();
+      await seite.waitForFunction(() => document.querySelectorAll('.design-blatt').length > 0, null, { timeout: 25000 });
+      await oeffneStudio(seite);
+      gleich(await seite.locator('#marke-akzent').inputValue(), '#00adef');
+      gleich(await seite.locator('#marke-schrift').inputValue(), '');
+
+      // Zurücksetzen bringt das Aussehen der Anwendung zurück.
+      await seite.click('#marke-zurueck');
+      await seite.waitForFunction(
+        () => {
+          const l = document.querySelector('.design-blatt');
+          if (!l || !l.getContext) return false;
+          const p = l.getContext('2d').getImageData(10, 4, 1, 1).data;
+          return !(p[0] === 0 && p[1] === 173 && p[2] === 239);
+        },
+        null,
+        { timeout: 25000 }
+      );
+      const gespeichert = await seite.evaluate(() => JSON.parse(localStorage.getItem('screenarchiv:design')).marke);
+      gleich(gespeichert.akzent, '');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('ein Logo wird übernommen, gezeigt und wieder entfernt', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1']);
+      await oeffneStudio(seite);
+      // Ein Logo, wie es der Dateidialog liefern würde.
+      await seite.evaluate(async () => {
+        const l = document.createElement('canvas');
+        l.width = 240;
+        l.height = 80;
+        const s2 = l.getContext('2d');
+        s2.fillStyle = '#00adef';
+        s2.fillRect(0, 0, 240, 80);
+        const blob = await new Promise((f) => l.toBlob(f, 'image/png'));
+        const eingabe = document.getElementById('marke-logo');
+        const liste = new DataTransfer();
+        liste.items.add(new File([blob], 'logo.png', { type: 'image/png' }));
+        eingabe.files = liste.files;
+        eingabe.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await seite.waitForFunction(
+        () => /Logo übernommen/.test(document.getElementById('design-meldung').textContent),
+        null,
+        { timeout: 25000 }
+      );
+      gleich(await seite.locator('#marke-schau').isVisible(), true);
+      wahr(
+        (await seite.locator('#marke-logo-schau').getAttribute('src')).startsWith('data:image/png'),
+        'das Logo wird nicht gezeigt'
+      );
+
+      await seite.click('#marke-logo-weg');
+      await seite.waitForFunction(
+        () => document.getElementById('marke-schau').hidden,
+        null,
+        { timeout: 20000 }
+      );
+      const gespeichert = await seite.evaluate(() => JSON.parse(localStorage.getItem('screenarchiv:design')).marke);
+      gleich(gespeichert.logo, '');
+    },
+    { hash: AUFNAHME }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;
