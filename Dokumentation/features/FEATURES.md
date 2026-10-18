@@ -1542,3 +1542,34 @@ selbst schon eine Änderung. Gibt es an einer Stelle mehr als ein Bild je
 Fassung, wird das erste verglichen und die Zahl der übrigen genannt.
 
 Der Vergleich lässt sich als PNG sichern – mit den roten Rahmen darin.
+
+## F-60 · Der Agent Sprache – heißt dasselbe überall gleich?
+
+**Seit** 1.42.0 · betrifft Prüfung
+
+**Das Problem** Die drei Agenten prüften Vollständigkeit und Ordnung, nicht
+die Begriffe. In einem Handbuch für Händler steht dann an einer Stelle
+„Dealer“, an der nächsten „Händler“, und „oneSCM“ ist dreimal anders
+geschrieben. Das fällt beim Lesen auf, nicht beim Sammeln.
+
+**Die Lösung** Ein vierter Agent, der die Texte prüft – Titel, Notiz,
+Begriffe, die Schritttexte der Strecken und, wenn vorhanden, die Lesungen aus
+dem Register OCR. Er prüft vier Dinge:
+
+| Prüfung | Beispiel |
+| --- | --- |
+| **Wortliste** | „Dealer“ steht an einem Bild mit Sprache `de`, die Liste sieht „Händler“ vor |
+| **Schreibweise** | „OneSCM“ statt „oneSCM“ – eine Regel, die nur die Schreibweise meint, achtet auf Groß und Klein und trifft das Richtige nicht mit |
+| **Sprache gegen Label** | ein englischer Titel an einem Bild mit Label „Deutsch“ (geraten an häufigen Wörtern, und ohne deutliches Übergewicht gibt es keinen Befund) |
+| **Uneinheitliche Schreibweise** | dasselbe Wort in den Titeln verschieden geschrieben, mit Häufigkeit je Form |
+
+**Die Wortliste** steht in der Ansicht und lässt sich ändern: eine Regel je
+Zeile, `falsch -> richtig`, dahinter in Klammern die Sprache, für die sie
+gilt. Ohne Sprache gilt die Regel überall; eine Regel *mit* Sprache gilt nur
+für Bilder, die diese Sprache tragen. Zeilen mit `#` werden übersprungen. Die
+Liste liegt in `screenarchiv:woerter`, überlebt das Neuladen, und „Vorgabe
+wiederherstellen“ holt den Anfangsbestand zurück.
+
+Der Agent urteilt nach Regeln, nicht nach Geschmack: **was nicht in der Liste
+steht, wird nicht geprüft.** Claude darf den Bericht hinterher kommentieren –
+wie bei den anderen dreien.

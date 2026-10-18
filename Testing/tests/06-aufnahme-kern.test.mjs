@@ -1793,8 +1793,8 @@ s.test('die Empfehlung sagt, was als nächstes zu tun ist', () => {
   gleich(blatt.weg, 'design');
 });
 
-s.test('ein leerer Bestand bringt alle drei Agenten nicht aus der Ruhe', () => {
-  for (const id of ['faden', 'audit', 'empfehlung']) {
+s.test('ein leerer Bestand bringt alle vier Agenten nicht aus der Ruhe', () => {
+  for (const id of ['faden', 'audit', 'sprache', 'empfehlung']) {
     const ergebnis = kern.fuehreAgent(id, [], agentenGliederung, []);
     gleich(ergebnis.agent, id);
     wahr(Array.isArray(ergebnis.befunde), id + ' gibt keine Liste zurück');
@@ -3125,6 +3125,106 @@ s.test('vergleichbar ist nur, was in beiden Fassungen eine Stelle hat', () => {
   gleich(paare[0].weitereB, 1, 'das zweite Bild in 2.4 wird genannt');
   gleich(paare[0].weitereA, 0);
   tieferGleich(kern.vergleichsPaare([], 'a', 'b', vergleichGliederung), []);
+});
+
+/* ------------------------------- Der Agent Sprache (1.42.0) */
+
+const spracheBestand = [
+  { id: 'S1', titel: 'Dealer anlegen', sprache: 'de', begriffe: [], notiz: '' },
+  { id: 'S2', titel: 'OneSCM Übersicht öffnen und prüfen', sprache: 'de', begriffe: [], notiz: '' },
+  { id: 'S3', titel: 'oneSCM overview with the new list', sprache: 'de', begriffe: [], notiz: '' },
+  { id: 'S4', titel: 'Vorlagenliste öffnen und bearbeiten', sprache: 'de', begriffe: ['vorlage'], notiz: '' }
+];
+
+s.test('die Wortliste liest sich aus Zeilen und schreibt sich zurück', () => {
+  const text = [
+    '# eine Bemerkung wird übersprungen',
+    'Dealer -> Händler (de)',
+    '  Market   ->   Markt  ',
+    'One SCM → oneSCM',
+    'kaputt ohne Pfeil',
+    '-> ohne links'
+  ].join('\n');
+  const liste = kern.wortlisteAusText(text);
+  tieferGleich(liste, [
+    { falsch: 'Dealer', richtig: 'Händler', sprache: 'de' },
+    { falsch: 'Market', richtig: 'Markt', sprache: '' },
+    { falsch: 'One SCM', richtig: 'oneSCM', sprache: '' }
+  ]);
+  // Hin und zurück bleibt dieselbe Liste.
+  tieferGleich(kern.wortlisteAusText(kern.wortlisteAlsText(liste)), liste);
+  tieferGleich(kern.leseWortliste(kern.schreibeWortliste(liste)), liste);
+  // Ohne Speicher gilt die Vorgabe, eine leere Liste bleibt leer.
+  gleich(kern.leseWortliste(null).length, kern.STANDARD_WORTLISTE.length);
+  gleich(kern.leseWortliste('{kaputt').length, kern.STANDARD_WORTLISTE.length);
+  tieferGleich(kern.leseWortliste(kern.schreibeWortliste([])), []);
+});
+
+s.test('der Agent Sprache findet verbotene Wörter – und schont die richtige Schreibweise', () => {
+  const ergebnis = kern.fuehreAgent('sprache', spracheBestand, agentenGliederung, []);
+  gleich(ergebnis.agent, 'sprache');
+  const titel = ergebnis.befunde.map((b) => b.titel);
+
+  const dealer = ergebnis.befunde.find((b) => b.titel.includes('Dealer'));
+  wahr(dealer, titel.join(' | '));
+  tieferGleich(dealer.kennungen, ['S1']);
+  gleich(dealer.art, 'warnung');
+  gleich(dealer.weg, 'eingang');
+
+  // „OneSCM" ist falsch geschrieben, „oneSCM" nicht - eine Regel, die nur
+  // die Schreibweise meint, darf das Richtige nicht mittreffen.
+  const schreibweise = ergebnis.befunde.find((b) => /„OneSCM" statt/.test(b.titel));
+  wahr(schreibweise, titel.join(' | '));
+  tieferGleich(schreibweise.kennungen, ['S2']);
+
+  // Ein englischer Titel an einem Bild mit Label „de".
+  const fremd = ergebnis.befunde.find((b) => /anderen Sprache/.test(b.titel));
+  wahr(fremd && fremd.kennungen.includes('S3'), JSON.stringify(fremd));
+
+  // Dieselbe Sache verschieden geschrieben.
+  const uneinheitlich = ergebnis.befunde.find((b) => /Uneinheitliche Schreibweise/.test(b.titel));
+  wahr(uneinheitlich && /oneSCM/.test(uneinheitlich.titel), JSON.stringify(uneinheitlich));
+
+  // Ein sauberer Bestand gibt keinen Befund aus der Wortliste.
+  const sauber = kern.fuehreAgent('sprache', [spracheBestand[3]], agentenGliederung, []);
+  gleich(sauber.befunde.length, 0, sauber.befunde.map((b) => b.titel).join(' | '));
+  gleich(sauber.kennzahlen.find((k) => k.schild === 'Regeln').wert, String(kern.STANDARD_WORTLISTE.length));
+});
+
+s.test('eine eigene Wortliste und die Lesungen aus OCR gehen mit', () => {
+  const bestand = [{ id: 'S9', titel: 'Freigabe prüfen', sprache: 'de', begriffe: [], notiz: '' }];
+  const eigene = [{ falsch: 'Freigabe', richtig: 'Genehmigung', sprache: '' }];
+  const mitEigener = kern.fuehreAgent('sprache', bestand, [], [], { wortliste: eigene });
+  gleich(mitEigener.befunde.length, 1);
+  wahr(mitEigener.befunde[0].titel.includes('Genehmigung'), mitEigener.befunde[0].titel);
+  gleich(mitEigener.kennzahlen.find((k) => k.schild === 'Regeln').wert, '1');
+
+  // Was nur in der Lesung steht, wird mitgeprüft.
+  const mitOcr = kern.fuehreAgent('sprache', [{ id: 'S9', titel: 'Liste', sprache: 'de', begriffe: [] }], [], [], {
+    wortliste: [{ falsch: 'Dealer', richtig: 'Händler', sprache: 'de' }],
+    ocr: { S9: { text: 'Spalte Dealer | Vertrag' } }
+  });
+  gleich(mitOcr.befunde.length, 1);
+  tieferGleich(mitOcr.befunde[0].kennungen, ['S9']);
+  gleich(mitOcr.kennzahlen.find((k) => k.schild === 'Lesungen dabei').wert, '1');
+
+  // Eine leere Wortliste prüft keine Wörter mehr.
+  gleich(kern.fuehreAgent('sprache', bestand, [], [], { wortliste: [] }).befunde.length, 0);
+});
+
+s.test('die Sprache eines Textes wird geraten, nicht behauptet', () => {
+  gleich(kern.spracheDesTextes('Die Liste wird mit einem Klick geöffnet'), 'de');
+  gleich(kern.spracheDesTextes('The list is opened with the new button'), 'en');
+  // Zu kurz oder ohne Merkmal: keine Antwort statt einer falschen.
+  gleich(kern.spracheDesTextes('Status'), '');
+  gleich(kern.spracheDesTextes('Vorlagenliste Signatur Freigabe'), '');
+  gleich(kern.spracheDesTextes(''), '');
+
+  // Schreibweisen: gruppiert wird nach Buchstaben, nicht nach Groß und Klein.
+  const gruppen = kern.schreibweisen(['oneSCM Portal', 'OneSCM Portal', 'Portal']);
+  wahr(gruppen.some((g) => g.map((f) => f.wort).sort().join('/') === 'OneSCM/oneSCM'), JSON.stringify(gruppen));
+  // Ein Wort in nur einer Schreibweise ist keine Gruppe.
+  tieferGleich(kern.schreibweisen(['Vorlage', 'Vorlage']), []);
 });
 
 export default s;

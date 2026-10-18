@@ -1,7 +1,8 @@
 /* =========================================================================
-   Prüfung – drei Agenten über dem Bestand.
+   Prüfung – vier Agenten über dem Bestand.
 
-   Roter Faden, Audit und Empfehlung prüfen nach Regeln (im Kern, ohne DOM).
+   Roter Faden, Audit, Sprache und Empfehlung prüfen nach Regeln (im Kern,
+   ohne DOM).
    Die Ansicht zeigt Kennzahlen, Befunde und zu jedem Befund den Weg dorthin:
    betroffene Bilder öffnen sich im Editor, eine Stelle führt in die
    Gliederung, eine Folge in die Strecke.
@@ -12,6 +13,7 @@
    ========================================================================= */
 
 let pruefErgebnisse = {}; // agent-id -> Ergebnis samt Kommentar
+let wortliste = leseWortlisteAusSpeicher(); // Vorgaben des Agenten „Sprache"
 let pruefLaeuft = '';
 let pruefClaude = null;
 let pruefClaudeGeprueft = false;
@@ -26,8 +28,51 @@ function meldePruefung(text, art = 'neutral') {
 function laufeAgent(id) {
   pruefErgebnisse = {
     ...pruefErgebnisse,
-    [id]: { ...fuehreAgent(id, imProjekt(), GLIEDERUNG, strecken), gelaufen_am: new Date().toISOString() }
+    [id]: {
+      // Der Agent „Sprache" bekommt die Wortliste und die Lesungen aus OCR
+      // dazu; die anderen übergehen das zweite Argument.
+      ...fuehreAgent(id, imProjekt(), GLIEDERUNG, strecken, { wortliste, ocr: ocrTexte }),
+      gelaufen_am: new Date().toISOString()
+    }
   };
+}
+
+/* ------------------------------------------------- Wortliste (1.42.0) */
+
+function leseWortlisteAusSpeicher() {
+  try {
+    return leseWortliste(localStorage.getItem(WORTLISTE_SCHLUESSEL));
+  } catch (fehler) {
+    return [...STANDARD_WORTLISTE];
+  }
+}
+
+function meldeWortliste(text, art = 'neutral') {
+  const zeile = $('#wortliste-meldung');
+  if (!zeile) return;
+  zeile.textContent = text;
+  zeile.className = 'feld-hinweis' + (art === 'warnung' ? ' zettel-meldung--warnung' : '');
+}
+
+function zeichneWortliste() {
+  const feld = $('#wortliste-text');
+  if (!feld) return;
+  // Beim Tippen nicht dazwischenfahren: geschrieben wird nur, was nicht
+  // gerade bearbeitet wird.
+  if (document.activeElement !== feld) feld.value = wortlisteAlsText(wortliste);
+  $('#wortliste-stand').textContent = `${wortliste.length} ${wortliste.length === 1 ? 'Regel' : 'Regeln'}`;
+}
+
+function sichereWortliste() {
+  const gelesen = wortlisteAusText($('#wortliste-text').value);
+  wortliste = gelesen;
+  try {
+    localStorage.setItem(WORTLISTE_SCHLUESSEL, schreibeWortliste(wortliste));
+    meldeWortliste(`${wortliste.length} Regel(n) gesichert. Der Agent „Sprache" prüft beim nächsten Lauf damit.`);
+  } catch (fehler) {
+    meldeWortliste('Der Speicher ist voll – die Liste gilt nur für diese Sitzung.', 'warnung');
+  }
+  zeichneWortliste();
 }
 
 /* ------------------------------------------------------------- Darstellung */
@@ -152,6 +197,7 @@ function agentKarte(agent) {
 function zeichnePruefung() {
   if (document.getElementById('pruefung-ansicht').hidden) return;
   $('#pruef-agenten').replaceChildren(...AGENTEN.map(agentKarte));
+  zeichneWortliste();
   $('#pruef-bericht').disabled = !Object.keys(pruefErgebnisse).length;
   zeichneVergleich();
 }
@@ -477,7 +523,7 @@ function verdrahtePruefung() {
       0
     );
     meldePruefung(
-      `Drei Agenten gelaufen: ${zahl} Befund(e), davon ${fehler} Fehler.`,
+      `${AGENTEN.length} Agenten gelaufen: ${zahl} Befund(e), davon ${fehler} Fehler.`,
       fehler ? 'warnung' : zahl ? 'neutral' : 'gut'
     );
   });
@@ -491,6 +537,12 @@ function verdrahtePruefung() {
   $('#vergleich-sichern').addEventListener('click', sichereVergleich);
   $('#unterschied-schliessen').addEventListener('click', () => $('#unterschied-dialog').close());
   $('#unterschied-sichern').addEventListener('click', sichereUnterschied);
+  $('#wortliste-sichern').addEventListener('click', sichereWortliste);
+  $('#wortliste-zurueck').addEventListener('click', () => {
+    wortliste = [...STANDARD_WORTLISTE];
+    $('#wortliste-text').value = wortlisteAlsText(wortliste);
+    sichereWortliste();
+  });
 }
 
 verdrahtePruefung();

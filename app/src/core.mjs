@@ -3344,6 +3344,11 @@ export const AGENTEN = [
     zweck: 'Ist jedes Bild vollständig, zugeordnet, gelabelt und in der Auflösung, die der Druck braucht?'
   },
   {
+    id: 'sprache',
+    label: 'Sprache',
+    zweck: 'Heißt dasselbe überall gleich? Wortliste, Schreibweisen und die Sprache der Texte gegen das Label.'
+  },
+  {
     id: 'empfehlung',
     label: 'Empfehlung',
     zweck: 'Was als nächstes zu tun ist – nach Gewicht sortiert, mit dem Weg dorthin.'
@@ -3661,6 +3666,229 @@ export function pruefeAudit(eingang = [], gliederung = [], strecken = []) {
 
 /* ------------------------------------------------------------- Empfehlung */
 
+/* ------------------------------------------------------------ Sprache */
+
+/**
+ * Die Wortliste: was wie heißen soll. Ein Handbuch, in dem dieselbe Sache
+ * dreimal anders heißt, ist kein Handbuch. Die Liste ist eine Vorgabe, kein
+ * Gesetz - sie lässt sich ändern, und was fehlt, wird nicht geprüft.
+ */
+export const WORTLISTE_SCHLUESSEL = 'screenarchiv:woerter';
+export const WORTLISTE_VERSION = 1;
+
+/** Ein Anfang aus dem Sprachgebrauch des Projekts; änderbar in der Ansicht. */
+export const STANDARD_WORTLISTE = [
+  { falsch: 'Dealer', richtig: 'Händler', sprache: 'de' },
+  { falsch: 'Market', richtig: 'Markt', sprache: 'de' },
+  { falsch: 'Contract', richtig: 'Vertrag', sprache: 'de' },
+  { falsch: 'Customer', richtig: 'Kunde', sprache: 'de' },
+  { falsch: 'Template', richtig: 'Vorlage', sprache: 'de' },
+  { falsch: 'Approval', richtig: 'Freigabe', sprache: 'de' },
+  { falsch: 'Händler', richtig: 'Dealer', sprache: 'en' },
+  { falsch: 'Vertrag', richtig: 'Contract', sprache: 'en' },
+  { falsch: 'Freigabe', richtig: 'Approval', sprache: 'en' },
+  { falsch: 'OneSCM', richtig: 'oneSCM' },
+  { falsch: 'One SCM', richtig: 'oneSCM' },
+  { falsch: 'Service Vertrag', richtig: 'Servicevertrag' },
+  { falsch: 'Mercedes Benz', richtig: 'Mercedes-Benz' }
+];
+
+/** Eine Zeile je Regel: „falsch -> richtig", dahinter die Sprache in Klammern. */
+export function wortlisteAlsText(liste = []) {
+  return liste
+    .filter((r) => r && r.falsch && r.richtig)
+    .map((r) => `${r.falsch} -> ${r.richtig}${r.sprache ? ` (${r.sprache})` : ''}`)
+    .join('\n');
+}
+
+export function wortlisteAusText(text) {
+  const regeln = [];
+  for (const zeile of String(text || '').split(/\r?\n/)) {
+    const sauber = zeile.trim();
+    if (!sauber || sauber.startsWith('#')) continue;
+    const teile = sauber.split(/->|→/);
+    if (teile.length < 2) continue;
+    const falsch = teile[0].trim();
+    const rest = teile.slice(1).join('->').trim();
+    const sprache = (rest.match(/\(([a-zA-Z-]{2,5})\)\s*$/) || [])[1] || '';
+    const richtig = rest.replace(/\([a-zA-Z-]{2,5}\)\s*$/, '').trim();
+    if (!falsch || !richtig) continue;
+    regeln.push({ falsch, richtig, sprache: sprache.toLowerCase() });
+  }
+  return regeln;
+}
+
+export function leseWortliste(text) {
+  try {
+    const inhalt = JSON.parse(text || 'null');
+    const liste = Array.isArray(inhalt) ? inhalt : inhalt && Array.isArray(inhalt.regeln) ? inhalt.regeln : null;
+    if (!liste) return [...STANDARD_WORTLISTE];
+    const sauber = liste
+      .filter((r) => r && r.falsch && r.richtig)
+      .map((r) => ({ falsch: String(r.falsch), richtig: String(r.richtig), sprache: String(r.sprache || '').toLowerCase() }));
+    return sauber.length ? sauber : [];
+  } catch (fehler) {
+    return [...STANDARD_WORTLISTE];
+  }
+}
+
+export function schreibeWortliste(liste = []) {
+  return JSON.stringify({ version: WORTLISTE_VERSION, regeln: liste });
+}
+
+/* Häufige Wörter, an denen sich die Sprache eines Satzes erkennen lässt. */
+const SPRACHMERKMALE = {
+  de: ['der', 'die', 'das', 'und', 'mit', 'für', 'fuer', 'von', 'im', 'auf', 'wird', 'nicht', 'eine', 'ein', 'zum', 'zur', 'anlegen', 'öffnen', 'oeffnen', 'speichern', 'bearbeiten', 'auswählen', 'auswaehlen'],
+  en: ['the', 'and', 'with', 'for', 'from', 'of', 'is', 'are', 'new', 'open', 'save', 'edit', 'select', 'create', 'settings', 'overview']
+};
+
+/**
+ * Die Sprache eines Textes - geraten an häufigen Wörtern, nicht gemessen.
+ * Ohne deutliches Übergewicht gibt es keine Antwort; so entsteht aus einem
+ * Titel wie „Status" kein Befund.
+ */
+export function spracheDesTextes(text) {
+  const woerter = normalisiereLang(text).split(/[^a-z0-9äöüß]+/).filter(Boolean);
+  if (woerter.length < 3) return '';
+  const zaehle = (liste) => woerter.filter((w) => liste.includes(w)).length;
+  const de = zaehle(SPRACHMERKMALE.de);
+  const en = zaehle(SPRACHMERKMALE.en);
+  if (de >= 2 && de > en) return 'de';
+  if (en >= 2 && en > de) return 'en';
+  return '';
+}
+
+/** Dieselbe Sache, verschieden geschrieben: „oneSCM", „OneSCM", „One SCM". */
+export function schreibweisen(texte = []) {
+  const gruppen = new Map();
+  for (const text of texte) {
+    for (const wort of String(text || '').match(/[A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß0-9-]{2,}/g) || []) {
+      const schluessel = normalisiereLang(wort).replace(/[^a-z0-9]/g, '');
+      if (schluessel.length < 4) continue;
+      const bisher = gruppen.get(schluessel) || new Map();
+      bisher.set(wort, (bisher.get(wort) || 0) + 1);
+      gruppen.set(schluessel, bisher);
+    }
+  }
+  return [...gruppen.values()]
+    .filter((formen) => formen.size > 1)
+    .map((formen) => [...formen].sort((a, b) => b[1] - a[1]).map(([wort, zahl]) => ({ wort, zahl })))
+    .sort((a, b) => b.reduce((s, f) => s + f.zahl, 0) - a.reduce((s, f) => s + f.zahl, 0));
+}
+
+/**
+ * Der vierte Agent: heißt dasselbe überall gleich? Geprüft werden die Texte
+ * am Bild (Titel, Notiz, Begriffe), die Texte der Strecken und - wenn
+ * vorhanden - die Lesungen aus dem Register OCR. Alles in der Seite, ohne
+ * Claude: eine Wortliste ist eine Regel, keine Meinung.
+ */
+export function pruefeSprache(eingang = [], gliederung = [], strecken = [], { wortliste = STANDARD_WORTLISTE, ocr = {} } = {}) {
+  const befunde = [];
+  const texteVon = (a) =>
+    [a.titel, a.notiz, (a.begriffe || []).join(' '), (ocr[a.id] && ocr[a.id].text) || ''].filter(Boolean).join('\n');
+
+  // 1. Die Wortliste: ein verbotenes Wort, wo ein anderes stehen soll.
+  const nachRegel = new Map();
+  for (const aufnahme of eingang) {
+    const text = texteVon(aufnahme);
+    if (!text.trim()) continue;
+    const sprache = String(aufnahme.sprache || '');
+    for (const regel of wortliste) {
+      if (regel.sprache && sprache && regel.sprache !== sprache) continue;
+      if (regel.sprache && !sprache) continue;
+      // Eine Regel, die nur die Schreibweise meint („OneSCM" → „oneSCM"),
+      // muss auf Groß und Klein achten - sonst trifft sie das Richtige mit.
+      const nurSchreibweise =
+        normalisiereLang(regel.falsch).replace(/[^a-z0-9]/g, '') ===
+        normalisiereLang(regel.richtig).replace(/[^a-z0-9]/g, '');
+      const muster = new RegExp(
+        `(^|[^\\p{L}])${regel.falsch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^\\p{L}]|$)`,
+        nurSchreibweise ? 'u' : 'iu'
+      );
+      if (!muster.test(text)) continue;
+      const schluessel = `${regel.falsch}→${regel.richtig}`;
+      nachRegel.set(schluessel, [...(nachRegel.get(schluessel) || []), aufnahme.id]);
+    }
+  }
+  for (const [regel, kennungen] of nachRegel) {
+    const [falsch, richtig] = regel.split('→');
+    befunde.push(
+      befund('warnung', `„${falsch}" statt „${richtig}" in ${kennungen.length} Bild(ern)`,
+        `Die Wortliste sieht „${richtig}" vor. Im Text des Bildes steht „${falsch}".`, {
+        kennungen,
+        weg: 'eingang',
+        gewicht: 2
+      })
+    );
+  }
+
+  // 2. Der Text spricht eine andere Sprache als sein Label.
+  const fremd = eingang.filter((a) => {
+    const label = String(a.sprache || '');
+    if (!label) return false;
+    const erkannt = spracheDesTextes([a.titel, a.notiz].filter(Boolean).join(' '));
+    return erkannt && erkannt !== label;
+  });
+  if (fremd.length) {
+    befunde.push(
+      befund('hinweis', `${fremd.length} Bild(er) mit Text in einer anderen Sprache`,
+        'Der Titel oder die Notiz liest sich nicht wie das Label „Sprache" sagt. Entweder das Label oder der Text gehört geändert.', {
+        kennungen: fremd.map((a) => a.id),
+        weg: 'eingang',
+        gewicht: 2
+      })
+    );
+  }
+
+  // 3. Dieselbe Sache, verschieden geschrieben.
+  const formen = schreibweisen(eingang.map((a) => a.titel)).slice(0, 5);
+  for (const gruppe of formen) {
+    const woerter = gruppe.map((f) => `${f.wort} (${f.zahl}×)`).join(', ');
+    befunde.push(
+      befund('hinweis', `Uneinheitliche Schreibweise: ${gruppe.map((f) => f.wort).join(' / ')}`,
+        `In den Titeln steht dasselbe Wort verschieden: ${woerter}. Eine Schreibweise wählen.`, {
+        kennungen: eingang
+          .filter((a) => gruppe.some((f) => String(a.titel || '').includes(f.wort)))
+          .map((a) => a.id),
+        weg: 'eingang',
+        gewicht: 1
+      })
+    );
+  }
+
+  // 4. Schritte ohne Text erklären nichts - das prüft auch der rote Faden,
+  //    hier zählt die Sprache: ein Schritt, der kein Satz ist.
+  const kurzeSchritte = [];
+  for (const strecke of strecken) {
+    (strecke.schritte || []).forEach((schritt, i) => {
+      const text = String(schritt.text || '').trim();
+      if (text && text.length < 12) kurzeSchritte.push(`${strecke.name || 'Strecke'} · Schritt ${i + 1}`);
+    });
+  }
+  if (kurzeSchritte.length) {
+    befunde.push(
+      befund('hinweis', `${kurzeSchritte.length} Schritt(e) mit sehr kurzem Text`,
+        `Unter zwölf Zeichen steht selten eine Anweisung: ${kurzeSchritte.slice(0, 6).join(', ')}.`, {
+        weg: 'strecke',
+        gewicht: 1
+      })
+    );
+  }
+
+  const mitText = eingang.filter((a) => texteVon(a).trim()).length;
+  const gelesen = eingang.filter((a) => ocr[a.id]).length;
+  return {
+    agent: 'sprache',
+    befunde: sortiereBefunde(befunde),
+    kennzahlen: [
+      { schild: 'Geprüfte Texte', wert: String(mitText), zusatz: `von ${eingang.length} Bildern` },
+      { schild: 'Regeln', wert: String(wortliste.length), zusatz: 'in der Wortliste' },
+      { schild: 'Lesungen dabei', wert: String(gelesen), zusatz: gelesen ? 'aus dem Register OCR' : 'keine' },
+      { schild: 'Befunde', wert: String(befunde.length), zusatz: befunde.length ? 'zu klären' : 'nichts zu klären' }
+    ]
+  };
+}
+
 /**
  * Die Empfehlung sagt, was als nächstes zu tun ist. Sie urteilt nicht über
  * Bilder, sondern über den Weg zum Handbuch: wo Bilder fehlen, wo aus
@@ -3789,9 +4017,10 @@ export function empfehlungen(eingang = [], gliederung = [], strecken = []) {
 }
 
 /** Führt einen der drei Agenten aus. Ein unbekannter Name liefert nichts. */
-export function fuehreAgent(id, eingang = [], gliederung = [], strecken = []) {
+export function fuehreAgent(id, eingang = [], gliederung = [], strecken = [], mehr = {}) {
   if (id === 'faden') return pruefeFaden(eingang, gliederung, strecken);
   if (id === 'audit') return pruefeAudit(eingang, gliederung, strecken);
+  if (id === 'sprache') return pruefeSprache(eingang, gliederung, strecken, mehr);
   if (id === 'empfehlung') return empfehlungen(eingang, gliederung, strecken);
   return { agent: String(id || ''), befunde: [], kennzahlen: [] };
 }

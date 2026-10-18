@@ -803,14 +803,36 @@
       </div>
     </div>
     <p class="band-hinweis">
-      Drei Agenten sehen sich den Bestand an: der <b>rote Faden</b> prüft die
-      Folge, das <b>Audit</b> jedes Bild für sich, die <b>Empfehlung</b> sagt,
-      was als nächstes zu tun ist. Alle drei prüfen nach Regeln – jeder Befund
+      Vier Agenten sehen sich den Bestand an: der <b>rote Faden</b> prüft die
+      Folge, das <b>Audit</b> jedes Bild für sich, die <b>Sprache</b> prüft,
+      ob dasselbe überall gleich heißt, und die <b>Empfehlung</b> sagt, was
+      als nächstes zu tun ist. Alle vier prüfen nach Regeln – jeder Befund
       nennt die Bilder, um die es geht, und den Weg dorthin. Claude darf das
       Ergebnis hinterher kommentieren; entscheiden tun die Regeln.
     </p>
     <p class="studio-meldung" id="pruef-meldung" role="status" aria-live="polite"></p>
     <div class="pruef-agenten" id="pruef-agenten"></div>
+
+    <details class="band wortliste" id="wortliste-block">
+      <summary>
+        <span>Wortliste</span>
+        <span class="kennung" id="wortliste-stand"></span>
+      </summary>
+      <p class="band-hinweis">
+        Was wie heißen soll – eine Regel je Zeile: <code>falsch -&gt; richtig</code>,
+        dahinter in Klammern die Sprache, für die sie gilt (<code>(de)</code>).
+        Ohne Sprache gilt die Regel überall. Zeilen mit <code>#</code> am Anfang
+        werden übersprungen. Der Agent <b>Sprache</b> prüft damit Titel, Notiz,
+        Begriffe und – wenn vorhanden – die Lesungen aus dem Register OCR.
+      </p>
+      <label class="sprung" for="wortliste-text">Wortliste</label>
+      <textarea id="wortliste-text" rows="10" spellcheck="false"></textarea>
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--klein" id="wortliste-sichern">Wortliste sichern</button>
+        <button type="button" class="knopf knopf--klein" id="wortliste-zurueck">Vorgabe wiederherstellen</button>
+      </div>
+      <p class="feld-hinweis" id="wortliste-meldung"></p>
+    </details>
 
     <div class="band vergleich" id="projektvergleich">
       <div class="band-kopf">

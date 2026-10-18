@@ -1,5 +1,5 @@
 /**
- * Browserprüfung der Ansicht Prüfung: drei Agenten über dem Bestand.
+ * Browserprüfung der Ansicht Prüfung: vier Agenten über dem Bestand.
  * Geprüft wird, dass sie nach Regeln urteilen, ihre Befunde benennen, den Weg
  * dorthin zeigen – und dass der Bericht ohne Claude zustande kommt.
  */
@@ -41,13 +41,13 @@ async function zweiAufnahmen(seite) {
   await seite.waitForTimeout(250);
 }
 
-s.test('die drei Agenten stellen sich vor, bevor sie laufen', () =>
+s.test('die vier Agenten stellen sich vor, bevor sie laufen', () =>
   mitSeite(
     async (seite) => {
       gleich(await seite.locator('#pruefung-ansicht').isVisible(), true);
-      gleich(await seite.locator('.pruef-agent').count(), 3);
+      gleich(await seite.locator('.pruef-agent').count(), 4);
       const namen = await seite.locator('.pruef-agent h3').allInnerTexts();
-      gleich(namen.join('|'), 'Roter Faden|Audit|Empfehlung');
+      gleich(namen.join('|'), 'Roter Faden|Audit|Sprache|Empfehlung');
       gleich(await seite.locator('#pruef-bericht').isDisabled(), true, 'ein leerer Bericht ließe sich sichern');
       wahr(
         (await seite.locator('.pruef-agent').first().innerText()).includes('Noch nicht gelaufen'),
@@ -68,7 +68,7 @@ s.test('ein Lauf nennt Kennzahlen, Befunde und die betroffenen Bilder', () =>
       await seite.click('.portal-nav button[data-ansicht="pruefung"]');
       await seite.waitForSelector('#pruefung-ansicht:not([hidden])');
       await seite.click('#pruef-alle');
-      await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 3, null, { timeout: 8000 });
+      await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 4, null, { timeout: 8000 });
 
       const faden = seite.locator('.pruef-agent[data-agent="faden"]');
       wahr((await faden.innerText()).includes('ohne Stelle'), 'das Bild ohne Stelle fällt nicht auf');
@@ -122,7 +122,7 @@ s.test('der Bericht wird als Text gesichert – ohne Claude', () =>
       await zweiAufnahmen(seite);
       await seite.click('.portal-nav button[data-ansicht="pruefung"]');
       await seite.click('#pruef-alle');
-      await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 3, null, { timeout: 8000 });
+      await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 4, null, { timeout: 8000 });
       await seite.click('#pruef-bericht');
       await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 8000 });
       const [datei] = await seite.evaluate(() => window.__abgelegt);
@@ -326,6 +326,70 @@ s.test('zwei Bilder derselben Stelle werden Punkt für Punkt verglichen', () =>
       gleich(await seite.locator('#unterschied-dialog[open]').count(), 0);
     },
     { hash: AUFNAHME, initSkript: ablageNachbau }
+  ));
+
+/* --------------------------------------- Der Agent Sprache (1.42.0) */
+
+s.test('der Agent Sprache prüft gegen die Wortliste', () =>
+  mitSeite(
+    async (seite) => {
+      // Ein Bild, dessen Titel gegen die Wortliste verstößt.
+      await seite.click('#quelle-beispiel');
+      await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+      await seite.fill('#feld-titel', 'Dealer anlegen und OneSCM öffnen');
+      await seite.fill('#feld-projekt', 'oneSCM Portal');
+      // Eine Regel mit Sprache gilt nur für Bilder, die eine haben.
+      await seite.evaluate(() => {
+        document.getElementById('entwurf-labels').open = true;
+      });
+      await seite.selectOption('#feld-label-sprache', 'de');
+      await seite.click('#ausloesen');
+      await seite.waitForTimeout(200);
+
+      await seite.click('.portal-nav button[data-ansicht="pruefung"]');
+      await seite.waitForSelector('#pruefung-ansicht:not([hidden])');
+      gleich(await seite.locator('.pruef-agent').count(), 4);
+
+      await seite.click('#pruef-sprache');
+      await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 1, null, { timeout: 8000 });
+      const befunde = await seite.locator('.pruef-befund h4').allInnerTexts();
+      wahr(befunde.some((b) => b.includes('Dealer')), befunde.join(' | '));
+      wahr(befunde.some((b) => b.includes('OneSCM')), befunde.join(' | '));
+
+      // Die Wortliste steht in der Ansicht und lässt sich ändern.
+      await seite.evaluate(() => {
+        document.getElementById('wortliste-block').open = true;
+      });
+      wahr(
+        (await seite.locator('#wortliste-text').inputValue()).includes('Dealer -> Händler (de)'),
+        await seite.locator('#wortliste-text').inputValue()
+      );
+      await seite.fill('#wortliste-text', 'Übersicht -> Startseite');
+      await seite.click('#wortliste-sichern');
+      await seite.waitForTimeout(200);
+      gleich(await seite.locator('#wortliste-stand').innerText(), '1 Regel');
+
+      // Mit der neuen Liste findet derselbe Agent andere Befunde.
+      await seite.click('#pruef-sprache');
+      await seite.waitForTimeout(400);
+      const neueBefunde = await seite.locator('.pruef-befund h4').allInnerTexts();
+      wahr(!neueBefunde.some((b) => b.includes('Dealer')), neueBefunde.join(' | '));
+
+      // Die Liste überlebt das Neuladen; die Vorgabe lässt sich holen.
+      await seite.reload();
+      await seite.waitForSelector('#pruefung-ansicht:not([hidden])');
+      await seite.evaluate(() => {
+        document.getElementById('wortliste-block').open = true;
+      });
+      gleich(await seite.locator('#wortliste-text').inputValue(), 'Übersicht -> Startseite');
+      await seite.click('#wortliste-zurueck');
+      await seite.waitForTimeout(200);
+      wahr(
+        (await seite.locator('#wortliste-text').inputValue()).includes('Mercedes Benz -> Mercedes-Benz'),
+        'die Vorgabe kam nicht zurück'
+      );
+    },
+    { hash: AUFNAHME }
   ));
 
 s.test('Browser wieder schließen', () => schliessen());

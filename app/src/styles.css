@@ -1702,3 +1702,14 @@ div.streifen-bild { cursor: default; }
 .unterschied-bilder figcaption { font-size: 11.5px; color: var(--tinte-3); margin-top: 3px; }
 .unterschied-marken canvas { border-color: var(--akzent); }
 .unterschied-aktionen { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ------------------------- Wortliste des Agenten Sprache (1.42.0) */
+
+.wortliste { margin-top: 20px; padding: 10px 0; }
+.wortliste > summary { cursor: pointer; display: flex; gap: 12px; align-items: baseline; font-weight: 600; }
+.wortliste > summary .kennung { font-weight: 400; }
+.wortliste textarea {
+  width: 100%; font-family: var(--schrift-mono); font-size: 12.5px; line-height: 1.6;
+  padding: 8px 10px; margin: 8px 0; color: var(--tinte); background: var(--flaeche);
+  border: 1px solid var(--linie-stark); border-radius: var(--radius); resize: vertical;
+}

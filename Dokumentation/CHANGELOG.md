@@ -20,6 +20,31 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.42.0] – Der Agent Sprache
+
+### Neu
+* **Vierter Agent „Sprache“** (F-60): prüft Titel, Notiz, Begriffe,
+  Schritttexte und die Lesungen aus dem Register OCR gegen eine Wortliste,
+  findet uneinheitliche Schreibweisen und Texte, die nicht zur Sprache ihres
+  Labels passen
+* **Wortliste in der Ansicht**: eine Regel je Zeile (`falsch -> richtig (de)`),
+  änderbar, gespeichert in `screenarchiv:woerter`, mit „Vorgabe
+  wiederherstellen“
+
+### Geändert
+* Aus drei Agenten werden vier – die Meldung zählt sie jetzt, statt „Drei“ zu
+  behaupten
+* `fuehreAgent` nimmt ein fünftes Argument (Wortliste, Lesungen); die
+  übrigen Agenten übergehen es
+
+### Kern
+* `pruefeSprache`, `spracheDesTextes`, `schreibweisen`, `leseWortliste`,
+  `schreibeWortliste`, `wortlisteAusText`, `wortlisteAlsText`,
+  `STANDARD_WORTLISTE`, `WORTLISTE_SCHLUESSEL`
+
+### Prüfung
+* 4 neue Kernprüfungen, 1 neue Browserprüfung; zusammen 447
+
 ## [1.41.0] – Bildvergleich: was sich geändert hat
 
 ### Neu
