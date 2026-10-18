@@ -74,6 +74,17 @@ zeigt diese Vektorformate nicht. Sie werden namentlich genannt, nicht still
 weggelassen. Und `.ppt`, `.doc`, `.xls` sind keine ZIP-Archive: ein Speichern
 als `.pptx` bzw. `.docx` genügt.
 
+## Satz und Layout macht nicht die Seite
+
+Die Blätter des Studios sind gerechnete Bilder: was dort steht, steht an der
+Stelle, an der es gezeichnet wurde. In PDF, Word und PowerPoint wandern sie
+als Bild – richtig für den Druck, unveränderlich für den Leser.
+
+Wer **Text** braucht, nimmt das Handbuch: als HTML (F-47) oder als Word-Datei
+mit echten Überschriften (F-61). Dort setzt das Programm die Zeilen, nicht
+die Seite. Ein eigener Zeilenumbruch mit eingebetteten Schriften wäre ein
+zweites Satzprogramm – das baut diese Seite nicht.
+
 ## Das Verzeichnis braucht Chromium
 
 Die Galerie in einen lokalen Ordner zu schreiben (ab 1.29.0) setzt den

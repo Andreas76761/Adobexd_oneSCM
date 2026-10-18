@@ -774,6 +774,88 @@ async function handbuchBild(aufnahme, grenze) {
   return leinwand.toDataURL('image/jpeg', 0.86);
 }
 
+/**
+ * Dasselbe Handbuch als Word-Datei: Überschriften je Stelle, die Texte der
+ * Gliederung, die Anweisungen der Strecke und die Bilder dazwischen - und
+ * zwar als Text, nicht als Bild einer Seite. So lässt es sich im Haus
+ * weiterschreiben, kommentieren und mit einem Inhaltsverzeichnis versehen.
+ */
+async function sichereHandbuchWord() {
+  const { teile, stelle } = handbuchAuswahl();
+  if (!teile.length) return;
+  const grenze = Number($('#handbuch-groesse').value) || 1600;
+  $('#handbuch-word').disabled = true;
+  const zahl = handbuchUmfang(teile);
+  meldeDesign(`Word-Handbuch wird gerechnet – ${zahl.bilder} Bilder …`, 'neutral');
+
+  const bilder = new Map();
+  let gerechnet = 0;
+  for (const teil of teile) {
+    for (const aufnahme of teil.bilder) {
+      if (bilder.has(aufnahme.id)) continue;
+      try {
+        bilder.set(aufnahme.id, await handbuchBildBytes(aufnahme, grenze));
+      } catch (fehler) {
+        // Ein Bild, das sich nicht holen lässt, fehlt im Dokument - der Text
+        // bleibt. Besser als gar keine Datei.
+      }
+      gerechnet += 1;
+      if (gerechnet % 5 === 0) meldeDesign(`Word-Handbuch wird gerechnet – ${gerechnet} von ${zahl.bilder} Bildern …`, 'neutral');
+    }
+  }
+
+  const eintrag = stelle ? GLIEDERUNG.find((e) => e.nummer === stelle) : null;
+  const titel = studio.titel || (eintrag ? `${eintrag.nummer} ${eintrag.thema}` : 'Benutzerhandbuch');
+  const daten = docxAusHandbuch(teile, {
+    titel,
+    untertitel: studio.untertitel,
+    hinweis: studio.hinweis,
+    anwendung: DATEN.anwendung,
+    bilder,
+    mitTexten: studio.texte
+  });
+  $('#handbuch-word').disabled = false;
+  if (!daten) {
+    meldeDesign('Das Handbuch ist leer – es gibt nichts zu schreiben.', 'warnung');
+    return;
+  }
+  const name = `handbuch-${bereinigeDateiname(titel) || 'oneSCM'}.docx`;
+  const ergebnis = await uebergebeDatei(
+    name,
+    new Blob([daten], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+  );
+  meldeDesign(
+    ergebnis.art === 'gesichert'
+      ? `${name} gesichert (${formatiereBytes(ergebnis.groesse)}) – ${zahl.stellen} Stellen, ${bilder.size} Bilder, Text als Text.`
+      : ergebnis.art === 'ohne'
+        ? 'Diese Ansicht darf keine Dateien ablegen.'
+        : 'Das Sichern wurde abgebrochen oder ist fehlgeschlagen.',
+    ergebnis.art === 'gesichert' ? 'gut' : 'warnung'
+  );
+}
+
+/** Dasselbe Bild wie fürs HTML-Handbuch, aber als Bytes statt als Adresse. */
+async function handbuchBildBytes(aufnahme, grenze) {
+  const adresse = await bestesBild(aufnahme, (neuesteFassung(aufnahme) || {}).nummer);
+  const geladen = await ladeBild(adresse, 'eingang', aufnahme.titel);
+  const massstab = Math.min(1, (grenze || 1600) / Math.max(1, geladen.breite));
+  const leinwand = document.createElement('canvas');
+  leinwand.width = Math.max(1, Math.round(geladen.breite * massstab));
+  leinwand.height = Math.max(1, Math.round(geladen.hoehe * massstab));
+  const stift = leinwand.getContext('2d');
+  stift.imageSmoothingQuality = 'high';
+  stift.fillStyle = '#FFFFFF';
+  stift.fillRect(0, 0, leinwand.width, leinwand.height);
+  stift.drawImage(geladen.element, 0, 0, leinwand.width, leinwand.height);
+  const blob = await new Promise((f) => leinwand.toBlob(f, 'image/jpeg', 0.88));
+  return {
+    daten: new Uint8Array(await blob.arrayBuffer()),
+    breite: leinwand.width,
+    hoehe: leinwand.height,
+    typ: 'jpeg'
+  };
+}
+
 async function sichereHandbuch() {
   const { teile, stelle } = handbuchAuswahl();
   if (!teile.length) return;
@@ -860,6 +942,7 @@ function verdrahteDesign() {
   $('#handbuch-umfang').addEventListener('change', zeigeHandbuchUmfang);
   $('#design-pdf').addEventListener('click', sichereAlsPdf);
   $('#handbuch-sichern').addEventListener('click', sichereHandbuch);
+  $('#handbuch-word').addEventListener('click', sichereHandbuchWord);
   $('#eigen-sichern').addEventListener('click', sichereEigeneVorlage);
   $('#eigen-loeschen').addEventListener('click', loescheEigeneVorlage);
   $('#design-sichern').addEventListener('click', sichereBlaetter);

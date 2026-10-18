@@ -36,7 +36,7 @@ const pdfNachbau = `
         groesse: auftrag.data.size,
         kopf: text.slice(0, 8),
         seiten: (text.match(/\\/Type\\/Page[^s]/g) || []).length,
-        inhalt: text.slice(0, 4000)
+        inhalt: text
       });
       return { status: 'saved' };
     } } };`;
@@ -344,6 +344,28 @@ s.test('eine eigene Vorlage lässt sich speichern, nutzen und löschen', () =>
       gleich(await seite.locator('#eigen-loeschen').isDisabled(), true);
     },
     { hash: AUFNAHME }
+  ));
+
+s.test('das ganze Handbuch entsteht als Word-Datei mit echtem Text', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1', '7.5.2']);
+      await oeffneStudio(seite);
+      await seite.fill('#design-titel', 'oneSCM Benutzerhandbuch');
+      await seite.click('#handbuch-word');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 60000 });
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      gleich(datei.filename, 'handbuch-onescm-benutzerhandbuch.docx');
+      wahr(datei.groesse > 20000, 'die Word-Datei ist verdächtig klein: ' + datei.groesse);
+      // Das Dokument trägt Überschriften und den Text der Gliederung.
+      wahr(datei.inhalt.includes('<w:pStyle w:val="Heading'), 'keine Überschriften im Dokument');
+      wahr(datei.inhalt.includes('word/media/bild1.jpeg'), 'kein Bild im Dokument');
+      wahr(
+        /Text als Text/.test(await seite.locator('#design-meldung').innerText()),
+        await seite.locator('#design-meldung').innerText()
+      );
+    },
+    { hash: AUFNAHME, initSkript: pdfNachbau }
   ));
 
 s.test('das ganze Handbuch entsteht als eine HTML-Datei', () =>

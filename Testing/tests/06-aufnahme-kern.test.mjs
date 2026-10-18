@@ -3227,4 +3227,52 @@ s.test('die Sprache eines Textes wird geraten, nicht behauptet', () => {
   tieferGleich(kern.schreibweisen(['Vorlage', 'Vorlage']), []);
 });
 
+/* ------------------------------- Das Handbuch als Word-Datei (1.43.0) */
+
+s.test('das Word-Handbuch trägt Überschriften, Texte und Bilder', () => {
+  const bild = jpegBlock(0x41, 400);
+  const teile = [
+    { nummer: '7', thema: 'Zahlungsdaten', ebene: 1, bilder: [], schritte: [] },
+    {
+      nummer: '7.5',
+      thema: 'Digitale Unterschrift',
+      ebene: 2,
+      text: 'Hier wird unterschrieben.',
+      kriterium: 'Beleg liegt vor',
+      bilder: [{ id: 'A1', titel: 'Vorlagenliste', sprache: 'de', rolle_label: 'dealer' }],
+      schritte: [{ nummer: 2, text: 'Liste öffnen', aufnahme: 'A1' }]
+    }
+  ];
+  const docx = kern.docxAusHandbuch(teile, {
+    titel: 'Benutzerhandbuch oneSCM',
+    untertitel: 'Fassung 2.4',
+    anwendung: '1.43.0',
+    bilder: new Map([['A1', { daten: bild, breite: 1440, hoehe: 900, typ: 'jpeg' }]])
+  });
+  const namen = kern.leseZipVerzeichnis(docx).map((e) => e.name);
+  for (const teil of ['word/document.xml', 'word/styles.xml', 'word/_rels/document.xml.rels', 'word/media/bild1.jpeg']) {
+    wahr(namen.includes(teil), `${teil} fehlt: ` + namen.join(', '));
+  }
+  const xml = Buffer.from(docx).toString('utf8');
+  // Die Gliederung wird zur Gliederung: Ebene 1 und 2 als Überschriften.
+  wahr(xml.includes('<w:pStyle w:val="Heading1"/>'), 'keine Überschrift erster Ebene');
+  wahr(xml.includes('<w:pStyle w:val="Heading2"/>'), 'keine Überschrift zweiter Ebene');
+  wahr(xml.includes('<w:outlineLvl w:val="1"/>'), 'ohne outlineLvl bleibt die Navigation leer');
+  // Text ist Text, nicht Bild.
+  wahr(xml.includes('Hier wird unterschrieben.'), 'der Text der Stelle fehlt');
+  wahr(xml.includes('Fertig, wenn: Beleg liegt vor'), 'das Kriterium fehlt');
+  // Die Bildunterschrift nennt Schritt, Text und Labels.
+  wahr(/Schritt 2 · Liste öffnen · Deutsch · Dealer/.test(xml), 'die Bildunterschrift stimmt nicht');
+  gleich((xml.match(/<w:drawing>/g) || []).length, 1);
+  wahr(xml.includes('<dc:title>Benutzerhandbuch oneSCM</dc:title>'), 'der Titel fehlt');
+
+  // Ohne Texte bleiben Überschriften und Bilder, die Erläuterungen gehen.
+  const knapp = Buffer.from(kern.docxAusHandbuch(teile, { bilder: {}, mitTexten: false })).toString('utf8');
+  wahr(!knapp.includes('Hier wird unterschrieben.'), 'die Texte wurden nicht abgeschaltet');
+  wahr(knapp.includes('7.5 Digitale Unterschrift'), 'die Überschrift fehlt');
+  // Ein Bild, das nicht mitgegeben wurde, lässt das Dokument stehen.
+  gleich((knapp.match(/<w:drawing>/g) || []).length, 0);
+  gleich(kern.docxAusHandbuch([]), null);
+});
+
 export default s;

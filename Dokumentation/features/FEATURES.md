@@ -1573,3 +1573,31 @@ wiederherstellen“ holt den Anfangsbestand zurück.
 Der Agent urteilt nach Regeln, nicht nach Geschmack: **was nicht in der Liste
 steht, wird nicht geprüft.** Claude darf den Bericht hinterher kommentieren –
 wie bei den anderen dreien.
+
+## F-61 · Das Handbuch als Word-Datei – Text bleibt Text
+
+**Seit** 1.43.0 · betrifft Designstudio
+
+**Das Problem** Das ganze Handbuch gab es als HTML (gut zum Lesen und
+Drucken) und als Blätter in PDF, Word oder PowerPoint (gut zum Weitergeben) –
+dort ist jede Seite aber ein **Bild**. Wer im Haus weiterschreibt,
+kommentiert, ein Inhaltsverzeichnis erzeugen oder einen Absatz übersetzen
+will, braucht Text.
+
+**Die Lösung** „Handbuch als Word sichern“ schreibt eine `.docx`, in der
+
+* jede Stelle der Gliederung eine **echte Überschrift** ist (Heading 1–3 mit
+  `outlineLvl`): die Navigation in Word ist gefüllt, ein Inhaltsverzeichnis
+  lässt sich mit einem Klick erzeugen,
+* die Texte der Gliederung (Beschreibung, Abschlusskriterium, Notiz) als
+  Absätze stehen – such- und kopierbar,
+* die Bilder **inline** liegen, seitenbreit skaliert, jedes mit einer
+  Bildunterschrift aus Schrittnummer, Anweisung und Labelkette,
+* Titel, Untertitel und Hinweis aus dem Studio oben stehen.
+
+Der Schalter „Texte aus dem Handbuch“ wirkt auch hier: ohne ihn bleiben
+Überschriften und Bilder, die Erläuterungen entfallen. Die Bildgröße folgt
+der Wahl im Studio.
+
+Gegengeprüft mit LibreOffice: das Dokument öffnet, die Überschriften stehen
+in der Gliederung, die Bilder sind drin, der Umlaut im Titel stimmt.

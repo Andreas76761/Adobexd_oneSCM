@@ -20,6 +20,23 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.43.0] – Das Handbuch als Word-Datei
+
+### Neu
+* **„Handbuch als Word sichern“** (F-61): das ganze Handbuch als `.docx` mit
+  echten Überschriften (Heading 1–3 mit `outlineLvl`), den Texten der
+  Gliederung als Absätzen und den Bildern inline samt Bildunterschrift –
+  Text bleibt Text, nicht ein Bild einer Seite
+* Der Schalter „Texte aus dem Handbuch“ und die Bildgröße aus dem Studio
+  wirken auch auf die Word-Datei
+
+### Kern
+* `docxAusHandbuch` samt Formatvorlagen (`styles.xml`)
+
+### Prüfung
+* 1 neue Kernprüfung, 1 neue Browserprüfung; zusammen 449. Das Ergebnis wurde
+  zusätzlich mit LibreOffice geöffnet und nach PDF gewandelt
+
 ## [1.42.0] – Der Agent Sprache
 
 ### Neu

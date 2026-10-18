@@ -5317,6 +5317,177 @@ export function ocrAlsText(abschnitte = [], { stand = new Date().toISOString(), 
   return zeilen.join('\n');
 }
 
+/* --------------------------------- Das Handbuch als Word-Datei (1.43.0) */
+
+/* Überschriften, damit Word eine Gliederung hat: ohne eigene Formatvorlagen
+   bleibt die Navigation leer und ein Inhaltsverzeichnis lässt sich nicht
+   erzeugen. Drei Ebenen genügen - tiefer geht die Gliederung des Handbuchs
+   in der Darstellung nicht. */
+const DOCX_VORLAGEN =
+  XML_KOPF +
+  '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+  '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="22"/></w:rPr></w:rPrDefault>' +
+  '<w:pPrDefault><w:pPr><w:spacing w:after="120"/></w:pPr></w:pPrDefault></w:docDefaults>' +
+  '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>' +
+  [1, 2, 3]
+    .map(
+      (ebene) =>
+        `<w:style w:type="paragraph" w:styleId="Heading${ebene}"><w:name w:val="heading ${ebene}"/>` +
+        '<w:basedOn w:val="Normal"/><w:qFormat/>' +
+        `<w:pPr><w:keepNext/><w:outlineLvl w:val="${ebene - 1}"/><w:spacing w:before="${
+          [360, 280, 220][ebene - 1]
+        }" w:after="120"/></w:pPr>` +
+        `<w:rPr><w:b/><w:sz w:val="${[34, 28, 24][ebene - 1]}"/><w:color w:val="1F2933"/></w:rPr></w:style>`
+    )
+    .join('') +
+  '<w:style w:type="paragraph" w:styleId="Bildunterschrift"><w:name w:val="caption"/><w:basedOn w:val="Normal"/>' +
+  '<w:pPr><w:spacing w:before="40" w:after="200"/></w:pPr><w:rPr><w:i/><w:sz w:val="18"/><w:color w:val="6B7280"/></w:rPr></w:style>' +
+  '</w:styles>';
+
+/**
+ * Das ganze Handbuch als Word-Datei: Überschriften je Stelle, die Texte der
+ * Gliederung, die Anweisungen der Strecke und die Bilder dazwischen. Anders
+ * als bei den Blättern (F-55) ist hier **Text wirklich Text** - er lässt
+ * sich suchen, kopieren und weiterschreiben.
+ *
+ * `bilder`: Map oder Objekt Kennung -> { daten, breite, hoehe, typ }.
+ */
+export function docxAusHandbuch(
+  teile = [],
+  { titel = '', untertitel = '', hinweis = '', anwendung = '', bilder = new Map(), mitTexten = true } = {}
+) {
+  const hole = (kennung) => (bilder instanceof Map ? bilder.get(kennung) : bilder[kennung]);
+  const gueltig = teile.filter((t) => t && t.nummer);
+  if (!gueltig.length) return null;
+
+  // A4 hoch, 2 cm Rand: die nutzbare Breite in EMU, auf die ein Bild passt.
+  const randTwips = 1134;
+  const nutzbar = Math.round(((11906 - 2 * randTwips) / 20) * 12700);
+
+  const medien = [];
+  const absatz = (text, { vorlage = '', fett = false, groesse = 0, kursiv = false } = {}) =>
+    '<w:p>' +
+    (vorlage ? `<w:pPr><w:pStyle w:val="${vorlage}"/></w:pPr>` : '') +
+    `<w:r><w:rPr>${fett ? '<w:b/>' : ''}${kursiv ? '<w:i/>' : ''}${groesse ? `<w:sz w:val="${groesse}"/>` : ''}</w:rPr>` +
+    `<w:t xml:space="preserve">${maskiereXml(text)}</w:t></w:r></w:p>`;
+
+  const bildAbsatz = (aufnahme) => {
+    const bild = hole(aufnahme.id);
+    if (!bild || !bild.daten || !bild.breite) return '';
+    const nummer = medien.length + 1;
+    const name = `bild${nummer}.${bildEndung(bild.typ)}`;
+    medien.push({ name, daten: bild.daten, bezug: `rIdBild${nummer}` });
+    // Gerechnet wird mit 96 dpi: ein Bildschirmfoto soll im Dokument so
+    // breit sein, wie es am Bildschirm war - höchstens aber seitenbreit.
+    const breite = Math.min(nutzbar, emu(bild.breite, 96));
+    const hoehe = Math.round(breite * (bild.hoehe / bild.breite));
+    return (
+      '<w:p><w:pPr><w:spacing w:after="40"/></w:pPr><w:r><w:drawing>' +
+      '<wp:inline distT="0" distB="0" distL="0" distR="0">' +
+      `<wp:extent cx="${breite}" cy="${hoehe}"/><wp:docPr id="${nummer}" name="${maskiereXml(name)}"/>` +
+      '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' +
+      '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
+      '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
+      `<pic:nvPicPr><pic:cNvPr id="${nummer}" name="${maskiereXml(name)}"/><pic:cNvPicPr/></pic:nvPicPr>` +
+      `<pic:blipFill><a:blip r:embed="rIdBild${nummer}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
+      `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${breite}" cy="${hoehe}"/></a:xfrm>` +
+      '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic>' +
+      '</wp:inline></w:drawing></w:r></w:p>'
+    );
+  };
+
+  const koerper = [
+    absatz(titel || 'Benutzerhandbuch', { vorlage: 'Heading1' }),
+    untertitel ? absatz(untertitel, { kursiv: true }) : '',
+    hinweis ? absatz(hinweis, { groesse: 18 }) : '',
+    ...gueltig.flatMap((teil) => {
+      const ebene = Math.min(3, Math.max(1, teil.ebene || 1));
+      const schrittZu = new Map((teil.schritte || []).map((s) => [s.aufnahme, s]));
+      return [
+        absatz(`${teil.nummer} ${teil.thema || ''}`.trim(), { vorlage: `Heading${ebene}` }),
+        mitTexten && teil.text ? absatz(teil.text) : '',
+        mitTexten && teil.kriterium ? absatz(`Fertig, wenn: ${teil.kriterium}`, { kursiv: true }) : '',
+        ...(teil.bilder || []).flatMap((aufnahme) => {
+          const schritt = schrittZu.get(aufnahme.id);
+          const unterschrift = [
+            schritt ? `Schritt ${schritt.nummer}` : '',
+            schritt && schritt.text ? schritt.text : aufnahme.titel,
+            labelKette(aufnahme)
+          ]
+            .filter(Boolean)
+            .join(' · ');
+          return [bildAbsatz(aufnahme), absatz(unterschrift, { vorlage: 'Bildunterschrift' })];
+        }),
+        mitTexten && teil.notiz ? absatz(teil.notiz, { groesse: 18 }) : ''
+      ].filter(Boolean);
+    })
+  ]
+    .filter(Boolean)
+    .join('');
+
+  const dokument =
+    XML_KOPF +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+    'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>' +
+    koerper +
+    `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="${randTwips}" w:right="${randTwips}" ` +
+    `w:bottom="${randTwips}" w:left="${randTwips}" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>` +
+    '</w:body></w:document>';
+
+  const bezuege =
+    XML_KOPF +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rIdVorlagen" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+    medien
+      .map(
+        (m) =>
+          `<Relationship Id="${m.bezug}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.name}"/>`
+      )
+      .join('') +
+    '</Relationships>';
+
+  const typen =
+    XML_KOPF +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Default Extension="png" ContentType="image/png"/>' +
+    '<Default Extension="jpeg" ContentType="image/jpeg"/>' +
+    '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+    '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
+    '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
+    '</Types>';
+
+  return zipSchreiben([
+    { name: '[Content_Types].xml', daten: typen },
+    {
+      name: '_rels/.rels',
+      daten:
+        XML_KOPF +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rIdDok" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+        '<Relationship Id="rIdKern" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>' +
+        '</Relationships>'
+    },
+    {
+      name: 'docProps/core.xml',
+      daten:
+        XML_KOPF +
+        '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" ' +
+        'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" ' +
+        'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
+        `<dc:title>${maskiereXml(titel || 'Benutzerhandbuch')}</dc:title>` +
+        `<dc:creator>${maskiereXml(`Screenarchiv ${anwendung}`.trim())}</dc:creator>` +
+        '</cp:coreProperties>'
+    },
+    { name: 'word/document.xml', daten: dokument },
+    { name: 'word/styles.xml', daten: DOCX_VORLAGEN },
+    { name: 'word/_rels/document.xml.rels', daten: bezuege },
+    ...medien.map((m) => ({ name: `word/media/${m.name}`, daten: m.daten }))
+  ]);
+}
+
 /**
  * Dieselben Abschnitte als Word-Datei - diesmal mit Text statt Bildern.
  * Überschrift fett und größer, der Text in Absätzen; eine Datei, die sich
