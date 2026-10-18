@@ -9,6 +9,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [versionen/v1.47.0.md](versionen/v1.47.0.md) | Der Rückweg aus Word – geänderte Texte zurück in die Gliederung |
 | [versionen/v1.46.0.md](versionen/v1.46.0.md) | Das Fortschrittsblatt – wie weit ist das Handbuch? |
 | [versionen/v1.45.0.md](versionen/v1.45.0.md) | Die Projektdatei – den ganzen Bestand weitergeben |
 | [versionen/v1.44.0.md](versionen/v1.44.0.md) | Die Hausmarke – Farbe, Schrift und Logo der Unterlagen |

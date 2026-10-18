@@ -380,7 +380,7 @@ function zeichneKachel(stift, kachel, bild, aufbau) {
   const zeilen = schrittText({
     anweisung: schritt.anweisung,
     aufnahme: schritt.aufnahme,
-    gliederung: GLIEDERUNG,
+    gliederung: gliederungJetzt(),
     mitTexten: studio.texte,
     grenze: vor.textlaenge
   });
@@ -842,7 +842,7 @@ function handbuchAuswahl() {
   const stelle = umfang === 'kapitel' && designQuelle.startsWith('kapitel:') ? designQuelle.slice(8) : '';
   return {
     stelle,
-    teile: handbuchTeile(GLIEDERUNG, imProjekt(), strecken, { stelle, nurMitBildern: umfang !== 'alle' })
+    teile: handbuchTeile(gliederungJetzt(), imProjekt(), strecken, { stelle, nurMitBildern: umfang !== 'alle' })
   };
 }
 

@@ -829,6 +829,31 @@
       <div class="matrix-tabelle" id="matrix-tabelle"></div>
     </section>
 
+    <section class="band ruecklauf" aria-label="Texte aus Word">
+      <div class="band-kopf">
+        <h2 class="abschnitt-titel">Texte aus Word zurücklesen</h2>
+        <span class="band-stand" id="ruecklauf-stand"></span>
+      </div>
+      <p class="band-hinweis">
+        Das Handbuch geht als Word-Datei ins Haus (Designstudio), dort wird
+        daran geschrieben. Hier kommt es zurück: die Überschriften nennen die
+        Stelle, die Absätze darunter sind ihr Text, „Fertig, wenn: …“ ist das
+        Kriterium. Die Gliederung im Projekt bleibt unangetastet – die
+        Änderungen liegen als <b>eigene Texte</b> daneben und lassen sich
+        einzeln zurücknehmen.
+      </p>
+      <div class="ruecklauf-wahl">
+        <div class="feld">
+          <label for="ruecklauf-datei">Word-Datei (.docx) lesen</label>
+          <input type="file" id="ruecklauf-datei" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+        </div>
+        <button type="button" class="knopf knopf--haupt" id="ruecklauf-uebernehmen" disabled>Änderungen übernehmen</button>
+        <button type="button" class="knopf" id="ruecklauf-verwerfen" disabled>Eigene Texte verwerfen</button>
+      </div>
+      <p class="studio-meldung" id="ruecklauf-meldung" role="status" aria-live="polite"></p>
+      <div class="ruecklauf-liste" id="ruecklauf-liste"></div>
+    </section>
+
     <section class="fortschritt" aria-label="Fortschritt">
       <div class="matrix-kopf">
         <h2 class="abschnitt-titel">Fortschrittsblatt</h2>

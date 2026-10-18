@@ -5783,6 +5783,163 @@ export function vergleichsPaare(aufnahmen = [], wahlA = '', wahlB = '', gliederu
 }
 
 /* =========================================================================
+   Der Rückweg aus Word – geänderte Texte zurück in die Gliederung.
+
+   Das Handbuch geht als Word-Datei ins Haus (F-61). Dort wird daran
+   geschrieben: ein Satz genauer, ein Kriterium klarer, eine Notiz dazu.
+   Bisher endete der Weg dort - die Gliederung der Seite kannte diese
+   Änderungen nicht.
+
+   Jetzt liest die Seite eine Word-Datei zurück: die Überschriften nennen
+   die Stelle, die Absätze darunter sind ihr Text. Die Gliederung selbst
+   liegt im Projekt und wird nicht angerührt; die Änderungen liegen als
+   **Überschreibungen** daneben, im Browser, und lassen sich einzeln
+   zurücknehmen.
+   ========================================================================= */
+
+export const TEXTE_SCHLUESSEL = 'screenarchiv:texte';
+export const TEXTE_VERSION = 1;
+
+/** Die eigenen Texte je Stelle; was leer ist, gilt nicht als Änderung. */
+export function leseStellentexte(text) {
+  let inhalt = null;
+  try {
+    inhalt = JSON.parse(text || 'null');
+  } catch (fehler) {
+    return {};
+  }
+  const roh = inhalt && typeof inhalt === 'object' ? inhalt.texte || inhalt : {};
+  const sauber = {};
+  for (const [nummer, eintrag] of Object.entries(roh || {})) {
+    if (!eintrag || typeof eintrag !== 'object') continue;
+    const satz = {};
+    for (const feld of ['text', 'kriterium', 'notiz']) {
+      const wert = String(eintrag[feld] || '').trim();
+      if (wert) satz[feld] = wert;
+    }
+    if (Object.keys(satz).length) sauber[String(nummer)] = { ...satz, geaendert_am: String(eintrag.geaendert_am || '') };
+  }
+  return sauber;
+}
+
+export function schreibeStellentexte(texte = {}) {
+  return JSON.stringify({ version: TEXTE_VERSION, stand: new Date().toISOString(), texte });
+}
+
+/** Die Gliederung mit den eigenen Texten darüber. */
+export function gliederungMitTexten(gliederung = [], texte = {}) {
+  if (!texte || !Object.keys(texte).length) return gliederung;
+  return gliederung.map((eintrag) => {
+    const eigen = texte[eintrag.nummer];
+    return eigen ? { ...eintrag, ...eigen, eigenerText: true } : eintrag;
+  });
+}
+
+/**
+ * Die Absätze einer Word-Datei: Text und, wo eine Überschrift steht, ihre
+ * Ebene. Gelesen wird `word/document.xml` - mehr braucht es nicht, und
+ * mehr soll es auch nicht sein: die Seite ist kein Textprogramm.
+ */
+export function docxAbsaetze(xml = '') {
+  const absaetze = [];
+  for (const treffer of String(xml).matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)) {
+    const stueck = treffer[0];
+    const text = [...stueck.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)]
+      .map((m) => m[1])
+      .join('')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, '&')
+      .trim();
+    if (!text) continue;
+    const vorlage = (stueck.match(/<w:pStyle w:val="([^"]+)"/) || [])[1] || '';
+    const ebene = /^Heading(\d)$/.test(vorlage) ? Number(vorlage.slice(7)) : 0;
+    absaetze.push({ text, ebene, vorlage });
+  }
+  return absaetze;
+}
+
+/**
+ * Aus den Absätzen die Stellen: eine Überschrift, die mit einer Nummer
+ * beginnt, eröffnet eine Stelle; was bis zur nächsten Überschrift folgt,
+ * ist ihr Text. „Fertig, wenn: …" wird als Kriterium erkannt - so hat die
+ * Seite es geschrieben.
+ */
+export function stellenAusDocx(absaetze = []) {
+  const stellen = [];
+  let aktuell = null;
+  for (const absatz of absaetze) {
+    if (absatz.ebene) {
+      // Eine Überschrift mit Nummer eröffnet eine Stelle; eine ohne beendet
+      // die laufende - Überschriften sind nie der Text einer anderen Stelle.
+      const kopf = absatz.text.match(/^([0-9]+(?:\.[0-9]+)*)\s+(.*)$/);
+      aktuell = kopf ? { nummer: kopf[1], thema: kopf[2].trim(), absaetze: [], kriterium: '', notiz: '' } : null;
+      if (aktuell) stellen.push(aktuell);
+      continue;
+    }
+    if (!aktuell) continue;
+    // Bildunterschriften gehören zum Bild, nicht zum Text der Stelle.
+    if (absatz.vorlage === 'Bildunterschrift') continue;
+    const kriterium = absatz.text.match(/^Fertig,\s*wenn:\s*(.+)$/i);
+    if (kriterium) {
+      aktuell.kriterium = kriterium[1].trim();
+      continue;
+    }
+    aktuell.absaetze.push(absatz.text);
+  }
+  return stellen.map((s) => ({
+    nummer: s.nummer,
+    thema: s.thema,
+    text: s.absaetze.join('\n\n').trim(),
+    kriterium: s.kriterium
+  }));
+}
+
+/**
+ * Was die gelesene Datei gegenüber der Gliederung ändern würde. Nichts wird
+ * dabei angefasst - erst die Liste, dann die Entscheidung.
+ */
+export function vergleicheStellentexte(gliederung = [], gelesen = [], eigene = {}) {
+  const nachNummer = new Map(gliederung.map((e) => [e.nummer, e]));
+  const jetzt = gliederungMitTexten(gliederung, eigene);
+  const jetztNach = new Map(jetzt.map((e) => [e.nummer, e]));
+  return gelesen.map((stelle) => {
+    const eintrag = jetztNach.get(stelle.nummer);
+    if (!eintrag) return { ...stelle, art: 'unbekannt', alt: {} };
+    const alt = { text: eintrag.text || '', kriterium: eintrag.kriterium || '' };
+    const felder = [];
+    if (stelle.text && stelle.text !== alt.text) felder.push('text');
+    if (stelle.kriterium && stelle.kriterium !== alt.kriterium) felder.push('kriterium');
+    return {
+      ...stelle,
+      alt,
+      // „ursprung" sagt, was in der Projektdatei steht - damit sichtbar
+      // bleibt, ob man gegen die Vorlage oder gegen eine eigene Änderung
+      // vergleicht.
+      ursprung: nachNummer.get(stelle.nummer) || null,
+      felder,
+      art: felder.length ? 'geaendert' : 'gleich'
+    };
+  });
+}
+
+/** Die Änderungen übernehmen - nur die genannten Stellen, nur gefüllte Felder. */
+export function uebernimmStellentexte(eigene = {}, vergleich = [], nummern = null, stand = new Date().toISOString()) {
+  const neu = { ...eigene };
+  for (const stelle of vergleich) {
+    if (stelle.art !== 'geaendert') continue;
+    if (nummern && !nummern.includes(stelle.nummer)) continue;
+    const satz = { ...(neu[stelle.nummer] || {}) };
+    for (const feld of stelle.felder) satz[feld] = stelle[feld];
+    satz.geaendert_am = stand;
+    neu[stelle.nummer] = satz;
+  }
+  return neu;
+}
+
+/* =========================================================================
    Das Fortschrittsblatt – wie weit ist das Handbuch?
 
    Die Gliederung hat 1153 Stellen. „Wie weit sind wir?" lässt sich daran

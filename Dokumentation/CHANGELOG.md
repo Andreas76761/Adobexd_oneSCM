@@ -20,6 +20,31 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.47.0] – Der Rückweg aus Word
+
+### Neu
+* **Texte aus Word zurücklesen** (F-65) in der Gliederung: Überschriften mit
+  Nummer werden zu Stellen, die Absätze darunter zu ihrem Text,
+  „Fertig, wenn: …“ zum Kriterium. Der Vergleich zeigt je Stelle geändert,
+  unverändert oder nicht in der Gliederung – übernommen wird, was angekreuzt
+  ist
+* Übernommene Texte liegen als **eigene Texte** (`screenarchiv:texte`) über
+  der Gliederung des Projekts und wirken im Handbuch, auf den Blättern und in
+  der Ansicht; „Eigene Texte verwerfen“ nimmt sie zurück
+
+### Geändert
+* Die Ansicht Gliederung weist einen eigenen Text als solchen aus
+* Blätter und Handbuch nehmen die Gliederung mit den eigenen Texten darüber
+
+### Kern
+* `leseStellentexte`, `schreibeStellentexte`, `gliederungMitTexten`,
+  `docxAbsaetze`, `stellenAusDocx`, `vergleicheStellentexte`,
+  `uebernimmStellentexte`, `TEXTE_SCHLUESSEL`
+
+### Prüfung
+* 3 neue Kernprüfungen, 1 neue Browserprüfung (Word-Datei bauen, einlesen,
+  übernehmen, in der Gliederung nachsehen, verwerfen); zusammen 464
+
 ## [1.46.0] – Das Fortschrittsblatt
 
 ### Neu

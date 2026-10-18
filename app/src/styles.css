@@ -1743,3 +1743,22 @@ div.streifen-bild { cursor: default; }
   border: 1px solid var(--linie); border-radius: var(--radius); box-shadow: var(--schatten);
   background: var(--flaeche);
 }
+
+/* ------------------------- Rückweg aus Word (1.47.0) */
+
+.ruecklauf { margin-top: 20px; }
+.ruecklauf-wahl { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: end; margin: 10px 0; }
+.ruecklauf-wahl .feld { flex: 1 1 260px; }
+.ruecklauf-liste { display: grid; gap: 6px; max-height: 420px; overflow-y: auto; }
+.ruecklauf-zeile {
+  display: grid; gap: 4px; padding: 8px 10px;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche);
+}
+.ruecklauf-zeile--gleich { opacity: .6; }
+.ruecklauf-zeile--unbekannt { border-style: dashed; }
+.ruecklauf-kopf { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; }
+.ruecklauf-kopf label { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; }
+.ruecklauf-kopf input { width: auto; margin: 0; }
+.ruecklauf-alt, .ruecklauf-neu { font-size: 12px; line-height: 1.5; }
+.ruecklauf-alt { color: var(--tinte-3); text-decoration: line-through; }
+.ruecklauf-neu { color: var(--tinte); }

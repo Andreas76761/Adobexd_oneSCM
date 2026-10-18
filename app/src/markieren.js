@@ -1938,6 +1938,7 @@ function zeichneGliederung() {
     )
   );
   $('#gliederung-stand').textContent = `${sichtbar.length} von ${GLIEDERUNG.length} Stellen`;
+  zeichneRuecklauf();
   zeichneFortschritt();
 
   const baum = gliederungBaum(GLIEDERUNG);
@@ -1989,7 +1990,8 @@ function zeichneTeilschritte() {
   );
 
   const beschreibung = $('#stelle-beschreibung');
-  const eintrag = stelle && GLIEDERUNG.find((e) => e.nummer === stelle);
+  // Mit den eigenen Texten darüber (F-65): was aus Word zurückkam, steht hier.
+  const eintrag = stelle && gliederungJetzt().find((e) => e.nummer === stelle);
   if (!eintrag) {
     beschreibung.hidden = true;
     return;
@@ -1997,6 +1999,9 @@ function zeichneTeilschritte() {
   beschreibung.hidden = false;
   beschreibung.replaceChildren(
     el('h3', { klasse: 'beschreibung-titel', text: `${eintrag.nummer} ${eintrag.thema}` }),
+    eintrag.eigenerText
+      ? el('p', { klasse: 'kennung', text: 'eigener Text – aus Word zurückgelesen' })
+      : null,
     ...(eintrag.kriterium
       ? [el('p', { klasse: 'beschreibung-schild', text: 'Abschlusskriterium' }), el('p', { text: eintrag.kriterium })]
       : []),
@@ -2155,6 +2160,162 @@ function zeichneMatrix() {
   );
 }
 
+
+/* ------------------------------------- Rückweg aus Word (1.47.0) */
+
+let stellentexte = leseStellentexteAusSpeicher(); // eigene Texte je Stelle
+let ruecklauf = []; // der Vergleich der zuletzt gelesenen Datei
+let ruecklaufWahl = new Set();
+
+function leseStellentexteAusSpeicher() {
+  try {
+    return leseStellentexte(localStorage.getItem(TEXTE_SCHLUESSEL));
+  } catch (fehler) {
+    return {};
+  }
+}
+
+function sichereStellentexte() {
+  try {
+    localStorage.setItem(TEXTE_SCHLUESSEL, schreibeStellentexte(stellentexte));
+    return true;
+  } catch (fehler) {
+    meldeRuecklauf('Der Speicher ist voll – die Texte gelten nur für diese Sitzung.', 'warnung');
+    return false;
+  }
+}
+
+/** Die Gliederung, wie die Seite sie zeigt: mit den eigenen Texten darüber. */
+function gliederungJetzt() {
+  return gliederungMitTexten(GLIEDERUNG, stellentexte);
+}
+
+function meldeRuecklauf(text, art = 'neutral') {
+  const zeile = $('#ruecklauf-meldung');
+  if (!zeile) return;
+  zeile.textContent = text;
+  zeile.className = 'studio-meldung studio-meldung--' + art;
+}
+
+function zeichneRuecklauf() {
+  const kasten = $('#ruecklauf-liste');
+  if (!kasten) return;
+  const eigene = Object.keys(stellentexte).length;
+  $('#ruecklauf-stand').textContent = eigene
+    ? `${eigene} Stelle(n) mit eigenem Text`
+    : 'keine eigenen Texte';
+  $('#ruecklauf-verwerfen').disabled = !eigene;
+  const geaendert = ruecklauf.filter((s) => s.art === 'geaendert');
+  $('#ruecklauf-uebernehmen').disabled = !ruecklaufWahl.size;
+
+  if (!ruecklauf.length) {
+    kasten.replaceChildren(
+      el('p', {
+        klasse: 'feld-hinweis',
+        text: eigene
+          ? 'Noch keine Datei gelesen. Die eigenen Texte von früher gelten weiter – sie stehen im Handbuch und auf den Blättern.'
+          : 'Noch keine Datei gelesen.'
+      })
+    );
+    return;
+  }
+
+  kasten.replaceChildren(
+    ...ruecklauf.slice(0, 200).map((stelle) => {
+      const id = 'ruecklauf-' + bereinigeDateiname(stelle.nummer);
+      const kopf = el('div', { klasse: 'ruecklauf-kopf' }, [
+        stelle.art === 'geaendert'
+          ? el('label', { for: id }, [
+              el('input', {
+                type: 'checkbox',
+                id,
+                checked: ruecklaufWahl.has(stelle.nummer),
+                onchange: (e) => {
+                  if (e.target.checked) ruecklaufWahl.add(stelle.nummer);
+                  else ruecklaufWahl.delete(stelle.nummer);
+                  zeichneRuecklauf();
+                }
+              }),
+              el('span', { text: `${stelle.nummer} ${stelle.thema}` })
+            ])
+          : el('span', { klasse: 'ruecklauf-kopf-name', text: `${stelle.nummer} ${stelle.thema}` }),
+        el('span', {
+          klasse: 'kennung',
+          text:
+            stelle.art === 'geaendert'
+              ? stelle.felder.map((f) => (f === 'text' ? 'Text' : 'Kriterium')).join(' und ') + ' geändert'
+              : stelle.art === 'unbekannt'
+                ? 'nicht in der Gliederung'
+                : 'unverändert'
+        })
+      ]);
+      const kinder = [kopf];
+      if (stelle.art === 'geaendert') {
+        for (const feld of stelle.felder) {
+          if (stelle.alt[feld]) kinder.push(el('p', { klasse: 'ruecklauf-alt', text: kuerzeText(stelle.alt[feld], 240) }));
+          kinder.push(el('p', { klasse: 'ruecklauf-neu', text: kuerzeText(stelle[feld], 240) }));
+        }
+      }
+      return el('div', { klasse: 'ruecklauf-zeile ruecklauf-zeile--' + stelle.art }, kinder);
+    })
+  );
+}
+
+async function leseWordDatei(datei) {
+  if (!datei) return;
+  meldeRuecklauf(`${datei.name} wird gelesen …`, 'neutral');
+  ruecklauf = [];
+  ruecklaufWahl = new Set();
+  try {
+    const bytes = new Uint8Array(await datei.arrayBuffer());
+    const verzeichnis = leseZipVerzeichnis(bytes);
+    const eintrag = verzeichnis.find((e) => e.name === 'word/document.xml');
+    if (!eintrag) throw new Error('Das ist keine Word-Datei (word/document.xml fehlt).');
+    const xml = new TextDecoder().decode(await entpackeZipEintrag(bytes, eintrag));
+    const gelesen = stellenAusDocx(docxAbsaetze(xml));
+    if (!gelesen.length) {
+      throw new Error('In der Datei steht keine Überschrift, die mit einer Nummer beginnt – daraus lässt sich keine Stelle lesen.');
+    }
+    ruecklauf = vergleicheStellentexte(GLIEDERUNG, gelesen, stellentexte);
+    ruecklaufWahl = new Set(ruecklauf.filter((s) => s.art === 'geaendert').map((s) => s.nummer));
+    const zahl = (art) => ruecklauf.filter((s) => s.art === art).length;
+    meldeRuecklauf(
+      `${gelesen.length} Stelle(n) gelesen · ${zahl('geaendert')} geändert · ${zahl('gleich')} unverändert` +
+        (zahl('unbekannt') ? ` · ${zahl('unbekannt')} nicht in der Gliederung` : ''),
+      zahl('geaendert') ? 'gut' : 'neutral'
+    );
+  } catch (fehler) {
+    meldeRuecklauf(`Die Datei ließ sich nicht lesen: ${fehler && fehler.message ? fehler.message : fehler}`, 'warnung');
+  }
+  zeichneRuecklauf();
+  $('#ruecklauf-datei').value = '';
+}
+
+function uebernimmRuecklauf() {
+  if (!ruecklaufWahl.size) return;
+  const zahl = ruecklaufWahl.size;
+  stellentexte = uebernimmStellentexte(stellentexte, ruecklauf, [...ruecklaufWahl]);
+  const gesichert = sichereStellentexte();
+  ruecklauf = vergleicheStellentexte(GLIEDERUNG, ruecklauf, stellentexte);
+  ruecklaufWahl = new Set();
+  zeichneGliederung();
+  if (gesichert) {
+    meldeRuecklauf(
+      `${zahl} Stelle(n) übernommen. Sie stehen jetzt im Handbuch, auf den Blättern und in der Gliederung.`,
+      'gut'
+    );
+  }
+}
+
+function verwirfStellentexte() {
+  const zahl = Object.keys(stellentexte).length;
+  if (!zahl) return;
+  stellentexte = {};
+  sichereStellentexte();
+  ruecklauf = ruecklauf.length ? vergleicheStellentexte(GLIEDERUNG, ruecklauf, stellentexte) : [];
+  zeichneGliederung();
+  meldeRuecklauf(`${zahl} eigene(r) Text(e) verworfen – es gilt wieder die Gliederung des Projekts.`, 'neutral');
+}
 
 /* ------------------------------------- Fortschrittsblatt (1.46.0) */
 
@@ -2335,6 +2496,9 @@ function verdrahteGliederung() {
     matrixFeld = e.target.value;
     zeichneMatrix();
   });
+  $('#ruecklauf-datei').addEventListener('change', (e) => leseWordDatei(e.target.files && e.target.files[0]));
+  $('#ruecklauf-uebernehmen').addEventListener('click', uebernimmRuecklauf);
+  $('#ruecklauf-verwerfen').addEventListener('click', verwirfStellentexte);
   $('#fortschritt-achse').addEventListener('change', (e) => {
     fortschrittAchse = e.target.value;
     zeichneFortschritt();

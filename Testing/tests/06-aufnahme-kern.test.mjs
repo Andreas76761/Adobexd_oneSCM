@@ -3463,4 +3463,91 @@ s.test('der Fortschritt zählt Stellen, nicht Bilder', () => {
   wahr(kern.fortschrittText(leer).includes('0 von 3'), kern.fortschrittText(leer));
 });
 
+/* ------------------------------- Der Rückweg aus Word (1.47.0) */
+
+const wordXml = [
+  '<?xml version="1.0"?><w:document xmlns:w="urn:w"><w:body>',
+  '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>7 Zahlungsdaten</w:t></w:r></w:p>',
+  '<w:p><w:r><w:t>Im Haus neu geschrieben.</w:t></w:r></w:p>',
+  '<w:p><w:r><w:t>Fertig, wenn: der Beleg vorliegt</w:t></w:r></w:p>',
+  '<w:p><w:pPr><w:pStyle w:val="Bildunterschrift"/></w:pPr><w:r><w:t>Schritt 1 · Liste</w:t></w:r></w:p>',
+  '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:t>7.5 Unterschrift</w:t></w:r></w:p>',
+  '<w:p><w:r><w:t>Erster Absatz.</w:t></w:r><w:r><w:t xml:space="preserve"> Noch im selben.</w:t></w:r></w:p>',
+  '<w:p><w:r><w:t>Zweiter Absatz mit &amp; und &lt;Klammer&gt;.</w:t></w:r></w:p>',
+  '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:t>Ohne Nummer</w:t></w:r></w:p>',
+  '</w:body></w:document>'
+].join('');
+
+const wordGliederung = kern.leseGliederung({
+  eintraege: [
+    { nummer: '7', thema: 'Zahlungsdaten', ebene: 1, text: 0, kriterium: 1 },
+    { nummer: '7.5', thema: 'Unterschrift', ebene: 2, text: 2 }
+  ],
+  texte: ['Alter Text', 'altes Kriterium', 'Erster Absatz. Noch im selben.\n\nZweiter Absatz mit & und <Klammer>.']
+});
+
+s.test('aus einer Word-Datei werden Stellen, Texte und Kriterien', () => {
+  const absaetze = kern.docxAbsaetze(wordXml);
+  // Zwei Läufe in einem Absatz sind ein Absatz, kein zweiter.
+  wahr(
+    absaetze.some((a) => a.text === 'Erster Absatz. Noch im selben.'),
+    absaetze.map((a) => a.text).join(' | ')
+  );
+  // Die Maskierung wird zurückgenommen.
+  wahr(absaetze.some((a) => a.text === 'Zweiter Absatz mit & und <Klammer>.'), 'die Maskierung blieb stehen');
+
+  const stellen = kern.stellenAusDocx(absaetze);
+  gleich(stellen.length, 2, 'eine Überschrift ohne Nummer ist keine Stelle');
+  gleich(stellen[0].nummer, '7');
+  gleich(stellen[0].thema, 'Zahlungsdaten');
+  gleich(stellen[0].text, 'Im Haus neu geschrieben.');
+  gleich(stellen[0].kriterium, 'der Beleg vorliegt', 'das Kriterium wird nicht erkannt');
+  // Die Bildunterschrift gehört zum Bild, nicht zum Text der Stelle.
+  wahr(!stellen[0].text.includes('Schritt 1'), stellen[0].text);
+  gleich(stellen[1].text, 'Erster Absatz. Noch im selben.\n\nZweiter Absatz mit & und <Klammer>.');
+});
+
+s.test('der Vergleich zeigt, was sich ändern würde – bevor etwas geschieht', () => {
+  const gelesen = kern.stellenAusDocx(kern.docxAbsaetze(wordXml));
+  const vergleich = kern.vergleicheStellentexte(wordGliederung, gelesen, {});
+  const sieben = vergleich.find((v) => v.nummer === '7');
+  gleich(sieben.art, 'geaendert');
+  tieferGleich(sieben.felder, ['text', 'kriterium']);
+  gleich(sieben.alt.text, 'Alter Text');
+  // 7.5 steht in der Datei genau so wie in der Gliederung.
+  gleich(vergleich.find((v) => v.nummer === '7.5').art, 'gleich');
+  // Eine Stelle, die es nicht gibt, wird benannt statt angelegt.
+  const fremd = kern.vergleicheStellentexte(wordGliederung, [{ nummer: '9.9', thema: 'X', text: 'Y', kriterium: '' }], {});
+  gleich(fremd[0].art, 'unbekannt');
+
+  // Übernehmen schreibt nur die gewählten Stellen und nur gefüllte Felder.
+  const eigene = kern.uebernimmStellentexte({}, vergleich, ['7'], '2026-10-18T00:00:00.000Z');
+  tieferGleich(Object.keys(eigene), ['7']);
+  gleich(eigene['7'].text, 'Im Haus neu geschrieben.');
+  gleich(eigene['7'].geaendert_am, '2026-10-18T00:00:00.000Z');
+  // Nichts gewählt heißt: nichts geschieht.
+  tieferGleich(kern.uebernimmStellentexte({}, vergleich, []), {});
+
+  // Mit den eigenen Texten darüber ist dieselbe Datei danach „gleich".
+  const danach = kern.vergleicheStellentexte(wordGliederung, gelesen, eigene);
+  gleich(danach.find((v) => v.nummer === '7').art, 'gleich');
+});
+
+s.test('die eigenen Texte legen sich über die Gliederung, ohne sie zu ändern', () => {
+  const eigene = { '7': { text: 'Eigener Text', geaendert_am: '2026-10-18T00:00:00.000Z' } };
+  const mit = kern.gliederungMitTexten(wordGliederung, eigene);
+  gleich(mit.find((e) => e.nummer === '7').text, 'Eigener Text');
+  gleich(mit.find((e) => e.nummer === '7').eigenerText, true);
+  gleich(mit.find((e) => e.nummer === '7').kriterium, 'altes Kriterium', 'ein Feld ohne Änderung bleibt');
+  // Die Gliederung des Projekts bleibt, wie sie war.
+  gleich(wordGliederung.find((e) => e.nummer === '7').text, 'Alter Text');
+  gleich(kern.gliederungMitTexten(wordGliederung, {}), wordGliederung, 'ohne eigene Texte dieselbe Liste');
+
+  // Speichern und lesen: leere Felder fallen weg, Kaputtes gibt nichts.
+  const gelesen = kern.leseStellentexte(kern.schreibeStellentexte({ ...eigene, '8': { text: '   ' } }));
+  tieferGleich(Object.keys(gelesen), ['7']);
+  tieferGleich(kern.leseStellentexte('{kaputt'), {});
+  tieferGleich(kern.leseStellentexte(null), {});
+});
+
 export default s;

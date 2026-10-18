@@ -1688,3 +1688,32 @@ Alle Kapitel kommen aufs Blatt – statt zu kürzen wird die Schrift kleiner:
 ein Stand, dem Kapitel fehlen, ist keiner. Das Blatt folgt der Arbeitsmenge
 (F-52) und der Hausmarke (F-62) und lässt sich als **PNG** oder **PDF**
 sichern.
+
+## F-65 · Der Rückweg aus Word – geänderte Texte zurück in die Gliederung
+
+**Seit** 1.47.0 · betrifft Gliederung, Designstudio, Handbuch
+
+**Das Problem** Das Handbuch geht als Word-Datei ins Haus (F-61). Dort wird
+daran geschrieben: ein Satz genauer, ein Kriterium klarer. Bisher endete der
+Weg dort – die Seite kannte diese Änderungen nicht, und beim nächsten Export
+waren sie wieder weg.
+
+**Die Lösung** In der Gliederung liest ein Block **Texte aus Word zurück**:
+die Überschriften nennen die Stelle (`7.5.1 Dokumentierte Signaturwege`), die
+Absätze darunter sind ihr Text, `Fertig, wenn: …` ist das Kriterium –
+genau so, wie die Seite es geschrieben hat. Bildunterschriften werden
+übergangen, Überschriften ohne Nummer beenden die laufende Stelle.
+
+**Erst die Liste, dann die Entscheidung.** Die Datei ändert nichts: sie
+erzeugt einen Vergleich – je Stelle `geändert` (mit altem und neuem Text),
+`unverändert` oder `nicht in der Gliederung`. Angekreuzt wird, was
+übernommen werden soll.
+
+**Die Gliederung im Projekt bleibt unangetastet.** Übernommene Texte liegen
+als **eigene Texte** daneben (`screenarchiv:texte`) und legen sich über die
+Gliederung – im Handbuch, auf den Blättern und in der Ansicht, wo ein
+Hinweis „eigener Text“ darunter steht. „Eigene Texte verwerfen“ stellt den
+Stand des Projekts wieder her.
+
+Damit ist der Kreis geschlossen: Gliederung → Blätter und Word-Handbuch →
+Änderungen im Haus → zurück in die Seite → nächste Ausgabe.

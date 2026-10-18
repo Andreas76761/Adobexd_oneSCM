@@ -331,6 +331,86 @@ s.test('das Fortschrittsblatt zeigt jedes Kapitel und lässt sich sichern', () =
     { hash: AUFNAHME, initSkript: ablageNachbau }
   ));
 
+/* --------------------------------------- Rückweg aus Word (1.47.0) */
+
+s.test('geänderte Texte aus einer Word-Datei kommen zurück in die Gliederung', () =>
+  mitSeite(
+    async (seite) => {
+      await aufnahmeAnStelle(seite, '7.5.1');
+      await seite.click('.portal-nav button[data-ansicht="gliederung"]');
+      await seite.waitForSelector('#ruecklauf-liste');
+      gleich(await seite.locator('#ruecklauf-stand').innerText(), 'keine eigenen Texte');
+      gleich(await seite.locator('#ruecklauf-uebernehmen').isDisabled(), true);
+
+      // Eine Word-Datei, wie sie aus dem Haus zurückkäme.
+      const datei = await seite.evaluate(() => {
+        const xml =
+          '<?xml version="1.0"?><w:document xmlns:w="urn:w"><w:body>' +
+          '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr><w:r><w:t>7.5.1 Dokumentierte Signaturwege</w:t></w:r></w:p>' +
+          '<w:p><w:r><w:t>Im Haus neu geschrieben: der Weg zur Signatur.</w:t></w:r></w:p>' +
+          '<w:p><w:r><w:t>Fertig, wenn: die Signatur dokumentiert ist</w:t></w:r></w:p>' +
+          '</w:body></w:document>';
+        return Array.from(zipSchreiben([{ name: 'word/document.xml', daten: xml }]));
+      });
+      await seite.evaluate((bytes) => {
+        const f = new File([new Uint8Array(bytes)], 'handbuch.docx', {
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+        const liste = new DataTransfer();
+        liste.items.add(f);
+        const eingabe = document.getElementById('ruecklauf-datei');
+        eingabe.files = liste.files;
+        eingabe.dispatchEvent(new Event('change', { bubbles: true }));
+      }, datei);
+      await seite.waitForFunction(
+        () => /gelesen|nicht lesen/.test(document.getElementById('ruecklauf-meldung').textContent),
+        null,
+        { timeout: 20000 }
+      );
+      const meldung = await seite.locator('#ruecklauf-meldung').innerText();
+      wahr(/1 Stelle\(n\) gelesen · 1 geändert/.test(meldung), meldung);
+      gleich(await seite.locator('.ruecklauf-zeile').count(), 1);
+      const zeile = await seite.locator('.ruecklauf-zeile').first().innerText();
+      wahr(zeile.includes('Text und Kriterium geändert'), zeile);
+      wahr(zeile.includes('Im Haus neu geschrieben'), zeile);
+
+      // Übernehmen – und der neue Text steht in der Gliederung.
+      await seite.click('#ruecklauf-uebernehmen');
+      await seite.waitForFunction(
+        () => /übernommen/.test(document.getElementById('ruecklauf-meldung').textContent),
+        null,
+        { timeout: 20000 }
+      );
+      gleich(await seite.locator('#ruecklauf-stand').innerText(), '1 Stelle(n) mit eigenem Text');
+      const gespeichert = await seite.evaluate(() => JSON.parse(localStorage.getItem('screenarchiv:texte')).texte);
+      wahr(gespeichert['7.5.1'].text.includes('Im Haus neu geschrieben'), JSON.stringify(gespeichert));
+
+      // Die Gliederung zeigt ihn - samt Hinweis, dass er eigen ist.
+      await seite.fill('#gliederung-suche', '7.5.1');
+      await seite.waitForFunction(
+        () => [...document.querySelectorAll('.stelle-nummer')].some((n) => n.textContent === '7.5.1'),
+        null,
+        { timeout: 8000 }
+      );
+      await seite.locator('.stelle-waehlen', { hasText: '7.5.1' }).first().click();
+      await seite.waitForTimeout(300);
+      const beschreibung = await seite.locator('#stelle-beschreibung').innerText();
+      wahr(/eigener Text/.test(beschreibung), beschreibung);
+      wahr(/die Signatur dokumentiert ist/.test(beschreibung), beschreibung);
+
+      // Verwerfen stellt die Gliederung des Projekts wieder her.
+      await seite.click('#ruecklauf-verwerfen');
+      await seite.waitForFunction(
+        () => /verworfen/.test(document.getElementById('ruecklauf-meldung').textContent),
+        null,
+        { timeout: 20000 }
+      );
+      gleich(await seite.locator('#ruecklauf-stand').innerText(), 'keine eigenen Texte');
+      gleich(await seite.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('screenarchiv:texte')).texte).length), 0);
+    },
+    { hash: AUFNAHME }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;
