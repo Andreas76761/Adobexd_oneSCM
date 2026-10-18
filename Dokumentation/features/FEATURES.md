@@ -1512,3 +1512,33 @@ zusammengefügt. Ein Bildschirmfoto in 1440 × 900 ergibt zwei Kacheln.
 Die Lesungen liegen im Browser (`screenarchiv:ocr`) und überleben das
 Neuladen. Fehlt die Fähigkeit oder darf sie keine Bilder sehen, sagt die
 Ansicht das und bleibt als Schreibfläche brauchbar.
+
+## F-59 · Bildvergleich – was sich zwischen zwei Fassungen geändert hat
+
+**Seit** 1.41.0 · betrifft Prüfung (Projektvergleich)
+
+**Das Problem** Der Projektvergleich (F-54) sagt, welche *Stelle* neu ist
+oder entfallen. Die Frage davor bleibt offen: Hat sich die Maske selbst
+geändert – und wo? Für einen Releaseletter ist genau das der Inhalt.
+
+**Die Lösung** Jede Zeile „in beiden“ bekommt den Knopf **Bilder
+vergleichen**. Er öffnet ein Fenster mit drei Bildern: *vorher*, *nachher*
+und *Unterschied* – das zweite Bild mit roten Rahmen um die veränderten
+Bereiche. Darüber steht der Satz: `1,1 % der Fläche verändert · 2 Bereiche ·
+kleine Änderungen`.
+
+**Wie gerechnet wird** Beide Bilder werden auf das Maß des ersten gebracht
+und Punkt für Punkt verglichen; als verschieden gilt ein Punkt ab einem
+Abstand von 36 über R, G und B zusammen. Gezählt wird in einem Raster von
+24 × 16 Kacheln; eine Kachel gilt ab 1,5 % veränderter Punkte als verändert,
+und benachbarte veränderte Kacheln werden zu Bereichen zusammengefasst – so
+stehen drei Stellen da statt 384 Kästchen.
+
+**Was der Vergleich nicht kann** Er sieht Bildpunkte, keine Bedeutung. Ein
+verschobener Block ist für ihn eine große Änderung, eine geänderte Zahl eine
+kleine. Darum nennt er Anteile und Bereiche und urteilt nicht darüber, ob die
+Änderung wichtig ist. Sind die Maße verschieden, steht das dabei – das ist
+selbst schon eine Änderung. Gibt es an einer Stelle mehr als ein Bild je
+Fassung, wird das erste verglichen und die Zahl der übrigen genannt.
+
+Der Vergleich lässt sich als PNG sichern – mit den roten Rahmen darin.

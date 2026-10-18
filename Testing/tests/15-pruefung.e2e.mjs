@@ -286,6 +286,48 @@ s.test('der Vergleich wird als Text gesichert', () =>
     { hash: AUFNAHME, initSkript: ablageNachbau }
   ));
 
+/* ------------------------------------------- Bildvergleich (1.41.0) */
+
+s.test('zwei Bilder derselben Stelle werden Punkt für Punkt verglichen', () =>
+  mitSeite(
+    async (seite) => {
+      await zweiFassungen(seite);
+      await seite.click('.portal-nav button[data-ansicht="pruefung"]');
+      await seite.selectOption('#vergleich-a', 'PRJ-onescm-portal-2-3-germany');
+      await seite.selectOption('#vergleich-b', 'PRJ-onescm-portal-2-4-germany');
+      await seite.waitForSelector('.vergleich-gitter');
+
+      // Nur die Zeile „in beiden" bietet den Vergleich an.
+      gleich(await seite.locator('.vergleich-zeile--neu button', { hasText: 'Bilder vergleichen' }).count(), 0);
+      const knopf = seite.locator('.vergleich-zeile button', { hasText: 'Bilder vergleichen' });
+      gleich(await knopf.count(), 1);
+      await knopf.click();
+
+      await seite.waitForSelector('#unterschied-dialog[open]');
+      await seite.waitForFunction(
+        () => /Fläche verändert|gleich/.test(document.getElementById('unterschied-stand').textContent),
+        null,
+        { timeout: 20000 }
+      );
+      // Drei Bilder: vorher, nachher und die Marken.
+      gleich(await seite.locator('.unterschied-bilder canvas').count(), 3);
+      const stand = await seite.locator('#unterschied-stand').innerText();
+      wahr(/gleich|Bereich/.test(stand), stand);
+      wahr((await seite.locator('#unterschied-titel').innerText()).startsWith('6.2'), await seite.locator('#unterschied-titel').innerText());
+
+      // Der Vergleich lässt sich als Bild sichern.
+      gleich(await seite.locator('#unterschied-sichern').isDisabled(), false);
+      await seite.click('#unterschied-sichern');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 15000 });
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      wahr(/^unterschied-\d{4}-\d{2}-\d{2}\.png$/.test(datei.filename), datei.filename);
+
+      await seite.click('#unterschied-schliessen');
+      gleich(await seite.locator('#unterschied-dialog[open]').count(), 0);
+    },
+    { hash: AUFNAHME, initSkript: ablageNachbau }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

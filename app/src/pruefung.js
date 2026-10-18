@@ -191,8 +191,137 @@ function vergleichZeile(zeile) {
     el('td', { text: zeile.thema || (zeile.bekannt ? '' : 'nicht in der Gliederung') }),
     el('td', { klasse: 'vergleich-art', text: schild }),
     el('td', { text: String(zeile.a) }),
-    el('td', { text: String(zeile.b) })
+    el('td', { text: String(zeile.b) }),
+    el('td', {}, [
+      // Nur was in beiden Fassungen steht, lässt sich vergleichen.
+      zeile.art === 'beide'
+        ? el('button', {
+            klasse: 'knopf knopf--klein',
+            type: 'button',
+            text: 'Bilder vergleichen',
+            onclick: () => zeigeBildvergleich(zeile.nummer)
+          })
+        : el('span', { klasse: 'kennung', text: '–' })
+    ])
   ]);
+}
+
+/* ------------------------------------------- Bildvergleich (1.41.0) */
+
+let unterschiedBild = null; // die Leinwand mit den Marken, zum Sichern
+
+/**
+ * Zwei Bilder derselben Stelle nebeneinander - und darunter, was sich
+ * geändert hat. Gerechnet wird im Kern (`bildUnterschied`), gezeichnet
+ * hier: das zweite Bild mit Rahmen um die veränderten Bereiche.
+ */
+async function zeigeBildvergleich(nummer) {
+  const liste = vergleichProjekte();
+  const paar = vergleichsPaare(eingang, vergleichWahl.a, vergleichWahl.b, GLIEDERUNG).find(
+    (p) => p.nummer === nummer
+  );
+  const fenster = $('#unterschied-dialog');
+  if (!paar) return;
+  $('#unterschied-titel').textContent = `${paar.nummer}${paar.thema ? ' ' + paar.thema : ''}`;
+  $('#unterschied-stand').textContent = 'Die Bilder werden geholt …';
+  $('#unterschied-stand').className = 'studio-meldung';
+  $('#unterschied-bilder').replaceChildren();
+  $('#unterschied-sichern').disabled = true;
+  unterschiedBild = null;
+  if (!fenster.open) fenster.showModal();
+
+  try {
+    const [vorher, nachher] = await Promise.all([ladeVergleichsbild(paar.vorher), ladeVergleichsbild(paar.nachher)]);
+    // Verglichen wird auf dem Maß des ersten Bildes; das zweite wird darauf
+    // gezogen. Verschiedene Maße sind selbst schon eine Änderung - das steht
+    // dann auch da.
+    const breite = vorher.breite;
+    const hoehe = vorher.hoehe;
+    const a = punkteAus(vorher.element, breite, hoehe);
+    const b = punkteAus(nachher.element, breite, hoehe);
+    const ergebnis = bildUnterschied(a, b);
+
+    const marken = document.createElement('canvas');
+    marken.width = breite;
+    marken.height = hoehe;
+    const stift = marken.getContext('2d');
+    stift.drawImage(nachher.element, 0, 0, breite, hoehe);
+    stift.strokeStyle = '#C0392B';
+    stift.lineWidth = Math.max(2, Math.round(breite / 400));
+    stift.fillStyle = 'rgba(192, 57, 43, 0.14)';
+    for (const bereich of ergebnis.bereiche || []) {
+      stift.fillRect(bereich.x, bereich.y, bereich.breite, bereich.hoehe);
+      stift.strokeRect(bereich.x, bereich.y, bereich.breite, bereich.hoehe);
+    }
+    unterschiedBild = marken;
+
+    const schau = (titel, kennung, element) => {
+      const leinwand = el('canvas', { klasse: 'unterschied-leinwand' });
+      leinwand.width = breite;
+      leinwand.height = hoehe;
+      leinwand.getContext('2d').drawImage(element, 0, 0, breite, hoehe);
+      return el('figure', {}, [leinwand, el('figcaption', { text: `${titel} · ${kennung}` })]);
+    };
+
+    $('#unterschied-bilder').replaceChildren(
+      schau('vorher', paar.vorher.id, vorher.element),
+      schau('nachher', paar.nachher.id, nachher.element),
+      el('figure', { klasse: 'unterschied-marken' }, [
+        marken,
+        el('figcaption', {
+          text: `Unterschied · ${(ergebnis.bereiche || []).length} Bereich(e) rot umrandet`
+        })
+      ])
+    );
+    const masse =
+      nachher.breite !== breite || nachher.hoehe !== hoehe
+        ? ` · Maße verschieden (${vorher.breite} × ${vorher.hoehe} gegen ${nachher.breite} × ${nachher.hoehe}), das zweite Bild wurde gezogen`
+        : '';
+    const weitere =
+      paar.weitereA || paar.weitereB
+        ? ` · ${paar.weitereA + paar.weitereB} weitere(s) Bild an dieser Stelle wurde nicht verglichen`
+        : '';
+    $('#unterschied-stand').textContent = unterschiedText(ergebnis) + masse + weitere;
+    $('#unterschied-stand').className =
+      'studio-meldung studio-meldung--' + (ergebnis.urteil === 'gleich' ? 'gut' : 'neutral');
+    $('#unterschied-sichern').disabled = false;
+  } catch (fehler) {
+    $('#unterschied-stand').textContent =
+      'Eines der beiden Bilder ließ sich nicht holen – ohne volles Bild kein Vergleich.';
+    $('#unterschied-stand').className = 'studio-meldung studio-meldung--warnung';
+  }
+}
+
+/** Das beste verfügbare Bild einer Aufnahme, geladen und vermessen. */
+async function ladeVergleichsbild(aufnahme) {
+  const adresse = await bestesBild(aufnahme, (neuesteFassung(aufnahme) || {}).nummer);
+  return ladeBild(adresse, 'eingang', aufnahme.titel);
+}
+
+/** Die Bildpunkte eines Bildes auf einem festen Maß - zum Vergleichen. */
+function punkteAus(element, breite, hoehe) {
+  const leinwand = document.createElement('canvas');
+  leinwand.width = breite;
+  leinwand.height = hoehe;
+  const stift = leinwand.getContext('2d', { willReadFrequently: true });
+  stift.fillStyle = '#FFFFFF';
+  stift.fillRect(0, 0, breite, hoehe);
+  stift.drawImage(element, 0, 0, breite, hoehe);
+  const punkte = stift.getImageData(0, 0, breite, hoehe);
+  return { daten: punkte.data, breite, hoehe };
+}
+
+async function sichereUnterschied() {
+  if (!unterschiedBild) return;
+  const blob = await new Promise((f) => unterschiedBild.toBlob(f, 'image/png'));
+  const name = `unterschied-${new Date().toISOString().slice(0, 10)}.png`;
+  const ergebnis = await uebergebeDatei(name, blob);
+  $('#unterschied-stand').textContent =
+    ergebnis.art === 'gesichert'
+      ? `${name} gesichert (${formatiereBytes(ergebnis.groesse)}).`
+      : ergebnis.art === 'ohne'
+        ? 'Diese Ansicht darf keine Dateien ablegen.'
+        : 'Das Sichern wurde abgebrochen oder ist fehlgeschlagen.';
 }
 
 function zeichneVergleich() {
@@ -233,7 +362,8 @@ function zeichneVergleich() {
     el('th', { scope: 'col', text: 'Thema' }),
     el('th', { scope: 'col', text: 'Lage' }),
     el('th', { scope: 'col', text: projektWahlText(vergleichWahl.a, liste) }),
-    el('th', { scope: 'col', text: projektWahlText(vergleichWahl.b, liste) })
+    el('th', { scope: 'col', text: projektWahlText(vergleichWahl.b, liste) }),
+    el('th', { scope: 'col', text: 'Bilder' })
   ]);
   const kinder = [
     el('table', { klasse: 'matrix-gitter vergleich-gitter' }, [
@@ -359,6 +489,8 @@ function verdrahtePruefung() {
     });
   }
   $('#vergleich-sichern').addEventListener('click', sichereVergleich);
+  $('#unterschied-schliessen').addEventListener('click', () => $('#unterschied-dialog').close());
+  $('#unterschied-sichern').addEventListener('click', sichereUnterschied);
 }
 
 verdrahtePruefung();

@@ -3036,4 +3036,95 @@ s.test('die Texte werden zu einer Textdatei und zu einer Word-Datei', () => {
   gleich(kern.docxAusText([]), null);
 });
 
+/* ------------------------------- Bildvergleich (1.41.0) */
+
+/** Ein Bild aus einer Funktion: (x, y) -> [r, g, b]. */
+function baueBildpunkte(breite, hoehe, farbe) {
+  const daten = new Uint8ClampedArray(breite * hoehe * 4);
+  for (let y = 0; y < hoehe; y++) {
+    for (let x = 0; x < breite; x++) {
+      const i = (y * breite + x) * 4;
+      const [r, g, b] = farbe(x, y);
+      daten[i] = r;
+      daten[i + 1] = g;
+      daten[i + 2] = b;
+      daten[i + 3] = 255;
+    }
+  }
+  return { daten, breite, hoehe };
+}
+
+s.test('zwei gleiche Bilder haben keinen Unterschied', () => {
+  const bild = baueBildpunkte(48, 32, (x) => [x * 5, 120, 200]);
+  const ergebnis = kern.bildUnterschied(bild, bild);
+  gleich(ergebnis.ok, true);
+  gleich(ergebnis.anteil, 0);
+  tieferGleich(ergebnis.bereiche, []);
+  gleich(ergebnis.urteil, 'gleich');
+  wahr(/keinen? Unterschied|gleich/.test(kern.unterschiedText(ergebnis)), kern.unterschiedText(ergebnis));
+});
+
+s.test('veränderte Flächen werden zu Bereichen zusammengefasst', () => {
+  const weiss = baueBildpunkte(48, 32, () => [255, 255, 255]);
+  // Zwei getrennte schwarze Kästen: oben links und unten rechts.
+  const zwei = baueBildpunkte(48, 32, (x, y) =>
+    (x < 10 && y < 8) || (x > 38 && y > 24) ? [0, 0, 0] : [255, 255, 255]
+  );
+  const ergebnis = kern.bildUnterschied(weiss, zwei, { spalten: 12, zeilen: 8 });
+  gleich(ergebnis.ok, true);
+  gleich(ergebnis.bereiche.length, 2, 'zwei getrennte Kästen sind zwei Bereiche');
+  // Der erste Bereich liegt oben links, der zweite unten rechts.
+  const [eins, zwei2] = ergebnis.bereiche.sort((a, b) => a.y - b.y);
+  gleich(eins.x, 0);
+  gleich(eins.y, 0);
+  wahr(zwei2.x > 30 && zwei2.y > 20, JSON.stringify(zwei2));
+  // 80 + 63 von 1536 Punkten sind schwarz geworden: gut 9 %.
+  wahr(ergebnis.anteil > 0.08 && ergebnis.anteil < 0.11, String(ergebnis.anteil));
+  gleich(ergebnis.urteil, 'deutlich verändert');
+  wahr(kern.unterschiedText(ergebnis).includes('2 Bereiche'), kern.unterschiedText(ergebnis));
+
+  // Ein einziger zusammenhängender Kasten ist ein Bereich, nicht vier.
+  const einer = baueBildpunkte(48, 32, (x, y) => (x > 16 && x < 34 && y > 10 && y < 22 ? [0, 0, 0] : [255, 255, 255]));
+  gleich(kern.bildUnterschied(weiss, einer, { spalten: 12, zeilen: 8 }).bereiche.length, 1);
+});
+
+s.test('ein kaum sichtbarer Unterschied bleibt unter der Schwelle', () => {
+  const grund = baueBildpunkte(32, 24, () => [200, 200, 200]);
+  // Ein Hauch heller: unter der Schwelle, also kein Befund.
+  const hauch = baueBildpunkte(32, 24, () => [205, 203, 202]);
+  const ergebnis = kern.bildUnterschied(grund, hauch);
+  gleich(ergebnis.anteil, 0, 'Rauschen wird als Änderung gezählt');
+  // Mit kleinerer Schwelle sieht derselbe Vergleich alles.
+  gleich(kern.bildUnterschied(grund, hauch, { schwelle: 4 }).anteil, 1);
+});
+
+s.test('ohne Maße oder mit verschiedenen Maßen sagt der Vergleich, warum nicht', () => {
+  const a = baueBildpunkte(20, 10, () => [0, 0, 0]);
+  const b = baueBildpunkte(10, 10, () => [0, 0, 0]);
+  gleich(kern.bildUnterschied(a, b).ok, false);
+  wahr(kern.bildUnterschied(a, b).grund.includes('Maße'), kern.bildUnterschied(a, b).grund);
+  gleich(kern.bildUnterschied({}, {}).ok, false);
+  gleich(kern.bildUnterschied(a, { breite: 20, hoehe: 10 }).ok, false);
+  // Der Satz zum Ergebnis nennt den Grund statt zu schweigen.
+  wahr(kern.unterschiedText(kern.bildUnterschied(a, b)).includes('Maße'), 'der Grund fehlt');
+});
+
+s.test('vergleichbar ist nur, was in beiden Fassungen eine Stelle hat', () => {
+  const bestand = [
+    { id: 'A1', projekt: 'P', version: '2.3', land: 'DE', gliederung: '6.2' },
+    { id: 'A2', projekt: 'P', version: '2.3', land: 'DE', gliederung: '6.4' },
+    { id: 'B1', projekt: 'P', version: '2.4', land: 'DE', gliederung: '6.2' },
+    { id: 'B2', projekt: 'P', version: '2.4', land: 'DE', gliederung: '6.2' },
+    { id: 'B3', projekt: 'P', version: '2.4', land: 'DE', gliederung: '6.3' }
+  ];
+  const paare = kern.vergleichsPaare(bestand, 'PRJ-p-2-3-de', 'PRJ-p-2-4-de', vergleichGliederung);
+  gleich(paare.length, 1, 'nur 6.2 steht in beiden');
+  gleich(paare[0].vorher.id, 'A1');
+  gleich(paare[0].nachher.id, 'B1');
+  gleich(paare[0].thema, 'Market Settings');
+  gleich(paare[0].weitereB, 1, 'das zweite Bild in 2.4 wird genannt');
+  gleich(paare[0].weitereA, 0);
+  tieferGleich(kern.vergleichsPaare([], 'a', 'b', vergleichGliederung), []);
+});
+
 export default s;

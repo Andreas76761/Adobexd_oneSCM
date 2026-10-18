@@ -20,6 +20,22 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.41.0] – Bildvergleich: was sich geändert hat
+
+### Neu
+* **Bildvergleich** (F-59) im Projektvergleich: jede Zeile „in beiden“ öffnet
+  vorher, nachher und den Unterschied – das zweite Bild mit roten Rahmen um
+  die veränderten Bereiche, darüber Anteil, Zahl der Bereiche und ein Urteil
+* Verschiedene Maße und weitere Bilder an derselben Stelle werden genannt,
+  nicht übergangen; der Vergleich lässt sich als PNG sichern
+
+### Kern
+* `bildUnterschied`, `unterschiedText`, `vergleichsPaare`,
+  `VERGLEICH_RASTER`, `VERGLEICH_SCHWELLE`
+
+### Prüfung
+* 5 neue Kernprüfungen, 1 neue Browserprüfung; zusammen 442
+
 ## [1.40.0] – Register OCR: den Text aus den Bildern holen
 
 ### Neu

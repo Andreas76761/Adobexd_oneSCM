@@ -1686,3 +1686,19 @@ div.streifen-bild { cursor: default; }
   border: 1px solid var(--linie-stark); border-radius: var(--radius); resize: vertical;
 }
 .ocr-feld-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ------------------------- Bildvergleich (1.41.0) */
+
+.unterschied-dialog { width: min(1500px, 97vw); max-width: 97vw; }
+.unterschied-koerper { padding: 12px clamp(14px, 2vw, 22px) 20px; display: grid; gap: 12px; }
+.unterschied-bilder {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; align-items: start;
+}
+.unterschied-bilder figure { margin: 0; }
+.unterschied-bilder canvas {
+  display: block; width: 100%; height: auto; max-height: 62vh; object-fit: contain;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche-2);
+}
+.unterschied-bilder figcaption { font-size: 11.5px; color: var(--tinte-3); margin-top: 3px; }
+.unterschied-marken canvas { border-color: var(--akzent); }
+.unterschied-aktionen { display: flex; flex-wrap: wrap; gap: 8px; }

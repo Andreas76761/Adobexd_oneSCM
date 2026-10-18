@@ -9,6 +9,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [versionen/v1.41.0.md](versionen/v1.41.0.md) | Bildvergleich – was sich zwischen zwei Fassungen geändert hat |
 | [versionen/v1.40.0.md](versionen/v1.40.0.md) | Register OCR – Text aus den Bildern, als Textdatei oder Word |
 | [versionen/v1.39.0.md](versionen/v1.39.0.md) | Register Output – Word, PDF, PowerPoint je Variante; die Lupe |
 | [versionen/v1.38.0.md](versionen/v1.38.0.md) | PDF aus den Blättern – 300 dpi, ohne Druckdialog |

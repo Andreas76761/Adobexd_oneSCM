@@ -5160,6 +5160,188 @@ export function docxAusText(abschnitte = [], { titel = '', anwendung = '' } = {}
 }
 
 /* =========================================================================
+   Bildvergleich – was sich zwischen zwei Fassungen geändert hat.
+
+   Der Projektvergleich (F-54) sagt, welche *Stelle* neu ist. Die Frage
+   davor bleibt offen: hat sich die Maske selbst geändert? Hier wird sie
+   beantwortet - nicht geraten. Verglichen werden die Bildpunkte zweier
+   Aufnahmen in einem Raster: je Kachel der Anteil der Punkte, die sich
+   deutlich unterscheiden; benachbarte veränderte Kacheln werden zu Bereichen
+   zusammengefasst, damit nicht 384 Kästchen, sondern drei Stellen dastehen.
+
+   Was dieser Vergleich nicht kann: er sieht Pixel, nicht Bedeutung. Ein
+   verschobener Block ist für ihn eine große Änderung, eine geänderte Zahl
+   eine kleine. Darum nennt er Anteile und Bereiche - und urteilt nicht
+   darüber, ob die Änderung wichtig ist.
+   ========================================================================= */
+
+export const VERGLEICH_RASTER = { spalten: 24, zeilen: 16 };
+
+/** Ab wann zwei Bildpunkte als verschieden gelten (Summe über R, G, B). */
+export const VERGLEICH_SCHWELLE = 36;
+
+/**
+ * Zwei Bilder Punkt für Punkt. `a` und `b` sind `{ daten, breite, hoehe }`
+ * mit vier Werten je Punkt (RGBA), wie sie eine Leinwand liefert.
+ */
+export function bildUnterschied(a = {}, b = {}, optionen = {}) {
+  const {
+    spalten = VERGLEICH_RASTER.spalten,
+    zeilen = VERGLEICH_RASTER.zeilen,
+    schwelle = VERGLEICH_SCHWELLE,
+    kachelAnteil = 0.015
+  } = optionen;
+  const breite = Math.round(a.breite || 0);
+  const hoehe = Math.round(a.hoehe || 0);
+  if (!breite || !hoehe) return { ok: false, grund: 'Das Bild hat keine Maße.' };
+  if (Math.round(b.breite || 0) !== breite || Math.round(b.hoehe || 0) !== hoehe) {
+    return { ok: false, grund: 'Die beiden Bilder haben verschiedene Maße.' };
+  }
+  if (!a.daten || !b.daten || a.daten.length < breite * hoehe * 4 || b.daten.length < breite * hoehe * 4) {
+    return { ok: false, grund: 'Die Bildpunkte fehlen.' };
+  }
+
+  const zaehler = new Int32Array(spalten * zeilen);
+  const punkteJeKachel = new Int32Array(spalten * zeilen);
+  let verschieden = 0;
+  for (let y = 0; y < hoehe; y++) {
+    const zeile = Math.min(zeilen - 1, Math.floor((y / hoehe) * zeilen));
+    for (let x = 0; x < breite; x++) {
+      const spalte = Math.min(spalten - 1, Math.floor((x / breite) * spalten));
+      const kachel = zeile * spalten + spalte;
+      punkteJeKachel[kachel] += 1;
+      const i = (y * breite + x) * 4;
+      const abstand =
+        Math.abs(a.daten[i] - b.daten[i]) +
+        Math.abs(a.daten[i + 1] - b.daten[i + 1]) +
+        Math.abs(a.daten[i + 2] - b.daten[i + 2]);
+      if (abstand >= schwelle) {
+        zaehler[kachel] += 1;
+        verschieden += 1;
+      }
+    }
+  }
+
+  const kachelBreite = breite / spalten;
+  const kachelHoehe = hoehe / zeilen;
+  const veraendert = new Uint8Array(spalten * zeilen);
+  const kacheln = [];
+  for (let zeile = 0; zeile < zeilen; zeile++) {
+    for (let spalte = 0; spalte < spalten; spalte++) {
+      const i = zeile * spalten + spalte;
+      const anteil = punkteJeKachel[i] ? zaehler[i] / punkteJeKachel[i] : 0;
+      if (anteil < kachelAnteil) continue;
+      veraendert[i] = 1;
+      kacheln.push({
+        spalte,
+        zeile,
+        x: Math.round(spalte * kachelBreite),
+        y: Math.round(zeile * kachelHoehe),
+        breite: Math.round(kachelBreite),
+        hoehe: Math.round(kachelHoehe),
+        anteil
+      });
+    }
+  }
+
+  const anteil = verschieden / (breite * hoehe);
+  return {
+    ok: true,
+    breite,
+    hoehe,
+    anteil,
+    punkte: verschieden,
+    kacheln,
+    bereiche: fasseBereiche(veraendert, spalten, zeilen, kachelBreite, kachelHoehe),
+    urteil: anteil < 0.002 ? 'gleich' : anteil < 0.08 ? 'kleine Änderungen' : 'deutlich verändert'
+  };
+}
+
+/** Benachbarte veränderte Kacheln zu Rechtecken - vier Nachbarn, keine Ecken. */
+function fasseBereiche(veraendert, spalten, zeilen, kachelBreite, kachelHoehe) {
+  const gesehen = new Uint8Array(veraendert.length);
+  const bereiche = [];
+  for (let start = 0; start < veraendert.length; start++) {
+    if (!veraendert[start] || gesehen[start]) continue;
+    const stapel = [start];
+    gesehen[start] = 1;
+    let minS = spalten;
+    let maxS = -1;
+    let minZ = zeilen;
+    let maxZ = -1;
+    let zahl = 0;
+    while (stapel.length) {
+      const i = stapel.pop();
+      const spalte = i % spalten;
+      const zeile = Math.floor(i / spalten);
+      zahl += 1;
+      minS = Math.min(minS, spalte);
+      maxS = Math.max(maxS, spalte);
+      minZ = Math.min(minZ, zeile);
+      maxZ = Math.max(maxZ, zeile);
+      const nachbarn = [
+        spalte > 0 ? i - 1 : -1,
+        spalte < spalten - 1 ? i + 1 : -1,
+        zeile > 0 ? i - spalten : -1,
+        zeile < zeilen - 1 ? i + spalten : -1
+      ];
+      for (const n of nachbarn) {
+        if (n >= 0 && veraendert[n] && !gesehen[n]) {
+          gesehen[n] = 1;
+          stapel.push(n);
+        }
+      }
+    }
+    bereiche.push({
+      x: Math.round(minS * kachelBreite),
+      y: Math.round(minZ * kachelHoehe),
+      breite: Math.round((maxS - minS + 1) * kachelBreite),
+      hoehe: Math.round((maxZ - minZ + 1) * kachelHoehe),
+      kacheln: zahl
+    });
+  }
+  // Der größte Bereich zuerst: er ist der, über den zu reden ist.
+  return bereiche.sort((x, y) => y.kacheln - x.kacheln);
+}
+
+/** Das Ergebnis in einem Satz. */
+export function unterschiedText(ergebnis = {}) {
+  if (!ergebnis.ok) return ergebnis.grund || 'Der Vergleich ist nicht zustande gekommen.';
+  if (!ergebnis.bereiche.length) return 'Kein Unterschied gefunden – die beiden Bilder sind gleich.';
+  const anteil = (ergebnis.anteil * 100).toFixed(1).replace('.', ',');
+  return `${anteil} % der Fläche verändert · ${ergebnis.bereiche.length} ${
+    ergebnis.bereiche.length === 1 ? 'Bereich' : 'Bereiche'
+  } · ${ergebnis.urteil}`;
+}
+
+/**
+ * Die Paare, die sich vergleichen lassen: je Stelle das erste Bild aus der
+ * einen und aus der anderen Arbeitsmenge. Mehr als eines je Stelle wird
+ * genannt, nicht stillschweigend übergangen.
+ */
+export function vergleichsPaare(aufnahmen = [], wahlA = '', wahlB = '', gliederung = []) {
+  const a = projektFilter(aufnahmen, wahlA);
+  const b = projektFilter(aufnahmen, wahlB);
+  const stelleVon = (bild) => String(bild.gliederung || '').trim();
+  const stellen = [...new Set(a.map(stelleVon).filter(Boolean))].filter((nummer) =>
+    b.some((bild) => stelleVon(bild) === nummer)
+  );
+  return stellen.sort(vergleicheKapitel).map((nummer) => {
+    const eintrag = gliederung.find((e) => e.nummer === nummer) || null;
+    const inA = a.filter((bild) => stelleVon(bild) === nummer);
+    const inB = b.filter((bild) => stelleVon(bild) === nummer);
+    return {
+      nummer,
+      thema: eintrag ? eintrag.thema : '',
+      vorher: inA[0],
+      nachher: inB[0],
+      weitereA: inA.length - 1,
+      weitereB: inB.length - 1
+    };
+  });
+}
+
+/* =========================================================================
    Die Lupe – ein Bild groß, mit allem, was dazugehört.
 
    Im Großformat ist die Frage nicht mehr „welches Bild ist das", sondern
