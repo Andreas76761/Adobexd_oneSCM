@@ -20,6 +20,33 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.51.0] – Aufräumen: dreizehn Register in fünf Aufgaben
+
+Keine neue Fähigkeit, sondern das Ergebnis einer
+[Durchsicht](durchsicht.md) über 69 Funktionen in dreizehn Ansichten.
+
+### Geändert
+* **Die Navigation steht in fünf Aufgaben** (F-70): Bestand, Hereinholen,
+  Aufbereiten, Ordnen und prüfen, Ausgeben – in der Reihenfolge, in der die
+  Arbeit läuft. Keine Ansicht verschwindet, keine zieht um, die Adressen
+  (`#ans=ocr`) gelten unverändert
+* Der Schriftzug „Portal“ vor der Reihe ist entfallen; vor fünf Überschriften
+  war er eine sechste, die nichts sagt
+* **Design** und **Output** nennen ihre Teilung: Design richtet das Aussehen
+  eines Blattes ein, Output erzeugt den Satz Dokumente daraus
+
+### Behoben
+* Die Begehung (F-49) kannte **Output** und **OCR** nicht – „jeder Befehl
+  wird gedrückt“ galt für elf von dreizehn Ansichten. Jetzt für dreizehn
+
+### Dokumentation
+* `Dokumentation/durchsicht.md` – die Bestandsaufnahme: drei Befunde, sechs
+  Verdachtsfälle auf tote Funktionen, und was bewusst nicht geändert wurde
+
+### Prüfung
+* Keine neuen Prüffälle; die Begehung deckt zwei Ansichten mehr ab und die
+  Navigationsprüfung prüft die fünf Aufgaben mit. Zusammen weiter 477
+
 ## [1.50.0] – Stapelverarbeitung beim Import
 
 ### Neu

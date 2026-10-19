@@ -9,6 +9,8 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [features/FEATURES.md](features/FEATURES.md) | Katalog aller Funktionen mit Version, Umsetzung und zugehörigem Test |
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
+| [durchsicht.md](durchsicht.md) | Bestandsaufnahme über 69 Funktionen in dreizehn Ansichten: was zusammengehört, was wahrscheinlich tot ist, was bewusst bleibt |
+| [versionen/v1.51.0.md](versionen/v1.51.0.md) | Aufräumen: dreizehn Register in fünf Aufgaben |
 | [versionen/v1.50.0.md](versionen/v1.50.0.md) | Stapelverarbeitung beim Import – ein Durchgang statt vierzig Handgriffe |
 | [versionen/v1.49.0.md](versionen/v1.49.0.md) | Hausmarke als Datei, Suche über die Lesungen |
 | [versionen/v1.48.0.md](versionen/v1.48.0.md) | Die Sprache der Unterlagen – Rahmentexte auf Englisch |

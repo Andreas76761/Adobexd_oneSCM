@@ -125,20 +125,34 @@
             nachher und der Begründung, warum geändert wurde. Abgelöste Belege bleiben im Archiv.
           </p>
           <nav class="portal-nav" aria-label="Portal">
-            <span class="portal-schild">Portal</span>
-            <button type="button" data-ansicht="archiv"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-archiv"/></svg>Archiv</button>
-            <button type="button" data-ansicht="aufnahme"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-aufnahme"/></svg>Aufnahme</button>
-            <button type="button" data-ansicht="import"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-import"/></svg>Import</button>
-            <button type="button" data-ansicht="ausschneiden"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-ausschneiden"/></svg>Ausschneiden</button>
-            <button type="button" data-ansicht="markieren"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-editor"/></svg>Editor</button>
-            <button type="button" data-ansicht="strecke"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-strecke"/></svg>Strecke</button>
-            <button type="button" data-ansicht="design"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-design"/></svg>Design</button>
-            <button type="button" data-ansicht="gliederung"><svg class="symbol" aria-hidden="true"><use href="#sym-kapitel"/></svg>Gliederung</button>
-            <button type="button" data-ansicht="pruefung"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-pruefung"/></svg>Prüfung</button>
-            <button type="button" data-ansicht="verzeichnis"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-verzeichnis"/></svg>Verzeichnis</button>
-            <button type="button" data-ansicht="ocr"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-ocr"/></svg>OCR</button>
-            <button type="button" data-ansicht="output"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-output"/></svg>Output</button>
-            <button type="button" data-ansicht="eingang"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-eingang"/></svg>Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
+            <span class="nav-gruppe">
+              <span class="nav-aufgabe">Bestand</span>
+              <button type="button" data-ansicht="archiv"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-archiv"/></svg>Archiv</button>
+              <button type="button" data-ansicht="eingang"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-eingang"/></svg>Eingang <span class="nav-zahl" id="eingang-zahl" hidden>0</span></button>
+            </span>
+            <span class="nav-gruppe">
+              <span class="nav-aufgabe">Hereinholen</span>
+              <button type="button" data-ansicht="aufnahme"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-aufnahme"/></svg>Aufnahme</button>
+              <button type="button" data-ansicht="import"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-import"/></svg>Import</button>
+              <button type="button" data-ansicht="ausschneiden"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-ausschneiden"/></svg>Ausschneiden</button>
+            </span>
+            <span class="nav-gruppe">
+              <span class="nav-aufgabe">Aufbereiten</span>
+              <button type="button" data-ansicht="markieren"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-editor"/></svg>Editor</button>
+              <button type="button" data-ansicht="strecke"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-strecke"/></svg>Strecke</button>
+              <button type="button" data-ansicht="ocr"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-ocr"/></svg>OCR</button>
+            </span>
+            <span class="nav-gruppe">
+              <span class="nav-aufgabe">Ordnen und prüfen</span>
+              <button type="button" data-ansicht="gliederung"><svg class="symbol" aria-hidden="true"><use href="#sym-kapitel"/></svg>Gliederung</button>
+              <button type="button" data-ansicht="pruefung"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-pruefung"/></svg>Prüfung</button>
+            </span>
+            <span class="nav-gruppe">
+              <span class="nav-aufgabe">Ausgeben</span>
+              <button type="button" data-ansicht="design"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-design"/></svg>Design</button>
+              <button type="button" data-ansicht="output"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-output"/></svg>Output</button>
+              <button type="button" data-ansicht="verzeichnis"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-verzeichnis"/></svg>Verzeichnis</button>
+            </span>
           </nav>
           <div class="projektleiste">
             <svg class="symbol" aria-hidden="true"><use href="#sym-version"/></svg>
@@ -822,6 +836,12 @@
       </div>
     </details>
 
+    <p class="band-hinweis" id="design-teilung">
+      <b>Design richtet das Aussehen ein</b> – Vorlage, Format, Farbe, Schrift,
+      Logo, Sprache – an einem Blatt, das man ansieht. Den ganzen Satz
+      Dokumente in allen Fassungen erzeugt daraus das Register
+      <b>Output</b>.
+    </p>
     <p class="band-hinweis" id="design-zweck"></p>
     <p class="studio-meldung" id="design-meldung" role="status" aria-live="polite"></p>
     <div class="design-blaetter" id="design-blaetter"></div>
@@ -1036,6 +1056,11 @@
       <b>Design</b>; hier kommen Vorschau, Word, PDF und PowerPoint dazu.
       <b>In den Ordner schreiben</b> legt alles unter <code>output/</code> ab,
       nach Variante und Vorlage getrennt.
+    </p>
+    <p class="band-hinweis" id="output-teilung">
+      <b>Output erzeugt den Satz</b> – das Aussehen eines einzelnen Blattes
+      wird im Register <b>Design</b> eingerichtet und hier auf alle Fassungen
+      angewendet.
     </p>
     <p class="studio-meldung" id="output-meldung" role="status" aria-live="polite"></p>
 

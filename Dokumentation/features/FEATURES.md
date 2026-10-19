@@ -204,13 +204,15 @@ nicht verfügbar, gilt der Schieberegler als Vorgabe; ein Fehler entsteht nicht.
 
 ## F-16 · Portalnavigation
 
-Oben links, unter dem Titel, steht die Gruppe **Portal** mit vier Ansichten:
-**Archiv** (der Bestand), **Aufnahme** (Quelle wählen und auslösen),
-**Ausschneiden** (Schnipsel vom geteilten Bildschirm, F-26) und **Eingang**
-(die aufgenommenen Bilder). Am Eingang zeigt eine Marke, wie viele Aufnahmen dort
-liegen. Die Ansicht steht in der Adresszeile (`#ans=aufnahme`) und lässt sich
-verlinken. Die Suche im Kopf gehört zum Archiv und tritt in den anderen
-Ansichten zurück; der Eingang hat seine eigene.
+**geändert in** 1.51.0 (siehe F-70)
+
+Oben links, unter dem Titel, stehen die **dreizehn** Ansichten – seit 1.51.0
+in fünf benannten Aufgaben (Bestand, Hereinholen, Aufbereiten, Ordnen und
+prüfen, Ausgeben), davor als eine Reihe. Am Eingang zeigt eine Marke, wie
+viele Aufnahmen dort liegen. Die Ansicht steht in der Adresszeile
+(`#ans=aufnahme`) und lässt sich verlinken; die Adressen haben sich beim
+Gruppieren nicht geändert. Die Suche im Kopf gehört zum Archiv und tritt in
+den anderen Ansichten zurück; der Eingang hat seine eigene.
 
 ---
 
@@ -1823,3 +1825,37 @@ für die ohne.
 
 **Kern** `folgendeStellen(gliederung, start, anzahl, { nurBlaetter })` und
 `stelleAusText(gliederung, text)` – beide ohne Oberfläche, beide geprüft.
+
+## F-70 · Die Navigation in fünf Aufgaben
+
+**Seit** 1.51.0 · betrifft Kopf, alle Ansichten · **ändert** F-16
+
+**Das Problem** Dreizehn gleich aussehende Knöpfe in einer Reihe. Dreizehn ist
+genau die Zahl, bei der eine Reihe aufhört, eine Reihe zu sein: man liest sie
+nicht mehr, man sucht in ihr. Dabei fallen die Ansichten sauber in fünf
+Aufgaben – die Reihe sagte es nur nicht.
+
+**Die Lösung** Die Register stehen in fünf benannten Aufgaben, in der
+Reihenfolge, in der die Arbeit läuft:
+
+| Aufgabe | Ansichten |
+| --- | --- |
+| **Bestand** | Archiv, Eingang |
+| **Hereinholen** | Aufnahme, Import, Ausschneiden |
+| **Aufbereiten** | Editor, Strecke, OCR |
+| **Ordnen und prüfen** | Gliederung, Prüfung |
+| **Ausgeben** | Design, Output, Verzeichnis |
+
+Keine Ansicht verschwindet, keine zieht um, kein Befehl ändert sich; die
+Adressen (`#ans=ocr`) gelten unverändert. Der Schriftzug „Portal“ vor der
+Reihe ist entfallen – vor fünf Überschriften war er eine sechste, die nichts
+sagt.
+
+Dazu steht in **Design** und **Output** je ein Satz, der auf das andere
+zeigt: Design richtet das Aussehen **eines** Blattes ein, Output erzeugt
+**den Satz** Dokumente daraus. Das war die Teilung von Anfang an, stand aber
+nirgends.
+
+Grundlage ist die [Durchsicht](../durchsicht.md) über 69 Funktionen in
+dreizehn Ansichten. Sie nennt auch, was **nicht** geändert wurde und warum.
+

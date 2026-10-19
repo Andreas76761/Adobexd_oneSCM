@@ -497,10 +497,18 @@ dialog.detail::backdrop { background: rgba(12, 16, 22, .62); backdrop-filter: bl
 
 /* ------------------------------------------------------- Portalnavigation */
 
-.portal-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
-.portal-schild {
-  font-family: var(--schrift-mono); font-size: 10.5px; letter-spacing: var(--spur);
-  text-transform: uppercase; color: var(--tinte-3); margin-right: 6px;
+/*
+ * Dreizehn gleich aussehende Knoepfe in einer Reihe liest man nicht mehr, man
+ * sucht in ihnen (Durchsicht 1.50.0). Darum stehen sie seit 1.51.0 in fuenf
+ * Aufgaben - der Reihe nach, wie die Arbeit laeuft: Bestand, Hereinholen,
+ * Aufbereiten, Ordnen und pruefen, Ausgeben.
+ */
+.portal-nav { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 18px; margin-top: 12px; }
+.nav-gruppe { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.nav-aufgabe {
+  font-family: var(--schrift-mono); font-size: 10px; letter-spacing: var(--spur);
+  text-transform: uppercase; color: var(--tinte-3); margin-right: 2px;
+  flex: 0 0 100%;
 }
 .portal-nav button {
   display: inline-flex; align-items: center; gap: 6px;

@@ -50,6 +50,8 @@ const ABSCHNITTE = {
   gliederung: '#gliederung-ansicht',
   pruefung: '#pruefung-ansicht',
   verzeichnis: '#verzeichnis-ansicht',
+  ocr: '#ocr-ansicht',
+  output: '#output-ansicht',
   eingang: '#eingang-ansicht'
 };
 
