@@ -2401,6 +2401,63 @@ export function zaehleBilder(eintraege = [], aufnahmen = []) {
   return { zahlen, ohneStelle, unbekannt };
 }
 
+/* ------------------------------- Stapelverarbeitung beim Import (1.50.0) */
+
+/**
+ * Die nächsten Stellen der Gliederung ab einer Nummer - in der Ordnung, in
+ * der sie im Handbuch stehen. Ein Foliensatz läuft ein Kapitel entlang;
+ * damit bekommt jede Folie ihre Stelle, ohne dass jemand vierzigmal dasselbe
+ * Auswahlfeld bedient.
+ *
+ * `nurBlaetter`: nur Stellen ohne Unterstellen - dort hängen die Bilder.
+ */
+export function folgendeStellen(gliederung = [], start = '', anzahl = 1, { nurBlaetter = true } = {}) {
+  const kapitel = gliederung.filter((e) => e.art !== 'uebergang');
+  const blatt = (eintrag) => !kapitel.some((e) => e.nummer !== eintrag.nummer && gehoertZu(e.nummer, eintrag.nummer));
+  const liste = nurBlaetter ? kapitel.filter(blatt) : kapitel;
+  const ab = liste.findIndex((e) => e.nummer === String(start || '').trim());
+  if (ab < 0) return [];
+  return liste.slice(ab, ab + Math.max(0, anzahl)).map((e) => e.nummer);
+}
+
+/**
+ * Die Stelle, die am besten zu einem Text passt - etwa zum Titel einer
+ * Folie. Gewertet wird, wie viele Wörter des Themas vorkommen; eine Nummer
+ * im Text wiegt schwerer als ein Wort. Ohne klaren Treffer kommt nichts
+ * zurück: eine geratene Zuordnung wäre schlimmer als keine.
+ */
+export function stelleAusText(gliederung = [], text = '') {
+  const roh = String(text || '').trim();
+  if (roh.length < 3) return '';
+  const gesucht = normalisiereLang(roh);
+  // Eine Nummer im Text entscheidet, wenn es sie gibt.
+  const nummer = roh.match(/\b([0-9]{1,2}(?:\.[0-9]{1,2}){1,3})\b/);
+  if (nummer && gliederung.some((e) => e.nummer === nummer[1])) return nummer[1];
+
+  let bester = '';
+  let bestesGewicht = 0;
+  let besterAnteil = 0;
+  for (const eintrag of gliederung) {
+    if (eintrag.art === 'uebergang') continue;
+    const woerter = normalisiereLang(eintrag.thema)
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length > 3);
+    if (!woerter.length) continue;
+    const treffer = woerter.filter((w) => gesucht.includes(w)).length;
+    if (!treffer) continue;
+    const anteil = treffer / woerter.length;
+    // Bei gleichem Anteil gewinnt die tiefere Stelle - dort stehen die Masken.
+    const gewicht = anteil + (eintrag.ebene || 1) * 0.001;
+    if (gewicht > bestesGewicht) {
+      bestesGewicht = gewicht;
+      besterAnteil = anteil;
+      bester = eintrag.nummer;
+    }
+  }
+  // Die Hälfte der Wörter ist ein Zufall, kein Treffer - es braucht mehr.
+  return besterAnteil > 0.5 ? bester : '';
+}
+
 /** Sucht in Nummer und Thema; ohne Suchtext kommt alles zurueck. */
 export function sucheGliederung(eintraege = [], text) {
   const gesucht = normalisiereLang(String(text || ''));

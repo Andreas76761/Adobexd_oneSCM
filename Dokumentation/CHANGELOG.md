@@ -20,6 +20,31 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.50.0] – Stapelverarbeitung beim Import
+
+### Neu
+* **Stapel beim Import** (F-69): ganze Foliensätze in einem Durchgang statt
+  Bild für Bild. Alle wählen über alle Dateien, **Stellen fortlaufend**
+  entlang der Gliederung ab der gewählten Stelle, **Stellen aus dem
+  Folientext**, Stellen leeren – und sechs Labelfelder (Sprache, Rolle,
+  Sparte, Markt, Version, Land), die für den ganzen Durchgang gelten
+* Der Kopf des Bandes sagt zugeklappt, was ansteht: „40 gewählt · 40 mit
+  Stelle · 3 Label“
+
+### Kern
+* `folgendeStellen(gliederung, start, anzahl, { nurBlaetter })` – die
+  folgenden Blätter der Gliederung in der Ordnung des Handbuchs
+* `stelleAusText(gliederung, text)` – die Stelle zum Folientext; eine Nummer
+  entscheidet, sonst braucht es mehr als die Hälfte der Themenwörter, sonst
+  bleibt es leer
+
+### Geändert
+* Der Hinweis zu den Dateiformaten im Import steht nun hinter dem
+  Stapel-Aufklapper; die Prüfung sucht ihn als direktes Kind der Ansicht
+
+### Prüfung
+* 2 neue Kernprüfungen, 4 neue Browserprüfungen; zusammen 477
+
 ## [1.49.0] – Hausmarke als Datei, Suche über die Lesungen
 
 ### Neu

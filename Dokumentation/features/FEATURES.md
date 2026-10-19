@@ -1789,3 +1789,37 @@ mehrere Wörter müssen alle vorkommen – auch über Feld und Lesung hinweg
 („Übersicht Termintreue“ trifft nur, wo beides steht). Der Suchtext einer
 Lesung wird je Satz einmal gerechnet und gemerkt; er verfällt, wenn die
 Lesung sich ändert.
+
+## F-69 · Stapelverarbeitung beim Import – ein Durchgang statt vierzig Handgriffe
+
+**Seit** 1.50.0 · betrifft Import, Gliederung, Labels
+
+**Das Problem** Der Import (F-19) legt jedes Folienbild als eigene Karte hin:
+Titel, Rezept, Stelle. Bei drei Folien ist das richtig, bei vierzig ist es
+vierzigmal dasselbe Auswahlfeld und vierzigmal dieselbe Sprache, Rolle und
+derselbe Markt. Ein Foliensatz läuft aber ein Kapitel entlang und trägt für
+alle Folien dieselben Labels.
+
+**Die Lösung** Ein Aufklapper **Stapel** über der Liste, der den ganzen
+Durchgang bedient:
+
+* **Alle wählen / Keines** über alle eingelesenen Dateien zugleich
+* **Stellen fortlaufend vergeben** – die gewählten Bilder bekommen in ihrer
+  Reihenfolge die folgenden Blätter der Gliederung, ab der oben gewählten
+  Stelle. Reicht das Kapitel nicht, bleibt der Rest leer und das steht da
+* **Stellen aus dem Folientext** – je Bild die Stelle, deren Thema im Text
+  vorkommt. Eine Nummer im Text entscheidet; sonst braucht es **mehr als die
+  Hälfte** der Themenwörter, sonst bleibt es leer
+* **Stellen leeren** als Weg zurück
+* **Sechs Labelfelder** (Sprache, Rolle, Sparte, Markt, Version, Land), die
+  für alle Bilder dieses Durchgangs gelten
+
+Der Kopf des Bandes sagt zugeklappt, was ansteht: „40 gewählt · 40 mit Stelle
+· 3 Label“.
+
+Gemeinsam sind die Labels, nicht die Stelle – jede Folie behält die ihre. Ein
+Bild mit eigener Stelle in seiner Karte behält sie; die Stelle oben gilt nur
+für die ohne.
+
+**Kern** `folgendeStellen(gliederung, start, anzahl, { nurBlaetter })` und
+`stelleAusText(gliederung, text)` – beide ohne Oberfläche, beide geprüft.

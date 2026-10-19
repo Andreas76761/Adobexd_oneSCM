@@ -15,6 +15,7 @@ let importDateien = []; // eingelesene Dateien samt ihren Bildern
 let importStelle = ''; // Stelle im Handbuch, die für alle gilt
 let importLaeuft = false; // während des Übernehmens
 let importNummer = 0; // fortlaufende Kennung der Bilder dieser Sitzung
+let stapelLabels = {}; // Labels, die fuer den ganzen Durchgang gelten
 
 /** Sagt, welche Stelle die Bilder bekommen - leer heißt: keine. */
 function zeichneVerzeichnisHinweis() {
@@ -212,6 +213,167 @@ async function nimmImportDateien(dateien) {
   zeichneImport();
 }
 
+/* ------------------------------------------------- Stapel (1.50.0) */
+
+/**
+ * Ein Foliensatz laeuft ein Kapitel entlang. Bild fuer Bild dieselbe Stelle
+ * und dieselben Labels zu setzen ist bei vierzig Folien keine Arbeit mehr,
+ * sondern eine Pruefung der Geduld. Der Stapel macht daraus einen Durchgang:
+ * eine Wahl, eine Reihenfolge, ein Satz Labels.
+ */
+
+/** Die Labelfelder, die im Stapel gelten - die uebrigen bleiben am Bild. */
+const STAPEL_FELDER = ['sprache', 'rolle_label', 'sparte', 'markt', 'version', 'land'];
+
+/** Alle Bilder der Liste, die noch nicht uebernommen sind. */
+function stapelOffene() {
+  const offene = [];
+  for (const datei of importDateien) {
+    for (const bild of datei.bilder) if (!bild.uebernommen) offene.push(bild);
+  }
+  return offene;
+}
+
+/** Haken setzen oder loesen - fuer alle Dateien zugleich. */
+function stapelWaehle(ja) {
+  for (const bild of stapelOffene()) bild.gewaehlt = ja;
+  zeichneImport();
+  meldeImport(ja ? `${stapelOffene().length} Bild(er) gewählt.` : 'Keines gewählt.', 'neutral');
+}
+
+/**
+ * Die gewaehlten Bilder bekommen in ihrer Reihenfolge die folgenden Stellen
+ * der Gliederung - ab der oben gewaehlten. Reichen die Stellen nicht, bleibt
+ * der Rest leer: eine erfundene Stelle waere schlimmer als keine.
+ */
+function stapelFortlaufend() {
+  const gewaehlte = importGewaehlte();
+  if (!gewaehlte.length) {
+    meldeImport('Es ist kein Bild gewählt.', 'warnung');
+    return;
+  }
+  if (!importStelle) {
+    meldeImport('Oben fehlt die Stelle, ab der gezählt wird.', 'warnung');
+    return;
+  }
+  const stellen = folgendeStellen(GLIEDERUNG, importStelle, gewaehlte.length);
+  if (!stellen.length) {
+    meldeImport(`${importStelle} steht nicht in der Gliederung.`, 'warnung');
+    return;
+  }
+  gewaehlte.forEach(({ bild }, i) => (bild.stelle = stellen[i] || ''));
+  zeichneImport();
+  const offen = gewaehlte.length - stellen.length;
+  meldeImport(
+    `${stellen.length} Stelle(n) vergeben: ${stellen[0]} bis ${stellen[stellen.length - 1]}.` +
+      (offen > 0 ? ` ${offen} Bild(er) blieben ohne Stelle – das Kapitel hat nicht mehr Stellen.` : ''),
+    offen > 0 ? 'warnung' : 'gut'
+  );
+}
+
+/**
+ * Je Bild die Stelle, deren Thema im Text der Folie vorkommt. Gelesen wird
+ * das Rezept (dort steht der Folientext) samt Titel und Dateiname. Was
+ * unklar bleibt, bleibt leer.
+ */
+function stapelAusText() {
+  const gewaehlte = importGewaehlte();
+  if (!gewaehlte.length) {
+    meldeImport('Es ist kein Bild gewählt.', 'warnung');
+    return;
+  }
+  let getroffen = 0;
+  for (const { bild } of gewaehlte) {
+    const text = [bild.titel, bild.seitenname, bild.notiz, bild.name].filter(Boolean).join(' ');
+    const stelle = stelleAusText(GLIEDERUNG, text);
+    if (stelle) {
+      bild.stelle = stelle;
+      getroffen += 1;
+    }
+  }
+  zeichneImport();
+  meldeImport(
+    `${getroffen} von ${gewaehlte.length} Bild(ern) eine Stelle zugeordnet.` +
+      (getroffen < gewaehlte.length ? ' Der Rest blieb leer – der Text gab sie nicht her.' : ''),
+    getroffen ? 'gut' : 'warnung'
+  );
+}
+
+/** Alle Stellen der gewaehlten Bilder loeschen. */
+function stapelStellenWeg() {
+  const gewaehlte = importGewaehlte();
+  for (const { bild } of gewaehlte) bild.stelle = '';
+  zeichneImport();
+  meldeImport(`${gewaehlte.length} Stelle(n) geleert.`, 'neutral');
+}
+
+/** Die Labelfelder des Stapels: feste Auswahl oder Vorschlag aus dem Bestand. */
+function zeichneStapelLabels() {
+  const kasten = $('#stapel-labels');
+  if (!kasten) return;
+  kasten.replaceChildren(
+    ...STAPEL_FELDER.map((kennung) => {
+      const feld = LABEL_FELDER.find((f) => f.id === kennung);
+      const id = 'stapel-' + feld.id;
+      const aendere = (wert) => {
+        stapelLabels = { ...stapelLabels, [feld.id]: wert };
+        zeichneStapelstand();
+      };
+      const eingabe = feld.frei
+        ? el('input', {
+            type: 'text',
+            id,
+            value: stapelLabels[feld.id] || '',
+            list: 'stapel-vorschlag-' + feld.id,
+            placeholder: 'für alle gleich',
+            oninput: (e) => aendere(e.target.value)
+          })
+        : el('select', { id, onchange: (e) => aendere(e.target.value) }, [
+            el('option', { value: '', text: 'ohne' }),
+            ...feld.werte.map((w) =>
+              el('option', {
+                value: w.id,
+                text: w.lang ? `${w.label} – ${w.lang}` : w.label,
+                selected: w.id === stapelLabels[feld.id]
+              })
+            )
+          ]);
+      const kinder = [el('label', { for: id, text: feld.label }), eingabe];
+      if (feld.frei) {
+        kinder.push(
+          el(
+            'datalist',
+            { id: 'stapel-vorschlag-' + feld.id },
+            labelVorschlaege(eingang, feld.id).slice(0, 40).map((w) => el('option', { value: w }))
+          )
+        );
+      }
+      return el('div', { klasse: 'feld label-feld' }, kinder);
+    })
+  );
+}
+
+/** Was der Stapel gerade vorhat - im Kopf des Bandes, ohne es zu oeffnen. */
+function zeichneStapelstand() {
+  const stand = $('#stapel-zahl');
+  if (!stand) return;
+  const gewaehlte = importGewaehlte();
+  const mitStelle = gewaehlte.filter(({ bild }) => bild.stelle || importStelle).length;
+  const labels = STAPEL_FELDER.filter((f) => stapelLabels[f]).length;
+  stand.textContent = gewaehlte.length
+    ? `${gewaehlte.length} gewählt · ${mitStelle} mit Stelle${labels ? ` · ${labels} Label` : ''}`
+    : 'nichts gewählt';
+  for (const knopf of ['#stapel-alle', '#stapel-keine', '#stapel-fortlaufend', '#stapel-aus-text', '#stapel-stellen-weg']) {
+    const knoten = $(knopf);
+    if (knoten) knoten.disabled = importLaeuft || !stapelOffene().length;
+  }
+}
+
+function zeichneStapel() {
+  zeichneStapelLabels();
+  zeichneStapelstand();
+}
+
 /* -------------------------------------------------------------- Anzeigen */
 
 function importGewaehlte() {
@@ -228,6 +390,7 @@ function aktualisiereImportknoepfe() {
   $('#import-uebernehmen').disabled = importLaeuft || !offen;
   $('#import-uebernehmen').textContent = offen ? `${offen} Bild${offen === 1 ? '' : 'er'} übernehmen` : 'Gewählte übernehmen';
   $('#import-leeren').disabled = importLaeuft || !importDateien.length;
+  zeichneStapelstand();
 }
 
 /** Eine Karte je Bild: Vorschau, Titel, Rezept, Stelle. */
@@ -408,6 +571,7 @@ function zeichneImport() {
     liste.replaceChildren(...importDateien.map(importDateikarte));
   }
   aktualisiereImportknoepfe();
+  zeichneStapel();
 }
 
 /* ------------------------------------------------------------ Übernehmen */
@@ -450,7 +614,9 @@ async function uebernehmeImport() {
           autor: entwurf.autor,
           datum: heute(),
           begriffe: ['import', datei.art],
-          notiz: bild.notiz
+          notiz: bild.notiz,
+          // Die Labels des Stapels gelten fuer jedes Bild dieses Durchgangs.
+          ...Object.fromEntries(STAPEL_FELDER.map((f) => [f, stapelLabels[f] || '']))
         },
         bild: baueVorschau(leinwand),
         ausschnitt: { x: 0, y: 0, breite: geladen.breite, hoehe: geladen.hoehe },
@@ -547,6 +713,12 @@ function verdrahteImport() {
     fuelleStellenvorschlaege(roh);
     fuelleStellenwahl(['#import-kapitel', '#import-unterkapitel', null], importStelle);
   });
+
+  $('#stapel-alle').addEventListener('click', () => stapelWaehle(true));
+  $('#stapel-keine').addEventListener('click', () => stapelWaehle(false));
+  $('#stapel-fortlaufend').addEventListener('click', stapelFortlaufend);
+  $('#stapel-aus-text').addEventListener('click', stapelAusText);
+  $('#stapel-stellen-weg').addEventListener('click', stapelStellenWeg);
 
   $('#import-uebernehmen').addEventListener('click', uebernehmeImport);
   $('#import-leeren').addEventListener('click', () => {

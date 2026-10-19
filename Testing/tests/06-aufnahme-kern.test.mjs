@@ -3694,4 +3694,52 @@ s.test('die Hausmarke lässt sich als Datei sichern und wieder lesen', () => {
   gleich(kern.leseMarkendatei(JSON.stringify({ ...datei, hausmarke: 9 })).kuenftig, true);
 });
 
+s.test('folgende Stellen laufen das Kapitel entlang (1.50.0)', () => {
+  const gliederung = [
+    { nummer: '7', thema: 'Signatur', ebene: 1 },
+    { nummer: '7.5', thema: 'Signatur anstoßen', ebene: 2 },
+    { nummer: '7.5.1', thema: 'Signaturanfrage senden', ebene: 3 },
+    { nummer: '7.5.2', thema: 'Signaturergebnis prüfen', ebene: 3 },
+    { nummer: '7.6', thema: 'Signatur widerrufen', ebene: 2 },
+    { nummer: '8', thema: 'Abrechnung', ebene: 1 },
+    { nummer: '8.1', thema: 'Rechnung stellen', ebene: 2 }
+  ];
+  // Nur Blätter: 7.5.1, 7.5.2, 7.6, 8.1 - dort hängen die Bilder.
+  tieferGleich(kern.folgendeStellen(gliederung, '7.5.1', 3), ['7.5.1', '7.5.2', '7.6']);
+  // Über das Kapitel hinaus wird weitergezählt, aber nichts erfunden.
+  tieferGleich(kern.folgendeStellen(gliederung, '7.6', 5), ['7.6', '8.1']);
+  tieferGleich(kern.folgendeStellen(gliederung, '7.5.2', 1), ['7.5.2']);
+  // Mit Zwischenstellen zählt die ganze Ordnung mit.
+  tieferGleich(kern.folgendeStellen(gliederung, '7.5', 3, { nurBlaetter: false }), ['7.5', '7.5.1', '7.5.2']);
+  // Eine Stelle, die es nicht gibt, bringt nichts zurück.
+  tieferGleich(kern.folgendeStellen(gliederung, '9.9', 3), []);
+  // Eine Zwischenstelle ist kein Blatt - ohne Blattsuche findet sie sich nicht.
+  tieferGleich(kern.folgendeStellen(gliederung, '7.5', 2), []);
+  tieferGleich(kern.folgendeStellen(gliederung, '7.5.1', 0), []);
+  tieferGleich(kern.folgendeStellen([], '1', 2), []);
+  // Übergänge stehen nicht im Handbuch und bekommen keine Bilder.
+  const mitUebergang = [...gliederung, { nummer: '7.7', thema: 'Hinweis', ebene: 2, art: 'uebergang' }];
+  wahr(!kern.folgendeStellen(mitUebergang, '7.6', 3).includes('7.7'), 'ein Übergang bekam eine Folie');
+});
+
+s.test('die Stelle aus dem Folientext wird erkannt oder bleibt leer (1.50.0)', () => {
+  const gliederung = [
+    { nummer: '7.5.1', thema: 'Signaturanfrage senden', ebene: 3 },
+    { nummer: '7.5.2', thema: 'Signaturergebnis prüfen', ebene: 3 },
+    { nummer: '8.1', thema: 'Rechnung stellen', ebene: 2 }
+  ];
+  gleich(kern.stelleAusText(gliederung, 'Signaturergebnis prüfen'), '7.5.2');
+  gleich(kern.stelleAusText(gliederung, 'Folie 4: Rechnung stellen im Portal'), '8.1');
+  // Eine Nummer im Text entscheidet, auch gegen ein fremdes Thema.
+  gleich(kern.stelleAusText(gliederung, '7.5.1 – Rechnung stellen'), '7.5.1');
+  // Ein einzelnes Wort von zwei ist Zufall, kein Treffer.
+  gleich(kern.stelleAusText(gliederung, 'Hallo Welt'), '');
+  gleich(kern.stelleAusText(gliederung, 'Rechnung'), '');
+  gleich(kern.stelleAusText(gliederung, ''), '');
+  gleich(kern.stelleAusText(gliederung, 'ab'), '');
+  gleich(kern.stelleAusText([], 'Signaturergebnis prüfen'), '');
+  // Eine Nummer, die nicht in der Gliederung steht, zählt nicht.
+  gleich(kern.stelleAusText(gliederung, '9.9.9 Unbekanntes'), '');
+});
+
 export default s;

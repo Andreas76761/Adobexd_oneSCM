@@ -602,6 +602,30 @@
         <button type="button" class="knopf" id="import-leeren" disabled>Liste leeren</button>
       </div>
     </div>
+
+    <details class="band stapel" id="import-stapel">
+      <summary>
+        <span>Stapel: viele Folien in einem Durchgang</span>
+        <span class="kennung" id="stapel-zahl"></span>
+      </summary>
+      <p class="band-hinweis">
+        Ein Foliensatz läuft ein Kapitel entlang. Statt vierzigmal dasselbe
+        Auswahlfeld zu bedienen: <b>fortlaufend</b> vergibt ab der oben
+        gewählten Stelle die folgenden Stellen der Gliederung – in ihrer
+        Ordnung, eine je gewähltem Bild. <b>Aus dem Folientext</b> schlägt je
+        Bild die Stelle vor, deren Thema im Text der Folie vorkommt; was
+        unklar bleibt, bleibt leer. Die Labels gelten für alle, die in diesem
+        Durchgang übernommen werden.
+      </p>
+      <div class="stapel-werkzeuge">
+        <button type="button" class="knopf knopf--klein" id="stapel-alle">Alle wählen</button>
+        <button type="button" class="knopf knopf--klein" id="stapel-keine">Keines</button>
+        <button type="button" class="knopf knopf--klein" id="stapel-fortlaufend">Stellen fortlaufend vergeben</button>
+        <button type="button" class="knopf knopf--klein" id="stapel-aus-text">Stellen aus dem Folientext</button>
+        <button type="button" class="knopf knopf--klein" id="stapel-stellen-weg">Stellen leeren</button>
+      </div>
+      <div class="stapel-labels" id="stapel-labels"></div>
+    </details>
     <p class="band-hinweis">
       Eingelesen werden <b>PNG, JPEG, GIF, WebP</b> unmittelbar, <b>PPTX, DOCX
       und XLSX</b> als Archiv (die eingebetteten Bilder samt Text je Folie oder

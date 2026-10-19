@@ -1770,3 +1770,12 @@ div.streifen-bild { cursor: default; }
   padding: 1px 6px; border-radius: 2px; font-size: 10.5px; letter-spacing: var(--spur);
   background: var(--akzent-hauch); color: var(--akzent-tief); border: 1px solid var(--akzent);
 }
+
+/* ------------------------- Stapel beim Import (1.50.0) */
+
+.stapel { margin: 0 0 12px; padding: 8px 0; }
+.stapel > summary { cursor: pointer; display: flex; gap: 12px; align-items: baseline; font-weight: 600; }
+.stapel > summary .kennung { font-weight: 400; }
+.stapel-werkzeuge { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.stapel-labels { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 14px; }
+.stapel-labels label { display: flex; align-items: center; gap: 6px; }
