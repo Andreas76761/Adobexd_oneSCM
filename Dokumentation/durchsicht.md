@@ -126,7 +126,7 @@ Nicht in der Zahl der Funktionen, sondern in zwei Dateien:
 | Datei | Zeilen | |
 | --- | --- | --- |
 | `core.mjs` | 7 000 | alles ohne DOM, in **einer** Datei |
-| `markieren.js` | 2 500 | Editor **und** Gliederung **und** Fortschrittsblatt **und** Rückweg aus Word |
+| ~~`markieren.js`~~ | ~~2 500~~ | ~~Editor **und** Gliederung **und** Fortschrittsblatt **und** Rückweg aus Word~~ — **in 1.52.0 geteilt** in `markieren.js` (1 240), `strecke.js` (640) und `gliederung.js` (645) |
 | `aufnahme.js` | 2 200 | Aufnahmestudio **und** Eingang **und** Archiv |
 
 `core.mjs` ist lang, aber geordnet und ohne Browser prüfbar – das ist der
@@ -147,11 +147,16 @@ dabei einer zu viel, und der Build sagt es.
 * Die Navigation bekommt die fünf Aufgaben als Überschriften (F-70)
 * Die Teilung Design / Output steht in beiden Ansichten als ein Satz
 
+**Erledigt in 1.52.0**
+* `markieren.js` in Editor, Strecke und Gliederung geteilt. Die Probe: die
+  gebaute Seite war danach zeichengleich mit der Fassung davor
+
 **Als nächstes, vor der nächsten Funktion**
-* `markieren.js` in Editor und Gliederung teilen (vier Ansichten in einer
-  Datei)
 * Die Probe mit den sechs Verdachtsfällen, mit jemandem, der die Seite
   benutzt
+* Der zweite Befund: vier Wege, den Bestand weiterzugeben, in drei Ansichten
+* `aufnahme.js` (2 200 Zeilen: Aufnahmestudio **und** Eingang **und**
+  Archiv) – dieselbe Teilung wie bei `markieren.js`
 
 **Bewusst nicht**
 * Funktionen entfernen, die nur verdächtig sind

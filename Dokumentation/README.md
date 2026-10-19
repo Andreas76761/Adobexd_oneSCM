@@ -10,6 +10,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
 | [durchsicht.md](durchsicht.md) | Bestandsaufnahme über 69 Funktionen in dreizehn Ansichten: was zusammengehört, was wahrscheinlich tot ist, was bewusst bleibt |
+| [versionen/v1.52.0.md](versionen/v1.52.0.md) | `markieren.js` geteilt – Editor, Strecke und Gliederung je eine Datei |
 | [versionen/v1.51.0.md](versionen/v1.51.0.md) | Aufräumen: dreizehn Register in fünf Aufgaben |
 | [versionen/v1.50.0.md](versionen/v1.50.0.md) | Stapelverarbeitung beim Import – ein Durchgang statt vierzig Handgriffe |
 | [versionen/v1.49.0.md](versionen/v1.49.0.md) | Hausmarke als Datei, Suche über die Lesungen |

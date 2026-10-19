@@ -20,6 +20,33 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.52.0] – `markieren.js` geteilt
+
+Der dritte Befund der [Durchsicht](durchsicht.md), ohne neue Fähigkeit.
+
+### Geändert
+* **`markieren.js` ist in drei Dateien geteilt**: `markieren.js` (Editor,
+  1 240 Zeilen), `strecke.js` (640) und `gliederung.js` (645, mit
+  Deckungsmatrix, Rückweg aus Word und Fortschrittsblatt). Die Reihenfolge in
+  der gemeinsamen Klammer bleibt dieselbe
+* Jede der drei Dateien sagt im Kopf, woher sie kommt und was sie mit den
+  anderen teilt – vor allem, dass `GLIEDERUNG` erst in `gliederung.js`
+  entsteht und von früheren Modulen nur aus Funktionen heraus gelesen wird
+* `app/build/build.mjs` kennt zwei Platzhalter mehr (`/*%STRECKE%*/`,
+  `/*%GLIEDERUNG%*/`); der Riegel gegen doppelte Namen prüft dreizehn Module
+
+### Behoben
+* Die Architekturbeschreibung zählte **neun** Oberflächendateien (es sind
+  dreizehn), nannte `ablage.js` als letzte Datei (es ist `ocr.js` seit
+  1.40.0), kannte `output.js` und `ocr.js` nicht und sprach von **drei**
+  Agenten (es sind vier seit 1.42.0)
+
+### Prüfung
+* Keine neuen Prüffälle. Die Teilung selbst ist stärker belegt als durch
+  Prüfungen: `dist/index.html` war danach **zeichengleich** mit der Fassung
+  davor (`diff` ohne Ausgabe). Erst die Kopfnoten ändern die Seite.
+  Zusammen weiter 477
+
 ## [1.51.0] – Aufräumen: dreizehn Register in fünf Aufgaben
 
 Keine neue Fähigkeit, sondern das Ergebnis einer

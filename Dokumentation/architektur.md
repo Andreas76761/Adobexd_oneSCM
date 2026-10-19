@@ -22,12 +22,17 @@ Adobexd_oneSCM/
 │   │   ├── ui.js              Navigation, Archivansicht, Detailansicht
 │   │   ├── aufnahme.js        Aufnahmestudio und Eingang
 │   │   ├── schnipsel.js       Ausschneiden, Ordnerzugriff, Beipackzettel
-│   │   ├── markieren.js       Editor, Strecke, Gliederung, Deckungsmatrix
+│   │   ├── markieren.js       Editor (unkenntlich machen, Rahmen, Fassungen)
+│   │   ├── strecke.js         Strecke, Blatt als Bild, Prozess als BPMN
+│   │   ├── gliederung.js      Gliederung, Deckungsmatrix, Rückweg aus Word,
+│   │   │                      Fortschrittsblatt
 │   │   ├── design.js          Designstudio (Blätter, Deckblatt, Vorlagen)
 │   │   ├── import.js          Import aus PNG, PPTX, DOCX, XLSX, PDF
 │   │   ├── chat.js            Suchchat (frei bewegliches Fenster)
-│   │   ├── pruefung.js        die drei Agenten
+│   │   ├── pruefung.js        die vier Agenten, Projekt- und Bildvergleich
 │   │   ├── ablage.js          Verzeichnis – die Galerie auf die Platte
+│   │   ├── output.js          Output – ein Satz Dokumente je Variante
+│   │   ├── ocr.js             OCR – Text aus den Bildern; ruft starte()
 │   │   ├── styles.css         Gestaltung, Farbtoken für beide Themen
 │   │   └── index.template.html Gerüst mit Platzhaltern
 │   └── build/build.mjs        setzt alles zu einer Datei zusammen
@@ -61,14 +66,16 @@ Stil, Kernlogik, Oberfläche, Daten und die 40 Aufnahmen – steht inline in der
 Datei. Externe Abrufe scheitern an der Inhaltsrichtlinie der Vorschau; erlaubt
 sind allein Schriften von `fonts.googleapis.com` / `fonts.gstatic.com`.
 
-## Ein Skriptbereich, neun Oberflächendateien
+## Ein Skriptbereich, dreizehn Oberflächendateien
 
-Alle Oberflächenmodule werden vom Build in **dieselbe** Klammer geschrieben:
+Alle Oberflächenmodule werden vom Build in **dieselbe** Klammer geschrieben,
+in dieser Reihenfolge:
 
 ```js
 (function () { 'use strict';
-  /* ui.js, aufnahme.js, schnipsel.js, markieren.js, design.js,
-     import.js, chat.js, pruefung.js, ablage.js */
+  /* ui.js, aufnahme.js, schnipsel.js, markieren.js, strecke.js,
+     gliederung.js, design.js, import.js, chat.js, pruefung.js,
+     ablage.js, output.js, ocr.js */
 })();
 ```
 
@@ -76,8 +83,18 @@ Sie teilen sich damit Helfer (`el`, `$`, `zustand`, `setze`, `zeichne`) und
 Zustand (`eingang`, `strecken`, `GLIEDERUNG`) ohne globale Namen. Weil
 `aufnahme.js` Werte anlegt, die `ui.js` liest, steht der Start am Ende:
 `ui.js` erklärt `starte()`, aufgerufen wird es in der **letzten Zeile der
-letzten Datei** – derzeit `ablage.js`. Funktionserklärungen werden vorgezogen,
+letzten Datei** – derzeit `ocr.js`. Funktionserklärungen werden vorgezogen,
 `const`/`let` nicht; deshalb diese Reihenfolge.
+
+Dieselbe Reihenfolge ist der Grund, warum `strecke.js` und `gliederung.js`
+unmittelbar hinter `markieren.js` stehen: bis 1.51.0 waren sie dieselbe
+Datei, und `GLIEDERUNG` (ein `const` in `gliederung.js`) wird von früheren
+Modulen gelesen – aber nur aus Funktionen heraus, die erst nach dem Laden
+laufen.
+
+Zwei gleiche Namen in zwei Modulen sind einer zu viel: der Build zählt die
+Erklärungen aller Dateien und bricht ab, statt die spätere stumm gewinnen zu
+lassen.
 
 Eine gemeinsame Klammer hat einen Preis: **zwei gleiche Namen sind einer zu
 viel.** Für den Browser ist das kein Fehler – die spätere Erklärung gewinnt

@@ -64,6 +64,8 @@ const MODULE = [
   'aufnahme.js',
   'schnipsel.js',
   'markieren.js',
+  'strecke.js',
+  'gliederung.js',
   'design.js',
   'import.js',
   'chat.js',
@@ -97,6 +99,8 @@ const seite = lies('app', 'src', 'index.template.html')
   .replace('/*%AUFNAHME%*/', () => lies('app', 'src', 'aufnahme.js'))
   .replace('/*%SCHNIPSEL%*/', () => lies('app', 'src', 'schnipsel.js'))
   .replace('/*%MARKIEREN%*/', () => lies('app', 'src', 'markieren.js'))
+  .replace('/*%STRECKE%*/', () => lies('app', 'src', 'strecke.js'))
+  .replace('/*%GLIEDERUNG%*/', () => lies('app', 'src', 'gliederung.js'))
   .replace('/*%DESIGN%*/', () => lies('app', 'src', 'design.js'))
   .replace('/*%IMPORT%*/', () => lies('app', 'src', 'import.js'))
   .replace('/*%CHAT%*/', () => lies('app', 'src', 'chat.js'))
