@@ -528,16 +528,47 @@ export function eingangSuchIndex(aufnahme) {
   return text;
 }
 
-export function filtereEingang(liste, auswahl = {}) {
+/**
+ * Der Suchtext einer Lesung aus dem Register OCR. Er steht nicht am Bild,
+ * sondern daneben - darum ein eigener Merkzettel, der an derselben Stelle
+ * verfällt wie die Lesung selbst.
+ */
+const OCR_SUCHINDEX = new WeakMap();
+
+export function ocrSuchIndex(eintrag) {
+  if (!eintrag || typeof eintrag !== 'object') return '';
+  const gemerkt = OCR_SUCHINDEX.get(eintrag);
+  if (gemerkt !== undefined) return gemerkt;
+  const roh = String(eintrag.text || '');
+  const text = roh ? normalisiere(roh) + '   ' + normalisiereLang(roh) : '';
+  OCR_SUCHINDEX.set(eintrag, text);
+  return text;
+}
+
+/**
+ * Filtert den Eingang. Mit `texte` (den Lesungen aus dem Register OCR)
+ * durchsucht die Suche auch, was *im Bild* steht - „Termintreue" findet dann
+ * das Bild, auf dem das Wort steht, auch wenn es in keinem Feld vorkommt.
+ */
+export function filtereEingang(liste, auswahl = {}, texte = null) {
   const { suche = '', kategorien = [], projekte = [], zustand = 'alle' } = auswahl;
   return (liste || []).filter((a) => {
     if (zustand === 'offen' && istVollstaendig(a)) return false;
     if (zustand === 'fertig' && !istVollstaendig(a)) return false;
     if (kategorien.length && !kategorien.includes(a.kategorie)) return false;
     if (projekte.length && !projekte.includes(a.projekt)) return false;
-    if (!passtZuSuche(a, suche, eingangSuchIndex(a))) return false;
+    const lesung = texte && texte[a.id] ? ocrSuchIndex(texte[a.id]) : '';
+    if (!passtZuSuche(a, suche, eingangSuchIndex(a) + (lesung ? '   ' + lesung : ''))) return false;
     return true;
   });
+}
+
+/** Trifft die Suche nur die Lesung? Dann sagt die Karte, woher der Treffer kommt. */
+export function trefferAusLesung(aufnahme, suche, texte = null) {
+  const lesung = texte && texte[aufnahme.id] ? ocrSuchIndex(texte[aufnahme.id]) : '';
+  if (!lesung || !String(suche || '').trim()) return false;
+  return !passtZuSuche(aufnahme, suche, eingangSuchIndex(aufnahme)) &&
+    passtZuSuche(aufnahme, suche, eingangSuchIndex(aufnahme) + '   ' + lesung);
 }
 
 export function sortiereEingang(liste, schluessel = 'neu') {
@@ -4112,6 +4143,74 @@ export function leseHausmarke(roh = {}) {
 /** Die Schriftfamilie zu einer Wahl - leer heißt: die der Seite. */
 export function markenSchrift(id) {
   return (MARKEN_SCHRIFTEN.find((s) => s.id === id) || { familie: '' }).familie;
+}
+
+/* ----------------------------------- Die Hausmarke als eigene Datei (1.49.0) */
+
+export const MARKENDATEI_VERSION = 1;
+
+/**
+ * Das Erscheinungsbild allein: Farbe, Schrift, Logo, Sprache, Kopf- und
+ * Fußzeile, Deckblatt und die eigenen Vorlagen. Ohne Bilder, ohne Bestand -
+ * eine Datei, die ein Kollege einliest und danach dieselben Unterlagen baut.
+ */
+export function markendateiAngaben(einstellungen = {}, { anwendung = '', stand = new Date().toISOString() } = {}) {
+  const e = leseDesignEinstellungen(JSON.stringify(einstellungen));
+  return {
+    hausmarke: MARKENDATEI_VERSION,
+    erzeugt_von: `Screenarchiv ${anwendung}`.trim(),
+    erzeugt_am: stand,
+    marke: e.marke,
+    sprache: e.sprache,
+    kopf: e.kopf,
+    fuss: e.fuss,
+    deckblatt: e.deckblatt,
+    labels: e.labels,
+    texte: e.texte,
+    vorlage: e.vorlage,
+    format: e.format,
+    vorlagen: e.eigene
+  };
+}
+
+/** Eine Markendatei lesen - nachsichtig, aber ohne fremde Felder zu glauben. */
+export function leseMarkendatei(text) {
+  let inhalt = null;
+  try {
+    inhalt = JSON.parse(text || 'null');
+  } catch (fehler) {
+    return { ok: false, grund: 'Die Datei enthält keine lesbaren Angaben.' };
+  }
+  if (!inhalt || typeof inhalt !== 'object' || !inhalt.hausmarke) {
+    return { ok: false, grund: 'Das ist keine Hausmarke des Screenarchivs.' };
+  }
+  const marke = leseHausmarke(inhalt.marke || {});
+  const eigene = (Array.isArray(inhalt.vorlagen) ? inhalt.vorlagen : []).map(eigeneVorlage).filter(Boolean);
+  return {
+    ok: true,
+    version: Number(inhalt.hausmarke) || 0,
+    kuenftig: (Number(inhalt.hausmarke) || 0) > MARKENDATEI_VERSION,
+    erzeugt_von: String(inhalt.erzeugt_von || ''),
+    marke,
+    sprache: AUSGABE_SPRACHEN.some((s) => s.id === inhalt.sprache) ? inhalt.sprache : 'de',
+    kopf: Array.isArray(inhalt.kopf) ? inhalt.kopf.filter((k) => KOPF_TEILE.some((x) => x.id === k)) : null,
+    fuss: Array.isArray(inhalt.fuss) ? inhalt.fuss.filter((f) => FUSS_TEILE.some((x) => x.id === f)) : null,
+    deckblatt: typeof inhalt.deckblatt === 'boolean' ? inhalt.deckblatt : null,
+    vorlagen: eigene
+  };
+}
+
+/** Was eine Markendatei mitbringt, in einem Satz. */
+export function markendateiBericht(gelesen = {}) {
+  if (!gelesen.ok) return gelesen.grund || 'Die Datei ließ sich nicht lesen.';
+  const teile = [
+    gelesen.marke.akzent ? `Akzent ${gelesen.marke.akzent}` : '',
+    gelesen.marke.schrift ? `Schrift ${gelesen.marke.schrift}` : '',
+    gelesen.marke.logo ? 'Logo' : '',
+    `Sprache ${gelesen.sprache}`,
+    gelesen.vorlagen.length ? `${gelesen.vorlagen.length} eigene Vorlage(n)` : ''
+  ].filter(Boolean);
+  return teile.join(' · ') + (gelesen.erzeugt_von ? ` · aus ${gelesen.erzeugt_von}` : '');
 }
 
 export function leereDesignEinstellungen() {

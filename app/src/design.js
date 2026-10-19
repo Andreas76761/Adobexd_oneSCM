@@ -627,6 +627,54 @@ async function waehleLogo(datei) {
   meldeDesign(`Logo übernommen (${formatiereBytes(datei.size)}) – es steht auf dem Deckblatt.`, 'gut');
 }
 
+/**
+ * Das Erscheinungsbild als eigene Datei: Farbe, Schrift, Logo, Sprache,
+ * Kopf- und Fußzeile und die eigenen Vorlagen. Ein Kollege liest sie ein und
+ * baut danach dieselben Unterlagen - ohne den Bestand mitzunehmen.
+ */
+async function sichereHausmarke() {
+  const angaben = markendateiAngaben(studio, { anwendung: DATEN.anwendung });
+  const name = `hausmarke-${bereinigeDateiname(studio.titel) || 'screenarchiv'}.json`;
+  const ergebnis = await uebergebeDatei(name, new Blob([JSON.stringify(angaben, null, 2)], { type: 'application/json' }));
+  meldeDesign(
+    ergebnis.art === 'gesichert'
+      ? `${name} gesichert (${formatiereBytes(ergebnis.groesse)})${angaben.marke.logo ? ' – mit Logo' : ''}.`
+      : ergebnis.art === 'ohne'
+        ? 'Diese Ansicht darf keine Dateien ablegen.'
+        : 'Das Sichern wurde abgebrochen oder ist fehlgeschlagen.',
+    ergebnis.art === 'gesichert' ? 'gut' : 'warnung'
+  );
+}
+
+async function ladeHausmarke(datei) {
+  if (!datei) return;
+  try {
+    const gelesen = leseMarkendatei(await datei.text());
+    if (!gelesen.ok) throw new Error(gelesen.grund);
+    const aenderung = {
+      marke: gelesen.marke,
+      sprache: gelesen.sprache,
+      // Eigene Vorlagen kommen dazu; vorhandene gleichen Namens weichen.
+      eigene: [
+        ...studio.eigene.filter((v) => !gelesen.vorlagen.some((n) => n.id === v.id)),
+        ...gelesen.vorlagen
+      ]
+    };
+    if (gelesen.kopf) aenderung.kopf = gelesen.kopf;
+    if (gelesen.fuss) aenderung.fuss = gelesen.fuss;
+    if (gelesen.deckblatt !== null) aenderung.deckblatt = gelesen.deckblatt;
+    await aendereStudio(aenderung);
+    meldeDesign(
+      `Hausmarke übernommen: ${markendateiBericht(gelesen)}` +
+        (gelesen.kuenftig ? ' · aus einer neueren Fassung, Unbekanntes blieb liegen' : ''),
+      'gut'
+    );
+  } catch (fehler) {
+    meldeDesign(`Die Datei ließ sich nicht lesen: ${fehler && fehler.message ? fehler.message : fehler}`, 'warnung');
+  }
+  $('#marke-laden').value = '';
+}
+
 async function sichereEigeneVorlage() {
   const satz = eigeneVorlage({
     label: $('#eigen-label').value,
@@ -1064,6 +1112,8 @@ function verdrahteDesign() {
   $('#handbuch-sichern').addEventListener('click', sichereHandbuch);
   $('#handbuch-word').addEventListener('click', sichereHandbuchWord);
   $('#design-sprache').addEventListener('change', (e) => aendereStudio({ sprache: e.target.value }));
+  $('#marke-sichern').addEventListener('click', sichereHausmarke);
+  $('#marke-laden').addEventListener('change', (e) => ladeHausmarke(e.target.files && e.target.files[0]));
   $('#marke-akzent').addEventListener('change', (e) => aendereMarke('akzent', e.target.value));
   $('#marke-tinte').addEventListener('change', (e) => aendereMarke('tinte', e.target.value));
   $('#marke-schrift').addEventListener('change', (e) => aendereMarke('schrift', e.target.value));

@@ -693,7 +693,12 @@
             <img id="marke-logo-schau" alt="Logo der Hausmarke">
             <button type="button" class="knopf knopf--klein" id="marke-logo-weg">Logo entfernen</button>
           </div>
+          <div class="feld">
+            <label for="marke-laden">Hausmarke aus Datei laden</label>
+            <input type="file" id="marke-laden" accept=".json,application/json">
+          </div>
           <div class="markier-knoepfe">
+            <button type="button" class="knopf knopf--klein" id="marke-sichern">Hausmarke sichern</button>
             <button type="button" class="knopf knopf--klein" id="marke-zurueck">Hausmarke zurücksetzen</button>
           </div>
         </div>
@@ -1123,7 +1128,7 @@
       <div class="suchfeld suchfeld--klein">
         <span class="such-symbol" aria-hidden="true">⌕</span>
         <label class="sprung" for="eingang-suche">Eingang durchsuchen</label>
-        <input id="eingang-suche" type="search" placeholder="Titel, Projekt, Begriff, Notiz …" autocomplete="off">
+        <input id="eingang-suche" type="search" placeholder="Titel, Projekt, Begriff, Notiz, Bildtext …" autocomplete="off">
       </div>
       <div class="segment eingang-zustand" role="group" aria-label="Vollständigkeit">
         <button type="button" data-zustand="alle" aria-pressed="true">Alle</button>

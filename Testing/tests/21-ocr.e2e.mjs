@@ -215,6 +215,42 @@ s.test('ohne Bilderlaubnis sagt die Ansicht, was bleibt', () =>
     { hash: AUFNAHME, initSkript: claudeOhneBilder }
   ));
 
+s.test('der Eingang findet, was im Bild steht', () =>
+  mitSeite(
+    async (seite) => {
+      await zweiBilder(seite);
+      await seite.click('#ocr-alle');
+      await seite.click('#ocr-lesen');
+      await seite.waitForFunction(
+        () => /2 von 2 Bildern gelesen/.test(document.getElementById('ocr-meldung').textContent),
+        null,
+        { timeout: 30000 }
+      );
+
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.waitForSelector('#eingang-ansicht:not([hidden])');
+      gleich(await seite.locator('.eingang-karte').count(), 2);
+
+      // „Freigaben" steht in keinem Feld, nur in der Lesung.
+      await seite.fill('#eingang-suche', 'Freigaben');
+      await seite.waitForTimeout(500);
+      gleich(await seite.locator('.eingang-karte').count(), 2, 'beide Lesungen tragen das Wort');
+      gleich(await seite.locator('.lesung-marke').count(), 2, 'die Karte sagt nicht, woher der Treffer kommt');
+
+      // Ein Wort aus dem Titel trifft ohne Marke.
+      await seite.fill('#eingang-suche', 'Formular');
+      await seite.waitForTimeout(500);
+      gleich(await seite.locator('.eingang-karte').count(), 1);
+      gleich(await seite.locator('.lesung-marke').count(), 0);
+
+      // Ein Wort, das nirgends steht, trifft nichts.
+      await seite.fill('#eingang-suche', 'Kaffeemaschine');
+      await seite.waitForTimeout(500);
+      gleich(await seite.locator('.eingang-karte').count(), 0);
+    },
+    { hash: AUFNAHME, initSkript: claudeNachbau }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

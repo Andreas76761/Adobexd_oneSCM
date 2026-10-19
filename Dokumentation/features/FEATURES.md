@@ -1747,3 +1747,45 @@ es die Varianten (dieselbe Maske auf Englisch) und die eigenen Texte (F-65).
 **Die Oberfläche bleibt deutsch.** Sie bedient das Team; die Unterlagen gehen
 in den Markt. Eine weitere Sprache braucht nur einen Eintrag in `WORTE` –
 unbekannte Schlüssel fallen auf Deutsch zurück, es bleibt also nie etwas leer.
+
+## F-67 · Die Hausmarke als eigene Datei
+
+**Seit** 1.49.0 · betrifft Designstudio
+
+**Das Problem** Die Hausmarke (F-62) lag nur im Browser dessen, der sie
+eingerichtet hat. Sie reiste zwar in der Projektdatei (F-63) mit – aber wer
+nur das Erscheinungsbild braucht und nicht den ganzen Bestand, musste es
+nachstellen: Farbe tippen, Logo suchen, Vorlagen neu bauen.
+
+**Die Lösung** „Hausmarke sichern“ schreibt `hausmarke-….json` mit dem
+**Erscheinungsbild allein**: Akzent- und Textfarbe, Schrift, Logo
+(eingebettet), Sprache der Unterlagen, Kopf- und Fußzeile, Deckblattschalter,
+gewählte Vorlage und die **eigenen Vorlagen**. „Hausmarke aus Datei laden“
+übernimmt alles davon; eigene Vorlagen gleichen Namens weichen den neuen,
+die übrigen bleiben.
+
+**Was nicht mitreist:** Titel, Untertitel und Hinweis – das ist Inhalt, nicht
+Erscheinungsbild. So wird aus der Datei keine halbe Unterlage.
+
+Gelesen wird nachsichtig: eine Farbe, die keine ist, kommt auch aus der Datei
+nicht durch; eine fremde Datei bekommt den Grund gesagt; eine neuere Fassung
+wird gelesen und als solche genannt.
+
+## F-68 · Suche über die Lesungen – finden, was im Bild steht
+
+**Seit** 1.49.0 · betrifft Eingang, OCR
+
+**Das Problem** Das Register OCR (F-58) holt den Text aus den Bildern – und
+legte ihn in ein Feld, das nur dort zu sehen war. Wer das Bild suchte, auf
+dem „Termintreue“ steht, fand es nicht: Titel, Notiz und Begriffe kennen das
+Wort nicht.
+
+**Die Lösung** Die Suche im Eingang durchsucht die Lesungen mit. Eine Karte,
+deren Treffer **nur** aus der Lesung kommt, trägt die Marke „im Bildtext“ –
+so ist nie unklar, warum sie dasteht.
+
+Gesucht wird wie überall in zwei Schreibweisen (mit und ohne Umlaute), und
+mehrere Wörter müssen alle vorkommen – auch über Feld und Lesung hinweg
+(„Übersicht Termintreue“ trifft nur, wo beides steht). Der Suchtext einer
+Lesung wird je Satz einmal gerechnet und gemerkt; er verfällt, wenn die
+Lesung sich ändert.

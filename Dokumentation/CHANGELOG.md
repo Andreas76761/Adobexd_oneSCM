@@ -20,6 +20,26 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.49.0] – Hausmarke als Datei, Suche über die Lesungen
+
+### Neu
+* **Hausmarke sichern und laden** (F-67): das Erscheinungsbild allein als
+  `hausmarke-….json` – Farben, Schrift, Logo, Sprache, Kopf- und Fußzeile,
+  Deckblatt und die eigenen Vorlagen. Titel und Hinweis reisen nicht mit, das
+  ist Inhalt
+* **Die Suche im Eingang durchsucht die Lesungen** (F-68): „Termintreue“
+  findet das Bild, auf dem das Wort steht. Eine Karte, deren Treffer nur aus
+  der Lesung kommt, trägt die Marke „im Bildtext“
+
+### Kern
+* `markendateiAngaben`, `leseMarkendatei`, `markendateiBericht`,
+  `MARKENDATEI_VERSION`
+* `ocrSuchIndex`, `trefferAusLesung`; `filtereEingang` nimmt die Lesungen
+  als drittes Argument
+
+### Prüfung
+* 2 neue Kernprüfungen, 2 neue Browserprüfungen; zusammen 471
+
 ## [1.48.0] – Die Sprache der Unterlagen
 
 ### Neu

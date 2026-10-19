@@ -542,6 +542,78 @@ s.test('die Unterlagen lassen sich auf Englisch ausgeben', () =>
     { hash: AUFNAHME, initSkript: pdfNachbau }
   ));
 
+s.test('die Hausmarke reist als eigene Datei', () => {
+  let marke = null;
+  return mitSeite(
+    async (seite) => {
+      await bilderMitStellen(seite, ['7.5.1']);
+      await oeffneStudio(seite);
+      await seite.evaluate(() => {
+        const setze = (id, wert) => {
+          const f = document.getElementById(id);
+          f.value = wert;
+          f.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+        setze('marke-akzent', '#00adef');
+        setze('marke-schrift', 'arial');
+        setze('design-sprache', 'en');
+      });
+      await seite.waitForTimeout(1200);
+      await seite.click('#marke-sichern');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 20000 });
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      wahr(/^hausmarke-.*\.json$/.test(datei.filename), datei.filename);
+      marke = datei.inhalt;
+      wahr(marke.includes('"akzent": "#00adef"'), marke.slice(0, 200));
+      wahr(marke.includes('"sprache": "en"'), 'die Sprache fehlt in der Datei');
+    },
+    { hash: AUFNAHME, initSkript: pdfNachbau }
+  ).then(() =>
+    // Ein zweiter Browser: dieselbe Hausmarke einlesen.
+    mitSeite(
+      async (seite) => {
+        await bilderMitStellen(seite, ['7.5.1']);
+        await oeffneStudio(seite);
+        gleich(await seite.locator('#marke-akzent').inputValue(), '#b4432b');
+        await seite.evaluate((inhalt) => {
+          const f = new File([inhalt], 'hausmarke.json', { type: 'application/json' });
+          const liste = new DataTransfer();
+          liste.items.add(f);
+          const eingabe = document.getElementById('marke-laden');
+          eingabe.files = liste.files;
+          eingabe.dispatchEvent(new Event('change', { bubbles: true }));
+        }, marke);
+        await seite.waitForFunction(
+          () => /übernommen|nicht lesen/.test(document.getElementById('design-meldung').textContent),
+          null,
+          { timeout: 25000 }
+        );
+        const meldung = await seite.locator('#design-meldung').innerText();
+        wahr(/Hausmarke übernommen/.test(meldung), meldung);
+        gleich(await seite.locator('#marke-akzent').inputValue(), '#00adef');
+        gleich(await seite.locator('#design-sprache').inputValue(), 'en');
+        gleich(await seite.locator('#marke-schrift').inputValue(), 'arial');
+
+        // Eine fremde Datei bekommt den Grund gesagt.
+        await seite.evaluate(() => {
+          const f = new File(['{"was":1}'], 'fremd.json', { type: 'application/json' });
+          const liste = new DataTransfer();
+          liste.items.add(f);
+          const eingabe = document.getElementById('marke-laden');
+          eingabe.files = liste.files;
+          eingabe.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        await seite.waitForFunction(
+          () => /keine Hausmarke/.test(document.getElementById('design-meldung').textContent),
+          null,
+          { timeout: 20000 }
+        );
+      },
+      { hash: AUFNAHME }
+    )
+  );
+});
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

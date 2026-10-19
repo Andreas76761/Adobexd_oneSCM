@@ -1762,3 +1762,11 @@ div.streifen-bild { cursor: default; }
 .ruecklauf-alt, .ruecklauf-neu { font-size: 12px; line-height: 1.5; }
 .ruecklauf-alt { color: var(--tinte-3); text-decoration: line-through; }
 .ruecklauf-neu { color: var(--tinte); }
+
+/* ------------------------- Treffer aus der Lesung (1.49.0) */
+
+.lesung-marke {
+  position: absolute; left: 6px; bottom: 6px; z-index: 2;
+  padding: 1px 6px; border-radius: 2px; font-size: 10.5px; letter-spacing: var(--spur);
+  background: var(--akzent-hauch); color: var(--akzent-tief); border: 1px solid var(--akzent);
+}

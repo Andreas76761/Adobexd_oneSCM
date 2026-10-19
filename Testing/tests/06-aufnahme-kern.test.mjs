@@ -3623,4 +3623,75 @@ s.test('Handbuch und Fortschritt sprechen dieselbe gewählte Sprache', () => {
   gleich(kern.leereDesignEinstellungen().sprache, 'de');
 });
 
+/* ------------------------------- Suche über die Lesungen (1.49.0) */
+
+s.test('die Suche findet, was im Bild steht – wenn eine Lesung vorliegt', () => {
+  const liste = [
+    { ...kern.leereAufnahme('2026-10-18'), id: 'A1', titel: 'Übersicht', begriffe: [] },
+    { ...kern.leereAufnahme('2026-10-18'), id: 'A2', titel: 'Formular', begriffe: [] }
+  ];
+  const texte = { A1: { text: 'Offene Freigaben 47 · Termintreue 92,4 %' } };
+
+  // Ohne Lesungen findet die Suche nichts - das Wort steht in keinem Feld.
+  gleich(kern.filtereEingang(liste, { suche: 'termintreue' }).length, 0);
+  tieferGleich(kern.filtereEingang(liste, { suche: 'termintreue' }, texte).map((a) => a.id), ['A1']);
+  // Zwei Wörter müssen beide vorkommen - auch über Feld und Lesung hinweg.
+  tieferGleich(kern.filtereEingang(liste, { suche: 'übersicht termintreue' }, texte).map((a) => a.id), ['A1']);
+  gleich(kern.filtereEingang(liste, { suche: 'formular termintreue' }, texte).length, 0);
+  // Die Umlautschreibweise greift auch in der Lesung.
+  gleich(kern.filtereEingang(liste, { suche: 'uebersicht' }, texte).length, 1);
+
+  // Die Karte soll sagen, woher der Treffer kommt.
+  gleich(kern.trefferAusLesung(liste[0], 'termintreue', texte), true);
+  gleich(kern.trefferAusLesung(liste[0], 'übersicht', texte), false, 'der Titel ist kein Bildtext');
+  gleich(kern.trefferAusLesung(liste[1], 'termintreue', texte), false);
+  gleich(kern.trefferAusLesung(liste[0], '', texte), false, 'ohne Suche kein Treffer');
+
+  // Der Merkzettel der Lesung hängt am Satz, nicht an der Kennung.
+  const eintrag = { text: 'Freigabe' };
+  const erst = kern.ocrSuchIndex(eintrag);
+  gleich(kern.ocrSuchIndex(eintrag), erst);
+  wahr(kern.ocrSuchIndex({ text: 'Vertrag' }).includes('vertrag'), 'ein neuer Satz bekommt seinen eigenen Text');
+  gleich(kern.ocrSuchIndex(null), '');
+});
+
+/* ------------------------------- Die Hausmarke als Datei (1.49.0) */
+
+s.test('die Hausmarke lässt sich als Datei sichern und wieder lesen', () => {
+  const einstellungen = {
+    ...kern.leereDesignEinstellungen(),
+    sprache: 'en',
+    kopf: ['titel', 'seitenzahl'],
+    fuss: ['stand'],
+    deckblatt: true,
+    marke: { akzent: '#00adef', tinte: '#1a1a1a', schrift: 'arial', logo: 'data:image/png;base64,AAA' },
+    eigene: [kern.eigeneVorlage({ label: 'Hausblatt', spalten: 2, zeilen: 2, textspalte: 0.3, textlaenge: 200 })],
+    titel: 'Nur der Inhalt'
+  };
+  const datei = kern.markendateiAngaben(einstellungen, { anwendung: '1.49.0', stand: '2026-10-19T08:00:00.000Z' });
+  gleich(datei.hausmarke, kern.MARKENDATEI_VERSION);
+  // Der Titel ist Inhalt, kein Erscheinungsbild - er reist nicht mit.
+  wahr(!('titel' in datei), 'der Titel liegt in der Markendatei');
+
+  const gelesen = kern.leseMarkendatei(JSON.stringify(datei));
+  gleich(gelesen.ok, true);
+  gleich(gelesen.marke.akzent, '#00adef');
+  gleich(gelesen.sprache, 'en');
+  tieferGleich(gelesen.kopf, ['titel', 'seitenzahl']);
+  gleich(gelesen.deckblatt, true);
+  gleich(gelesen.vorlagen.length, 1);
+  gleich(gelesen.vorlagen[0].label, 'Hausblatt');
+  wahr(kern.markendateiBericht(gelesen).includes('Akzent #00adef'), kern.markendateiBericht(gelesen));
+  wahr(kern.markendateiBericht(gelesen).includes('1 eigene Vorlage(n)'), kern.markendateiBericht(gelesen));
+
+  // Fremdes wird benannt, nicht geglaubt.
+  gleich(kern.leseMarkendatei('{kaputt').ok, false);
+  gleich(kern.leseMarkendatei(JSON.stringify({ marke: { akzent: '#000000' } })).ok, false);
+  wahr(kern.markendateiBericht(kern.leseMarkendatei('null')).includes('keine Hausmarke'), 'der Grund fehlt');
+  // Eine Farbe, die keine ist, kommt auch aus der Datei nicht durch.
+  gleich(kern.leseMarkendatei(JSON.stringify({ hausmarke: 1, marke: { akzent: 'blau' } })).marke.akzent, '');
+  // Eine neuere Fassung wird gelesen und als solche genannt.
+  gleich(kern.leseMarkendatei(JSON.stringify({ ...datei, hausmarke: 9 })).kuenftig, true);
+});
+
 export default s;

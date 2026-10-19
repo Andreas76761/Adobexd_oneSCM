@@ -1317,6 +1317,11 @@ function eingangKarte(aufnahme) {
         el('img', { src: anzeigeBild(aufnahme), alt: aufnahme.titel, loading: 'lazy' }),
         lupenKnopf(aufnahme.id),
         vollstaendig ? null : el('span', { klasse: 'offen-marke', text: 'unvollständig' }),
+        // Ein Treffer, der nur in der Lesung steht, wird genannt - sonst
+        // stünde eine Karte da, der man den Grund nicht ansieht.
+        trefferAusLesung(aufnahme, eingangAuswahl.suche, ocrTexte)
+          ? el('span', { klasse: 'lesung-marke', text: 'im Bildtext' })
+          : null,
         leseFassungen(aufnahme).length
           ? el('span', { klasse: 'markiert-marke', text: `Fassung ${neuesteFassung(aufnahme).nummer}` })
           : null
@@ -1356,7 +1361,9 @@ function eingangKarte(aufnahme) {
 function zeichneEingang() {
   // Gezeigt wird die Arbeitsmenge; der Eingang selbst bleibt vollständig.
   const menge = imProjekt();
-  const gefiltert = sortiereEingang(filtereEingang(menge, eingangAuswahl), eingangAuswahl.sortierung);
+  // Gesucht wird auch in den Lesungen aus dem Register OCR: „Termintreue"
+  // findet das Bild, auf dem das Wort steht (F-68).
+  const gefiltert = sortiereEingang(filtereEingang(menge, eingangAuswahl, ocrTexte), eingangAuswahl.sortierung);
   const k = eingangKennzahlen(menge);
 
   $('#eingang-kennzahlen').replaceChildren(
@@ -1914,7 +1921,7 @@ function auswahlText() {
 
 /** Die sichtbare Auswahl - gesichert wird, was man sieht. */
 const sichtbareAufnahmen = () =>
-  sortiereEingang(filtereEingang(imProjekt(), eingangAuswahl), eingangAuswahl.sortierung);
+  sortiereEingang(filtereEingang(imProjekt(), eingangAuswahl, ocrTexte), eingangAuswahl.sortierung);
 
 /**
  * Übergibt eine Datei an die Ablagefähigkeit des Artifacts.
