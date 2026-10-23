@@ -20,6 +20,29 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.53.0] – Weitergeben: vier Wege, einer je Zweck
+
+Der zweite Befund der [Durchsicht](durchsicht.md) – damit sind alle drei
+abgearbeitet.
+
+### Neu
+* **Übersicht „Weitergeben“ im Eingang** (F-71): eine Tafel mit den vier
+  Wegen – was mitreist, wofür er taugt, wo er liegt. Die beiden fernen Wege
+  bekommen einen Knopf, der hinführt (Verzeichnis, Design – dort klappt das
+  Studio gleich auf)
+
+### Geändert
+* **„Als JSON sichern“ sagt beim Sichern, was fehlt**: „nur die Metadaten,
+  ohne Bilder. Zum Weitergeben die Projektdatei im Verzeichnis.“ Der Knopf
+  bleibt – er ist eine Sicherung des eigenen Speichers, kein Weg zum
+  Weitergeben, und hört nur auf, sich als einer anzubieten
+* Projektdatei (Verzeichnis) und Hausmarke (Design) zeigen mit je einem Satz
+  auf die Übersicht zurück
+
+### Prüfung
+* 2 neue Browserprüfungen (die Tafel samt den beiden Wegen dorthin; die
+  Meldung beim Sichern, mit einer Ablage, die gelingt); zusammen 479
+
 ## [1.52.0] – `markieren.js` geteilt
 
 Der dritte Befund der [Durchsicht](durchsicht.md), ohne neue Fähigkeit.

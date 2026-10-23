@@ -323,6 +323,10 @@ Löschen geht je Aufnahme im Dialog; „Eingang leeren“ fragt einmal nach.
 
 ## F-22 · Eingang als JSON sichern
 
+**geändert in** 1.53.0 (siehe F-71): die Datei nimmt keine Bilder mit, und
+die Meldung sagt das jetzt. Zum Weitergeben ist die Projektdatei (F-63) der
+Weg; dies hier ist eine Sicherung des eigenen Speichers.
+
 **Als JSON sichern** übergibt den Eingang mitsamt Bildern an die
 Ablagefähigkeit des Artifacts (`downloads`). Die veröffentlichte Seite hat
 keinen Server – das ist der Weg, auf dem Aufnahmen in `data/eintraege.json`
@@ -1858,4 +1862,33 @@ nirgends.
 
 Grundlage ist die [Durchsicht](../durchsicht.md) über 69 Funktionen in
 dreizehn Ansichten. Sie nennt auch, was **nicht** geändert wurde und warum.
+
+## F-71 · Weitergeben – vier Wege, einer je Zweck
+
+**Seit** 1.53.0 · betrifft Eingang, Verzeichnis, Design · **ändert** F-22
+
+**Das Problem** Vier Wege, den Bestand weiterzugeben, in drei Ansichten:
+Eingang als JSON (F-22) und Kontaktbogen (F-23) im Eingang, Projektdatei
+(F-63) im Verzeichnis, Hausmarkendatei (F-67) im Design. Jeder entstand da,
+wo sein Inhalt herkommt – nur half das niemandem, der *einen* davon suchte.
+Und einer, „Als JSON sichern“, bot sich als Weg zum Weitergeben an, obwohl
+er die Bilder nicht mitnimmt.
+
+**Die Lösung** Ein Aufklapper **„Weitergeben“** im Eingang mit einer Tafel:
+je Weg, was mitreist, wofür er taugt und wo er liegt. Die beiden fernen Wege
+bekommen einen Knopf, der hinführt (**Im Verzeichnis**, **Im Design** – dort
+klappt das Studio gleich auf); die beiden im Eingang stehen oben in der
+Leiste und werden nicht verdoppelt.
+
+Darunter der Satz, der die Entscheidung abnimmt: **im Zweifel die
+Projektdatei**, weil eine JSON-Datei allein beim Empfänger leere Karten
+ergibt.
+
+**Als JSON sichern** meldet seit dieser Fassung beim Sichern mit, was
+**nicht** in der Datei steht („nur die Metadaten, ohne Bilder. Zum
+Weitergeben die Projektdatei im Verzeichnis.“). Der Knopf bleibt – er ist
+eine Sicherung des eigenen Speichers und seit 1.0 an seinem Platz; er hört
+nur auf, sich als etwas anzubieten, das er nicht ist.
+
+Verzeichnis und Design zeigen mit je einem Satz auf die Übersicht zurück.
 

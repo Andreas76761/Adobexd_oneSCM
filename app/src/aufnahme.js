@@ -1988,7 +1988,11 @@ async function sichereAlsDatei() {
   if (!liste.length) return;
   const name = `screenarchiv-eingang-${heute()}.json`;
   const ergebnis = await uebergebeDatei(name, eingangAlsExport(liste, heute(), true));
-  if (meldeAblage(ergebnis, `${liste.length} Aufnahmen als ${name}`)) zeigeErsatzausgabe();
+  // Ohne Bilder ist das eine Sicherung, kein Weg zum Weitergeben - wer die
+  // Datei verschickt, erzeugt beim Empfänger leere Karten.
+  if (meldeAblage(ergebnis, `${liste.length} Aufnahmen als ${name} – nur die Metadaten, ohne Bilder. Zum Weitergeben die Projektdatei im Verzeichnis.`)) {
+    zeigeErsatzausgabe();
+  }
 }
 
 /** Ohne Ablagefähigkeit: Metadaten zum Herauskopieren anzeigen. */
@@ -2108,6 +2112,14 @@ function verdrahteAufnahme() {
   });
   $('#eingang-kontaktbogen').addEventListener('click', sichereKontaktbogen);
   $('#eingang-sichern').addEventListener('click', sichereAlsDatei);
+  // Zwei der vier Wege liegen in anderen Ansichten - die Übersicht führt hin,
+  // statt sie hierher zu kopieren.
+  $('#weg-paket').addEventListener('click', () => setze({ ansicht: 'verzeichnis' }));
+  $('#weg-marke').addEventListener('click', () => {
+    setze({ ansicht: 'design' });
+    const studio = document.getElementById('design-studio');
+    if (studio) studio.open = true;
+  });
   $('#eingang-leeren').addEventListener('click', () => {
     if (!eingang.length) return;
     if (!$('#eingang-leeren').dataset.bestaetigt) {

@@ -99,6 +99,11 @@ Sicherung des eigenen Speichers. Nicht umgesetzt, weil der Knopf seit 1.0
 dort steht und jemand ihn in einer Anleitung stehen haben könnte. Das ist
 genau der Fall, in dem Nutzungsdaten fehlen.
 
+> **Erledigt in 1.53.0 (F-71)** – auf dem dritten Weg: der Knopf bleibt, und
+> eine Übersicht im Eingang sagt, was jeder der vier Wege kann. „Als JSON
+> sichern“ meldet beim Sichern mit, dass keine Bilder mitgehen. Nicht
+> wegnehmen, sondern aufhören, es als etwas anzubieten, das es nicht ist.
+
 ## Was wahrscheinlich tot ist
 
 Sechs Verdachtsfälle, nach Härte des Verdachts geordnet. Keiner wird in
@@ -151,10 +156,13 @@ dabei einer zu viel, und der Build sagt es.
 * `markieren.js` in Editor, Strecke und Gliederung geteilt. Die Probe: die
   gebaute Seite war danach zeichengleich mit der Fassung davor
 
+**Erledigt in 1.53.0**
+* Der zweite Befund: eine Übersicht im Eingang nennt die vier Wege und führt
+  zu den zweien, die anderswo liegen (F-71)
+
 **Als nächstes, vor der nächsten Funktion**
 * Die Probe mit den sechs Verdachtsfällen, mit jemandem, der die Seite
-  benutzt
-* Der zweite Befund: vier Wege, den Bestand weiterzugeben, in drei Ansichten
+  benutzt – das Einzige hier, was ohne Nutzung nicht zu entscheiden ist
 * `aufnahme.js` (2 200 Zeilen: Aufnahmestudio **und** Eingang **und**
   Archiv) – dieselbe Teilung wie bei `markieren.js`
 

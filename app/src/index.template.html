@@ -739,6 +739,11 @@
             <button type="button" class="knopf knopf--klein" id="marke-sichern">Hausmarke sichern</button>
             <button type="button" class="knopf knopf--klein" id="marke-zurueck">Hausmarke zurücksetzen</button>
           </div>
+          <p class="feld-hinweis">
+            Nur das Aussehen. Den ganzen Bestand gibt die <b>Projektdatei</b>
+            weiter – die vier Wege stehen im <b>Eingang</b> unter
+            „Weitergeben“.
+          </p>
         </div>
 
         <div class="design-studio-feld">
@@ -1152,6 +1157,10 @@
         seinem Browser ein und arbeitet weiter – der Bestand liegt sonst nur
         in einem Browser und auf einer Platte.
       </p>
+      <p class="band-hinweis">
+        Es gibt vier Wege, etwas weiterzugeben; welcher wofür taugt, steht
+        im <b>Eingang</b> unter „Weitergeben“.
+      </p>
       <div class="paket-wahl">
         <button type="button" class="knopf knopf--haupt" id="paket-sichern">Projektdatei sichern</button>
         <div class="feld">
@@ -1195,6 +1204,54 @@
         <button type="button" class="knopf" id="eingang-leeren">Eingang leeren</button>
       </div>
     </div>
+    <details class="band weitergeben" id="weitergeben-block">
+      <summary>
+        <span>Weitergeben: vier Wege, einer je Zweck</span>
+        <span class="kennung">zwei davon hier, zwei woanders</span>
+      </summary>
+      <p class="band-hinweis">
+        Der Bestand liegt im Browser dieses Rechners. Vier Wege führen
+        hinaus – sie können verschiedenes und liegen an verschiedenen
+        Stellen. Was gesucht wird, steht in der Spalte <b>Wofür</b>.
+      </p>
+      <table class="weitergeben-tafel">
+        <thead>
+          <tr><th scope="col">Weg</th><th scope="col">Was mitreist</th><th scope="col">Wofür</th><th scope="col">Wo</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Projektdatei</th>
+            <td>Aufnahmen in voller Auflösung, Strecken, Projekte, Hausmarke, Wortliste, Lesungen</td>
+            <td>Ein Kollege arbeitet weiter, wo Sie aufgehört haben</td>
+            <td><button type="button" class="knopf knopf--klein" id="weg-paket">Im Verzeichnis</button></td>
+          </tr>
+          <tr>
+            <th scope="row">Hausmarkendatei</th>
+            <td>Nur das Erscheinungsbild: Farben, Schrift, Logo, Sprache, eigene Vorlagen</td>
+            <td>Ein Kollege bekommt dasselbe Aussehen, ohne Ihren Bestand</td>
+            <td><button type="button" class="knopf knopf--klein" id="weg-marke">Im Design</button></td>
+          </tr>
+          <tr>
+            <th scope="row">Kontaktbogen</th>
+            <td>Eine HTML-Datei mit den Bildern zum Ansehen</td>
+            <td>Jemand soll draufschauen, der diese Seite nicht hat</td>
+            <td><span class="weitergeben-hier">hier oben</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Als JSON sichern</th>
+            <td>Nur die Metadaten – <b>ohne Bilder</b></td>
+            <td>Eine Sicherung des eigenen Speichers, kein Weg zum Weitergeben</td>
+            <td><span class="weitergeben-hier">hier oben</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="band-hinweis">
+        <b>Im Zweifel die Projektdatei.</b> Sie kann alles, was „Als JSON
+        sichern“ kann, und nimmt die Bilder mit – eine JSON-Datei allein
+        ergibt beim Empfänger leere Karten.
+      </p>
+    </details>
+
     <div class="ergebnis-kopf">
       <p class="treffer" id="eingang-treffer" role="status" aria-live="polite"></p>
       <p class="studio-meldung" id="eingang-meldung" role="status" aria-live="polite"></p>

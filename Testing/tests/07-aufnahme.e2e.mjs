@@ -1607,6 +1607,78 @@ s.test('im Eingang lassen sich Stelle und Labels nachziehen', () =>
     { hash: AUFNAHME }
   ));
 
+s.test('die Übersicht nennt die vier Wege und führt zu den zwei fernen (1.53.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.evaluate(() => (document.getElementById('weitergeben-block').open = true));
+      const tafel = await seite.locator('.weitergeben-tafel tbody tr').allInnerTexts();
+      gleich(tafel.length, 4, 'es sind nicht vier Wege');
+      const wege = await seite.evaluate(() =>
+        [...document.querySelectorAll('.weitergeben-tafel tbody th')].map((e) => e.textContent.trim()).join('|')
+      );
+      gleich(wege, 'Projektdatei|Hausmarkendatei|Kontaktbogen|Als JSON sichern');
+      // Der Weg, der am wenigsten kann, sagt das auch.
+      wahr(tafel[3].includes('ohne Bilder'), tafel[3]);
+      wahr(tafel[3].includes('kein Weg zum Weitergeben'), tafel[3]);
+
+      // Die zwei fernen Wege führen auch wirklich dorthin.
+      await seite.click('#weg-paket');
+      gleich(await seite.locator('#verzeichnis-ansicht').isVisible(), true);
+      gleich(await seite.locator('#paket-block').isVisible(), true, 'die Projektdatei steht nicht da');
+
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.evaluate(() => (document.getElementById('weitergeben-block').open = true));
+      await seite.click('#weg-marke');
+      gleich(await seite.locator('#design-ansicht').isVisible(), true);
+      gleich(
+        await seite.evaluate(() => document.getElementById('design-studio').open),
+        true,
+        'das Studio bleibt zu – die Hausmarke wäre nicht zu sehen'
+      );
+      gleich(await seite.locator('#marke-sichern').isVisible(), true);
+    },
+    { hash: '#ans=eingang' }
+  ));
+
+/** Eine Ablage, die gelingt - sonst meldet die Seite nur den Ersatzweg. */
+function mitAblage() {
+  window.__abgelegt = [];
+  window.claude = {
+    use: async (name) =>
+      name === 'downloads'
+        ? {
+            save: async (a) => {
+              window.__abgelegt.push(a.filename);
+              return { status: 'saved' };
+            }
+          }
+        : null
+  };
+}
+
+s.test('„Als JSON sichern" sagt beim Sichern, was es nicht mitnimmt (1.53.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('#quelle-beispiel');
+      await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+      await seite.fill('#feld-titel', 'Eine Aufnahme');
+      await seite.fill('#feld-projekt', 'oneSCM Portal');
+      await seite.selectOption('#feld-kategorie', 'Formular');
+      await seite.fill('#feld-begriffe', 'vorlage');
+      await seite.click('#ausloesen');
+      await seite.waitForTimeout(150);
+
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.click('#eingang-sichern');
+      await seite.waitForTimeout(400);
+      const meldung = await seite.locator('#eingang-meldung').innerText();
+      wahr(meldung.includes('ohne Bilder'), meldung);
+      wahr(meldung.includes('Projektdatei'), meldung);
+      gleich(await seite.evaluate(() => window.__abgelegt.length), 1, 'nichts abgelegt');
+    },
+    { hash: AUFNAHME, initSkript: mitAblage }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;
