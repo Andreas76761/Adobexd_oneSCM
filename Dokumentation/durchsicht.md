@@ -132,7 +132,7 @@ Nicht in der Zahl der Funktionen, sondern in zwei Dateien:
 | --- | --- | --- |
 | `core.mjs` | 7 000 | alles ohne DOM, in **einer** Datei |
 | ~~`markieren.js`~~ | ~~2 500~~ | ~~Editor **und** Gliederung **und** Fortschrittsblatt **und** Rückweg aus Word~~ — **in 1.52.0 geteilt** in `markieren.js` (1 240), `strecke.js` (640) und `gliederung.js` (645) |
-| `aufnahme.js` | 2 200 | Aufnahmestudio **und** Eingang **und** Archiv |
+| ~~`aufnahme.js`~~ | ~~2 200~~ | ~~Aufnahmestudio **und** Eingang **und** Archiv~~ — **in 1.54.0 geteilt** in `aufnahme.js` (1 395) und `eingang.js` (830) |
 
 `core.mjs` ist lang, aber geordnet und ohne Browser prüfbar – das ist der
 Grund für die Regel, und die Länge ist der Preis. Die beiden
@@ -160,11 +160,14 @@ dabei einer zu viel, und der Build sagt es.
 * Der zweite Befund: eine Übersicht im Eingang nennt die vier Wege und führt
   zu den zweien, die anderswo liegen (F-71)
 
-**Als nächstes, vor der nächsten Funktion**
+**Erledigt in 1.54.0**
+* `aufnahme.js` in Studio und Eingang geteilt. Die Probe lief hier über den
+  Bestand der Zeilen: keine ausführbare Zeile ist verschwunden
+
+**Als nächstes**
 * Die Probe mit den sechs Verdachtsfällen, mit jemandem, der die Seite
-  benutzt – das Einzige hier, was ohne Nutzung nicht zu entscheiden ist
-* `aufnahme.js` (2 200 Zeilen: Aufnahmestudio **und** Eingang **und**
-  Archiv) – dieselbe Teilung wie bei `markieren.js`
+  benutzt – das Einzige hier, was ohne Nutzung nicht zu entscheiden ist, und
+  damit das Letzte, was diese Durchsicht offen lässt
 
 **Bewusst nicht**
 * Funktionen entfernen, die nur verdächtig sind

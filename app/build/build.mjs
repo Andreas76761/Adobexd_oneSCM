@@ -62,6 +62,7 @@ const alsSkript = JSON.stringify(nutzlast)
 const MODULE = [
   'ui.js',
   'aufnahme.js',
+  'eingang.js',
   'schnipsel.js',
   'markieren.js',
   'strecke.js',
@@ -97,6 +98,7 @@ const seite = lies('app', 'src', 'index.template.html')
   .replace('/*%DATEN%*/', () => `const DATEN = ${alsSkript};`)
   .replace('/*%UI%*/', () => lies('app', 'src', 'ui.js'))
   .replace('/*%AUFNAHME%*/', () => lies('app', 'src', 'aufnahme.js'))
+  .replace('/*%EINGANG%*/', () => lies('app', 'src', 'eingang.js'))
   .replace('/*%SCHNIPSEL%*/', () => lies('app', 'src', 'schnipsel.js'))
   .replace('/*%MARKIEREN%*/', () => lies('app', 'src', 'markieren.js'))
   .replace('/*%STRECKE%*/', () => lies('app', 'src', 'strecke.js'))

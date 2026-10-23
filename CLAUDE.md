@@ -31,10 +31,10 @@ npm test          # muss vollständig grün sein
 
 * **Kernlogik gehört in `app/src/core.mjs`**, nicht in die Oberflächenmodule. Nur so ist sie ohne Browser testbar. `core.mjs` darf kein DOM
   anfassen.
-* **Alle Oberflächenmodule (`ui.js`, `aufnahme.js`, `schnipsel.js`,
-  `markieren.js`, `strecke.js`, `gliederung.js`, `design.js`, `import.js`,
-  `chat.js`, `pruefung.js`, `ablage.js`, `output.js`, `ocr.js`) landen in
-  einer gemeinsamen Klammer.** Zwei gleiche Namen
+* **Alle Oberflächenmodule (`ui.js`, `aufnahme.js`, `eingang.js`,
+  `schnipsel.js`, `markieren.js`, `strecke.js`, `gliederung.js`, `design.js`,
+  `import.js`, `chat.js`, `pruefung.js`, `ablage.js`, `output.js`, `ocr.js`)
+  landen in einer gemeinsamen Klammer.** Zwei gleiche Namen
   darin sind einer zu viel – der Build bricht darauf ab. Sie teilen sich dadurch `el`, `$`, `zustand` und
   `zeichne`. Der Start steht in `starte()` (erklärt in `ui.js`) und wird in der
   **letzten Zeile der letzten Datei** aufgerufen – derzeit `ocr.js`. Kommt ein

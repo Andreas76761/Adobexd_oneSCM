@@ -20,7 +20,8 @@ Adobexd_oneSCM/
 │   │   │                      Designvorlagen, Archive, Suchchat, Agenten,
 │   │   │                      Varianten, Verzeichnisplan)
 │   │   ├── ui.js              Navigation, Archivansicht, Detailansicht
-│   │   ├── aufnahme.js        Aufnahmestudio und Eingang
+│   │   ├── aufnahme.js        Aufnahmestudio (Quelle, Ausschnitt, Auslöser)
+│   │   ├── eingang.js         Eingang, Werkbank, Eingangsdialog, Ordnerband
 │   │   ├── schnipsel.js       Ausschneiden, Ordnerzugriff, Beipackzettel
 │   │   ├── markieren.js       Editor (unkenntlich machen, Rahmen, Fassungen)
 │   │   ├── strecke.js         Strecke, Blatt als Bild, Prozess als BPMN
@@ -66,16 +67,16 @@ Stil, Kernlogik, Oberfläche, Daten und die 40 Aufnahmen – steht inline in der
 Datei. Externe Abrufe scheitern an der Inhaltsrichtlinie der Vorschau; erlaubt
 sind allein Schriften von `fonts.googleapis.com` / `fonts.gstatic.com`.
 
-## Ein Skriptbereich, dreizehn Oberflächendateien
+## Ein Skriptbereich, vierzehn Oberflächendateien
 
 Alle Oberflächenmodule werden vom Build in **dieselbe** Klammer geschrieben,
 in dieser Reihenfolge:
 
 ```js
 (function () { 'use strict';
-  /* ui.js, aufnahme.js, schnipsel.js, markieren.js, strecke.js,
-     gliederung.js, design.js, import.js, chat.js, pruefung.js,
-     ablage.js, output.js, ocr.js */
+  /* ui.js, aufnahme.js, eingang.js, schnipsel.js, markieren.js,
+     strecke.js, gliederung.js, design.js, import.js, chat.js,
+     pruefung.js, ablage.js, output.js, ocr.js */
 })();
 ```
 
@@ -91,6 +92,13 @@ unmittelbar hinter `markieren.js` stehen: bis 1.51.0 waren sie dieselbe
 Datei, und `GLIEDERUNG` (ein `const` in `gliederung.js`) wird von früheren
 Modulen gelesen – aber nur aus Funktionen heraus, die erst nach dem Laden
 laufen.
+
+Dasselbe gilt für `eingang.js` hinter `aufnahme.js` (bis 1.53.0 eine Datei).
+Dort hängt noch etwas daran: die Verdrahtung war **eine** Funktion für beide
+Hälften. Sie ist jetzt zwei – `verdrahteAufnahme()` in `aufnahme.js`,
+`verdrahteEingang()` in `eingang.js` –, und **beide werden am Ende von
+`eingang.js` aufgerufen**, an derselben Stelle wie vorher der eine Aufruf.
+Der Text liegt in zwei Dateien, der Start läuft in derselben Reihenfolge.
 
 Zwei gleiche Namen in zwei Modulen sind einer zu viel: der Build zählt die
 Erklärungen aller Dateien und bricht ab, statt die spätere stumm gewinnen zu

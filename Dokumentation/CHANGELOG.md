@@ -20,6 +20,30 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.54.0] – `aufnahme.js` geteilt
+
+Nach `markieren.js` (1.52.0) die zweite große Datei – damit ist die
+[Durchsicht](durchsicht.md) abgearbeitet, bis auf die Probe, die Benutzung
+braucht.
+
+### Geändert
+* **`aufnahme.js` ist in zwei Dateien geteilt**: `aufnahme.js` (Studio,
+  1 395 Zeilen) und `eingang.js` (Eingang, Werkbank, Eingangsdialog,
+  Ordnerband, Sichern – 830 Zeilen)
+* Die Verdrahtung war **eine** Funktion für beide Hälften; sie ist jetzt
+  `verdrahteAufnahme()` und `verdrahteEingang()`. **Beide werden am Ende von
+  `eingang.js` aufgerufen**, an derselben Stelle wie vorher der eine Aufruf –
+  der Text liegt in zwei Dateien, der Start läuft in derselben Reihenfolge
+* `app/build/build.mjs` kennt einen Platzhalter mehr (`/*%EINGANG%*/`); der
+  Riegel gegen doppelte Namen prüft vierzehn Module
+
+### Prüfung
+* Keine neuen Prüffälle. Die Probe lief über den Bestand der Zeilen in
+  `dist/index.html`: **keine einzige ausführbare Zeile ist verschwunden**,
+  neu sind nur `function verdrahteEingang() {`, die schließende Klammer und
+  der Aufruf – der Rest ist Kommentar. Dazu die 479 Prüfungen, die in der
+  Begehung jeden sichtbaren Befehl in jeder Ansicht drücken
+
 ## [1.53.0] – Weitergeben: vier Wege, einer je Zweck
 
 Der zweite Befund der [Durchsicht](durchsicht.md) – damit sind alle drei
