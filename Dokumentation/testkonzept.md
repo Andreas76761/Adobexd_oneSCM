@@ -26,7 +26,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `03-aufnahmen.test.mjs` | erzeugte SVG-Aufnahmen: Vollständigkeit, Maße, Sauberkeit, Determinismus | 8 |
 | `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken, doppelte Selektoren | 14 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
-| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten, Handbuch, Labels am Entwurf, Zählung, Suchtext, Projekte nach Version und Land, Arbeitsmenge, Projektvergleich, PDF, ZIP mit Word und PowerPoint, Ausgabeplan, Lupe, OCR, Bildvergleich, Agent Sprache, Word-Handbuch, Hausmarke, Projektdatei, Fortschritt, Rückweg aus Word, Sprache der Unterlagen, Hausmarke als Datei, Suche über die Lesungen, Stapel beim Import und Kontaktbogen | 183 |
+| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten, Handbuch, Labels am Entwurf, Zählung, Suchtext, Projekte nach Version und Land, Arbeitsmenge, Projektvergleich, PDF, ZIP mit Word und PowerPoint, Ausgabeplan, Lupe, OCR, Bildvergleich, Agent Sprache, Word-Handbuch, Hausmarke, Projektdatei, Fortschritt, Rückweg aus Word, Sprache der Unterlagen, Hausmarke als Datei, Suche über die Lesungen, Stapel beim Import, Video und Kontaktbogen | 188 |
 | `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Bilderstapel, Zwischenablage, Live-Freigabe, Navigation in fünf Aufgaben, Übersicht „Weitergeben“, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Labels am Entwurf, Kontaktbogen, Werkbank, Bild mit Zettel | 70 |
 
 | `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beipackzettel, Beenden, Sichtbarkeit im Archiv, Zettel im Ordnerband, Übernahme, Nachpflege, verwaiste Zettel, Tastatur, Filter, Metadaten im Bild, „Was hier geht“ | 34 |
@@ -49,7 +49,9 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `17-varianten.e2e.mjs` | Varianten im Browser: verbinden und lösen, Deckungsmatrix, Ausgabe in einer anderen Sprache | 5 |
 
-| `18-begehung.e2e.mjs` | Begehung: jeder sichtbare Befehl in **jeder der dreizehn** Ansichten (seit 1.51.0 auch Output und OCR), die zerstörenden Befehle, die Tastatur | 4 |
+| `18-begehung.e2e.mjs` | Begehung: jeder sichtbare Befehl in **jeder der vierzehn** Ansichten (seit 1.51.0 auch Output und OCR, seit 1.55.0 Video), die zerstörenden Befehle, die Tastatur | 4 |
+
+| `22-video.e2e.mjs` | Video im Browser: Grenze und Formate benannt, Video öffnen, Nichtvideo abweisen, automatisch abtasten, Bild von Hand, Stellen und Labels, Übernahme in den Eingang, Verwerfen. Das Prüfvideo entsteht in der Seite selbst (`captureStream` + `MediaRecorder`) – keine Beispieldatei im Repo | 8 |
 
 | `21-ocr.e2e.mjs` | OCR im Browser: Bilder wählen, Lesen über Claude (nachgebildet), Kacheln, Text ändern, in die Notiz übernehmen, Textdatei und Word-Datei, fehlende Bilderlaubnis, Suche über die Lesungen | 6 |
 
@@ -57,7 +59,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-Summe: **479 Prüfungen**.
+Summe: **493 Prüfungen**.
 
 ## Eigene Helfer
 

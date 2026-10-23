@@ -73,6 +73,7 @@ const MODULE = [
   'pruefung.js',
   'ablage.js',
   'output.js',
+  'video.js',
   'ocr.js'
 ];
 const erklaerungen = new Map();
@@ -109,6 +110,7 @@ const seite = lies('app', 'src', 'index.template.html')
   .replace('/*%PRUEFUNG%*/', () => lies('app', 'src', 'pruefung.js'))
   .replace('/*%ABLAGE%*/', () => lies('app', 'src', 'ablage.js'))
   .replace('/*%OUTPUT%*/', () => lies('app', 'src', 'output.js'))
+  .replace('/*%VIDEO%*/', () => lies('app', 'src', 'video.js'))
   .replace('/*%OCR%*/', () => lies('app', 'src', 'ocr.js'))
   .replace('/*%STAND%*/', daten.stand.split('-').reverse().join('.'))
   .replace('/*%ANZAHL%*/', String(daten.eintraege.length))

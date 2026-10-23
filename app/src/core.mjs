@@ -25,6 +25,7 @@ export const ANSICHTEN = [
   'archiv',
   'aufnahme',
   'import',
+  'video',
   'ausschneiden',
   'markieren',
   'strecke',
@@ -2456,6 +2457,192 @@ export function stelleAusText(gliederung = [], text = '') {
   }
   // Die Hälfte der Wörter ist ein Zufall, kein Treffer - es braucht mehr.
   return besterAnteil > 0.5 ? bester : '';
+}
+
+/* ============================================================ Video (1.55.0)
+
+   Ein Bildschirmvideo ist eine Folge von Masken - und genau die braucht ein
+   Handbuch. Was die Seite daraus macht: Einzelbilder in voller Auflösung,
+   an den Stellen, an denen sich etwas geändert hat.
+
+   Was sie *nicht* kann, steht ausdrücklich da: ein Video irgendwo abholen.
+   Die Seite darf nichts aus dem Netz laden (Inhaltsrichtlinie des
+   Artifacts), und Clipchamp gibt seine Projekte nur über den eigenen
+   Export heraus. Der Weg ist: dort als MP4 exportieren, die Datei hier
+   ablegen. Alles Weitere geschieht im Browser, ohne dass die Datei ihn
+   verlässt.
+   ========================================================================= */
+
+/** Was ein Browser üblicherweise abspielt. MOV und MKV je nach Browser. */
+export const VIDEO_FORMATE = ['mp4', 'webm', 'ogv', 'ogg', 'm4v', 'mov', 'mkv'];
+
+export function istVideo(name) {
+  const text = String(name || '').toLowerCase();
+  return VIDEO_FORMATE.some((art) => text.endsWith('.' + art));
+}
+
+/** Sekunden als Zeitangabe: 83,4 wird zu „01:23,4". */
+export function zeitText(sekunden) {
+  const zahl = Number(sekunden);
+  if (!Number.isFinite(zahl) || zahl < 0) return '00:00,0';
+  const ganz = Math.floor(zahl);
+  const zehntel = Math.min(9, Math.floor((zahl - ganz) * 10));
+  const minuten = Math.floor(ganz / 60);
+  const rest = ganz % 60;
+  return `${String(minuten).padStart(2, '0')}:${String(rest).padStart(2, '0')},${zehntel}`;
+}
+
+/** Dieselbe Zeit für einen Dateinamen: ohne Doppelpunkt und Komma. */
+export function zeitKennung(sekunden) {
+  return zeitText(sekunden).replace(':', 'm').replace(',', 's');
+}
+
+/**
+ * Die Zeitpunkte, an denen das Video abgetastet wird - gleichmäßig verteilt,
+ * der erste nicht bei 0 und der letzte nicht am Ende: ein Videoanfang ist oft
+ * schwarz, und hinter dem letzten Bild liegt bei manchen Formaten nichts mehr.
+ */
+export function videoSchritte(dauer, anzahl = 24, { ab = 0, bis = 0 } = {}) {
+  const laenge = Number(dauer);
+  if (!Number.isFinite(laenge) || laenge <= 0) return [];
+  const menge = Math.max(1, Math.floor(anzahl));
+  const start = Math.max(0, Math.min(Number(ab) || 0, laenge));
+  const ende = bis > start ? Math.min(Number(bis), laenge) : laenge;
+  const spanne = ende - start;
+  if (spanne <= 0) return [Number(start.toFixed(3))];
+  // Die Mitte jedes Abschnitts - so liegt kein Punkt auf einem Schnitt.
+  return Array.from({ length: menge }, (unbenutzt, i) =>
+    Number((start + (spanne * (i + 0.5)) / menge).toFixed(3))
+  );
+}
+
+/**
+ * Aus abgetasteten Bildern die behalten, die etwas Neues zeigen. Das erste
+ * zählt immer; jedes weitere nur, wenn es sich vom zuletzt behaltenen
+ * deutlich genug unterscheidet. Gemessen wird mit `bildUnterschied` - also
+ * an Bildpunkten, nicht an Bedeutung.
+ *
+ * `bilder` sind `{ zeit, daten, breite, hoehe }` wie von einer Leinwand.
+ */
+export function videoWahl(bilder = [], { anteil = 0.02, hoechstens = 0 } = {}) {
+  const liste = bilder.filter((b) => b && Number.isFinite(Number(b.zeit)));
+  if (!liste.length) return [];
+  const gewaehlt = [{ zeit: liste[0].zeit, anteil: 1, grund: 'erstes Bild' }];
+  let letztes = liste[0];
+  for (let i = 1; i < liste.length; i++) {
+    const ergebnis = bildUnterschied(letztes, liste[i]);
+    // Ohne Vergleich (andere Maße, fehlende Punkte) wird behalten, nicht
+    // verworfen: ein Bild zu viel ist besser als ein fehlendes.
+    const wert = ergebnis.ok ? ergebnis.anteil : 1;
+    if (ergebnis.ok && wert < anteil) continue;
+    gewaehlt.push({
+      zeit: liste[i].zeit,
+      anteil: wert,
+      grund: ergebnis.ok ? unterschiedText(ergebnis) : ergebnis.grund
+    });
+    letztes = liste[i];
+  }
+  if (hoechstens > 0 && gewaehlt.length > hoechstens) {
+    // Zu viele: die mit der größten Änderung behalten, das erste immer.
+    const rest = gewaehlt
+      .slice(1)
+      .sort((a, b) => b.anteil - a.anteil)
+      .slice(0, hoechstens - 1)
+      .sort((a, b) => a.zeit - b.zeit);
+    return [gewaehlt[0], ...rest];
+  }
+  return gewaehlt;
+}
+
+/**
+ * Was dieser Browser abspielt, in einem Satz. Clipchamp exportiert MP4 mit
+ * H.264 - und ausgerechnet das fehlt manchen Browsern unter Linux, weil der
+ * Verfahrensschutz an der Auslieferung haengt. Darum wird gefragt, bevor
+ * jemand eine Datei ablegt, und nicht erst danach.
+ *
+ * `kann` ist `{ mp4, webm }` mit den Antworten von `canPlayType`
+ * ('probably', 'maybe' oder '').
+ */
+export function videoFormatBericht(kann = {}) {
+  const mp4 = Boolean(kann.mp4);
+  const webm = Boolean(kann.webm);
+  if (mp4 && webm) return { ok: true, text: 'Dieser Browser spielt MP4 (H.264) und WebM – aus Clipchamp genügt der übliche MP4-Export.' };
+  if (mp4) return { ok: true, text: 'Dieser Browser spielt MP4 (H.264) – aus Clipchamp genügt der übliche MP4-Export.' };
+  if (webm) {
+    return {
+      ok: false,
+      text:
+        'Dieser Browser spielt kein MP4 (H.264), nur WebM. Das kommt unter Linux vor, wo der Browser ohne dieses ' +
+        'Verfahren ausgeliefert wird. Entweder die Seite in Chrome, Edge oder Safari öffnen, oder das Video ' +
+        'vorher in WebM umwandeln.'
+    };
+  }
+  return {
+    ok: false,
+    text: 'Dieser Browser meldet, dass er weder MP4 noch WebM abspielt. Dann geht hier kein Video – bitte eine andere Anwendung oder einen anderen Browser verwenden.'
+  };
+}
+
+/** Der Name eines herausgenommenen Bildes - Datei, Nummer, Zeit. */
+export function videoBildname(dateiname, zeit, nummer = 1) {
+  const stamm =
+    String(dateiname || 'video')
+      .replace(/\.[^.]+$/, '')
+      .replace(/[^0-9A-Za-zÄÖÜäöüß _-]+/g, '')
+      .trim() || 'video';
+  return `${stamm} ${String(nummer).padStart(2, '0')} ${zeitKennung(zeit)}`;
+}
+
+/**
+ * Die Aufforderung an Claude: aus den Bildern eines Bildschirmvideos einen
+ * Text fürs Handbuch. Gefragt wird nach einem Satz je Bild - was der
+ * Benutzer an dieser Stelle tut -, nicht nach einer Bildbeschreibung.
+ */
+export function videoAufforderung(bild = {}, { titel = '', stelle = '', nummer = 1, von = 1 } = {}) {
+  return [
+    'Du siehst ein Einzelbild aus einem Bildschirmvideo der Anwendung oneSCM (Mercedes-Benz, Servicevertragswesen).',
+    von > 1 ? `Es ist Bild ${nummer} von ${von} einer Folge; die Bilder laufen zeitlich hintereinander.` : '',
+    'Schreibe in höchstens zwei Sätzen, was der Benutzer an dieser Stelle tut – als Anweisung für ein Benutzerhandbuch,',
+    'im Imperativ und auf Deutsch („Im Feld Vertragsnummer die Nummer eingeben und auf Suchen klicken.").',
+    'Nenne Masken, Felder und Schaltflächen bei ihrem sichtbaren Namen. Deute nichts hinein, was nicht zu sehen ist.',
+    'Ist auf dem Bild keine Handlung zu erkennen, schreibe nur, welche Maske zu sehen ist.',
+    'Antworte nur mit dem Text, ohne Einleitung, ohne Nummer und ohne Schlusssatz.',
+    titel ? `Titel des Videos: ${titel}` : '',
+    stelle ? `Stelle im Handbuch: ${stelle}` : ''
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+/**
+ * Was von einer Antwort übrig bleibt: ein Satz, ohne Nummer davor und ohne
+ * Anführungszeichen drumherum. Eine leere Antwort bleibt leer - erfunden
+ * wird nichts.
+ */
+export function videoText(antwort) {
+  return String(antwort || '')
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((z) => z.trim())
+    .filter(Boolean)
+    .join(' ')
+    .replace(/^(?:bild\s*)?\d+[.):]\s*/i, '')
+    .replace(/^[„"'»]/, '')
+    .replace(/[“"'«]$/, '')
+    .trim();
+}
+
+/** Was unten in der Ansicht steht: wie viele Bilder, über welche Spanne. */
+export function videoStand(bilder = [], dauer = 0) {
+  if (!bilder.length) return 'noch kein Bild herausgenommen';
+  const zeiten = bilder.map((b) => Number(b.zeit) || 0);
+  const gedeutet = bilder.filter((b) => String(b.text || '').trim()).length;
+  return (
+    `${bilder.length} Bild${bilder.length === 1 ? '' : 'er'} · ` +
+    `${zeitText(Math.min(...zeiten))} bis ${zeitText(Math.max(...zeiten))}` +
+    (dauer ? ` von ${zeitText(dauer)}` : '') +
+    (gedeutet ? ` · ${gedeutet} gedeutet` : '')
+  );
 }
 
 /** Sucht in Nummer und Thema; ohne Suchtext kommt alles zurueck. */

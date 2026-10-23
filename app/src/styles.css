@@ -525,6 +525,45 @@ dialog.detail::backdrop { background: rgba(12, 16, 22, .62); backdrop-filter: bl
 }
 .nav-zahl[hidden] { display: none; }
 
+/* --------------------------------------------------- Video (1.55.0) */
+
+.video-flaeche {
+  display: grid; place-items: center; min-height: 240px; margin: 0 0 14px;
+  background: var(--flaeche-2); border: 1px solid var(--linie); border-radius: var(--radius);
+  padding: 14px;
+}
+.video-flaeche.import-wahl--bereit { border-color: var(--akzent); border-style: dashed; }
+.video-flaeche video { display: block; width: 100%; max-height: 60vh; background: #000; border-radius: var(--radius); }
+/* `display: block` oben schlaegt sonst das hidden-Attribut des Spielers. */
+.video-flaeche video[hidden] { display: none; }
+.video-leiste {
+  display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-start; margin: 0 0 14px;
+}
+.video-leiste[hidden] { display: none; }
+.video-leiste .feld--schmal { min-width: 180px; }
+.video-erklaerung { flex: 1 1 280px; max-width: 64ch; }
+
+.video-bilder {
+  display: grid; gap: 14px; padding-bottom: 60px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.video-figur {
+  margin: 0; display: grid; gap: 8px; padding: 10px;
+  background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--radius);
+}
+.video-figur--gewaehlt { border-color: var(--akzent); }
+.video-figur--fertig { background: var(--flaeche-2); }
+.video-figur-kopf { display: flex; align-items: center; gap: 8px; }
+.video-figur-kopf input { width: 15px; height: 15px; accent-color: var(--akzent); }
+.video-figur-kopf label {
+  font-family: var(--schrift-mono); font-size: 12px; color: var(--tinte); flex: 1 1 auto;
+}
+.video-figur img {
+  display: block; width: 100%; height: auto; background: var(--flaeche-2);
+  border: 1px solid var(--linie); border-radius: var(--radius);
+}
+.video-figur figcaption { font-family: var(--schrift-mono); font-size: 11px; color: var(--tinte-3); }
+
 /* ------------------------------------------ Weitergeben: vier Wege (1.53.0) */
 
 /*

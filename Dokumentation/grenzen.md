@@ -111,3 +111,31 @@ den Weg über „Als JSON sichern“ im Eingang. In einen Ordner, der mit
 SharePoint oder OneDrive synchronisiert wird, darf geschrieben werden – das
 Hochladen macht dann der Synchronisationsdienst, nicht die Seite. Die Seite
 selbst erreicht kein Netz.
+
+## Videos werden nicht abgeholt (seit 1.55.0)
+
+Das Register Video (F-72) nimmt Einzelbilder aus einem Bildschirmvideo –
+aber es **holt kein Video**. Zwei Gründe, beide endgültig:
+
+* Die Seite darf nichts aus dem Netz laden. Das ist die Inhaltsrichtlinie
+  des Artifacts; ohne sie gäbe es die Seite nicht.
+* **Clipchamp** gibt seine Projekte nicht als Datei heraus. Sie liegen im
+  Konto des Benutzers, nicht an einer Adresse, die sich lesen ließe.
+
+Der Weg ist darum: in Clipchamp **Exportieren → MP4**, die Datei hier
+ablegen. Danach bleibt sie im Browser und wird nicht hochgeladen.
+
+**MP4 ist nicht überall MP4.** Clipchamp exportiert mit H.264, und dieses
+Verfahren fehlt manchen Browsern unter Linux, weil es an der Auslieferung
+hängt. Die Ansicht fragt den Browser (`canPlayType`) und sagt es, bevor
+jemand eine Datei ablegt. Wo H.264 fehlt, hilft Chrome, Edge oder Safari –
+oder das Video vorher in WebM umzuwandeln.
+
+**Kein Ton, kein Schnitt.** Die Seite nimmt Bilder heraus; sie bearbeitet
+kein Video. Was gesprochen wird, steht im Text am Bild.
+
+**Die Abtastung sieht Bildpunkte, nicht Bedeutung.** Ein wandernder
+Mauszeiger ist für sie eine Änderung, eine geänderte Zahl in einem großen
+Formular fast keine. Darum steht an jedem Bild, warum es dasteht – und die
+Schwelle lässt sich einstellen.
+

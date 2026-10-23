@@ -33,7 +33,8 @@ npm test          # muss vollständig grün sein
   anfassen.
 * **Alle Oberflächenmodule (`ui.js`, `aufnahme.js`, `eingang.js`,
   `schnipsel.js`, `markieren.js`, `strecke.js`, `gliederung.js`, `design.js`,
-  `import.js`, `chat.js`, `pruefung.js`, `ablage.js`, `output.js`, `ocr.js`)
+  `import.js`, `chat.js`, `pruefung.js`, `ablage.js`, `output.js`,
+  `video.js`, `ocr.js`)
   landen in einer gemeinsamen Klammer.** Zwei gleiche Namen
   darin sind einer zu viel – der Build bricht darauf ab. Sie teilen sich dadurch `el`, `$`, `zustand` und
   `zeichne`. Der Start steht in `starte()` (erklärt in `ui.js`) und wird in der

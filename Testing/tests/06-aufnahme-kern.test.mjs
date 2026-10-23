@@ -3742,4 +3742,110 @@ s.test('die Stelle aus dem Folientext wird erkannt oder bleibt leer (1.50.0)', (
   gleich(kern.stelleAusText(gliederung, '9.9.9 Unbekanntes'), '');
 });
 
+s.test('Zeitangaben eines Videos – lesbar und als Dateiname (1.55.0)', () => {
+  gleich(kern.zeitText(0), '00:00,0');
+  gleich(kern.zeitText(83.47), '01:23,4');
+  gleich(kern.zeitText(599.99), '09:59,9');
+  gleich(kern.zeitText(3600), '60:00,0', 'über eine Stunde wird weitergezählt, nicht umgebrochen');
+  // Was keine Zahl ist, ergibt keine erfundene Zeit.
+  gleich(kern.zeitText(-5), '00:00,0');
+  gleich(kern.zeitText('abc'), '00:00,0');
+  gleich(kern.zeitKennung(83.47), '01m23s4', 'im Dateinamen darf kein Doppelpunkt stehen');
+  gleich(kern.istVideo('Vertrag anlegen.MP4'), true);
+  gleich(kern.istVideo('bild.png'), false);
+  gleich(kern.istVideo(''), false);
+});
+
+s.test('die Abtaststellen liegen in der Mitte der Abschnitte (1.55.0)', () => {
+  tieferGleich(kern.videoSchritte(10, 4), [1.25, 3.75, 6.25, 8.75]);
+  // Kein Punkt bei 0 und keiner am Ende: ein Videoanfang ist oft schwarz.
+  const alle = kern.videoSchritte(8, 24);
+  gleich(alle.length, 24);
+  wahr(alle[0] > 0, 'die erste Stelle liegt bei 0');
+  wahr(alle[alle.length - 1] < 8, 'die letzte Stelle liegt am Ende');
+  tieferGleich(kern.videoSchritte(0, 4), []);
+  tieferGleich(kern.videoSchritte(-3, 4), []);
+  gleich(kern.videoSchritte(10, 0).length, 1, 'eine Stelle bleibt immer');
+  // Ein Ausschnitt wird eingehalten.
+  const teil = kern.videoSchritte(10, 2, { ab: 4, bis: 6 });
+  tieferGleich(teil, [4.5, 5.5]);
+});
+
+s.test('behalten wird, was sich geändert hat (1.55.0)', () => {
+  const flaeche = (breite, hoehe, farbe) => {
+    const daten = new Uint8ClampedArray(breite * hoehe * 4);
+    for (let i = 0; i < breite * hoehe; i++) {
+      daten[i * 4] = farbe[0];
+      daten[i * 4 + 1] = farbe[1];
+      daten[i * 4 + 2] = farbe[2];
+      daten[i * 4 + 3] = 255;
+    }
+    return { daten, breite, hoehe };
+  };
+  const blau = (zeit) => ({ zeit, ...flaeche(48, 32, [20, 40, 80]) });
+  const rot = (zeit) => ({ zeit, ...flaeche(48, 32, [160, 40, 30]) });
+
+  // Vier gleiche Bilder: nur das erste wird behalten.
+  const gleiche = kern.videoWahl([blau(1), blau(2), blau(3), blau(4)]);
+  gleich(gleiche.length, 1);
+  gleich(gleiche[0].grund, 'erstes Bild');
+
+  // Ein Wechsel in der Mitte: zwei Bilder.
+  const wechsel = kern.videoWahl([blau(1), blau(2), rot(3), rot(4)]);
+  tieferGleich(wechsel.map((b) => b.zeit), [1, 3]);
+  wahr(wechsel[1].grund.includes('%'), wechsel[1].grund);
+
+  // Eine hohe Schwelle lässt den Wechsel durchgehen? Nein - er ist vollständig.
+  gleich(kern.videoWahl([blau(1), rot(2)], { anteil: 0.5 }).length, 2);
+  // Eine Obergrenze schneidet, behält aber das erste und die größten Änderungen.
+  const viele = kern.videoWahl([blau(1), rot(2), blau(3), rot(4)], { hoechstens: 2 });
+  gleich(viele.length, 2);
+  gleich(viele[0].zeit, 1);
+  // Ohne Bilder kommt nichts zurück.
+  tieferGleich(kern.videoWahl([]), []);
+  // Verschiedene Maße: lieber behalten als verwerfen.
+  const anders = kern.videoWahl([blau(1), { zeit: 2, ...flaeche(24, 16, [20, 40, 80]) }]);
+  gleich(anders.length, 2, 'ein unvergleichbares Bild wurde weggeworfen');
+});
+
+s.test('Name, Aufforderung und Deutung eines Videobildes (1.55.0)', () => {
+  gleich(kern.videoBildname('Vertrag anlegen.mp4', 83.4, 3), 'Vertrag anlegen 03 01m23s4');
+  // Zeichen, die in keinen Dateinamen gehören, fallen weg.
+  gleich(kern.videoBildname('a/b:c*.webm', 0, 1), 'abc 01 00m00s0');
+  gleich(kern.videoBildname('', 0, 1), 'video 01 00m00s0');
+
+  const text = kern.videoAufforderung({}, { titel: 'Vertrag.mp4', stelle: '7.5.1', nummer: 2, von: 5 });
+  wahr(text.includes('Bild 2 von 5'), text);
+  wahr(text.includes('Imperativ'), text);
+  wahr(text.includes('7.5.1'), text);
+  // Einzeln steht kein Folgehinweis drin.
+  wahr(!kern.videoAufforderung({}, { nummer: 1, von: 1 }).includes('von 1 einer Folge'), 'der Folgehinweis steht unnötig da');
+
+  // Die Antwort wird von Nummer und Anführungszeichen befreit, nicht erfunden.
+  gleich(kern.videoText('Bild 2: „Im Feld Vertragsnummer tippen."'), 'Im Feld Vertragsnummer tippen.');
+  gleich(kern.videoText('3) Auf Suchen klicken.'), 'Auf Suchen klicken.');
+  gleich(kern.videoText('Erste Zeile\nzweite Zeile'), 'Erste Zeile zweite Zeile');
+  gleich(kern.videoText(''), '');
+  gleich(kern.videoText(null), '');
+});
+
+s.test('der Browser wird nach den Formaten gefragt, nicht geraten (1.55.0)', () => {
+  gleich(kern.videoFormatBericht({ mp4: 'probably', webm: 'probably' }).ok, true);
+  wahr(kern.videoFormatBericht({ mp4: 'probably', webm: '' }).text.includes('MP4'), 'MP4 wird nicht genannt');
+  // Ohne MP4 ist „als MP4 exportieren" der falsche Rat - das darf nicht dastehen.
+  const ohne = kern.videoFormatBericht({ mp4: '', webm: 'probably' });
+  gleich(ohne.ok, false);
+  wahr(ohne.text.includes('kein MP4'), ohne.text);
+  wahr(ohne.text.includes('Chrome'), ohne.text);
+  const nichts = kern.videoFormatBericht({});
+  gleich(nichts.ok, false);
+  wahr(nichts.text.includes('weder MP4 noch WebM'), nichts.text);
+});
+
+s.test('der Stand der Videoansicht zählt, was da ist (1.55.0)', () => {
+  gleich(kern.videoStand([]), 'noch kein Bild herausgenommen');
+  gleich(kern.videoStand([{ zeit: 1 }], 12), '1 Bild · 00:01,0 bis 00:01,0 von 00:12,0');
+  gleich(kern.videoStand([{ zeit: 1, text: 'a' }, { zeit: 9 }], 12), '2 Bilder · 00:01,0 bis 00:09,0 von 00:12,0 · 1 gedeutet');
+});
+
 export default s;

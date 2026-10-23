@@ -43,6 +43,7 @@ const ABSCHNITTE = {
   archiv: '#archiv-ansicht',
   aufnahme: '#aufnahme-ansicht',
   import: '#import-ansicht',
+  video: '#video-ansicht',
   ausschneiden: '#schnipsel-ansicht',
   markieren: '#markieren-ansicht',
   strecke: '#strecke-ansicht',

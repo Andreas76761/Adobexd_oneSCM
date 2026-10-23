@@ -33,6 +33,7 @@ Adobexd_oneSCM/
 │   │   ├── pruefung.js        die vier Agenten, Projekt- und Bildvergleich
 │   │   ├── ablage.js          Verzeichnis – die Galerie auf die Platte
 │   │   ├── output.js          Output – ein Satz Dokumente je Variante
+│   │   ├── video.js           Video – Einzelbilder aus Bildschirmvideos
 │   │   ├── ocr.js             OCR – Text aus den Bildern; ruft starte()
 │   │   ├── styles.css         Gestaltung, Farbtoken für beide Themen
 │   │   └── index.template.html Gerüst mit Platzhaltern
@@ -67,7 +68,7 @@ Stil, Kernlogik, Oberfläche, Daten und die 40 Aufnahmen – steht inline in der
 Datei. Externe Abrufe scheitern an der Inhaltsrichtlinie der Vorschau; erlaubt
 sind allein Schriften von `fonts.googleapis.com` / `fonts.gstatic.com`.
 
-## Ein Skriptbereich, vierzehn Oberflächendateien
+## Ein Skriptbereich, fünfzehn Oberflächendateien
 
 Alle Oberflächenmodule werden vom Build in **dieselbe** Klammer geschrieben,
 in dieser Reihenfolge:
@@ -76,7 +77,7 @@ in dieser Reihenfolge:
 (function () { 'use strict';
   /* ui.js, aufnahme.js, eingang.js, schnipsel.js, markieren.js,
      strecke.js, gliederung.js, design.js, import.js, chat.js,
-     pruefung.js, ablage.js, output.js, ocr.js */
+     pruefung.js, ablage.js, output.js, video.js, ocr.js */
 })();
 ```
 

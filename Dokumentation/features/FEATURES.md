@@ -1892,3 +1892,44 @@ nur auf, sich als etwas anzubieten, das er nicht ist.
 
 Verzeichnis und Design zeigen mit je einem Satz auf die Übersicht zurück.
 
+## F-72 · Register Video – aus Bildschirmvideos werden Handbuchbilder
+
+**Seit** 1.55.0 · betrifft Video, Eingang, Gliederung, Labels
+
+**Das Problem** Mit dem Snipping Tool aufgenommene Videos zeigen eine Folge
+von Masken – genau das, was ein Handbuch braucht. Der Weg dorthin führte
+über Standbilder von Hand: abspielen, anhalten, Bildschirmfoto, von vorn.
+Bei vierzig Masken ist das kein Weg mehr.
+
+**Die Lösung** Ein Register **Video**: Datei ablegen, Einzelbilder
+herausnehmen, Text deuten lassen, in den Eingang übernehmen.
+
+* **Automatisch**: das Video wird an 12 bis 96 Stellen abgetastet; behalten
+  wird ein Bild nur, wenn es sich vom zuletzt behaltenen um mehr als die
+  gewählte Schwelle (0,5 / 2 / 8 %) unterscheidet. Gerechnet wird mit dem
+  Bildvergleich aus F-59. An jedem Bild steht, **warum** es dasteht
+* **Von Hand**: im Spieler an eine Stelle gehen, „Bild an dieser Stelle“
+* **Text deuten lassen** über `sample` wie in F-58: je Bild ein bis zwei
+  Sätze, was der Benutzer dort tut – im Imperativ, als Anweisung. Der Text
+  wird beim Übernehmen zum Rezept
+* **Übernehmen** wie der Stapel im Import (F-69): Stelle für alle, Stellen
+  fortlaufend, Stellen aus dem Text, sechs Labelfelder für den Durchgang
+
+Jedes Bild entsteht in der **vollen Auflösung des Videos**. An der Aufnahme
+bleibt die Herkunft (`einfuhr`: Datei, Bild, Sekunde), und der Zeitpunkt
+steht als Seitenangabe (`00:06,1`) daran.
+
+**Was nicht geht, und warum** Die Seite **holt kein Video ab**: sie darf
+nichts aus dem Netz laden (Inhaltsrichtlinie des Artifacts), und Clipchamp
+gibt seine Projekte nicht als Datei heraus. Der Weg ist Export als MP4 und
+Ablegen der Datei; sie wird nicht hochgeladen. Kein Ton, kein Schnitt.
+
+Weil Clipchamp MP4 mit H.264 exportiert und dieses Verfahren manchen
+Browsern unter Linux fehlt, steht **über** dem Dateifeld, was dieser Browser
+abspielt – gefragt mit `canPlayType`, nicht geraten.
+
+**Kern** `videoSchritte`, `videoWahl`, `zeitText`, `zeitKennung`,
+`videoBildname`, `videoAufforderung`, `videoText`, `videoFormatBericht`,
+`videoStand`, `istVideo`, `VIDEO_FORMATE` – alle ohne Oberfläche, alle
+geprüft.
+

@@ -20,6 +20,51 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.55.0] – Register Video: aus Bildschirmvideos werden Handbuchbilder
+
+### Neu
+* **Register Video** (F-72), die vierzehnte Ansicht, in der Aufgabe
+  *Hereinholen*: ein Bildschirmvideo ablegen, Einzelbilder in voller
+  Auflösung herausnehmen, den Inhalt deuten lassen, in den Eingang
+  übernehmen
+* **Automatisch herausnehmen**: an 12 bis 96 Stellen abtasten, behalten was
+  sich um mehr als 0,5 / 2 / 8 % vom zuletzt behaltenen unterscheidet –
+  gerechnet mit dem Bildvergleich aus F-59. An jedem Bild steht, warum es
+  dasteht
+* **Von Hand**: „Bild an dieser Stelle“; dieselbe Stelle zweimal gibt kein
+  zweites Bild
+* **Text deuten lassen** über `sample`: je Bild ein bis zwei Sätze im
+  Imperativ, die beim Übernehmen zum Rezept werden
+* **Übernehmen** wie der Stapel im Import: Stelle für alle, Stellen
+  fortlaufend, Stellen aus dem Text, sechs Labelfelder. Die Herkunft bleibt
+  an der Aufnahme (`einfuhr` mit Datei, Bild und Sekunde)
+* **Was dieser Browser abspielt**, steht über dem Dateifeld – gefragt mit
+  `canPlayType`, nicht geraten. Clipchamp exportiert MP4 mit H.264, und das
+  fehlt manchen Browsern unter Linux
+
+### Kern
+* `VIDEO_FORMATE`, `istVideo`, `zeitText`, `zeitKennung`, `videoSchritte`,
+  `videoWahl`, `videoBildname`, `videoAufforderung`, `videoText`,
+  `videoFormatBericht`, `videoStand`
+
+### Behoben
+* `.video-flaeche video { display: block }` schlug das `hidden`-Attribut des
+  Spielers – eine abgewiesene Datei ließ den leeren Spieler stehen. Von der
+  neuen Browserprüfung aufgedeckt
+
+### Grenzen
+* Die Seite **holt kein Video ab**: sie darf nichts aus dem Netz laden, und
+  Clipchamp gibt seine Projekte nicht als Datei heraus. Der Weg ist Export
+  als MP4 und Ablegen der Datei – sie wird nicht hochgeladen
+* Kein Ton, kein Schnitt. Die Abtastung sieht Bildpunkte, nicht Bedeutung
+
+### Prüfung
+* 6 neue Kernprüfungen, 7 neue Browserprüfungen (`22-video.e2e.mjs`, 8 mit dem Schließen); die
+  Begehung deckt die Ansicht mit ab. Zusammen 493
+* Die Browserprüfung **nimmt ihr Video selbst auf** – eine Leinwand mit vier
+  Masken über `captureStream` und `MediaRecorder`. Kein fremdes Werkzeug,
+  keine Beispieldatei im Repo
+
 ## [1.54.0] – `aufnahme.js` geteilt
 
 Nach `markieren.js` (1.52.0) die zweite große Datei – damit ist die

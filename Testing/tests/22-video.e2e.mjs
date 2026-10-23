@@ -1,0 +1,252 @@
+/**
+ * Browserprüfung des Registers Video: aus einem Bildschirmvideo werden
+ * Einzelbilder fürs Handbuch.
+ *
+ * Das Prüfvideo entsteht in der Seite selbst – eine Leinwand mit vier
+ * Masken, über `captureStream` und `MediaRecorder` zu einer WebM-Datei
+ * aufgenommen. So liegt keine Beispieldatei im Repo und es braucht kein
+ * fremdes Werkzeug.
+ */
+import { join } from 'node:path';
+import { suite, wahr, gleich } from '../hilfen/pruefe.mjs';
+import { erzeugeBrowserHelfer } from '../hilfen/browser.mjs';
+
+const wurzel = join(import.meta.dirname, '..', '..');
+const { mitSeite, schliessen } = erzeugeBrowserHelfer(join(wurzel, 'dist', 'index.html'));
+const s = suite('Video – Oberfläche');
+
+const VIDEO = '#ans=video';
+
+/**
+ * Nimmt in der Seite ein kurzes Video mit `masken` Abschnitten auf und legt
+ * es in die Dateieingabe – denselben Weg, den eine gewählte Datei geht.
+ */
+async function legeVideoEin(seite, masken = 4) {
+  const bereit = await seite.evaluate(async (anzahl) => {
+    const leinwand = document.createElement('canvas');
+    leinwand.width = 320;
+    leinwand.height = 240;
+    const stift = leinwand.getContext('2d');
+    const strom = leinwand.captureStream(10);
+    const art = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+    const schreiber = new MediaRecorder(strom, { mimeType: art });
+    const teile = [];
+    schreiber.ondataavailable = (e) => e.data.size && teile.push(e.data);
+    schreiber.start();
+    const farben = ['#14284f', '#14284f', '#5a1e1e', '#1e5032', '#4a3a10', '#20405a'];
+    for (let i = 0; i < anzahl; i++) {
+      stift.fillStyle = farben[i % farben.length];
+      stift.fillRect(0, 0, 320, 240);
+      stift.fillStyle = '#ffffff';
+      stift.fillRect(30, 30 + (i % 4) * 45, 260, 32);
+      await new Promise((f) => setTimeout(f, 700));
+    }
+    await new Promise((f) => {
+      schreiber.onstop = f;
+      schreiber.stop();
+    });
+    const blob = new Blob(teile, { type: 'video/webm' });
+    if (!blob.size) return false;
+    const datei = new File([blob], 'Vertrag anlegen.webm', { type: 'video/webm' });
+    const traeger = new DataTransfer();
+    traeger.items.add(datei);
+    const eingabe = document.getElementById('video-eingabe');
+    eingabe.files = traeger.files;
+    eingabe.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }, masken);
+  wahr(bereit, 'das Prüfvideo ließ sich nicht aufnehmen');
+  await seite.waitForFunction(() => !document.getElementById('video-leiste').hidden, null, { timeout: 25000 });
+}
+
+s.test('ohne Video sagt die Ansicht, was sie erwartet – und was sie nicht kann', () =>
+  mitSeite(
+    async (seite) => {
+      gleich(await seite.locator('#video-ansicht').isVisible(), true);
+      gleich(await seite.locator('#video-automatisch').isDisabled(), true);
+      gleich(await seite.locator('#video-hier').isDisabled(), true);
+      gleich(await seite.locator('#video-leiste').isVisible(), false);
+      const hinweis = await seite.locator('#video-ansicht > .band-hinweis').first().innerText();
+      // Die Grenze wird genannt, nicht verschwiegen: kein Abholen aus Clipchamp.
+      wahr(hinweis.includes('holt kein Video ab'), hinweis);
+      wahr(hinweis.includes('Clipchamp'), hinweis);
+      wahr(hinweis.includes('MP4'), hinweis);
+      // Was dieser Browser abspielt, steht da, bevor jemand eine Datei ablegt.
+      const formate = await seite.locator('#video-formate').innerText();
+      wahr(formate.includes('MP4') || formate.includes('WebM'), formate);
+      gleich(await seite.locator('#video-stand').innerText(), 'noch kein Bild herausgenommen');
+    },
+    { hash: VIDEO }
+  ));
+
+s.test('ein Video wird geöffnet und mit Dauer und Maßen genannt', () =>
+  mitSeite(
+    async (seite) => {
+      await legeVideoEin(seite, 4);
+      const meldung = await seite.locator('#video-meldung').innerText();
+      wahr(meldung.includes('Vertrag anlegen.webm'), meldung);
+      wahr(meldung.includes('320 × 240 px'), meldung);
+      wahr(meldung.includes('bleibt im Browser'), meldung);
+      gleich(await seite.locator('#video-spieler').isVisible(), true);
+      gleich(await seite.locator('#video-automatisch').isDisabled(), false);
+    },
+    { hash: VIDEO }
+  ));
+
+s.test('eine Datei, die kein Video ist, wird benannt, nicht geöffnet', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.evaluate(() => {
+        const datei = new File([new Uint8Array([1, 2, 3])], 'Notiz.txt', { type: 'text/plain' });
+        const traeger = new DataTransfer();
+        traeger.items.add(datei);
+        const eingabe = document.getElementById('video-eingabe');
+        eingabe.files = traeger.files;
+        eingabe.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await seite.waitForTimeout(400);
+      wahr(
+        (await seite.locator('#video-meldung').innerText()).includes('sieht nicht nach einem Video aus'),
+        await seite.locator('#video-meldung').innerText()
+      );
+      gleich(await seite.locator('#video-spieler').isVisible(), false);
+    },
+    { hash: VIDEO }
+  ));
+
+s.test('die Abtastung behält die Stellen, an denen sich etwas ändert', () =>
+  mitSeite(
+    async (seite) => {
+      await legeVideoEin(seite, 4);
+      await seite.selectOption('#video-dichte', '24');
+      await seite.selectOption('#video-schwelle', '0.02');
+      await seite.click('#video-automatisch');
+      await seite.waitForFunction(() => document.querySelectorAll('.video-figur').length > 0, null, { timeout: 90000 });
+      await seite.waitForTimeout(600);
+
+      const bilder = await seite.locator('.video-figur').count();
+      // Vier Masken: vier Bilder. Mehr wäre Rauschen, weniger ein Verlust.
+      wahr(bilder >= 3 && bilder <= 5, 'aus vier Masken wurden ' + bilder + ' Bilder');
+      wahr(
+        (await seite.locator('#video-meldung').innerText()).includes('abgetasteten Stellen'),
+        await seite.locator('#video-meldung').innerText()
+      );
+      // Das erste Bild sagt, warum es dasteht; die übrigen nennen den Anteil.
+      const gruende = await seite.locator('.video-figur figcaption').allInnerTexts();
+      wahr(gruende[0].includes('erstes Bild'), gruende[0]);
+      wahr(gruende[1].includes('%'), gruende[1]);
+      // Die Bilder tragen die volle Auflösung des Videos, nicht die der Vorschau.
+      wahr(gruende[0].includes('320 × 240 px'), gruende[0]);
+      // Der Übernahmeblock klappt von selbst auf - sonst sähe es aus, als ginge es nicht weiter.
+      gleich(await seite.evaluate(() => document.getElementById('video-uebernahme').open), true);
+    },
+    { hash: VIDEO }
+  ));
+
+s.test('ein Bild lässt sich auch von Hand an einer Stelle nehmen', () =>
+  mitSeite(
+    async (seite) => {
+      await legeVideoEin(seite, 4);
+      await seite.evaluate(() => (document.getElementById('video-spieler').currentTime = 1.5));
+      await seite.waitForTimeout(500);
+      await seite.click('#video-hier');
+      await seite.waitForFunction(() => document.querySelectorAll('.video-figur').length === 1, null, { timeout: 15000 });
+      wahr(
+        (await seite.locator('.video-figur figcaption').first().innerText()).includes('von Hand'),
+        'der Grund steht nicht am Bild'
+      );
+      // Zweimal dieselbe Stelle gibt kein zweites Bild.
+      await seite.click('#video-hier');
+      await seite.waitForTimeout(400);
+      gleich(await seite.locator('.video-figur').count(), 1);
+      wahr(
+        (await seite.locator('#video-meldung').innerText()).includes('liegt schon ein Bild'),
+        await seite.locator('#video-meldung').innerText()
+      );
+    },
+    { hash: VIDEO }
+  ));
+
+s.test('die Bilder gehen mit Stelle, Labels und Herkunft in den Eingang', () =>
+  mitSeite(
+    async (seite) => {
+      await legeVideoEin(seite, 4);
+      await seite.click('#video-automatisch');
+      await seite.waitForFunction(() => document.querySelectorAll('.video-figur').length >= 3, null, { timeout: 90000 });
+      await seite.waitForTimeout(600);
+
+      // Der Text wird zum Rezept - hier von Hand, weil Claude in der Prüfung fehlt.
+      await seite.locator('.video-figur textarea').first().fill('Im Feld Vertragsnummer die Nummer eingeben.');
+      await seite.fill('#video-stelle', '7.5.1');
+      await seite.click('#video-fortlaufend');
+      await seite.waitForTimeout(400);
+      const stellen = await seite.evaluate(() =>
+        [...document.querySelectorAll('.video-figur input[id^=video-stelle-]')].map((e) => e.value)
+      );
+      gleich(stellen[0], '7.5.1');
+      gleich(stellen[1], '7.5.2', 'die Stellen laufen nicht weiter');
+
+      await seite.selectOption('#video-label-sprache', 'de');
+      await seite.fill('#video-label-markt', 'Germany');
+      await seite.click('#video-uebernehmen');
+      await seite.waitForFunction(
+        () => document.querySelectorAll('.video-figur--fertig').length >= 3,
+        null,
+        { timeout: 60000 }
+      );
+
+      const aufnahmen = await seite.evaluate(() => {
+        const roh = localStorage.getItem('screenarchiv:eingang');
+        return roh ? JSON.parse(roh).aufnahmen : [];
+      });
+      wahr(aufnahmen.length >= 3, 'im Eingang liegen nur ' + aufnahmen.length);
+      for (const aufnahme of aufnahmen) {
+        gleich(aufnahme.sprache, 'de');
+        gleich(aufnahme.markt, 'Germany');
+        gleich(aufnahme.einfuhr.art, 'video');
+        gleich(aufnahme.einfuhr.datei, 'Vertrag anlegen.webm');
+        wahr(typeof aufnahme.einfuhr.sekunde === 'number', 'der Zeitpunkt fehlt an der Aufnahme');
+        // Der Zeitpunkt steht auch als Seitenangabe da, damit er sichtbar ist.
+        wahr(/^\d\d:\d\d,\d$/.test(aufnahme.seite), aufnahme.seite);
+      }
+      const zugeordnet = aufnahmen.map((a) => a.gliederung).filter(Boolean);
+      wahr(zugeordnet.includes('7.5.1'), 'die erste Stelle fehlt');
+      const mitRezept = aufnahmen.filter((a) => (a.notiz || '').includes('Vertragsnummer'));
+      gleich(mitRezept.length, 1, 'der Text wurde nicht zum Rezept');
+    },
+    { hash: VIDEO }
+  ));
+
+s.test('verworfene Bilder verschwinden, übernommene bleiben im Eingang', () =>
+  mitSeite(
+    async (seite) => {
+      await legeVideoEin(seite, 4);
+      await seite.evaluate(() => (document.getElementById('video-spieler').currentTime = 1.2));
+      await seite.waitForTimeout(400);
+      await seite.click('#video-hier');
+      await seite.waitForFunction(() => document.querySelectorAll('.video-figur').length === 1, null, { timeout: 15000 });
+      await seite.click('#video-uebernehmen');
+      await seite.waitForFunction(() => document.querySelectorAll('.video-figur--fertig').length === 1, null, { timeout: 30000 });
+
+      await seite.click('#video-verwerfen');
+      await seite.waitForTimeout(400);
+      gleich(await seite.locator('.video-figur').count(), 0);
+      wahr(
+        (await seite.locator('#video-meldung').innerText()).includes('bleiben im Eingang'),
+        await seite.locator('#video-meldung').innerText()
+      );
+      const aufnahmen = await seite.evaluate(() => {
+        const roh = localStorage.getItem('screenarchiv:eingang');
+        return roh ? JSON.parse(roh).aufnahmen : [];
+      });
+      gleich(aufnahmen.length, 1, 'die übernommene Aufnahme ist mitverschwunden');
+    },
+    { hash: VIDEO }
+  ));
+
+s.test('Browser wieder schließen', async () => {
+  await schliessen();
+  return true;
+});
+
+export default s;

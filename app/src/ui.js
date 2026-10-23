@@ -112,6 +112,7 @@ function setze(aenderung, neuZeichnen = true) {
   if (zustand.ansicht === 'pruefung') zeichnePruefung();
   if (zustand.ansicht === 'verzeichnis') zeichneVerzeichnis();
   if (zustand.ansicht === 'output') zeichneOutput();
+  if (zustand.ansicht === 'video') zeichneVideo();
   if (zustand.ansicht === 'ocr') zeichneOcr();
 }
 
@@ -548,6 +549,7 @@ const ABSCHNITTE = {
   archiv: 'archiv-ansicht',
   aufnahme: 'aufnahme-ansicht',
   import: 'import-ansicht',
+  video: 'video-ansicht',
   ausschneiden: 'schnipsel-ansicht',
   markieren: 'markieren-ansicht',
   strecke: 'strecke-ansicht',
@@ -1033,6 +1035,7 @@ if (zustand.ansicht === 'import') zeichneImport();
 if (zustand.ansicht === 'pruefung') zeichnePruefung();
 if (zustand.ansicht === 'verzeichnis') zeichneVerzeichnis();
 if (zustand.ansicht === 'output') zeichneOutput();
+if (zustand.ansicht === 'video') zeichneVideo();
 if (zustand.ansicht === 'ocr') zeichneOcr();
 if (zustand.auswahl) oeffneDetail(zustand.auswahl, false);
 document.documentElement.dataset.bereit = 'ja';

@@ -24,6 +24,10 @@
     <symbol id="sym-nav-ocr" viewBox="0 0 24 24">
       <path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3M8 9h8M8 12h8M8 15h5"/>
     </symbol>
+    <symbol id="sym-nav-video" viewBox="0 0 24 24">
+      <rect x="2.5" y="5.5" width="13" height="13" rx="2"/>
+      <path d="M15.5 10.5 21.5 7v10l-6-3.5z"/>
+    </symbol>
     <symbol id="sym-lupe" viewBox="0 0 24 24">
       <circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4 20 20M8 10.5h5M10.5 8v5"/>
     </symbol>
@@ -134,6 +138,7 @@
               <span class="nav-aufgabe">Hereinholen</span>
               <button type="button" data-ansicht="aufnahme"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-aufnahme"/></svg>Aufnahme</button>
               <button type="button" data-ansicht="import"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-import"/></svg>Import</button>
+              <button type="button" data-ansicht="video"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-video"/></svg>Video</button>
               <button type="button" data-ansicht="ausschneiden"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-ausschneiden"/></svg>Ausschneiden</button>
             </span>
             <span class="nav-gruppe">
@@ -1009,6 +1014,107 @@
     </div>
   </section>
 
+  <section id="video-ansicht" aria-label="Video" hidden>
+    <div class="output-kopf">
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--haupt" id="video-waehlen">Video wählen</button>
+        <button type="button" class="knopf" id="video-automatisch" disabled>Bilder automatisch herausnehmen</button>
+        <button type="button" class="knopf" id="video-hier" disabled>Bild an dieser Stelle</button>
+        <button type="button" class="knopf" id="video-deuten" disabled>Text deuten lassen</button>
+        <button type="button" class="knopf" id="video-anhalten" hidden>Anhalten</button>
+      </div>
+      <span class="band-stand" id="video-stand"></span>
+    </div>
+    <input type="file" id="video-eingabe" accept="video/*" hidden>
+
+    <p class="band-hinweis">
+      Ein Bildschirmvideo ist eine Folge von Masken – genau das, was ein
+      Handbuch braucht. Hier entstehen daraus <b>Einzelbilder in voller
+      Auflösung</b>, an den Stellen, an denen sich etwas geändert hat.
+      <b>Die Seite holt kein Video ab</b>: sie darf nichts aus dem Netz laden,
+      und Clipchamp gibt seine Projekte nur über den eigenen Export heraus.
+      Der Weg ist: dort <b>Exportieren → MP4</b>, die Datei hier ablegen.
+      Sie bleibt im Browser – nichts wird hochgeladen.
+    </p>
+    <p class="feld-hinweis" id="video-formate"></p>
+    <p class="studio-meldung" id="video-meldung" role="status" aria-live="polite"></p>
+
+    <div class="video-flaeche" id="video-flaeche">
+      <p class="feld-hinweis" id="video-leer">
+        Noch kein Video. „Video wählen“ oder die Datei hierher ziehen –
+        MP4, WebM, MOV; was der Browser abspielt.
+      </p>
+      <video id="video-spieler" controls preload="metadata" hidden></video>
+    </div>
+
+    <div class="video-leiste" id="video-leiste" hidden>
+      <div class="feld feld--schmal">
+        <label for="video-dichte">Abtastung</label>
+        <select id="video-dichte">
+          <option value="12">12 Stellen – grob</option>
+          <option value="24" selected>24 Stellen</option>
+          <option value="48">48 Stellen – fein</option>
+          <option value="96">96 Stellen – sehr fein</option>
+        </select>
+      </div>
+      <div class="feld feld--schmal">
+        <label for="video-schwelle">Ab welcher Änderung</label>
+        <select id="video-schwelle">
+          <option value="0.005">0,5 % – fast jede Regung</option>
+          <option value="0.02" selected>2 % – deutliche Änderung</option>
+          <option value="0.08">8 % – nur neue Masken</option>
+        </select>
+      </div>
+      <div class="feld feld--schmal">
+        <label for="video-hoechstens">Höchstens</label>
+        <select id="video-hoechstens">
+          <option value="0">alle gefundenen</option>
+          <option value="10">10 Bilder</option>
+          <option value="20" selected>20 Bilder</option>
+          <option value="40">40 Bilder</option>
+        </select>
+      </div>
+      <p class="feld-hinweis video-erklaerung">
+        Abgetastet wird an gleichmäßig verteilten Stellen; behalten wird ein
+        Bild nur, wenn es sich vom zuletzt behaltenen um mehr als die
+        gewählte Schwelle unterscheidet. Gemessen werden <b>Bildpunkte, nicht
+        Bedeutung</b> – ein Mauszeiger, der wandert, ist für diese Rechnung
+        eine Änderung.
+      </p>
+    </div>
+
+    <details class="band stapel" id="video-uebernahme" hidden>
+      <summary>
+        <span>Übernehmen: Stelle und Labels für alle</span>
+        <span class="kennung" id="video-uebernahme-stand"></span>
+      </summary>
+      <p class="band-hinweis">
+        Die gewählten Bilder gehen in den Eingang und stehen dort Editor,
+        Strecke, Gliederung und Designstudio zur Verfügung – wie jedes andere
+        Bild. Der gedeutete Text wird zum <b>Rezept</b>.
+      </p>
+      <div class="feld">
+        <label for="video-stelle">Stelle im Handbuch</label>
+        <input type="text" id="video-stelle" list="gliederung-vorschlaege" autocomplete="off"
+               placeholder="6.2.3 oder Thema suchen">
+        <span class="feld-hinweis" id="video-stelle-thema"></span>
+      </div>
+      <div class="stapel-werkzeuge">
+        <button type="button" class="knopf knopf--klein" id="video-alle">Alle wählen</button>
+        <button type="button" class="knopf knopf--klein" id="video-keine">Keines</button>
+        <button type="button" class="knopf knopf--klein" id="video-fortlaufend">Stellen fortlaufend vergeben</button>
+        <button type="button" class="knopf knopf--klein" id="video-aus-text">Stellen aus dem gedeuteten Text</button>
+      </div>
+      <div class="stapel-labels" id="video-labels"></div>
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--haupt" id="video-uebernehmen" disabled>Gewählte übernehmen</button>
+        <button type="button" class="knopf" id="video-verwerfen" disabled>Bilder verwerfen</button>
+      </div>
+    </details>
+
+    <div class="video-bilder" id="video-bilder"></div>
+  </section>
+
   <section id="ocr-ansicht" aria-label="OCR" hidden>
     <div class="output-kopf">
       <div class="markier-knoepfe">
@@ -1366,6 +1472,7 @@
 /*%PRUEFUNG%*/
 /*%ABLAGE%*/
 /*%OUTPUT%*/
+/*%VIDEO%*/
 /*%OCR%*/
 })();
 </script>
