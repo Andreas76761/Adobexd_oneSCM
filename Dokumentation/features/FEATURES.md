@@ -1967,3 +1967,27 @@ einer eigenen Liste.
 `leseGebrauch`, `schreibeGebrauch`, `zaehleGebrauch`, `tageSeit`,
 `gebrauchBericht`, `gebrauchText`.
 
+## F-74 · Aus dem Video wird eine Strecke
+
+**Seit** 1.57.0 · betrifft Video, Strecke · **ergänzt** F-72
+
+**Das Problem** Das Register Video (F-72) legte seine Bilder einzeln in den
+Eingang – und warf dabei weg, was die Datei schon hatte: die Reihenfolge.
+Ein Bildschirmvideo *ist* eine Klickstrecke. Wer daraus eine machen wollte,
+baute sie von Hand nach: je Bild einmal im Auswahlfeld suchen und anhängen.
+
+**Die Lösung** Neben „Gewählte übernehmen“ steht **„Als Strecke
+übernehmen“**: die Bilder gehen in den Eingang wie bisher, und zusätzlich
+entsteht eine Strecke, benannt nach der Videodatei, mit einem Schritt je
+Bild in der Reihenfolge des Films. Der gedeutete Text (F-72) wird zur
+Anweisung des Schritts. Daraus macht das Designstudio den Quick Guide.
+
+Die Strecke entsteht **nach** den Bildern, weil sie auf deren Kennungen
+verweist; scheitert die Übernahme, gibt es keine halbe Strecke. Ein Bild
+ohne Text bekommt keinen – der Schritt steht da, die Anweisung bleibt leer,
+und die Meldung sagt, wie viele das sind.
+
+**Kern** `streckeAusVideo(bilder, name, zeit)` und
+`streckenNameAusVideo(dateiname)` – die Sortierung geschieht auf einer
+Kopie, die übergebene Liste bleibt unberührt.
+

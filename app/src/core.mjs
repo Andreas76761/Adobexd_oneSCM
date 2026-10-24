@@ -2800,6 +2800,34 @@ export function gebrauchText(bericht = {}) {
   return zeilen.join('\n');
 }
 
+/**
+ * Aus uebernommenen Videobildern eine Strecke. Ein Bildschirmvideo *ist*
+ * eine Klickstrecke - die Reihenfolge steckt schon drin und soll nicht von
+ * Hand nachgebaut werden. Der gedeutete Text wird zur Anweisung des
+ * Schritts.
+ *
+ * `bilder` sind `{ uebernommen, zeit, text }` in zeitlicher Folge; ohne
+ * Kennung im Eingang kann ein Bild kein Schritt werden und faellt weg.
+ */
+export function streckeAusVideo(bilder = [], name = '', zeit = Date.now()) {
+  const folge = bilder
+    .filter((b) => b && b.uebernommen)
+    .slice()
+    .sort((a, b) => (Number(a.zeit) || 0) - (Number(b.zeit) || 0));
+  const strecke = leereStrecke(name || 'Video', zeit);
+  return { ...strecke, schritte: folge.map((b) => streckeSchritt(b.uebernommen, String(b.text || '').trim())) };
+}
+
+/** Der Name einer Strecke aus einem Video: der Dateiname ohne Endung. */
+export function streckenNameAusVideo(dateiname) {
+  return (
+    String(dateiname || '')
+      .replace(/\.[^.]+$/, '')
+      .replace(/[_-]+/g, ' ')
+      .trim() || 'Video'
+  );
+}
+
 /** Sucht in Nummer und Thema; ohne Suchtext kommt alles zurueck. */
 export function sucheGliederung(eintraege = [], text) {
   const gesucht = normalisiereLang(String(text || ''));

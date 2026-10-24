@@ -20,6 +20,23 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.57.0] – Aus dem Video wird eine Strecke
+
+### Neu
+* **„Als Strecke übernehmen“ im Register Video** (F-74): die Bilder gehen in
+  den Eingang wie bisher, und zusätzlich entsteht eine Klickstrecke – ein
+  Schritt je Bild, in der Reihenfolge des Films, der gedeutete Text als
+  Anweisung. Benannt nach der Videodatei
+* Damit ist die Kette geschlossen: Clipchamp → MP4 → Video → Bilder →
+  Strecke → Designstudio → Quick Guide. Vorher riss sie zwischen Bildern und
+  Strecke und wurde von Hand gefüllt
+
+### Kern
+* `streckeAusVideo(bilder, name, zeit)`, `streckenNameAusVideo(dateiname)`
+
+### Prüfung
+* 2 neue Kernprüfungen, 1 neue Browserprüfung; zusammen 502
+
 ## [1.56.0] – Gebrauch: die Probe mit den Verdachtsfällen
 
 Der letzte offene Posten der [Durchsicht](durchsicht.md).

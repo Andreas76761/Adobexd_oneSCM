@@ -8,7 +8,7 @@
  * fremdes Werkzeug.
  */
 import { join } from 'node:path';
-import { suite, wahr, gleich } from '../hilfen/pruefe.mjs';
+import { suite, wahr, gleich, tieferGleich } from '../hilfen/pruefe.mjs';
 import { erzeugeBrowserHelfer } from '../hilfen/browser.mjs';
 
 const wurzel = join(import.meta.dirname, '..', '..');
@@ -213,6 +213,53 @@ s.test('die Bilder gehen mit Stelle, Labels und Herkunft in den Eingang', () =>
       wahr(zugeordnet.includes('7.5.1'), 'die erste Stelle fehlt');
       const mitRezept = aufnahmen.filter((a) => (a.notiz || '').includes('Vertragsnummer'));
       gleich(mitRezept.length, 1, 'der Text wurde nicht zum Rezept');
+    },
+    { hash: VIDEO }
+  ));
+
+s.test('aus dem Video wird eine Klickstrecke in der Reihenfolge des Films (1.57.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await legeVideoEin(seite, 4);
+      await seite.click('#video-automatisch');
+      await seite.waitForFunction(() => document.querySelectorAll('.video-figur').length >= 3, null, { timeout: 90000 });
+      await seite.waitForTimeout(600);
+
+      // Der gedeutete Text wird zur Anweisung des Schritts - hier von Hand.
+      const zahl = await seite.locator('.video-figur textarea').count();
+      for (let i = 0; i < zahl; i++) {
+        await seite.locator('.video-figur textarea').nth(i).fill(`Schritt ${i + 1} ausführen.`);
+      }
+      await seite.click('#video-strecke');
+      await seite.waitForFunction(() => document.querySelectorAll('.video-figur--fertig').length >= 3, null, { timeout: 60000 });
+      await seite.waitForTimeout(400);
+
+      const meldung = await seite.locator('#video-meldung').innerText();
+      wahr(meldung.includes('die Strecke „Vertrag anlegen"'), meldung);
+      wahr(meldung.includes('Schritten'), meldung);
+
+      const strecken = await seite.evaluate(() => {
+        const roh = localStorage.getItem('screenarchiv:strecken');
+        return roh ? JSON.parse(roh).strecken : [];
+      });
+      gleich(strecken.length, 1);
+      gleich(strecken[0].name, 'Vertrag anlegen', 'der Name kommt nicht aus der Datei');
+      wahr(strecken[0].schritte.length >= 3, 'nur ' + strecken[0].schritte.length + ' Schritte');
+      // Jeder Schritt trägt sein Bild und seine Anweisung, in dieser Folge.
+      strecken[0].schritte.forEach((schritt, i) => {
+        gleich(schritt.art, 'schritt');
+        gleich(schritt.aufnahmen.length, 1);
+        gleich(schritt.text, `Schritt ${i + 1} ausführen.`);
+      });
+      // Die Kennungen laufen aufsteigend - die Reihenfolge des Films.
+      const kennungen = strecken[0].schritte.map((s) => s.aufnahmen[0]);
+      tieferGleich([...kennungen].sort(), kennungen, 'die Schritte stehen nicht in der Folge des Videos');
+
+      // Die Strecke steht offen da, nicht nur im Speicher.
+      await seite.click('.portal-nav button[data-ansicht="strecke"]');
+      await seite.waitForTimeout(700);
+      gleich(await seite.locator('#strecke-name').inputValue(), 'Vertrag anlegen');
+      gleich(await seite.locator('.schritt-bilder').count(), strecken[0].schritte.length);
     },
     { hash: VIDEO }
   ));

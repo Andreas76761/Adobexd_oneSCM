@@ -3925,4 +3925,37 @@ s.test('der Gebrauch als Text nennt die Herkunft der Zahlen (1.56.0)', () => {
   wahr(text.includes('allein im Browser dieses Rechners'), text);
 });
 
+s.test('aus Videobildern wird eine Strecke in zeitlicher Folge (1.57.0)', () => {
+  const bilder = [
+    { uebernommen: 'AUF-2026-003', zeit: 6.1, text: 'Auf Speichern klicken.' },
+    { uebernommen: 'AUF-2026-001', zeit: 0.1, text: 'Die Maske öffnen.' },
+    { uebernommen: 'AUF-2026-002', zeit: 3.2, text: '' }
+  ];
+  const strecke = kern.streckeAusVideo(bilder, 'Vertrag anlegen', 1700000000000);
+  gleich(strecke.name, 'Vertrag anlegen');
+  // Die Reihenfolge kommt aus der Zeit, nicht aus der Liste.
+  tieferGleich(strecke.schritte.map((s) => s.aufnahmen[0]), ['AUF-2026-001', 'AUF-2026-002', 'AUF-2026-003']);
+  gleich(strecke.schritte[0].text, 'Die Maske öffnen.');
+  gleich(strecke.schritte[1].text, '', 'ein fehlender Text wird nicht erfunden');
+  gleich(strecke.schritte[0].art, 'schritt');
+
+  // Ein Bild ohne Kennung im Eingang kann kein Schritt sein.
+  const ohne = kern.streckeAusVideo([...bilder, { uebernommen: '', zeit: 1, text: 'nie übernommen' }], 'X');
+  gleich(ohne.schritte.length, 3);
+  // Die übergebene Liste bleibt, wie sie war.
+  gleich(bilder[0].uebernommen, 'AUF-2026-003', 'die Liste wurde umsortiert');
+  // Ohne Bilder eine leere Strecke, keine erfundene.
+  gleich(kern.streckeAusVideo([], 'Leer').schritte.length, 0);
+  gleich(kern.streckeAusVideo([], '').name, 'Video');
+});
+
+s.test('der Name der Strecke kommt aus dem Dateinamen (1.57.0)', () => {
+  gleich(kern.streckenNameAusVideo('Vertrag_anlegen.mp4'), 'Vertrag anlegen');
+  gleich(kern.streckenNameAusVideo('Quick-Guide-Signatur.webm'), 'Quick Guide Signatur');
+  // Nur die Endung faellt weg, nicht jeder Punkt im Namen.
+  gleich(kern.streckenNameAusVideo('Aufnahme.2026.10.24.mp4'), 'Aufnahme.2026.10.24');
+  gleich(kern.streckenNameAusVideo(''), 'Video');
+  gleich(kern.streckenNameAusVideo('.mp4'), 'Video');
+});
+
 export default s;

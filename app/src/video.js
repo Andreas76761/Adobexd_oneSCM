@@ -348,7 +348,7 @@ async function deuteBilder() {
 
 /* --------------------------------------------------------- Übernehmen */
 
-async function uebernimmVideobilder() {
+async function uebernimmVideobilder({ alsStrecke = false } = {}) {
   const gewaehlte = videoGewaehlte().filter((b) => !b.uebernommen);
   if (!gewaehlte.length) {
     meldeVideo('Es ist kein Bild gewählt, das noch nicht im Eingang liegt.', 'warnung');
@@ -421,12 +421,36 @@ async function uebernimmVideobilder() {
     }
   }
 
+  // Die Strecke entsteht erst, wenn die Bilder im Eingang liegen - sie
+  // verweist auf deren Kennungen, nicht auf die Bilder selbst.
+  let strecke = null;
+  if (alsStrecke && gelungen) {
+    strecke = streckeAusVideo(gewaehlte, streckenNameAusVideo(videoDatei ? videoDatei.name : ''));
+    strecken = [strecke, ...strecken];
+    streckeOffen = strecke.id;
+    sichereStrecken();
+    zeichneStrecke();
+  }
+
   videoLaeuft = false;
   zeichneVideo();
   zeichneEingang();
   zeigeAnsicht();
-  if (fehler.length) meldeVideo(`${gelungen} übernommen, ${fehler.length} nicht: ${fehler.join(' · ')}`, 'warnung');
-  else meldeVideo(`${gelungen} Bild${gelungen === 1 ? '' : 'er'} liegen im Eingang.`, 'gut');
+  if (fehler.length) {
+    meldeVideo(`${gelungen} übernommen, ${fehler.length} nicht: ${fehler.join(' · ')}`, 'warnung');
+    return;
+  }
+  if (strecke) {
+    const ohneText = strecke.schritte.filter((s) => !s.text).length;
+    meldeVideo(
+      `${gelungen} Bild${gelungen === 1 ? '' : 'er'} im Eingang, dazu die Strecke „${strecke.name}" ` +
+        `mit ${strecke.schritte.length} Schritt${strecke.schritte.length === 1 ? '' : 'en'}` +
+        (ohneText ? ` – ${ohneText} davon ohne Anweisung, die stehen in der Strecke zum Eintragen.` : '.'),
+      'gut'
+    );
+    return;
+  }
+  meldeVideo(`${gelungen} Bild${gelungen === 1 ? '' : 'er'} liegen im Eingang.`, 'gut');
 }
 
 /* ------------------------------------------------------------- Zeichnen */
@@ -439,6 +463,7 @@ function setzeVideoknoepfe() {
   $('#video-deuten').disabled = !videoGewaehlte().length || videoLaeuft;
   $('#video-anhalten').hidden = !videoLaeuft;
   $('#video-uebernehmen').disabled = !offen || videoLaeuft;
+  $('#video-strecke').disabled = !offen || videoLaeuft;
   $('#video-verwerfen').disabled = !videoBilder.length || videoLaeuft;
   $('#video-stand').textContent = videoStand(videoBilder, videoDatei ? videoDatei.dauer : 0);
   const stand = $('#video-uebernahme-stand');
@@ -705,7 +730,8 @@ function verdrahteVideo() {
     );
   });
 
-  $('#video-uebernehmen').addEventListener('click', uebernimmVideobilder);
+  $('#video-uebernehmen').addEventListener('click', () => uebernimmVideobilder());
+  $('#video-strecke').addEventListener('click', () => uebernimmVideobilder({ alsStrecke: true }));
   $('#video-verwerfen').addEventListener('click', () => {
     videoBilder = [];
     videoNummer = 0;
