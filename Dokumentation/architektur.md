@@ -155,6 +155,7 @@ Datensatz ergibt Byte-gleiche Dateien, was ein Test absichert.
 | `screenarchiv:verzeichnis` | `localStorage` | Muster und Schalter des Verzeichnisses |
 | `screenarchiv:chat` | `localStorage` | Lage und Größe des Suchchats |
 | `screenarchiv:ocr` | `localStorage` | die Lesungen des Registers OCR je Bild (seit 1.40.0) |
+| `screenarchiv:videovorgehen` | `localStorage` | Aufforderung an Claude und Modellstufe für das Register Video (seit 1.59.0). Die Durchgänge selbst gelten nur für die Sitzung |
 | `screenarchiv:gebrauch` | `localStorage` | gezählter Gebrauch: Befehle und Ansichten (seit 1.56.0). Bleibt in diesem Browser, wird nicht verschickt und reist nicht in der Projektdatei mit |
 | Gezählter Gebrauch: Befehle und Ansichten. Bleibt im Browser, reist nicht mit |
 | `screenarchiv:texte` | `localStorage` | eigene Texte je Stelle, aus Word zurückgelesen (seit 1.47.0) |

@@ -2828,6 +2828,188 @@ export function streckenNameAusVideo(dateiname) {
   );
 }
 
+/* ============================ Durchgänge im Video (1.59.0) ===============
+
+   Beides, was dieses Register tut, ist *nicht sicher*: welche Stellen ein
+   Abtasten behaelt, haengt an drei Reglern und am Film; was Claude in einem
+   Bild sieht, ist eine Deutung. Ein Durchgang kann danebengehen, und das
+   ist kein Fehler, sondern die Natur der Sache.
+
+   Was daraus folgt, ist nicht "besser raten", sondern: den Durchgang
+   festhalten. Jeder Lauf merkt sich, *mit welchen Einstellungen* er lief
+   und *was dabei herauskam*. Dann laesst sich vergleichen, zuruecknehmen
+   und gezielt eine Stellschraube drehen - statt noch einmal von vorn zu
+   raten.
+
+   Drei Dinge, die ein Lauf beantworten muss:
+     1. Was habe ich geaendert?        -> `laufVergleich`
+     2. Was hat es gebracht?           -> dieselbe Auskunft, mit Zahlen
+     3. Was soll ich als naechstes aendern?  -> `laufDiagnose`
+   ========================================================================= */
+
+export const VORGEHEN_SCHLUESSEL = 'screenarchiv:videovorgehen';
+
+/** Die Stufen, die `sample` kennt - teurer heisst gruendlicher, nicht wahrer. */
+export const MODELLSTUFEN = [
+  { id: 'quick', label: 'schnell', erklaerung: 'kurze Antworten, für viele Bilder' },
+  { id: 'default', label: 'normal', erklaerung: 'die Vorgabe' },
+  { id: 'complex', label: 'gründlich', erklaerung: 'für dichte Masken mit viel Text' }
+];
+
+/** Die Regler des Abtastens, mit Namen fuer den Vergleich zweier Laeufe. */
+export const LAUF_REGLER = [
+  { id: 'anzahl', label: 'Abtastung', einheit: ' Stellen' },
+  { id: 'anteil', label: 'Schwelle', einheit: '', alsProzent: true },
+  { id: 'hoechstens', label: 'Höchstens', einheit: ' Bilder', null: 'alle' }
+];
+
+/** Ein Lauf, wie er in der Liste steht. Reine Angaben, keine Bilder. */
+export function videoLauf(nummer, art, einstellungen = {}, ergebnis = {}) {
+  return {
+    nummer: Math.max(1, Math.floor(Number(nummer) || 1)),
+    art: art === 'deutung' ? 'deutung' : 'abtastung',
+    zeit: new Date().toISOString(),
+    einstellungen: { ...einstellungen },
+    ergebnis: { ...ergebnis }
+  };
+}
+
+const reglerText = (regler, wert) => {
+  if (regler.null !== undefined && !wert) return regler.null;
+  if (regler.alsProzent) return String(Number(wert) * 100).replace('.', ',') + ' %';
+  return `${wert}${regler.einheit || ''}`;
+};
+
+/** Die Einstellungen eines Laufs in einer Zeile. */
+export function laufText(lauf = {}) {
+  if (lauf.art === 'deutung') {
+    const stufe = MODELLSTUFEN.find((m) => m.id === lauf.einstellungen.stufe);
+    return `Deutung · ${(stufe && stufe.label) || lauf.einstellungen.stufe || 'normal'}`;
+  }
+  return LAUF_REGLER.map((r) => `${r.label} ${reglerText(r, lauf.einstellungen[r.id])}`).join(' · ');
+}
+
+/**
+ * Was sich zwischen zwei Laeufen geaendert hat - und was es gebracht hat.
+ * Ohne Vorgaenger gibt es nichts zu vergleichen; das ist keine Antwort, die
+ * erfunden werden muesste.
+ */
+export function laufVergleich(lauf = {}, vorher = null) {
+  if (!vorher) return '';
+  if (lauf.art !== vorher.art) return '';
+  const aenderungen = [];
+  if (lauf.art === 'abtastung') {
+    for (const regler of LAUF_REGLER) {
+      const a = vorher.einstellungen[regler.id];
+      const b = lauf.einstellungen[regler.id];
+      if (String(a) !== String(b)) {
+        aenderungen.push(`${regler.label} ${reglerText(regler, a)} → ${reglerText(regler, b)}`);
+      }
+    }
+  } else if (lauf.einstellungen.stufe !== vorher.einstellungen.stufe) {
+    aenderungen.push(`Stufe ${vorher.einstellungen.stufe} → ${lauf.einstellungen.stufe}`);
+  }
+  const alt = Number(vorher.ergebnis.zahl) || 0;
+  const neu = Number(lauf.ergebnis.zahl) || 0;
+  const wirkung = alt === neu ? `gleich viele (${neu})` : `${alt} → ${neu}`;
+  if (!aenderungen.length) {
+    // Dieselben Regler, ein anderes Ergebnis: das liegt am Film, nicht an
+    // der Einstellung - und dann ist es gut, das zu wissen.
+    return alt === neu ? 'nichts geändert, gleiches Ergebnis' : `nichts geändert, trotzdem ${wirkung}`;
+  }
+  return `${aenderungen.join(', ')} · ${wirkung}`;
+}
+
+/**
+ * Welche Stellschraube als naechstes zu drehen ist. Die Antwort nennt *eine*
+ * Groesse, nicht drei - wer drei auf einmal dreht, weiss hinterher nicht,
+ * welche gewirkt hat.
+ */
+export function laufDiagnose(lauf = {}) {
+  const e = lauf.ergebnis || {};
+  const s = lauf.einstellungen || {};
+  if (lauf.art === 'deutung') {
+    if (!e.zahl) return { ok: false, text: 'Kein Bild gedeutet. Erst prüfen, ob Claude hier Bilder sehen darf.' };
+    if (e.gescheitert) {
+      return { ok: false, text: `${e.gescheitert} Bild(er) ohne Antwort. Weniger auf einmal senden, oder die Stufe auf „gründlich" stellen.` };
+    }
+    return { ok: true, text: `${e.zahl} gedeutet. Was nicht stimmt, lässt sich im Feld ändern – es bleibt eine Deutung.` };
+  }
+  if (!e.zahl) {
+    return {
+      ok: false,
+      text:
+        'Nichts gefunden. Eine Größe ändern, nicht drei: zuerst die Schwelle senken ' +
+        `(jetzt ${reglerText(LAUF_REGLER[1], s.anteil)}) – erst wenn das nichts bringt, feiner abtasten.`
+    };
+  }
+  if (e.zahl === 1 && (Number(s.anzahl) || 0) > 12) {
+    return { ok: false, text: 'Nur das erste Bild. Das Video ändert sich kaum, oder die Schwelle ist zu hoch – sie zuerst senken.' };
+  }
+  if (s.hoechstens && e.gefunden > s.hoechstens) {
+    return {
+      ok: false,
+      text: `${e.gefunden} gefunden, ${s.hoechstens} behalten – die Grenze hat geschnitten. Entweder sie anheben oder die Schwelle erhöhen.`
+    };
+  }
+  if (e.zahl >= (Number(s.anzahl) || 0) * 0.8) {
+    return { ok: false, text: 'Fast jede abgetastete Stelle zählt als Änderung – die Schwelle ist zu niedrig, oder im Film bewegt sich dauernd etwas (ein Mauszeiger genügt).' };
+  }
+  return { ok: true, text: `${e.zahl} Bilder aus ${s.anzahl} Stellen – ein brauchbarer Durchgang.` };
+}
+
+/* --------------------------- Das Vorgehen: einmal einrichten, wiederverwenden */
+
+/**
+ * Was ueber ein einzelnes Video hinaus gilt: die Aufforderung an Claude, die
+ * Modellstufe und die Regler, mit denen begonnen wird. Beim naechsten Film
+ * steht dasselbe da - darin liegt der Unterschied zwischen einem Einfall
+ * und einem Vorgehen.
+ */
+export const STANDARD_VORGEHEN = {
+  aufforderung: '',
+  stufe: 'default',
+  anzahl: 24,
+  anteil: 0.02,
+  hoechstens: 20
+};
+
+export function leseVorgehen(text) {
+  try {
+    const roh = JSON.parse(text || 'null');
+    if (!roh || typeof roh !== 'object') return { ...STANDARD_VORGEHEN };
+    const zahl = (wert, ersatz) => (Number.isFinite(Number(wert)) && Number(wert) >= 0 ? Number(wert) : ersatz);
+    return {
+      aufforderung: typeof roh.aufforderung === 'string' ? roh.aufforderung : '',
+      stufe: MODELLSTUFEN.some((m) => m.id === roh.stufe) ? roh.stufe : STANDARD_VORGEHEN.stufe,
+      anzahl: zahl(roh.anzahl, STANDARD_VORGEHEN.anzahl),
+      anteil: zahl(roh.anteil, STANDARD_VORGEHEN.anteil),
+      hoechstens: zahl(roh.hoechstens, STANDARD_VORGEHEN.hoechstens)
+    };
+  } catch (fehler) {
+    return { ...STANDARD_VORGEHEN };
+  }
+}
+
+export function schreibeVorgehen(vorgehen) {
+  return JSON.stringify({ ...STANDARD_VORGEHEN, ...(vorgehen || {}) });
+}
+
+/** Die Durchgänge als Text - zum Weitergeben, was gewirkt hat. */
+export function laeufeText(laeufe = [], titel = '') {
+  const zeilen = [`Durchgänge${titel ? ' – ' + titel : ''}`, '='.repeat(12), ''];
+  if (!laeufe.length) zeilen.push('Noch kein Durchgang.');
+  laeufe.forEach((lauf, i) => {
+    zeilen.push(`V${lauf.nummer}  ${laufText(lauf)}`);
+    zeilen.push(`     Ergebnis: ${lauf.ergebnis.zahl || 0}`);
+    const vergleich = laufVergleich(lauf, laeufe[i - 1] || null);
+    if (vergleich) zeilen.push(`     Geändert: ${vergleich}`);
+    zeilen.push(`     ${laufDiagnose(lauf).text}`);
+    zeilen.push('');
+  });
+  return zeilen.join('\n');
+}
+
 /** Sucht in Nummer und Thema; ohne Suchtext kommt alles zurueck. */
 export function sucheGliederung(eintraege = [], text) {
   const gesucht = normalisiereLang(String(text || ''));

@@ -20,6 +20,33 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.59.0] – Durchgänge: V1, V2, V3
+
+### Neu
+* **Durchgänge im Register Video** (F-76): jeder Lauf bleibt mit seinen
+  Einstellungen und seinem Ergebnis stehen. Dazu, was sich gegenüber dem
+  vorigen geändert hat und was es gebracht hat (`3 → 11`), und eine
+  **Diagnose**, die *eine* Stellschraube nennt – nicht drei
+* **„Einstellungen übernehmen“** holt die Regler eines Laufs zurück
+* **Vorgehen**: die Aufforderung an Claude und die Modellstufe (schnell,
+  normal, gründlich) überdauern den einzelnen Film
+  (`screenarchiv:videovorgehen`). Die eingebaute Aufforderung steht zum
+  Abschauen daneben
+* „Als Textdatei“ gibt die Durchgänge heraus
+
+### Kern
+* `videoLauf`, `laufText`, `laufVergleich`, `laufDiagnose`, `laeufeText`,
+  `leseVorgehen`, `schreibeVorgehen`, `MODELLSTUFEN`, `LAUF_REGLER`,
+  `VORGEHEN_SCHLUESSEL`, `STANDARD_VORGEHEN`
+
+### Behoben
+* Der Spieler zog jedes Video auf die volle Breite; ein Film mit 320 px
+  wurde unscharf aufgeblasen und drückte alles darunter aus dem Bild. Er
+  wird jetzt begrenzt, nicht gestreckt
+
+### Prüfung
+* 5 neue Kernprüfungen, 3 neue Browserprüfungen; zusammen 512
+
 ## [1.58.0] – Die Stelle schon beim Aufnehmen
 
 Aus einer Durchsicht des Codes: welche Ausfuhr des Kerns benutzt niemand?

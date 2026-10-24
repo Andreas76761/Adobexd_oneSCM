@@ -291,6 +291,110 @@ s.test('verworfene Bilder verschwinden, übernommene bleiben im Eingang', () =>
     { hash: VIDEO }
   ));
 
+s.test('jeder Durchgang wird festgehalten und mit dem vorigen verglichen (1.59.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await legeVideoEin(seite, 4);
+      gleich(await seite.locator('#video-laeufe').isVisible(), false, 'ohne Lauf steht das Band schon da');
+
+      await seite.selectOption('#video-dichte', '12');
+      await seite.selectOption('#video-schwelle', '0.08');
+      await seite.click('#video-automatisch');
+      await seite.waitForFunction(() => document.querySelectorAll('.lauf').length >= 1, null, { timeout: 90000 });
+      await seite.waitForTimeout(400);
+      gleich(await seite.locator('#video-laeufe').isVisible(), true);
+      const v1 = await seite.locator('.lauf').first().innerText();
+      wahr(v1.includes('V1'), v1);
+      wahr(v1.includes('Abtastung 12 Stellen'), v1);
+      wahr(v1.includes('Schwelle 8 %'), v1);
+
+      // Zweiter Durchgang mit einer anderen Schwelle.
+      await seite.click('#video-verwerfen');
+      await seite.waitForTimeout(300);
+      await seite.selectOption('#video-schwelle', '0.005');
+      await seite.click('#video-automatisch');
+      await seite.waitForFunction(() => document.querySelectorAll('.lauf').length >= 2, null, { timeout: 90000 });
+      await seite.waitForTimeout(400);
+
+      gleich(await seite.locator('.lauf').count(), 2, 'der erste Durchgang wurde überschrieben');
+      const v2 = await seite.locator('.lauf').nth(1).innerText();
+      wahr(v2.includes('V2'), v2);
+      // Was geändert wurde, steht da - und was es gebracht hat.
+      wahr(v2.includes('Geändert:'), v2);
+      wahr(v2.includes('Schwelle 8 % → 0,5 %'), v2);
+      wahr(
+        (await seite.locator('#video-laeufe-stand').innerText()).includes('2 Durchgänge'),
+        await seite.locator('#video-laeufe-stand').innerText()
+      );
+
+      // Die Regler eines Laufs lassen sich zurückholen.
+      await seite.locator('.lauf').first().getByText('Einstellungen übernehmen').click();
+      await seite.waitForTimeout(200);
+      gleich(await seite.locator('#video-schwelle').inputValue(), '0.08');
+      wahr(
+        (await seite.locator('#video-meldung').innerText()).includes('Regler von V1'),
+        await seite.locator('#video-meldung').innerText()
+      );
+
+      // Verwerfen nimmt die Durchgänge, nicht die Bilder.
+      await seite.click('#video-laeufe-leeren');
+      await seite.waitForTimeout(300);
+      gleich(await seite.locator('.lauf').count(), 0);
+      gleich(await seite.locator('#video-laeufe').isVisible(), false);
+    },
+    { hash: VIDEO }
+  ));
+
+s.test('ein Durchgang ohne Fund sagt, welche Größe zu ändern ist (1.59.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Ein Film aus einer einzigen Maske: da ändert sich nichts.
+      await legeVideoEin(seite, 1);
+      await seite.selectOption('#video-dichte', '24');
+      await seite.selectOption('#video-schwelle', '0.08');
+      await seite.click('#video-automatisch');
+      await seite.waitForFunction(() => document.querySelectorAll('.lauf').length >= 1, null, { timeout: 90000 });
+      await seite.waitForTimeout(400);
+      const lauf = await seite.locator('.lauf').first().innerText();
+      // Entweder nichts gefunden oder nur das erste Bild - beides bekommt
+      // einen Rat, und beide Male ist es *eine* Größe.
+      wahr(/Schwelle/.test(lauf), lauf);
+      gleich(await seite.locator('.lauf-diagnose--offen').count(), 1, 'der Rat fehlt oder gilt als in Ordnung');
+    },
+    { hash: VIDEO }
+  ));
+
+s.test('das Vorgehen überdauert den Film und steht beim nächsten da (1.59.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.evaluate(() => (document.getElementById('video-vorgehen').open = true));
+      await seite.waitForTimeout(300);
+      // Die eingebaute Aufforderung ist einsehbar, nicht verborgen.
+      const vorlage = await seite.evaluate(() => document.getElementById('vorgehen-vorlage-text').textContent);
+      wahr(vorlage.includes('Imperativ'), vorlage.slice(0, 80));
+      gleich(await seite.locator('#video-vorgehen-stand').innerText(), 'eingebaute Aufforderung');
+
+      await seite.fill('#vorgehen-aufforderung', 'Nenne nur die Maske, sonst nichts.');
+      await seite.selectOption('#vorgehen-stufe', 'complex');
+      await seite.click('#vorgehen-sichern');
+      await seite.waitForTimeout(300);
+      gleich(await seite.locator('#video-vorgehen-stand').innerText(), 'eigene Aufforderung');
+      wahr(
+        (await seite.locator('#vorgehen-meldung').innerText()).includes('nächsten Film'),
+        await seite.locator('#vorgehen-meldung').innerText()
+      );
+      const gespeichert = await seite.evaluate(() => JSON.parse(localStorage.getItem('screenarchiv:videovorgehen')));
+      gleich(gespeichert.stufe, 'complex');
+      gleich(gespeichert.aufforderung, 'Nenne nur die Maske, sonst nichts.');
+
+      await seite.click('#vorgehen-zurueck');
+      await seite.waitForTimeout(300);
+      gleich(await seite.locator('#vorgehen-aufforderung').inputValue(), '');
+      gleich(await seite.locator('#video-vorgehen-stand').innerText(), 'eingebaute Aufforderung');
+    },
+    { hash: VIDEO }
+  ));
+
 s.test('Browser wieder schließen', async () => {
   await schliessen();
   return true;

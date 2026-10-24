@@ -1102,6 +1102,62 @@
       </p>
     </div>
 
+    <details class="band laeufe" id="video-laeufe" hidden>
+      <summary>
+        <span>Durchgänge: was geändert wurde und was es gebracht hat</span>
+        <span class="kennung" id="video-laeufe-stand"></span>
+      </summary>
+      <p class="band-hinweis">
+        Beides hier ist <b>nicht sicher</b>: welche Stellen das Abtasten
+        behält, hängt an drei Reglern und am Film; was Claude in einem Bild
+        sieht, ist eine Deutung. Ein Durchgang kann danebengehen – das ist
+        kein Fehler, sondern die Natur der Sache. Darum merkt sich jeder
+        Lauf, <b>womit</b> er lief und <b>was herauskam</b>. Dann lässt sich
+        vergleichen und gezielt <b>eine</b> Stellschraube drehen, statt noch
+        einmal von vorn zu raten.
+      </p>
+      <ol class="lauf-liste" id="video-lauf-liste"></ol>
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--klein" id="video-laeufe-sichern">Als Textdatei</button>
+        <button type="button" class="knopf knopf--klein" id="video-laeufe-leeren">Durchgänge verwerfen</button>
+      </div>
+    </details>
+
+    <details class="band vorgehen" id="video-vorgehen">
+      <summary>
+        <span>Vorgehen: einmal einrichten, beim nächsten Film wiederverwenden</span>
+        <span class="kennung" id="video-vorgehen-stand"></span>
+      </summary>
+      <p class="band-hinweis">
+        Was über ein einzelnes Video hinaus gilt: die Aufforderung an Claude,
+        die Modellstufe und die Regler, mit denen begonnen wird. Beim
+        nächsten Film steht dasselbe da – darin liegt der Unterschied
+        zwischen einem Einfall und einem Vorgehen.
+      </p>
+      <div class="feld">
+        <label for="vorgehen-aufforderung">Aufforderung an Claude</label>
+        <textarea id="vorgehen-aufforderung" rows="7" spellcheck="false"></textarea>
+        <span class="feld-hinweis">
+          Leer heißt: die eingebaute Aufforderung gilt. Sie steht unten zum
+          Abschauen – wer sie ändert, ändert, <i>wonach</i> gefragt wird,
+          nicht wie gut geantwortet wird.
+        </span>
+      </div>
+      <div class="feld feld--schmal">
+        <label for="vorgehen-stufe">Modellstufe</label>
+        <select id="vorgehen-stufe"></select>
+      </div>
+      <div class="markier-knoepfe">
+        <button type="button" class="knopf knopf--klein" id="vorgehen-sichern">Vorgehen sichern</button>
+        <button type="button" class="knopf knopf--klein" id="vorgehen-zurueck">Auf den Standard zurück</button>
+      </div>
+      <p class="studio-meldung" id="vorgehen-meldung" role="status" aria-live="polite"></p>
+      <details class="vorgehen-vorlage">
+        <summary>Die eingebaute Aufforderung ansehen</summary>
+        <pre id="vorgehen-vorlage-text"></pre>
+      </details>
+    </details>
+
     <details class="band stapel" id="video-uebernahme" hidden>
       <summary>
         <span>Übernehmen: Stelle und Labels für alle</span>

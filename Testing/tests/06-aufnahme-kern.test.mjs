@@ -3962,4 +3962,97 @@ s.test('der Name der Strecke kommt aus dem Dateinamen (1.57.0)', () => {
   gleich(kern.streckenNameAusVideo('.mp4'), 'Video');
 });
 
+s.test('ein Durchgang hält fest, womit er lief und was herauskam (1.59.0)', () => {
+  const lauf = kern.videoLauf(1, 'abtastung', { anzahl: 24, anteil: 0.02, hoechstens: 20 }, { zahl: 4, gefunden: 4 });
+  gleich(lauf.nummer, 1);
+  gleich(lauf.art, 'abtastung');
+  gleich(kern.laufText(lauf), 'Abtastung 24 Stellen · Schwelle 2 % · Höchstens 20 Bilder');
+  // „Höchstens 0" heißt: alle, nicht null.
+  wahr(kern.laufText(kern.videoLauf(1, 'abtastung', { anzahl: 12, anteil: 0.08, hoechstens: 0 }, {})).includes('Höchstens alle'),
+    kern.laufText(kern.videoLauf(1, 'abtastung', { anzahl: 12, anteil: 0.08, hoechstens: 0 }, {})));
+  // Eine erfundene Nummer gibt es nicht.
+  gleich(kern.videoLauf(0, 'abtastung', {}, {}).nummer, 1);
+  gleich(kern.videoLauf(3, 'deutung', { stufe: 'complex' }, {}).art, 'deutung');
+  wahr(kern.laufText(kern.videoLauf(3, 'deutung', { stufe: 'complex' }, {})).includes('gründlich'), 'die Stufe fehlt');
+});
+
+s.test('der Vergleich sagt, was geändert wurde und was es gebracht hat (1.59.0)', () => {
+  const a = kern.videoLauf(1, 'abtastung', { anzahl: 24, anteil: 0.02, hoechstens: 20 }, { zahl: 0 });
+  const b = kern.videoLauf(2, 'abtastung', { anzahl: 24, anteil: 0.005, hoechstens: 20 }, { zahl: 11 });
+  gleich(kern.laufVergleich(b, a), 'Schwelle 2 % → 0,5 % · 0 → 11');
+  // Ohne Vorgänger gibt es nichts zu vergleichen - und nichts zu erfinden.
+  gleich(kern.laufVergleich(a, null), '');
+  // Zwei Regler auf einmal werden beide genannt.
+  const c = kern.videoLauf(3, 'abtastung', { anzahl: 48, anteil: 0.005, hoechstens: 10 }, { zahl: 10 });
+  wahr(kern.laufVergleich(c, b).includes('Abtastung'), kern.laufVergleich(c, b));
+  wahr(kern.laufVergleich(c, b).includes('Höchstens'), kern.laufVergleich(c, b));
+  // Dieselben Regler, dasselbe Ergebnis: auch das wird gesagt.
+  const d = kern.videoLauf(4, 'abtastung', { anzahl: 48, anteil: 0.005, hoechstens: 10 }, { zahl: 10 });
+  gleich(kern.laufVergleich(d, c), 'nichts geändert, gleiches Ergebnis');
+  // Dieselben Regler, ein anderes Ergebnis - das liegt am Film.
+  const e = kern.videoLauf(5, 'abtastung', { anzahl: 48, anteil: 0.005, hoechstens: 10 }, { zahl: 7 });
+  wahr(kern.laufVergleich(e, d).includes('nichts geändert, trotzdem 10 → 7'), kern.laufVergleich(e, d));
+  // Abtastung und Deutung werden nicht gegeneinander verglichen.
+  gleich(kern.laufVergleich(kern.videoLauf(6, 'deutung', { stufe: 'default' }, { zahl: 3 }), e), '');
+});
+
+s.test('die Diagnose nennt eine Stellschraube, nicht drei (1.59.0)', () => {
+  const leer = kern.laufDiagnose(kern.videoLauf(1, 'abtastung', { anzahl: 24, anteil: 0.02 }, { zahl: 0 }));
+  gleich(leer.ok, false);
+  wahr(leer.text.includes('Schwelle senken'), leer.text);
+  wahr(leer.text.includes('nicht drei'), leer.text);
+
+  // Die Grenze hat geschnitten - dann ist sie die Stellschraube.
+  const voll = kern.laufDiagnose(
+    kern.videoLauf(2, 'abtastung', { anzahl: 96, anteil: 0.005, hoechstens: 10 }, { zahl: 10, gefunden: 41 })
+  );
+  gleich(voll.ok, false);
+  wahr(voll.text.includes('41 gefunden, 10 behalten'), voll.text);
+
+  // Fast jede Stelle zaehlt: die Schwelle ist zu niedrig.
+  const rauschen = kern.laufDiagnose(kern.videoLauf(3, 'abtastung', { anzahl: 24, anteil: 0.005 }, { zahl: 22, gefunden: 22 }));
+  gleich(rauschen.ok, false);
+  wahr(rauschen.text.includes('Mauszeiger'), rauschen.text);
+
+  const gut = kern.laufDiagnose(kern.videoLauf(4, 'abtastung', { anzahl: 24, anteil: 0.02 }, { zahl: 6, gefunden: 6 }));
+  gleich(gut.ok, true);
+
+  // Deutung: gescheiterte Bilder bekommen ihren eigenen Rat.
+  const halb = kern.laufDiagnose(kern.videoLauf(5, 'deutung', { stufe: 'default' }, { zahl: 4, gescheitert: 2 }));
+  gleich(halb.ok, false);
+  wahr(halb.text.includes('2 Bild(er) ohne Antwort'), halb.text);
+  const nichts = kern.laufDiagnose(kern.videoLauf(6, 'deutung', { stufe: 'default' }, { zahl: 0 }));
+  wahr(nichts.text.includes('Bilder sehen darf'), nichts.text);
+});
+
+s.test('das Vorgehen überdauert den einzelnen Film (1.59.0)', () => {
+  const standard = kern.leseVorgehen(null);
+  gleich(standard.stufe, 'default');
+  gleich(standard.aufforderung, '');
+  gleich(standard.anteil, 0.02);
+
+  const eigenes = { aufforderung: 'Beschreibe knapp.', stufe: 'complex', anzahl: 48, anteil: 0.005, hoechstens: 0 };
+  tieferGleich(kern.leseVorgehen(kern.schreibeVorgehen(eigenes)), eigenes);
+
+  // Unsinn kommt nicht durch, und nichts wird erfunden.
+  gleich(kern.leseVorgehen('{kaputt').stufe, 'default');
+  gleich(kern.leseVorgehen(JSON.stringify({ stufe: 'teuer' })).stufe, 'default');
+  gleich(kern.leseVorgehen(JSON.stringify({ anzahl: -5 })).anzahl, 24);
+  gleich(kern.leseVorgehen(JSON.stringify({ aufforderung: 42 })).aufforderung, '');
+});
+
+s.test('die Durchgänge als Text nennen Ergebnis, Änderung und Rat (1.59.0)', () => {
+  const laeufe = [
+    kern.videoLauf(1, 'abtastung', { anzahl: 24, anteil: 0.02, hoechstens: 20 }, { zahl: 0 }),
+    kern.videoLauf(2, 'abtastung', { anzahl: 24, anteil: 0.005, hoechstens: 20 }, { zahl: 7, gefunden: 7 })
+  ];
+  const text = kern.laeufeText(laeufe, 'Vertrag.mp4');
+  wahr(text.includes('Vertrag.mp4'), text.slice(0, 60));
+  wahr(text.includes('V1'), text);
+  wahr(text.includes('V2'), text);
+  wahr(text.includes('Geändert: Schwelle 2 % → 0,5 %'), text);
+  wahr(!text.includes('**'), 'im Text stehen Sternchen aus der Oberfläche');
+  wahr(kern.laeufeText([]).includes('Noch kein Durchgang'), kern.laeufeText([]));
+});
+
 export default s;

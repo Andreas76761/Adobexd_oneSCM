@@ -28,8 +28,100 @@ let videoClaude = null;
 let videoGeprueft = false;
 let videoBilderMoeglich = null;
 let videoUebernahmeGezeigt = false; // einmal aufklappen, dann nicht mehr dreinreden
+let videoLaeufe = []; // die Durchgänge dieses Films - V1, V2, V3
+let videoVorgehen = null; // Aufforderung, Stufe, Startregler; erst in zeichneVideo gelesen
 
 const VIDEO_FELDER = ['sprache', 'rolle_label', 'sparte', 'markt', 'version', 'land'];
+
+/* ------------------------------------------ Vorgehen und Durchgänge (1.59.0) */
+
+/** Gelesen wird erst beim Zeichnen - `heute` und Freunde stehen davor nicht. */
+function holeVorgehen() {
+  if (!videoVorgehen) {
+    try {
+      videoVorgehen = leseVorgehen(localStorage.getItem(VORGEHEN_SCHLUESSEL));
+    } catch (fehler) {
+      videoVorgehen = leseVorgehen(null);
+    }
+  }
+  return videoVorgehen;
+}
+
+function sichereVorgehen() {
+  try {
+    localStorage.setItem(VORGEHEN_SCHLUESSEL, schreibeVorgehen(videoVorgehen));
+    return true;
+  } catch (fehler) {
+    return false;
+  }
+}
+
+/** Einen Durchgang festhalten und sichtbar machen. */
+function haltLaufFest(art, einstellungen, ergebnis) {
+  videoLaeufe = [...videoLaeufe, videoLauf(videoLaeufe.length + 1, art, einstellungen, ergebnis)];
+  zeichneLaeufe();
+}
+
+function zeichneLaeufe() {
+  const band = $('#video-laeufe');
+  if (!band) return;
+  band.hidden = !videoLaeufe.length;
+  if (videoLaeufe.length && !band.open) band.open = true;
+  $('#video-laeufe-stand').textContent = videoLaeufe.length
+    ? `${videoLaeufe.length} ${videoLaeufe.length === 1 ? 'Durchgang' : 'Durchgänge'}`
+    : '';
+
+  $('#video-lauf-liste').replaceChildren(
+    ...videoLaeufe.map((lauf, i) => {
+      const diagnose = laufDiagnose(lauf);
+      const vergleich = laufVergleich(lauf, videoLaeufe[i - 1] || null);
+      const teile = [
+        el('div', { klasse: 'lauf-kopf' }, [
+          el('span', { klasse: 'lauf-marke', text: 'V' + lauf.nummer }),
+          el('span', { klasse: 'lauf-text', text: laufText(lauf) }),
+          lauf.art === 'abtastung'
+            ? el('button', {
+                type: 'button',
+                klasse: 'knopf knopf--klein',
+                text: 'Einstellungen übernehmen',
+                onclick: () => {
+                  $('#video-dichte').value = String(lauf.einstellungen.anzahl);
+                  $('#video-schwelle').value = String(lauf.einstellungen.anteil);
+                  $('#video-hoechstens').value = String(lauf.einstellungen.hoechstens);
+                  meldeVideo(`Die Regler von V${lauf.nummer} stehen wieder – „Bilder automatisch herausnehmen" läuft damit.`, 'neutral');
+                }
+              })
+            : null
+        ].filter(Boolean)),
+        el('p', { klasse: 'lauf-ergebnis', text: `${lauf.ergebnis.zahl || 0} ${lauf.art === 'deutung' ? 'gedeutet' : 'Bilder'}` })
+      ];
+      if (vergleich) teile.push(el('p', { klasse: 'lauf-vergleich', text: 'Geändert: ' + vergleich }));
+      teile.push(el('p', { klasse: 'lauf-diagnose' + (diagnose.ok ? '' : ' lauf-diagnose--offen'), text: diagnose.text }));
+      return el('li', { klasse: 'lauf' }, teile);
+    })
+  );
+}
+
+function zeichneVorgehen() {
+  const vorgehen = holeVorgehen();
+  const feld = $('#vorgehen-aufforderung');
+  if (feld && feld !== document.activeElement) feld.value = vorgehen.aufforderung;
+  if (feld && !feld.placeholder) feld.placeholder = 'leer = die eingebaute Aufforderung';
+  const stufe = $('#vorgehen-stufe');
+  if (stufe && !stufe.options.length) {
+    stufe.replaceChildren(
+      ...MODELLSTUFEN.map((m) => el('option', { value: m.id, text: `${m.label} – ${m.erklaerung}` }))
+    );
+  }
+  if (stufe) stufe.value = vorgehen.stufe;
+  const stand = $('#video-vorgehen-stand');
+  if (stand) {
+    const eigene = String(vorgehen.aufforderung || '').trim();
+    stand.textContent = eigene ? 'eigene Aufforderung' : 'eingebaute Aufforderung';
+  }
+  const vorlage = $('#vorgehen-vorlage-text');
+  if (vorlage && !vorlage.textContent) vorlage.textContent = videoAufforderung({}, { titel: 'Beispiel.mp4', stelle: '7.5.1', nummer: 2, von: 5 });
+}
 
 /** Was dieser Browser abspielt - gefragt wird er, nicht geraten. */
 function videoKann() {
@@ -121,6 +213,8 @@ function verwirfVideo(auchBilder = true) {
   if (auchBilder) {
     videoBilder = [];
     videoNummer = 0;
+    // Durchgänge gehören zu einem Film, nicht zum Register.
+    videoLaeufe = [];
   }
   zeichneVideo();
 }
@@ -236,6 +330,11 @@ async function nimmBilderAutomatisch() {
   videoLaeuft = false;
   videoAbbruch = false;
   if (lief) spieler.play().catch(() => {});
+  // Der Durchgang wird festgehalten, bevor gemeldet wird: auch ein Lauf, der
+  // nichts brachte, ist eine Auskunft - er sagt, was diese Regler hergeben.
+  if (!videoAbbruch) {
+    haltLaufFest('abtastung', { anzahl, anteil, hoechstens }, { zahl: neu, gefunden: gewaehlt.length, stellen: schritte.length });
+  }
   zeichneVideo();
   if (!neu) {
     meldeVideo(
@@ -303,14 +402,18 @@ async function deuteBilder() {
     if (videoAbbruch.signal.aborted) break;
     try {
       meldeVideo(`Bild bei ${zeitText(bild.zeit)} wird gedeutet … (${fertig + 1} von ${offen.length})`, 'neutral');
+      // Eine eigene Aufforderung ersetzt die eingebaute vollstaendig - wer
+      // sie schreibt, bestimmt, *wonach* gefragt wird.
+      const eigene = String(holeVorgehen().aufforderung || '').trim();
       const antwort = await claude(
-        videoAufforderung(bild, {
-          titel: videoDatei ? videoDatei.name : '',
-          stelle: bild.stelle || videoStelle,
-          nummer: fertig + 1,
-          von: offen.length
-        }),
-        { images: await alsBlob(bild.voll), modelTier: 'default', signal: videoAbbruch.signal }
+        eigene ||
+          videoAufforderung(bild, {
+            titel: videoDatei ? videoDatei.name : '',
+            stelle: bild.stelle || videoStelle,
+            nummer: fertig + 1,
+            von: offen.length
+          }),
+        { images: await alsBlob(bild.voll), modelTier: holeVorgehen().stufe || 'default', signal: videoAbbruch.signal }
       );
       const text = videoText(antwort && antwort.text);
       if (text) {
@@ -335,6 +438,11 @@ async function deuteBilder() {
 
   videoLaeuft = false;
   videoAbbruch = null;
+  haltLaufFest(
+    'deutung',
+    { stufe: holeVorgehen().stufe, eigene: Boolean(String(holeVorgehen().aufforderung || '').trim()) },
+    { zahl: fertig, gescheitert, gesendet: offen.length }
+  );
   zeichneVideo();
   if (fertig) {
     meldeVideo(
@@ -640,6 +748,8 @@ function zeichneVideo() {
     liste.replaceChildren(...videoBilder.map(videoKarte));
   }
   zeichneVideoLabels();
+  zeichneLaeufe();
+  zeichneVorgehen();
   setzeVideoknoepfe();
 }
 
@@ -728,6 +838,43 @@ function verdrahteVideo() {
         (getroffen < gewaehlte.length ? ' Der Rest blieb leer – der Text gab sie nicht her.' : ''),
       getroffen ? 'gut' : 'warnung'
     );
+  });
+
+  $('#vorgehen-aufforderung').addEventListener('input', (e) => {
+    videoVorgehen = { ...holeVorgehen(), aufforderung: e.target.value };
+    zeichneVorgehen();
+  });
+  $('#vorgehen-stufe').addEventListener('change', (e) => {
+    videoVorgehen = { ...holeVorgehen(), stufe: e.target.value };
+  });
+  $('#vorgehen-sichern').addEventListener('click', () => {
+    const zeile = $('#vorgehen-meldung');
+    const gut = sichereVorgehen();
+    zeile.textContent = gut
+      ? 'Das Vorgehen steht – beim nächsten Film gilt dasselbe.'
+      : 'Der Speicher des Browsers nimmt nichts an; das Vorgehen gilt nur für diese Sitzung.';
+    zeile.className = 'studio-meldung studio-meldung--' + (gut ? 'gut' : 'warnung');
+  });
+  $('#vorgehen-zurueck').addEventListener('click', () => {
+    videoVorgehen = leseVorgehen(null);
+    sichereVorgehen();
+    zeichneVorgehen();
+    $('#vorgehen-meldung').textContent = 'Die eingebaute Aufforderung gilt wieder.';
+    $('#vorgehen-meldung').className = 'studio-meldung studio-meldung--neutral';
+  });
+
+  $('#video-laeufe-sichern').addEventListener('click', async () => {
+    const name = `video-durchgaenge-${heute()}.txt`;
+    const ergebnis = await uebergebeDatei(name, laeufeText(videoLaeufe, videoDatei ? videoDatei.name : ''));
+    meldeVideo(
+      ergebnis.art === 'gesichert' ? `${name} gesichert.` : 'Diese Ansicht darf keine Datei ablegen – die Durchgänge stehen oben.',
+      ergebnis.art === 'gesichert' ? 'gut' : 'warnung'
+    );
+  });
+  $('#video-laeufe-leeren').addEventListener('click', () => {
+    videoLaeufe = [];
+    zeichneLaeufe();
+    meldeVideo('Die Durchgänge sind verworfen. Die Bilder bleiben.', 'neutral');
   });
 
   $('#video-uebernehmen').addEventListener('click', () => uebernimmVideobilder());

@@ -525,6 +525,39 @@ dialog.detail::backdrop { background: rgba(12, 16, 22, .62); backdrop-filter: bl
 }
 .nav-zahl[hidden] { display: none; }
 
+/* --------------------------------- Durchgänge und Vorgehen (1.59.0) */
+
+.laeufe, .vorgehen { margin: 0 0 12px; padding: 8px 0; }
+.laeufe > summary, .vorgehen > summary {
+  cursor: pointer; display: flex; gap: 12px; align-items: baseline; font-weight: 600;
+}
+.laeufe > summary .kennung, .vorgehen > summary .kennung { font-weight: 400; }
+.lauf-liste { margin: 4px 0 10px; padding: 0; list-style: none; display: grid; gap: 8px; }
+.lauf {
+  border: 1px solid var(--linie); border-left: 3px solid var(--linie-stark);
+  border-radius: var(--radius); background: var(--flaeche-2); padding: 8px 12px;
+  display: grid; gap: 3px;
+}
+.lauf-kopf { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lauf-marke {
+  font-family: var(--schrift-mono); font-size: 11.5px; font-weight: 600;
+  background: var(--akzent); color: var(--auf-farbe); border-radius: 2px; padding: 1px 7px;
+}
+.lauf-text { font-family: var(--schrift-mono); font-size: 11.5px; color: var(--tinte-2); flex: 1 1 auto; }
+.lauf-ergebnis { font-size: 13px; color: var(--tinte); }
+.lauf-vergleich { font-size: 12.5px; color: var(--tinte-2); }
+.lauf-diagnose { font-size: 12.5px; color: var(--gut); }
+.lauf-diagnose--offen { color: var(--warn); }
+.vorgehen textarea { font-family: var(--schrift-mono); font-size: 12px; line-height: 1.55; }
+.vorgehen-vorlage { margin-top: 8px; }
+.vorgehen-vorlage summary { cursor: pointer; font-size: 12.5px; color: var(--tinte-2); }
+.vorgehen-vorlage pre {
+  margin: 8px 0 0; padding: 9px 10px; overflow: auto; max-height: 220px;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche);
+  font-family: var(--schrift-mono); font-size: 11px; line-height: 1.55; color: var(--tinte-2);
+  white-space: pre-wrap;
+}
+
 /* ----------------------------------------- Gebrauch: die Probe (1.56.0) */
 
 .gebrauch { margin: 0 0 12px; padding: 8px 0; }
@@ -554,7 +587,12 @@ dialog.detail::backdrop { background: rgba(12, 16, 22, .62); backdrop-filter: bl
   padding: 14px;
 }
 .video-flaeche.import-wahl--bereit { border-color: var(--akzent); border-style: dashed; }
-.video-flaeche video { display: block; width: 100%; max-height: 60vh; background: #000; border-radius: var(--radius); }
+/* Nicht aufblasen: ein 320-px-Film wird in voller Breite unscharf und
+   drueckt die Durchgaenge darunter aus dem Bild. */
+.video-flaeche video {
+  display: block; width: auto; max-width: 100%; max-height: 52vh;
+  background: #000; border-radius: var(--radius);
+}
 /* `display: block` oben schlaegt sonst das hidden-Attribut des Spielers. */
 .video-flaeche video[hidden] { display: none; }
 .video-leiste {

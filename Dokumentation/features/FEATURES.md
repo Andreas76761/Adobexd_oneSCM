@@ -2027,3 +2027,42 @@ Dateinamen `7-5-1` – ein Punkt gehört dort nicht hin.
 Funktion stand seither unbenutzt da und wurde nur noch von ihrer eigenen
 Prüfung am Leben gehalten.
 
+## F-76 · Durchgänge im Video – V1, V2, V3
+
+**Seit** 1.59.0 · betrifft Video · **ergänzt** F-72
+
+**Das Problem** Beides, was das Register Video tut, ist nicht sicher: welche
+Stellen das Abtasten behält, hängt an drei Reglern und am Film; was Claude
+in einem Bild sieht, ist eine Deutung. Ein Durchgang kann danebengehen – das
+ist die Natur der Sache, kein Fehler. Bisher ging er dabei **spurlos
+verloren**: neue Einstellung, neuer Lauf, das Vorige weg. Wer dreimal
+probiert hatte, wusste beim vierten Mal nicht mehr, was er schon probiert
+hatte.
+
+**Die Lösung** Jeder Lauf bleibt als **Durchgang** stehen, mit seinen
+Einstellungen und seinem Ergebnis. Dazu zwei Zeilen:
+
+* **Geändert** – was sich gegenüber dem vorigen Lauf unterscheidet, Regler
+  für Regler, und was es gebracht hat (`3 → 11`). Gleiche Regler mit anderem
+  Ergebnis werden ebenso benannt: dann liegt es am Film
+* **Diagnose** – welche Stellschraube als nächstes zu drehen ist. Immer
+  **eine**, nicht drei: wer drei auf einmal dreht, weiß hinterher nicht,
+  welche gewirkt hat
+
+„Einstellungen übernehmen“ holt die Regler eines Laufs zurück. Auch ein Lauf
+ohne Fund wird festgehalten – er sagt, was diese Regler hergeben.
+
+**Das Vorgehen** Ein zweites Band hält, was über einen einzelnen Film hinaus
+gilt: die **Aufforderung an Claude** (leer = die eingebaute, die darunter
+zum Abschauen steht) und die **Modellstufe** (schnell, normal, gründlich).
+Beides liegt in `screenarchiv:videovorgehen` und steht beim nächsten Film
+wieder da.
+
+**Kern** `videoLauf`, `laufText`, `laufVergleich`, `laufDiagnose`,
+`laeufeText`, `leseVorgehen`, `schreibeVorgehen`, `MODELLSTUFEN`,
+`LAUF_REGLER`, `VORGEHEN_SCHLUESSEL`, `STANDARD_VORGEHEN`.
+
+**Grenzen** Die Durchgänge gehören zu einem Film und gelten für die Sitzung;
+wer sie behalten will, sichert sie als Textdatei. Die Diagnose rät nach
+Zahlen, nicht nach dem Inhalt des Films.
+
