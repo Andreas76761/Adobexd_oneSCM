@@ -124,6 +124,14 @@ nicht verschwinden, sondern an eine Stelle rutschen, die man aufklappen muss.
 Fehlt sie niemandem, ist der Fall klar. Dafür braucht es jemanden, der die
 Seite benutzt – nicht noch eine Überlegung.
 
+> **Gebaut in 1.56.0 (F-73)**, auf dem besseren Weg: nichts rutscht irgendwo
+> hin. Stattdessen zählt die Seite mit, welcher Befehl gedrückt wird – im
+> Browser dieses Rechners, nirgendwo sonst. Nach ein paar Wochen Arbeit
+> steht im Register Prüfung, was nie gebraucht wurde. Damit ist die Probe
+> bereit; **entschieden ist sie erst durch Benutzung.** Für die
+> Kennzahlenleiste gibt sie nichts her – die wird angesehen, nicht gedrückt,
+> und das steht auch so da.
+
 ## Wo die Last wirklich liegt
 
 Nicht in der Zahl der Funktionen, sondern in zwei Dateien:
@@ -164,10 +172,15 @@ dabei einer zu viel, und der Build sagt es.
 * `aufnahme.js` in Studio und Eingang geteilt. Die Probe lief hier über den
   Bestand der Zeilen: keine ausführbare Zeile ist verschwunden
 
-**Als nächstes**
-* Die Probe mit den sechs Verdachtsfällen, mit jemandem, der die Seite
-  benutzt – das Einzige hier, was ohne Nutzung nicht zu entscheiden ist, und
-  damit das Letzte, was diese Durchsicht offen lässt
+**Erledigt in 1.56.0**
+* Die Probe ist gebaut (F-73): die Seite zählt den Gebrauch im eigenen
+  Browser, und das Register Prüfung sagt, was nie gedrückt wurde
+
+**Was jetzt nur noch Zeit braucht**
+* **Die Probe laufen lassen.** Alle Befunde dieser Durchsicht sind
+  abgearbeitet; was bleibt, ist keine Arbeit mehr, sondern Benutzung. In
+  ein paar Wochen sagt der Gebrauch, welche der sechs Funktionen wirklich
+  tot sind – und dann wird entschieden, nicht geraten.
 
 **Bewusst nicht**
 * Funktionen entfernen, die nur verdächtig sind

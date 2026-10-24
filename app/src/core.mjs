@@ -2645,6 +2645,161 @@ export function videoStand(bilder = [], dauer = 0) {
   );
 }
 
+/* ======================================== Gebrauch: die Probe (1.56.0)
+
+   Die Durchsicht (1.50.0) nannte sechs Funktionen, die wahrscheinlich tot
+   sind - und konnte es nicht entscheiden: *es gibt keine Nutzungsdaten.*
+   Die Seite zaehlt nichts und schickt nichts weg, und das ist Absicht.
+
+   Der zweite Teil davon bleibt. Der erste nicht: was jemand selbst benutzt,
+   darf er selbst wissen. Darum zaehlt die Seite jetzt mit - im `localStorage`
+   des eigenen Browsers, nirgendwo sonst. Nichts davon verlaesst den Rechner,
+   nichts reist in der Projektdatei mit, und ein Knopf setzt alles zurueck.
+
+   Damit wird aus "wahrscheinlich tot" eine Frage mit Antwort: nach ein paar
+   Wochen Arbeit steht da, welcher Befehl nie gedrueckt wurde.
+
+   Was sich so *nicht* messen laesst, steht ausdruecklich dabei: eine
+   Kennzahlenleiste wird angesehen, nicht gedrueckt. Fuer sie gibt diese
+   Probe nichts her - und behauptet es auch nicht.
+   ========================================================================= */
+
+export const GEBRAUCH_SCHLUESSEL = 'screenarchiv:gebrauch';
+
+/** Ab wann ein Befehl als „benutzt" gilt und nicht mehr als Ausrutscher. */
+export const GEBRAUCH_SELTEN = 3;
+
+/**
+ * Die Verdachtsfaelle der Durchsicht, mit dem Bedienelement, an dem sie
+ * haengen. `messbar: false` heisst: das laesst sich durch Zaehlen nicht
+ * beantworten - dann steht es als offene Frage da, nicht als Befund.
+ */
+export const BEOBACHTETE = [
+  { kennung: 'modus:schieber', feature: 'F-06', label: 'Vergleichsart Schieber', wo: 'Beleg', messbar: true },
+  { kennung: 'modus:nebeneinander', feature: 'F-06', label: 'Vergleichsart nebeneinander', wo: 'Beleg', messbar: true },
+  { kennung: 'modus:ueberblendung', feature: 'F-06', label: 'Vergleichsart Überblendung', wo: 'Beleg', messbar: true },
+  { kennung: 'modus:unterschied', feature: 'F-06', label: 'Vergleichsart Unterschied', wo: 'Beleg', messbar: true },
+  { kennung: 'strecke-bpmn', feature: 'F-41', label: 'Prozess als BPMN', wo: 'Strecke', messbar: true },
+  { kennung: 'beleg-oeffnen', feature: 'F-29', label: 'Beleg bilden', wo: 'Eingang', messbar: true },
+  { kennung: 'details:faehigkeiten', feature: 'F-30', label: '„Was hier geht" aufgeklappt', wo: 'Ausschneiden', messbar: true },
+  { kennung: 'eingang-kontaktbogen', feature: 'F-23', label: 'Kontaktbogen sichern', wo: 'Eingang', messbar: true },
+  { kennung: '', feature: 'F-08/F-09', label: 'Kennzahlenvergleich und Kennzahlenleiste', wo: 'Archiv', messbar: false }
+];
+
+const leererStand = (seit) => ({ seit: seit || '', befehle: {}, ansichten: {} });
+
+/** Der Stand aus dem Speicher; ein unlesbarer gilt als keiner. */
+export function leseGebrauch(roh, heute = '') {
+  try {
+    const daten = JSON.parse(roh || 'null');
+    if (!daten || typeof daten !== 'object') return leererStand(heute);
+    const zahlen = (teil) =>
+      Object.fromEntries(
+        Object.entries(teil && typeof teil === 'object' ? teil : {})
+          .filter(([, wert]) => Number.isFinite(Number(wert)) && Number(wert) > 0)
+          .map(([name, wert]) => [String(name), Math.floor(Number(wert))])
+      );
+    return {
+      seit: typeof daten.seit === 'string' ? daten.seit : heute,
+      befehle: zahlen(daten.befehle),
+      ansichten: zahlen(daten.ansichten)
+    };
+  } catch (fehler) {
+    return leererStand(heute);
+  }
+}
+
+export function schreibeGebrauch(stand) {
+  return JSON.stringify(stand && typeof stand === 'object' ? stand : leererStand(''));
+}
+
+/**
+ * Einen Druck zaehlen. Gibt einen neuen Stand zurueck - der alte bleibt, wie
+ * er war, damit sich das ohne Browser pruefen laesst.
+ */
+export function zaehleGebrauch(stand, art, kennung, heute = '') {
+  const name = String(kennung || '').trim();
+  const fach = art === 'ansicht' ? 'ansichten' : 'befehle';
+  if (!name) return stand;
+  const alt = stand && typeof stand === 'object' ? stand : leererStand(heute);
+  return {
+    seit: alt.seit || heute,
+    befehle: { ...alt.befehle },
+    ansichten: { ...alt.ansichten },
+    [fach]: { ...alt[fach], [name]: (alt[fach][name] || 0) + 1 }
+  };
+}
+
+/** Wie viele Tage zwischen zwei Datumsangaben liegen - mindestens einer. */
+export function tageSeit(seit, heute) {
+  const a = Date.parse(seit || '');
+  const b = Date.parse(heute || '');
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b < a) return 0;
+  return Math.max(1, Math.round((b - a) / 86400000));
+}
+
+/**
+ * Was die Zaehlung ueber die Verdachtsfaelle sagt. Sie urteilt nicht - sie
+ * sortiert: nie gedrueckt, selten gedrueckt, benutzt. Und sie sagt, wie
+ * lange gezaehlt wurde, weil eine Woche nichts beweist.
+ */
+export function gebrauchBericht(stand = {}, heute = '', { selten = GEBRAUCH_SELTEN } = {}) {
+  const befehle = (stand && stand.befehle) || {};
+  const ansichten = (stand && stand.ansichten) || {};
+  const tage = tageSeit(stand && stand.seit, heute);
+  const gesamt = Object.values(befehle).reduce((summe, z) => summe + z, 0);
+
+  const mitZahl = BEOBACHTETE.filter((b) => b.messbar).map((b) => ({ ...b, zahl: befehle[b.kennung] || 0 }));
+  const bericht = {
+    tage,
+    gesamt,
+    ansichten: Object.entries(ansichten)
+      .map(([name, zahl]) => ({ name, zahl }))
+      .sort((a, b) => b.zahl - a.zahl),
+    nie: mitZahl.filter((b) => b.zahl === 0),
+    selten: mitZahl.filter((b) => b.zahl > 0 && b.zahl < selten),
+    benutzt: mitZahl.filter((b) => b.zahl >= selten),
+    nichtMessbar: BEOBACHTETE.filter((b) => !b.messbar)
+  };
+  // Je nach Lage ein anderer Satz - und nie ein Urteil ohne Grundlage.
+  if (!gesamt) {
+    bericht.urteil = 'Noch nichts gezählt. Die Probe beginnt mit dem ersten Befehl.';
+  } else if (tage < 7) {
+    bericht.urteil = `Erst ${tage} ${tage === 1 ? 'Tag' : 'Tage'} und ${gesamt} ${gesamt === 1 ? 'Befehl' : 'Befehle'} – zu wenig für ein Urteil. Nach ein paar Wochen Arbeit sagt diese Liste etwas.`;
+  } else if (!bericht.nie.length) {
+    bericht.urteil = `In ${tage} Tagen wurde jeder beobachtete Befehl mindestens einmal gebraucht. Kein Fall zum Entfernen.`;
+  } else {
+    bericht.urteil =
+      `In ${tage} Tagen und ${gesamt} ${gesamt === 1 ? 'Befehl' : 'Befehlen'} nie gedrückt: ` +
+      `${bericht.nie.map((b) => b.label).join(', ')}. Das ist ein Grund zu fragen, nicht zu löschen.`;
+  }
+  return bericht;
+}
+
+/** Dieselbe Auskunft als Text - für den Bericht der Prüfung. */
+export function gebrauchText(bericht = {}) {
+  const zeilen = ['Gebrauch', '='.repeat(8), '', bericht.urteil || '', ''];
+  const block = (titel, liste) => {
+    if (!liste || !liste.length) return;
+    zeilen.push(titel);
+    for (const eintrag of liste) {
+      zeilen.push(`  ${eintrag.feature}  ${eintrag.label} (${eintrag.wo})` + (eintrag.zahl === undefined ? '' : ` – ${eintrag.zahl}×`));
+    }
+    zeilen.push('');
+  };
+  block('Nie gedrückt', bericht.nie);
+  block('Selten gedrückt', bericht.selten);
+  block('Benutzt', bericht.benutzt);
+  block('Durch Zählen nicht zu beantworten', bericht.nichtMessbar);
+  if (bericht.ansichten && bericht.ansichten.length) {
+    zeilen.push('Ansichten geöffnet');
+    for (const a of bericht.ansichten) zeilen.push(`  ${a.name} – ${a.zahl}×`);
+    zeilen.push('');
+  }
+  zeilen.push('Diese Zahlen stehen allein im Browser dieses Rechners.');
+  return zeilen.join('\n');
+}
+
 /** Sucht in Nummer und Thema; ohne Suchtext kommt alles zurueck. */
 export function sucheGliederung(eintraege = [], text) {
   const gesucht = normalisiereLang(String(text || ''));

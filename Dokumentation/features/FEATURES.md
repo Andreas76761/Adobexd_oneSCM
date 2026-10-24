@@ -1933,3 +1933,37 @@ abspielt – gefragt mit `canPlayType`, nicht geraten.
 `videoStand`, `istVideo`, `VIDEO_FORMATE` – alle ohne Oberfläche, alle
 geprüft.
 
+## F-73 · Gebrauch – die Probe mit den Verdachtsfällen
+
+**Seit** 1.56.0 · betrifft Prüfung, alle Ansichten
+
+**Das Problem** Die [Durchsicht](../durchsicht.md) nannte sechs Funktionen,
+die wahrscheinlich tot sind, und konnte nichts entscheiden: es gab **keine
+Nutzungsdaten**. Die Seite zählt nichts und schickt nichts weg – das ist
+Absicht und bleibt. Aber was jemand selbst benutzt, darf er selbst wissen.
+
+**Die Lösung** Ein einziger Zuhörer auf der Seite vermerkt, welcher Befehl
+gedrückt und welche Ansicht geöffnet wurde, im `localStorage` dieses
+Browsers (`screenarchiv:gebrauch`). Im Register **Prüfung** steht der
+Aufklapper *„Gebrauch: was Sie benutzen – und was nicht“* mit vier Listen:
+nie gedrückt, selten (unter dreimal), benutzt, und **durch Zählen nicht zu
+beantworten**.
+
+Der Bericht urteilt nicht, er sortiert – und sagt, wie lange schon gezählt
+wird, weil eine Woche nichts beweist. Steht etwas unter „nie“, heißt der
+Satz: *ein Grund zu fragen, nicht zu löschen.*
+
+**Wo die Zahlen bleiben** Im Browser dieses Rechners. Sie werden nicht
+verschickt, reisen nicht in der Projektdatei mit, und ein Knopf setzt sie
+zurück (zweimal gedrückt – eine Zählung entsteht in Wochen). Gezählt wird
+die Kennung des Knopfes, sonst nichts: keine Zeiten, keine Inhalte, keine
+Reihenfolge.
+
+**Was sich so nicht beantworten lässt** Eine Kennzahlenleiste (F-08, F-09)
+wird angesehen, nicht gedrückt. Statt eine Zahl zu erfinden, steht sie in
+einer eigenen Liste.
+
+**Kern** `GEBRAUCH_SCHLUESSEL`, `GEBRAUCH_SELTEN`, `BEOBACHTETE`,
+`leseGebrauch`, `schreibeGebrauch`, `zaehleGebrauch`, `tageSeit`,
+`gebrauchBericht`, `gebrauchText`.
+

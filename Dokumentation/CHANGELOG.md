@@ -20,6 +20,39 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.56.0] – Gebrauch: die Probe mit den Verdachtsfällen
+
+Der letzte offene Posten der [Durchsicht](durchsicht.md).
+
+### Neu
+* **Gebrauch zählen** (F-73): ein Zuhörer vermerkt, welcher Befehl gedrückt
+  und welche Ansicht geöffnet wurde – im `localStorage` dieses Browsers.
+  Nichts wird verschickt, nichts reist in der Projektdatei mit, ein Knopf
+  setzt zurück (zweimal gedrückt)
+* **Aufklapper „Gebrauch“ im Register Prüfung**: nie gedrückt, selten,
+  benutzt – und **durch Zählen nicht zu beantworten**, für alles Passive wie
+  die Kennzahlenleiste
+* Der Bericht urteilt nicht, er sortiert, und nennt die Dauer der Zählung;
+  unter sieben Tagen sagt er ausdrücklich, dass es zu wenig ist. Steht etwas
+  unter „nie“: *ein Grund zu fragen, nicht zu löschen*
+* „Als Textdatei“ gibt dieselbe Auskunft zum Weitergeben – mit dem Satz,
+  dass die Zahlen allein in diesem Browser stehen
+
+### Kern
+* `GEBRAUCH_SCHLUESSEL`, `GEBRAUCH_SELTEN`, `BEOBACHTETE`, `leseGebrauch`,
+  `schreibeGebrauch`, `zaehleGebrauch`, `tageSeit`, `gebrauchBericht`,
+  `gebrauchText`
+
+### Beim Bauen aufgefallen
+* Der erste Entwurf las die Zählung beim Laden von `ui.js` und brach den
+  Start der Seite ab: `heute` steht in `aufnahme.js`, also dahinter, und ein
+  `const` wird nicht vorgezogen – genau der Fall, vor dem das
+  Projektgedächtnis warnt. Gelesen wird jetzt in `verdrahteGebrauch()` aus
+  `starte()` heraus
+
+### Prüfung
+* 4 neue Kernprüfungen, 2 neue Browserprüfungen; zusammen 499
+
 ## [1.55.0] – Register Video: aus Bildschirmvideos werden Handbuchbilder
 
 ### Neu

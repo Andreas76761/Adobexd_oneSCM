@@ -3848,4 +3848,81 @@ s.test('der Stand der Videoansicht zählt, was da ist (1.55.0)', () => {
   gleich(kern.videoStand([{ zeit: 1, text: 'a' }, { zeit: 9 }], 12), '2 Bilder · 00:01,0 bis 00:09,0 von 00:12,0 · 1 gedeutet');
 });
 
+s.test('der Gebrauch wird gezählt, ohne den alten Stand zu verändern (1.56.0)', () => {
+  const leer = kern.leseGebrauch(null, '2026-10-01');
+  tieferGleich(leer, { seit: '2026-10-01', befehle: {}, ansichten: {} });
+
+  const eins = kern.zaehleGebrauch(leer, 'befehl', 'beleg-oeffnen', '2026-10-01');
+  gleich(eins.befehle['beleg-oeffnen'], 1);
+  tieferGleich(leer.befehle, {}, 'der alte Stand wurde verändert');
+
+  const zwei = kern.zaehleGebrauch(eins, 'befehl', 'beleg-oeffnen', '2026-10-01');
+  gleich(zwei.befehle['beleg-oeffnen'], 2);
+  const mitAnsicht = kern.zaehleGebrauch(zwei, 'ansicht', 'video', '2026-10-01');
+  gleich(mitAnsicht.ansichten.video, 1);
+  gleich(mitAnsicht.befehle['beleg-oeffnen'], 2, 'die Befehle gingen beim Zählen der Ansicht verloren');
+
+  // Ein leerer Name zählt nicht - sonst stünde da ein Eintrag ohne Befehl.
+  gleich(kern.zaehleGebrauch(leer, 'befehl', '').befehle[''], undefined);
+  gleich(kern.zaehleGebrauch(leer, 'befehl', '   '), leer);
+
+  // Schreiben und wieder lesen ergibt denselben Stand.
+  tieferGleich(kern.leseGebrauch(kern.schreibeGebrauch(mitAnsicht)), mitAnsicht);
+  // Unsinn im Speicher gilt als kein Stand, nicht als Fehler.
+  tieferGleich(kern.leseGebrauch('{kaputt', '2026-10-01'), { seit: '2026-10-01', befehle: {}, ansichten: {} });
+  tieferGleich(kern.leseGebrauch('"text"', '2026-10-01').befehle, {});
+  // Werte, die keine Zahlen sind, kommen nicht durch.
+  const schmutz = kern.leseGebrauch(JSON.stringify({ seit: 'x', befehle: { a: 'viel', b: -2, c: 3 } }));
+  tieferGleich(schmutz.befehle, { c: 3 });
+});
+
+s.test('die Tage werden gezählt, nicht geschätzt (1.56.0)', () => {
+  gleich(kern.tageSeit('2026-10-01', '2026-10-24'), 23);
+  gleich(kern.tageSeit('2026-10-24', '2026-10-24'), 1, 'der erste Tag zählt als einer');
+  gleich(kern.tageSeit('', '2026-10-24'), 0);
+  gleich(kern.tageSeit('2026-10-24', '2026-10-01'), 0, 'rückwärts gibt es keine Tage');
+});
+
+s.test('der Bericht sortiert, statt zu urteilen (1.56.0)', () => {
+  const ohne = kern.gebrauchBericht(kern.leseGebrauch(null, '2026-10-24'), '2026-10-24');
+  gleich(ohne.gesamt, 0);
+  wahr(ohne.urteil.includes('Noch nichts gezählt'), ohne.urteil);
+
+  // Eine Woche ist zu kurz - das sagt der Bericht selbst.
+  let stand = kern.leseGebrauch(null, '2026-10-20');
+  stand = kern.zaehleGebrauch(stand, 'befehl', 'strecke-bpmn', '2026-10-20');
+  const kurz = kern.gebrauchBericht(stand, '2026-10-23');
+  wahr(kurz.urteil.includes('zu wenig für ein Urteil'), kurz.urteil);
+
+  // Lange genug, und ein Befehl ist oft gedrückt: er steht unter „benutzt".
+  let lang = kern.leseGebrauch(null, '2026-08-01');
+  for (let i = 0; i < 5; i++) lang = kern.zaehleGebrauch(lang, 'befehl', 'strecke-bpmn', '2026-08-01');
+  lang = kern.zaehleGebrauch(lang, 'befehl', 'beleg-oeffnen', '2026-08-01');
+  const bericht = kern.gebrauchBericht(lang, '2026-10-24');
+  gleich(bericht.benutzt.map((b) => b.kennung).join(), 'strecke-bpmn');
+  gleich(bericht.selten.map((b) => b.kennung).join(), 'beleg-oeffnen');
+  wahr(bericht.nie.length > 0, 'nichts steht unter „nie"');
+  wahr(bericht.urteil.includes('nie gedrückt'), bericht.urteil);
+  // Kein Urteil, nur ein Grund zu fragen.
+  wahr(bericht.urteil.includes('nicht zu löschen'), bericht.urteil);
+
+  // Was sich durch Zählen nicht beantworten lässt, steht als solches da.
+  gleich(bericht.nichtMessbar.length, 1);
+  wahr(bericht.nichtMessbar[0].feature.includes('F-08'), bericht.nichtMessbar[0].feature);
+  wahr(bericht.nichtMessbar.every((b) => b.zahl === undefined), 'eine Zahl, wo es keine gibt');
+});
+
+s.test('der Gebrauch als Text nennt die Herkunft der Zahlen (1.56.0)', () => {
+  let stand = kern.leseGebrauch(null, '2026-08-01');
+  stand = kern.zaehleGebrauch(stand, 'befehl', 'beleg-oeffnen', '2026-08-01');
+  stand = kern.zaehleGebrauch(stand, 'ansicht', 'video', '2026-08-01');
+  const text = kern.gebrauchText(kern.gebrauchBericht(stand, '2026-10-24'));
+  wahr(text.startsWith('Gebrauch'), text.slice(0, 40));
+  wahr(text.includes('Nie gedrückt'), text);
+  wahr(text.includes('Ansichten geöffnet'), text);
+  wahr(text.includes('video – 1×'), text);
+  // Der Satz, der sagt, wohin die Zahlen nicht gehen.
+  wahr(text.includes('allein im Browser dieses Rechners'), text);
+});
+
 export default s;

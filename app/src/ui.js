@@ -95,6 +95,79 @@ window.addEventListener('hashchange', () => {
   if (zustand.auswahl) oeffneDetail(zustand.auswahl, false);
 });
 
+/* ------------------------------------------- Gebrauch zählen (1.56.0) */
+
+/*
+ * Was jemand selbst benutzt, darf er selbst wissen. Gezählt wird im
+ * `localStorage` dieses Browsers - nichts davon verlässt den Rechner,
+ * nichts reist in der Projektdatei mit. Warum überhaupt: die Durchsicht
+ * nannte sechs wahrscheinlich tote Funktionen und konnte nichts
+ * entscheiden, weil es keine Zahlen gab.
+ */
+/*
+ * Gelesen wird erst in `verdrahteGebrauch()`, nicht beim Laden: `heute`
+ * steht in `aufnahme.js`, also hinter dieser Datei, und ein `const` wird
+ * nicht vorgezogen. Beim Laden wäre es ein Fehler beim Start der Seite.
+ */
+let gebrauch = { seit: '', befehle: {}, ansichten: {} };
+
+function leseGebrauchAusSpeicher() {
+  try {
+    return leseGebrauch(localStorage.getItem(GEBRAUCH_SCHLUESSEL), heute());
+  } catch (fehler) {
+    return leseGebrauch(null, heute());
+  }
+}
+
+/** Einen Druck vermerken. Scheitert der Speicher, wird nicht gezählt - das
+ *  ist kein Fehler, der jemanden aufhalten darf. */
+function vermerke(art, kennung) {
+  gebrauch = zaehleGebrauch(gebrauch, art, kennung, heute());
+  try {
+    localStorage.setItem(GEBRAUCH_SCHLUESSEL, schreibeGebrauch(gebrauch));
+  } catch (fehler) {
+    /* voller oder gesperrter Speicher: dann eben nur für diese Sitzung */
+  }
+}
+
+function setzeGebrauchZurueck() {
+  gebrauch = leseGebrauch(null, heute());
+  try {
+    localStorage.removeItem(GEBRAUCH_SCHLUESSEL);
+  } catch (fehler) {
+    /* nichts zu tun */
+  }
+}
+
+/**
+ * Ein einziger Zuhörer für die ganze Seite statt eines Zählers in jedem
+ * Befehl: so bleibt die Zählung aus der Bedienung heraus und kann nichts
+ * kaputt machen, was sie zählt.
+ */
+function verdrahteGebrauch() {
+  gebrauch = leseGebrauchAusSpeicher();
+  document.addEventListener(
+    'click',
+    (e) => {
+      const knopf = e.target && e.target.closest ? e.target.closest('button') : null;
+      if (!knopf) return;
+      if (knopf.dataset && knopf.dataset.modus) return vermerke('befehl', 'modus:' + knopf.dataset.modus);
+      if (knopf.dataset && knopf.dataset.ansicht) return; // Ansichten zählt `setze`
+      if (knopf.id) vermerke('befehl', knopf.id);
+    },
+    true
+  );
+  // Ein Aufklapper wird benutzt, indem man ihn öffnet - nicht durch Klicken.
+  document.addEventListener(
+    'toggle',
+    (e) => {
+      const ziel = e.target;
+      if (ziel && ziel.tagName === 'DETAILS' && ziel.open && ziel.id) vermerke('befehl', 'details:' + ziel.id);
+    },
+    true
+  );
+}
+
 function setze(aenderung, neuZeichnen = true) {
   const vorher = zustand.ansicht;
   zustand = { ...zustand, ...aenderung };
@@ -102,6 +175,7 @@ function setze(aenderung, neuZeichnen = true) {
   if (neuZeichnen) zeichne();
   // Das Ordnerband behauptet, den tatsaechlichen Inhalt zu zeigen - beim
   // Betreten des Archivs wird er darum frisch gelesen, nicht erinnert.
+  if (zustand.ansicht !== vorher) vermerke('ansicht', zustand.ansicht);
   if (zustand.ansicht === 'archiv' && vorher !== 'archiv' && ordnerZugriff) zeigeOrdnerImArchiv();
   // Editor und Strecke kennen den Eingang erst, wenn sie sichtbar sind.
   if (zustand.ansicht === 'markieren') zeichneMarkieren();
@@ -1024,6 +1098,7 @@ $('#lupe-schliessen').addEventListener('click', () => $('#lupe-dialog').close())
   angelegte Zustaende bereits stehen. */
 function starte() {
 richteSchub();
+verdrahteGebrauch();
 zeichne();
 // Auch beim Aufruf mit #ans=markieren oder #ans=strecke muss die Ansicht
 // gefüllt sein.

@@ -198,8 +198,87 @@ function zeichnePruefung() {
   if (document.getElementById('pruefung-ansicht').hidden) return;
   $('#pruef-agenten').replaceChildren(...AGENTEN.map(agentKarte));
   zeichneWortliste();
+  zeichneGebrauch();
   $('#pruef-bericht').disabled = !Object.keys(pruefErgebnisse).length;
   zeichneVergleich();
+}
+
+/* --------------------------------------------- Gebrauch: die Probe (1.56.0) */
+
+/**
+ * Die Zählung aus `ui.js`, sortiert hingelegt. Sie urteilt nicht - sie sagt,
+ * was nie gedrückt wurde, und wie lange schon gezählt wird. Eine Woche
+ * beweist nichts, und das steht auch da.
+ */
+function zeichneGebrauch() {
+  const kasten = $('#gebrauch-listen');
+  if (!kasten) return;
+  const bericht = gebrauchBericht(gebrauch, heute());
+
+  $('#gebrauch-urteil').textContent = bericht.urteil;
+  $('#gebrauch-stand').textContent = bericht.gesamt
+    ? `${bericht.gesamt} Befehl${bericht.gesamt === 1 ? '' : 'e'} in ${bericht.tage} ${bericht.tage === 1 ? 'Tag' : 'Tagen'}`
+    : 'noch nichts gezählt';
+
+  const liste = (titel, eintraege, art) =>
+    eintraege.length
+      ? el('div', { klasse: 'gebrauch-gruppe gebrauch-gruppe--' + art }, [
+          el('h3', { klasse: 'abschnitt-titel', text: titel }),
+          el(
+            'ul',
+            { klasse: 'gebrauch-liste' },
+            eintraege.map((e) =>
+              el('li', {}, [
+                el('span', { klasse: 'kennung', text: e.feature }),
+                el('span', { text: ` ${e.label} ` }),
+                el('span', { klasse: 'feld-hinweis', text: `(${e.wo})` }),
+                e.zahl === undefined ? null : el('b', { klasse: 'gebrauch-zahl', text: `${e.zahl}×` })
+              ].filter(Boolean))
+            )
+          )
+        ])
+      : null;
+
+  const teile = [
+    liste('Nie gedrückt', bericht.nie, 'nie'),
+    liste('Selten gedrückt', bericht.selten, 'selten'),
+    liste('Benutzt', bericht.benutzt, 'benutzt'),
+    liste('Durch Zählen nicht zu beantworten', bericht.nichtMessbar, 'offen')
+  ].filter(Boolean);
+
+  if (bericht.ansichten.length) {
+    teile.push(
+      el('div', { klasse: 'gebrauch-gruppe' }, [
+        el('h3', { klasse: 'abschnitt-titel', text: 'Ansichten geöffnet' }),
+        el(
+          'ul',
+          { klasse: 'gebrauch-liste' },
+          bericht.ansichten.map((a) =>
+            el('li', {}, [el('span', { text: a.name + ' ' }), el('b', { klasse: 'gebrauch-zahl', text: `${a.zahl}×` })])
+          )
+        )
+      ])
+    );
+  }
+  kasten.replaceChildren(...teile);
+}
+
+function meldeGebrauch(text, art = 'neutral') {
+  const zeile = $('#gebrauch-meldung');
+  if (!zeile) return;
+  zeile.textContent = text;
+  zeile.className = 'studio-meldung studio-meldung--' + art;
+}
+
+async function sichereGebrauch() {
+  const name = `screenarchiv-gebrauch-${heute()}.txt`;
+  const ergebnis = await uebergebeDatei(name, gebrauchText(gebrauchBericht(gebrauch, heute())));
+  meldeGebrauch(
+    ergebnis.art === 'gesichert'
+      ? `${name} gesichert – die Zahlen stehen weiter allein in diesem Browser.`
+      : 'Diese Ansicht darf keine Datei ablegen. Die Zahlen stehen oben.',
+    ergebnis.art === 'gesichert' ? 'gut' : 'warnung'
+  );
 }
 
 /* ----------------------------------------------- Projektvergleich (1.37.0) */
@@ -537,6 +616,25 @@ function verdrahtePruefung() {
   $('#vergleich-sichern').addEventListener('click', sichereVergleich);
   $('#unterschied-schliessen').addEventListener('click', () => $('#unterschied-dialog').close());
   $('#unterschied-sichern').addEventListener('click', sichereUnterschied);
+  $('#gebrauch-sichern').addEventListener('click', sichereGebrauch);
+  $('#gebrauch-zuruecksetzen').addEventListener('click', () => {
+    const knopf = $('#gebrauch-zuruecksetzen');
+    // Zweimal drücken: eine Zählung ist in Wochen entstanden.
+    if (!knopf.dataset.bestaetigt) {
+      knopf.dataset.bestaetigt = 'ja';
+      knopf.textContent = 'Wirklich zurücksetzen?';
+      setTimeout(() => {
+        delete knopf.dataset.bestaetigt;
+        knopf.textContent = 'Zählung zurücksetzen';
+      }, 4000);
+      return;
+    }
+    setzeGebrauchZurueck();
+    delete knopf.dataset.bestaetigt;
+    knopf.textContent = 'Zählung zurücksetzen';
+    zeichneGebrauch();
+    meldeGebrauch('Die Zählung beginnt von vorn.', 'neutral');
+  });
   $('#wortliste-sichern').addEventListener('click', sichereWortliste);
   $('#wortliste-zurueck').addEventListener('click', () => {
     wortliste = [...STANDARD_WORTLISTE];

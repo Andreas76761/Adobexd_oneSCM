@@ -392,6 +392,75 @@ s.test('der Agent Sprache prüft gegen die Wortliste', () =>
     { hash: AUFNAHME }
   ));
 
+s.test('die Zählung merkt sich, was gedrückt wurde – und bleibt im Browser (1.56.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Ein paar Befehle und Ansichtswechsel.
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.click('#beleg-oeffnen');
+      await seite.waitForTimeout(200);
+      await seite.click('.portal-nav button[data-ansicht="pruefung"]');
+      await seite.evaluate(() => (document.getElementById('gebrauch-block').open = true));
+      await seite.waitForTimeout(300);
+
+      const stand = await seite.evaluate(() => JSON.parse(localStorage.getItem('screenarchiv:gebrauch')));
+      gleich(stand.befehle['beleg-oeffnen'], 1);
+      gleich(stand.ansichten.eingang, 1);
+      gleich(stand.ansichten.pruefung, 1);
+
+      // Nach einem Tag ist nichts entschieden - und der Bericht sagt das.
+      const urteil = await seite.locator('#gebrauch-urteil').innerText();
+      wahr(urteil.includes('zu wenig für ein Urteil'), urteil);
+      // Der gedrückte Befehl steht nicht mehr unter „nie".
+      const nie = await seite.locator('.gebrauch-gruppe--nie').innerText();
+      wahr(!nie.includes('Beleg bilden'), nie);
+      // Was sich nicht zählen lässt, wird genannt statt behauptet. Gelesen
+      // wird das Markup - angezeigt werden die Überschriften in Kapitälchen.
+      const listen = await seite.evaluate(() => document.getElementById('gebrauch-listen').textContent);
+      wahr(listen.includes('Durch Zählen nicht zu beantworten'), listen);
+      wahr(listen.includes('Kennzahlen'), listen);
+    },
+    { hash: '#ans=archiv' }
+  ));
+
+s.test('die Zählung lässt sich zurücksetzen – zweimal gedrückt (1.56.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.click('#beleg-oeffnen');
+      await seite.waitForTimeout(200);
+      await seite.click('.portal-nav button[data-ansicht="pruefung"]');
+      await seite.evaluate(() => (document.getElementById('gebrauch-block').open = true));
+      await seite.waitForTimeout(300);
+      wahr(
+        (await seite.evaluate(() => localStorage.getItem('screenarchiv:gebrauch'))) !== null,
+        'es wurde nichts gezählt'
+      );
+
+      // Einmal drücken fragt nach - eine Zählung entsteht in Wochen.
+      await seite.click('#gebrauch-zuruecksetzen');
+      gleich(await seite.locator('#gebrauch-zuruecksetzen').innerText(), 'Wirklich zurücksetzen?');
+      wahr(
+        (await seite.evaluate(() => localStorage.getItem('screenarchiv:gebrauch'))) !== null,
+        'der erste Druck hat schon gelöscht'
+      );
+
+      await seite.click('#gebrauch-zuruecksetzen');
+      await seite.waitForTimeout(300);
+      // Das Zurücksetzen selbst wird wieder mitgezählt; „beleg-oeffnen" nicht mehr.
+      const stand = await seite.evaluate(() => {
+        const roh = localStorage.getItem('screenarchiv:gebrauch');
+        return roh ? JSON.parse(roh) : null;
+      });
+      wahr(!stand || !stand.befehle['beleg-oeffnen'], 'die alte Zählung steht noch da');
+      wahr(
+        (await seite.locator('#gebrauch-meldung').innerText()).includes('beginnt von vorn'),
+        await seite.locator('#gebrauch-meldung').innerText()
+      );
+    },
+    { hash: '#ans=archiv' }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;
