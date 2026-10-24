@@ -889,6 +889,36 @@ function baueFormular() {
       feldGruppe('land', 'Land', eingabe('land', 'Germany'), null)
     ]),
     projektVerwaltung(),
+    // Die Stelle schon hier, nicht erst in der Nachpflege: wer eine Reihe
+    // für ein Kapitel aufnimmt, nimmt sie für *ein* Kapitel auf. Sie wandert
+    // über die Vorlage in die nächste Aufnahme mit und füllt {kapitel} im
+    // Namensmuster des Ausschneidens.
+    feldGruppe(
+      'gliederung',
+      'Stelle im Handbuch',
+      el('input', {
+        id: 'feld-gliederung',
+        type: 'text',
+        list: 'gliederung-vorschlaege',
+        value: entwurf.gliederung || '',
+        placeholder: '7.5.1 oder Thema suchen',
+        autocomplete: 'off',
+        oninput: (e) => {
+          const roh = String(e.target.value || '').trim();
+          entwurf.gliederung = (roh.match(/^[0-9A-Z]+(\.[0-9]+)*/) || [''])[0];
+          fuelleStellenvorschlaege(roh);
+          const zeile = document.getElementById('feld-gliederung-thema');
+          if (zeile) {
+            zeile.textContent = entwurf.gliederung
+              ? gliederungKennung(GLIEDERUNG, entwurf.gliederung)
+              : 'ohne Stelle – lässt sich im Eingang nachtragen';
+          }
+          zeichneStudio();
+        }
+      }),
+      null
+    ),
+    el('span', { klasse: 'feld-hinweis', id: 'feld-gliederung-thema' }),
     feldGruppe('seite', 'Seite', eingabe('seite', '/portal/bestellungen'), null),
     el('div', { klasse: 'feld-paar' }, [
       feldGruppe('datum', 'Datum', eingabe('datum', '', 'date'), null),
@@ -1223,6 +1253,7 @@ function fuelleFormular() {
   setzeWert('projekt', entwurf.projekt);
   setzeWert('version', entwurf.version || '');
   setzeWert('land', entwurf.land || '');
+  setzeWert('gliederung', entwurf.gliederung || '');
   setzeWert('seite', entwurf.seite);
   setzeWert('datum', entwurf.datum);
   setzeWert('kategorie', entwurf.kategorie);

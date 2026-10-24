@@ -206,7 +206,7 @@ nicht verfügbar, gilt der Schieberegler als Vorgabe; ein Fehler entsteht nicht.
 
 **geändert in** 1.51.0 (siehe F-70)
 
-Oben links, unter dem Titel, stehen die **dreizehn** Ansichten – seit 1.51.0
+Oben links, unter dem Titel, stehen die **vierzehn** Ansichten – seit 1.51.0
 in fünf benannten Aufgaben (Bestand, Hereinholen, Aufbereiten, Ordnen und
 prüfen, Ausgeben), davor als eine Reihe. Am Eingang zeigt eine Marke, wie
 viele Aufnahmen dort liegen. Die Ansicht steht in der Adresszeile
@@ -263,6 +263,11 @@ Quelle und misst mindestens 32 × 32 Bildpunkte.
 ---
 
 ## F-19 · Metadaten und Datum
+
+**geändert in** 1.58.0: der Entwurf trägt eine **Stelle im Handbuch**. Sie
+bleibt über das Auslösen hinaus stehen – wer eine Reihe für ein Kapitel
+aufnimmt, nimmt sie für *ein* Kapitel auf – und füllt `{kapitel}` im
+Namensmuster des Ausschneidens (F-26).
 
 Rechts stehen die Angaben für die **nächste** Aufnahme: Titel, Projekt (mit
 Vorschlagsliste), Seite, Datum, Rolle (Vorher, Nachher, Einzelaufnahme),
@@ -1242,7 +1247,8 @@ Die übrigen Prüfungen fragen, ob ein Weg zum richtigen Ergebnis führt. Diese
 fragt etwas Gröberes und darum Wichtiges: **bricht irgendwo etwas, wenn man
 einfach alles drückt?** Sie legt einen Grundbestand an, bereitet jede Ansicht
 so vor, dass ihre Befehle etwas zu tun haben, und drückt dann jeden
-sichtbaren, nicht gesperrten Knopf – über 90 in elf Ansichten. Gezählt werden
+sichtbaren, nicht gesperrten Knopf – über 90 in allen vierzehn Ansichten
+(Output und OCR seit 1.51.0, Video seit 1.55.0). Gezählt werden
 Seitenfehler, Fehler in der Konsole und eine Seite, die nicht mehr antwortet.
 Ein eigener Fall drückt zuletzt die zerstörenden Befehle (Löschen, Verwerfen,
 Leeren), ein dritter die Tastaturbefehle (`/`, Leertaste, Strg+Z).
@@ -1845,7 +1851,7 @@ Reihenfolge, in der die Arbeit läuft:
 | Aufgabe | Ansichten |
 | --- | --- |
 | **Bestand** | Archiv, Eingang |
-| **Hereinholen** | Aufnahme, Import, Ausschneiden |
+| **Hereinholen** | Aufnahme, Import, Video, Ausschneiden |
 | **Aufbereiten** | Editor, Strecke, OCR |
 | **Ordnen und prüfen** | Gliederung, Prüfung |
 | **Ausgeben** | Design, Output, Verzeichnis |
@@ -1990,4 +1996,34 @@ und die Meldung sagt, wie viele das sind.
 **Kern** `streckeAusVideo(bilder, name, zeit)` und
 `streckenNameAusVideo(dateiname)` – die Sortierung geschieht auf einer
 Kopie, die übergebene Liste bleibt unberührt.
+
+## F-75 · Die Stelle schon beim Aufnehmen
+
+**Seit** 1.58.0 · betrifft Aufnahme, Ausschneiden · **ändert** F-19, F-26
+
+**Das Problem** Drei Dinge, die zusammenhingen und nicht zusammenpassten:
+
+* Der Platzhalter `{kapitel}` im Namensmuster wurde vom Kern umgesetzt und
+  vom **Editor** gefüllt – vom **Ausschneiden** nicht. Derselbe Muster-Text
+  gilt für beide; wer `{kapitel}/…` einstellte, verlor beim Ausschneiden
+  still eine Ordnerebene.
+* Die Liste der Bausteine unter dem Musterfeld war von Hand geschrieben und
+  ließ `{kapitel}` aus, obwohl es den Kern-Eintrag `MUSTER_FELDER` gab, der
+  ihn kennt. Zwei Quellen, eine davon falsch.
+* Die Aufnahme hatte **kein Feld für die Stelle**. Sie entstand erst in der
+  Nachpflege – also nach dem Ablegen der Datei, zu spät für den Dateinamen.
+
+**Die Lösung** Die Ansicht Aufnahme bekommt ein Feld **Stelle im Handbuch**
+mit denselben Vorschlägen wie überall; darunter steht das Thema der
+gewählten Stelle. Die Stelle bleibt über das Auslösen hinaus stehen, wie die
+Labels – eine Reihe für ein Kapitel wird in *einem* Kapitel aufgenommen.
+
+Damit füllt das Ausschneiden `{kapitel}` wirklich, und die Bausteinliste
+kommt aus `MUSTER_FELDER` statt aus der Seite. Aus `7.5.1` wird im
+Dateinamen `7-5-1` – ein Punkt gehört dort nicht hin.
+
+**Nebenbei entfernt** `markiertName` aus dem Kern: seit 1.20.0 erledigt
+`fassungName` dieselbe Aufgabe besser (mit Art und Nummer der Fassung). Die
+Funktion stand seither unbenutzt da und wurde nur noch von ihrer eigenen
+Prüfung am Leben gehalten.
 

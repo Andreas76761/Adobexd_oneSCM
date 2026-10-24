@@ -985,6 +985,35 @@ s.test('der gewählte Ordner wird für das nächste Mal gemerkt', () =>
     }
   ));
 
+s.test('{kapitel} im Namensmuster wird gefüllt, nicht verschluckt (1.58.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Die Bausteine stehen nicht mehr von Hand in der Seite, sondern
+      // kommen aus dem Kern - darum ist {kapitel} überhaupt zu sehen.
+      const bausteine = await seite.locator('#muster-bausteine').innerText();
+      wahr(bausteine.includes('{kapitel}'), bausteine);
+      wahr(bausteine.includes('{kategorie}'), bausteine);
+
+      // Ohne Stelle bleibt der Platzhalter leer - und erfindet nichts.
+      await seite.fill('#ablage-muster', '{kapitel}/bild-{nummer}');
+      await seite.waitForTimeout(250);
+      const ohne = await seite.locator('#muster-beispiel').innerText();
+      wahr(!ohne.includes('7-5-1'), ohne);
+
+      // Mit Stelle an der Aufnahme landet das Kapitel im Pfad.
+      await seite.click('.portal-nav button[data-ansicht="aufnahme"]');
+      await seite.fill('#feld-gliederung', '7.5.1');
+      await seite.waitForTimeout(200);
+      await seite.click('.portal-nav button[data-ansicht="ausschneiden"]');
+      await seite.waitForTimeout(300);
+      const mit = await seite.locator('#muster-beispiel').innerText();
+      wahr(mit.includes('7-5-1'), 'das Kapitel fehlt im Beispiel: ' + mit);
+      // Der Punkt der Gliederungsnummer gehört nicht in einen Dateinamen.
+      wahr(!mit.includes('7.5.1'), mit);
+    },
+    { hash: SCHNEIDEN }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

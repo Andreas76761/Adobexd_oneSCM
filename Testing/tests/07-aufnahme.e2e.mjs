@@ -1679,6 +1679,42 @@ s.test('„Als JSON sichern" sagt beim Sichern, was es nicht mitnimmt (1.53.0)',
     { hash: AUFNAHME, initSkript: mitAblage }
   ));
 
+s.test('die Stelle steht schon beim Aufnehmen und bleibt für die Reihe (1.58.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await seite.fill('#feld-gliederung', '7.5.1');
+      await seite.waitForTimeout(200);
+      wahr(
+        (await seite.locator('#feld-gliederung-thema').innerText()).includes('Dokumentierte Signaturwege'),
+        await seite.locator('#feld-gliederung-thema').innerText()
+      );
+
+      await seite.click('#quelle-beispiel');
+      await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 5000 });
+      await seite.fill('#feld-titel', 'Signaturmaske');
+      await seite.fill('#feld-projekt', 'oneSCM Portal');
+      await seite.selectOption('#feld-kategorie', 'Formular');
+      await seite.fill('#feld-begriffe', 'vorlage');
+      await seite.click('#ausloesen');
+      await seite.waitForTimeout(200);
+
+      const [erste] = await eingangImSpeicher(seite);
+      gleich(erste.gliederung, '7.5.1', 'die Stelle kam nicht an der Aufnahme an');
+      // Sie gilt für die Reihe, nicht für ein Bild - das Feld bleibt stehen.
+      gleich(await seite.locator('#feld-gliederung').inputValue(), '7.5.1');
+
+      // Eine getippte Nummer wird aus „7.5.2 Thema" gewonnen.
+      await seite.fill('#feld-gliederung', '7.5.2 Signaturergebnis');
+      await seite.waitForTimeout(200);
+      await seite.fill('#feld-titel', 'Ergebnis');
+      await seite.click('#ausloesen');
+      await seite.waitForTimeout(200);
+      const [zweite] = await eingangImSpeicher(seite);
+      gleich(zweite.gliederung, '7.5.2');
+    },
+    { hash: AUFNAHME }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

@@ -456,7 +456,7 @@ function zeichneSchnipsel() {
   if (beipack.checked !== Boolean(ablage.beipack)) beipack.checked = Boolean(ablage.beipack);
   $('#beipack-zeile').hidden = !ablage.ordner && !ablage.datei;
   $('#beipack-beispiel').textContent = ablage.beipack
-    ? 'Beispiel: ' + beipackzettelName(dateinameAus(ablage.muster, { datum: heute(), nummer: '001' }))
+    ? 'Beispiel: ' + beipackzettelName(dateinameAus(ablage.muster, { kapitel: kapitelKennung(entwurf), datum: heute(), nummer: '001' }))
     : '';
 
   const muster = $('#ablage-muster');
@@ -464,6 +464,7 @@ function zeichneSchnipsel() {
   $('#muster-beispiel').textContent =
     'Beispiel: ' +
     dateinameAus(ablage.muster, {
+      kapitel: kapitelKennung(entwurf),
       datum: heute(),
       zeit: '14-32-05',
       nummer: String(schnipselZaehler + 1).padStart(3, '0'),
@@ -471,6 +472,18 @@ function zeichneSchnipsel() {
       titel: entwurf.titel,
       kategorie: entwurf.kategorie
     });
+
+  // Die Bausteine kommen aus dem Kern (`MUSTER_FELDER`), nicht aus der Seite:
+  // eine handgeschriebene Liste ließ bis 1.58.0 `{kapitel}` aus, obwohl es
+  // längst funktionierte.
+  const bausteine = $('#muster-bausteine');
+  if (bausteine && !bausteine.childNodes.length) {
+    bausteine.append(
+      el('span', { text: 'Bausteine: ' }),
+      ...MUSTER_FELDER.flatMap((f) => [el('code', { text: f.feld, title: f.erklaerung }), document.createTextNode(' ')]),
+      el('span', { text: '– die Metadaten stammen aus der Ansicht Aufnahme.' })
+    );
+  }
 
   const probleme = pruefeAblage(ablage);
   $('#schnipsel-start').disabled = probleme.length > 0 || Boolean(schnipselQuelle);
@@ -645,6 +658,10 @@ async function nimmSchnipsel() {
   const jetzt = new Date();
   const nummer = String(schnipselZaehler + 1).padStart(3, '0');
   const name = dateinameAus(ablage.muster, {
+    // Bis 1.58.0 fehlte hier das Kapitel: derselbe Muster-Text liegt für
+    // Editor und Ausschneiden, und der Editor füllte es. Ein Muster mit
+    // {kapitel} verlor hier darum still eine Ordnerebene.
+    kapitel: kapitelKennung(entwurf),
     datum: jetzt.toISOString().slice(0, 10),
     zeit: jetzt.toTimeString().slice(0, 8).replace(/:/g, '-'),
     nummer,

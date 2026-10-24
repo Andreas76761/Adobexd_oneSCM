@@ -3110,15 +3110,6 @@ export function rasterZuStufe(stufe) {
   return (treffer || UNKENNTLICH_STUFEN[1]).raster;
 }
 
-/**
- * Der Dateiname der bearbeiteten Fassung. Das Original behaelt seinen Namen -
- * die Kopie ist erkennbar eine Kopie.
- */
-export function markiertName(bildname) {
-  const text = String(bildname || 'bild.png');
-  const punkt = text.lastIndexOf('.');
-  return punkt > 0 ? `${text.slice(0, punkt)}-markiert${text.slice(punkt)}` : `${text}-markiert`;
-}
 
 /* ------------------------------------------------- Was hier geht (1.16.0) */
 

@@ -1100,9 +1100,13 @@ s.test('Marken überleben das Ablegen und Zurücklesen, Unbekanntes fällt weg',
 });
 
 s.test('die bearbeitete Fassung ist am Namen erkennbar', () => {
-  gleich(kern.markiertName('schirm-001.png'), 'schirm-001-markiert.png');
-  gleich(kern.markiertName('a.b.c.jpeg'), 'a.b.c-markiert.jpeg');
-  gleich(kern.markiertName('ohne-endung'), 'ohne-endung-markiert');
+  // Bis 1.20.0 hieß sie „…-markiert"; seither trägt sie Art und Nummer der
+  // Fassung, damit mehrere nebeneinander liegen können. Das Versprechen
+  // bleibt dasselbe: das Original behält seinen Namen.
+  gleich(kern.fassungName('schirm-001.png', 1, false), 'schirm-001_markiert_1.png');
+  gleich(kern.fassungName('schirm-001.png', 2, true), 'schirm-001_blurrt_2.png');
+  gleich(kern.fassungName('a.b.c.jpeg', 1, false), 'a.b.c_markiert_1.jpeg');
+  gleich(kern.fassungName('ohne-endung', 1, false), 'ohne-endung_markiert_1');
 });
 
 s.test('der Beipackzettel sagt, dass etwas abgedeckt wurde', () => {

@@ -20,6 +20,40 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.58.0] – Die Stelle schon beim Aufnehmen
+
+Aus einer Durchsicht des Codes: welche Ausfuhr des Kerns benutzt niemand?
+
+### Behoben
+* **`{kapitel}` im Namensmuster wurde beim Ausschneiden nicht gefüllt** –
+  der Editor füllte es, und beide teilen sich denselben Muster-Text. Wer
+  `{kapitel}/{titel}` einstellte, verlor beim Ausschneiden still eine
+  Ordnerebene, ohne Fehlermeldung
+* Die Bausteinliste unter dem Musterfeld war von Hand geschrieben und ließ
+  `{kapitel}` aus, obwohl der Kern-Eintrag `MUSTER_FELDER` ihn kennt. Sie
+  kommt jetzt von dort – eine Quelle statt zwei
+* Im Feature-Katalog drei Zahlen berichtigt: F-16 sprach von dreizehn
+  Ansichten (es sind vierzehn), F-49 von „elf Ansichten“, und F-70 ließ
+  Video in der Aufgabe *Hereinholen* aus
+
+### Neu
+* **Feld „Stelle im Handbuch“ in der Ansicht Aufnahme** (F-75): ohne es
+  konnte das Ausschneiden die Stelle gar nicht kennen – sie entstand erst in
+  der Nachpflege, also nach dem Ablegen der Datei. Die Stelle bleibt über das
+  Auslösen hinaus stehen, wie die Labels; darunter steht das Thema der
+  gewählten Stelle
+
+### Entfernt
+* `markiertName` aus dem Kern: seit 1.20.0 erledigt `fassungName` dieselbe
+  Aufgabe besser (mit Art und Nummer der Fassung). Die Funktion stand
+  unbenutzt da und wurde nur von ihrer eigenen Prüfung am Leben gehalten –
+  die prüft jetzt dasselbe Versprechen an `fassungName`
+
+### Prüfung
+* 2 neue Browserprüfungen (die Stelle am Entwurf, `{kapitel}` im Muster);
+  zusammen 504. Von 347 Ausfuhren des Kerns werden 345 benutzt – kein toter
+  Code sonst
+
 ## [1.57.0] – Aus dem Video wird eine Strecke
 
 ### Neu
