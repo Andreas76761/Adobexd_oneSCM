@@ -20,6 +20,37 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.62.0] – Gemessen statt geraten
+
+Mit einem selbst gebauten Messfilm, bei dem bekannt ist, wann sich etwas
+ändert – siehe `Testing/messungen/`.
+
+### Behoben
+* **Die Schwellen der Abtastung waren eine Größenordnung zu hoch.** Die
+  Voreinstellung (2 %) fand **3 von 10** Änderungen; auch die feinste
+  angebotene Stufe (0,5 %) verpasste vier. Ein ausgefülltes Feld ist in
+  einer Maske von 1280 × 720 nur zwei Promille der Fläche. Neue Stufen:
+  0,1 / **0,2 (Vorgabe)** / 0,5 / 2 / 8 %
+* **Beim Verkleinern ging die Schrift verloren.** 1280 px in einem Schritt
+  auf 192 heißt für den Browser: Punkte abtasten statt mitteln. Verkleinert
+  wird jetzt stufenweise, höchstens auf die Hälfte je Schritt – 8 von 10
+  wurden damit 10 von 10
+
+### Entfernt
+* Ein Umbau des Springens mit `requestVideoFrameCallback`, eingebaut auf
+  Verdacht: die Messung zeigte **kein einziges geändertes Ergebnis** bei bis
+  zu 120 ms Kosten je Abtaststelle
+
+### Neu
+* `Testing/messungen/` – `erzeuge-film.mjs` baut einen Bildschirmfilm einer
+  oneSCM-ähnlichen Maske samt `wahrheit.json`, `miss-abtastung.mjs` misst
+  die fertige Seite dagegen, `miss-kern.mjs` die Kernlogik ohne Browser.
+  Nicht Teil von `npm test`: dauert Minuten, braucht ffmpeg
+
+### Ergebnis
+* gefunden von 10 echten Änderungen: **3 → 10**, bei 11 statt 4 Bildern und
+  unverändert einem zusätzlichen (dem wandernden Mauszeiger)
+
 ## [1.61.0] – Zwei Wege ins Video, und eine ehrliche Ursache
 
 ### Behoben

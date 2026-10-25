@@ -1912,7 +1912,8 @@ herausnehmen, Text deuten lassen, in den Eingang übernehmen.
 
 * **Automatisch**: das Video wird an 12 bis 96 Stellen abgetastet; behalten
   wird ein Bild nur, wenn es sich vom zuletzt behaltenen um mehr als die
-  gewählte Schwelle (0,5 / 2 / 8 %) unterscheidet. Gerechnet wird mit dem
+  gewählte Schwelle unterscheidet (0,1 / **0,2** / 0,5 / 2 / 8 %, seit
+  1.62.0 an einem Messfilm gefunden statt geschätzt). Gerechnet wird mit dem
   Bildvergleich aus F-59. An jedem Bild steht, **warum** es dasteht
 * **Von Hand**: im Spieler an eine Stelle gehen, „Bild an dieser Stelle“
 * **Text deuten lassen** über `sample` wie in F-58: je Bild ein bis zwei

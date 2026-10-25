@@ -4029,7 +4029,9 @@ s.test('das Vorgehen überdauert den einzelnen Film (1.59.0)', () => {
   const standard = kern.leseVorgehen(null);
   gleich(standard.stufe, 'default');
   gleich(standard.aufforderung, '');
-  gleich(standard.anteil, 0.02);
+  // 0,2 % und nicht 2 %: an einem Messfilm gefunden (1.62.0) – bei 2 %
+  // wurden 3 von 10 echten Änderungen gefunden, bei 0,2 % alle zehn.
+  gleich(standard.anteil, 0.002);
 
   const eigenes = { aufforderung: 'Beschreibe knapp.', stufe: 'complex', anzahl: 48, anteil: 0.005, hoechstens: 0 };
   tieferGleich(kern.leseVorgehen(kern.schreibeVorgehen(eigenes)), eigenes);
@@ -4038,6 +4040,7 @@ s.test('das Vorgehen überdauert den einzelnen Film (1.59.0)', () => {
   gleich(kern.leseVorgehen('{kaputt').stufe, 'default');
   gleich(kern.leseVorgehen(JSON.stringify({ stufe: 'teuer' })).stufe, 'default');
   gleich(kern.leseVorgehen(JSON.stringify({ anzahl: -5 })).anzahl, 24);
+  gleich(kern.leseVorgehen(JSON.stringify({ anteil: -1 })).anteil, 0.002);
   gleich(kern.leseVorgehen(JSON.stringify({ aufforderung: 42 })).aufforderung, '');
 });
 

@@ -258,7 +258,14 @@ function verwirfVideo(auchBilder = true) {
 
 /* ------------------------------------------------------- Bilder entnehmen */
 
-/** Den Spieler an eine Stelle setzen und warten, bis das Bild dort steht. */
+/**
+ * Den Spieler an eine Stelle setzen und warten, bis er dort ist.
+ *
+ * Ein Umbau, der zusätzlich auf ein *dargestelltes* Bild wartete
+ * (`requestVideoFrameCallback`), wurde in 1.62.0 wieder entfernt: am
+ * Messfilm änderte er kein einziges Ergebnis, kostete aber bis zu 120 ms
+ * je Abtaststelle. Gemessen, nicht vermutet.
+ */
 function springe(spieler, zeit) {
   return new Promise((fertig) => {
     const fertigMelden = () => fertig();
@@ -281,13 +288,34 @@ function bildJetzt(spieler) {
   return leinwand;
 }
 
-/** Eine kleine Fassung zum Vergleichen – 24 × 16 Kacheln brauchen nicht mehr. */
+/**
+ * Eine kleine Fassung zum Vergleichen – 24 × 16 Kacheln brauchen nicht mehr.
+ *
+ * Verkleinert wird **stufenweise**, immer höchstens auf die Hälfte. Ein
+ * Browser, der 1280 px in einem Schritt auf 192 nimmt, tastet Punkte ab,
+ * statt zu mitteln – dünne Schrift in einem Feld verschwindet dabei
+ * spurlos, und genau die ist in einer Bildschirmmaske die Änderung.
+ */
 function vergleichsPunkte(leinwand, zeit) {
+  const ziel = 192;
+  let quelle = leinwand;
+  while (quelle.width > ziel * 2) {
+    const halb = document.createElement('canvas');
+    halb.width = Math.max(ziel, Math.round(quelle.width / 2));
+    halb.height = Math.max(1, Math.round((quelle.height * halb.width) / quelle.width));
+    const stift = halb.getContext('2d');
+    stift.imageSmoothingEnabled = true;
+    stift.imageSmoothingQuality = 'high';
+    stift.drawImage(quelle, 0, 0, halb.width, halb.height);
+    quelle = halb;
+  }
   const klein = document.createElement('canvas');
-  klein.width = 192;
-  klein.height = Math.max(1, Math.round((leinwand.height / leinwand.width) * 192));
+  klein.width = ziel;
+  klein.height = Math.max(1, Math.round((leinwand.height / leinwand.width) * ziel));
   const stift = klein.getContext('2d');
-  stift.drawImage(leinwand, 0, 0, klein.width, klein.height);
+  stift.imageSmoothingEnabled = true;
+  stift.imageSmoothingQuality = 'high';
+  stift.drawImage(quelle, 0, 0, klein.width, klein.height);
   const daten = stift.getImageData(0, 0, klein.width, klein.height);
   return { zeit, daten: daten.data, breite: klein.width, hoehe: klein.height };
 }
@@ -339,7 +367,7 @@ async function nimmBilderAutomatisch() {
   setzeVideoknoepfe();
 
   const anzahl = Number($('#video-dichte').value) || 24;
-  const anteil = Number($('#video-schwelle').value) || 0.02;
+  const anteil = Number($('#video-schwelle').value) || 0.002;
   const hoechstens = Number($('#video-hoechstens').value) || 0;
   const schritte = videoSchritte(videoDatei.dauer, anzahl);
   const lief = !spieler.paused;

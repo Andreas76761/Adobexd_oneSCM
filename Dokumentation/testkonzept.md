@@ -61,6 +61,15 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 Summe: **516 Prüfungen**.
 
+## Messungen – nicht Teil des Durchlaufs
+
+`Testing/messungen/` beantwortet eine andere Frage als die Prüfungen. Diese
+sagen *ob etwas funktioniert*, jene *wie gut*: ein gebauter Bildschirmfilm
+mit **bekannten** Änderungen, gegen den sich die Abtastung des Registers
+Video messen lässt (gefunden, verpasst, zusätzlich). Sie laufen nicht in
+`npm test` – sie dauern Minuten und brauchen ffmpeg. Einzelheiten in
+`Testing/messungen/LIESMICH.md`.
+
 ## Eigene Helfer
 
 * `hilfen/dateien.mjs` – baut echte Testdateien: PNG (mit eigener CRC32),

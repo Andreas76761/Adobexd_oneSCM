@@ -1079,8 +1079,10 @@
       <div class="feld feld--schmal">
         <label for="video-schwelle">Ab welcher Änderung</label>
         <select id="video-schwelle">
-          <option value="0.005">0,5 % – fast jede Regung</option>
-          <option value="0.02" selected>2 % – deutliche Änderung</option>
+          <option value="0.001">0,1 % – jede Regung, auch der Mauszeiger</option>
+          <option value="0.002" selected>0,2 % – ein Feld, ein Haken, ein Wort</option>
+          <option value="0.005">0,5 % – ein Abschnitt der Maske</option>
+          <option value="0.02">2 % – nur große Änderungen</option>
           <option value="0.08">8 % – nur neue Masken</option>
         </select>
       </div>
@@ -1098,7 +1100,9 @@
         Bild nur, wenn es sich vom zuletzt behaltenen um mehr als die
         gewählte Schwelle unterscheidet. Gemessen werden <b>Bildpunkte, nicht
         Bedeutung</b> – ein Mauszeiger, der wandert, ist für diese Rechnung
-        eine Änderung.
+        eine Änderung. Die Schwellen sind klein, weil ein ausgefülltes Feld
+        in einer Maske von 1280 × 720 nur <b>zwei Promille</b> der Fläche
+        ausmacht; an einem Messfilm gefunden, nicht geschätzt.
       </p>
     </div>
 

@@ -2524,7 +2524,7 @@ export function videoSchritte(dauer, anzahl = 24, { ab = 0, bis = 0 } = {}) {
  *
  * `bilder` sind `{ zeit, daten, breite, hoehe }` wie von einer Leinwand.
  */
-export function videoWahl(bilder = [], { anteil = 0.02, hoechstens = 0 } = {}) {
+export function videoWahl(bilder = [], { anteil = 0.002, hoechstens = 0 } = {}) {
   const liste = bilder.filter((b) => b && Number.isFinite(Number(b.zeit)));
   if (!liste.length) return [];
   const gewaehlt = [{ zeit: liste[0].zeit, anteil: 1, grund: 'erstes Bild' }];
@@ -3005,7 +3005,11 @@ export const STANDARD_VORGEHEN = {
   aufforderung: '',
   stufe: 'default',
   anzahl: 24,
-  anteil: 0.02,
+  // 0,2 % und nicht 2 %: an einem Messfilm mit bekannten Aenderungen gemessen
+  // (Testing/messungen). Bei 2 % wurden 3 von 10 Aenderungen gefunden, bei
+  // 0,2 % alle zehn. Ein ausgefuelltes Feld ist in einer Maske von
+  // 1280 x 720 nur zwei Promille der Flaeche.
+  anteil: 0.002,
   hoechstens: 20
 };
 

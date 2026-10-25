@@ -1,0 +1,56 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box} body{margin:0;font:14px "Helvetica Neue",Arial,sans-serif;background:#eef1f5;color:#1a2230}
+.kopf{background:#0d2b45;color:#fff;padding:10px 18px;display:flex;gap:18px;align-items:center}
+.kopf b{font-size:15px;letter-spacing:.03em}
+.reiter{display:flex;gap:2px;background:#15395c;padding:0 18px}
+.reiter span{padding:8px 16px;color:#b9cde0;font-size:13px}
+.reiter span.an{background:#eef1f5;color:#0d2b45;font-weight:600}
+.inhalt{padding:18px}
+.karte{background:#fff;border:1px solid #cfd8e3;border-radius:3px;padding:16px 18px;margin-bottom:14px}
+h2{margin:0 0 12px;font-size:15px}
+.reihe{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 18px;margin-bottom:12px}
+label{display:block;font-size:11px;color:#5a6b80;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+input,select{width:100%;padding:6px 8px;border:1px solid #c3cedb;border-radius:2px;font:inherit;font-size:13px;background:#fff}
+input.fokus{border-color:#0a6ed1;box-shadow:0 0 0 2px rgba(10,110,209,.18)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;background:#f4f7fa;border-bottom:1px solid #cfd8e3;padding:7px 9px;font-size:11px;color:#5a6b80;text-transform:uppercase}
+td{border-bottom:1px solid #e6ecf2;padding:7px 9px}
+.knopf{background:#0a6ed1;color:#fff;border:none;border-radius:2px;padding:8px 18px;font:inherit;font-size:13px;cursor:pointer}
+.knopf.zweit{background:#fff;color:#0a6ed1;border:1px solid #0a6ed1}
+.leiste{display:flex;gap:10px;justify-content:flex-end}
+.liste{position:absolute;background:#fff;border:1px solid #0a6ed1;border-radius:2px;box-shadow:0 6px 18px rgba(0,0,0,.18);z-index:5}
+.liste div{padding:7px 12px;font-size:13px}.liste div.aus{background:#e8f1fb}
+.dialog{position:fixed;inset:0;background:rgba(10,20,35,.45);display:grid;place-items:center;z-index:10}
+.dialog .kasten{background:#fff;border-radius:3px;padding:22px 26px;width:420px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.hinweis{background:#ebf5e6;border-left:3px solid #2b7d2b;padding:9px 12px;font-size:13px;margin-bottom:12px}
+#zeiger{position:fixed;width:14px;height:20px;z-index:50;pointer-events:none}
+[hidden]{display:none!important}
+</style></head><body>
+<div class="kopf"><b>oneSCM</b><span style="font-size:12px;opacity:.8">Servicevertrag anlegen</span></div>
+<div class="reiter"><span class="an" id="r1">Vertragsdaten</span><span id="r2">Fahrzeug</span><span id="r3">Dokumente</span></div>
+<div class="inhalt">
+  <div class="hinweis" id="hinweis" hidden>Der Vertrag wurde zur Prüfung übergeben.</div>
+  <div class="karte"><h2>Vertragspartner</h2>
+    <div class="reihe">
+      <div><label>Vertragsnummer</label><input id="f1" value=""></div>
+      <div><label>Kundennummer</label><input id="f2" value=""></div>
+      <div><label>Markt</label><select id="f3"><option>Germany</option><option>Austria</option></select></div>
+    </div>
+    <div class="reihe">
+      <div><label>Laufzeit</label><input id="f4" value=""></div>
+      <div><label>Sparte</label><input id="f5" value=""></div>
+      <div><label>Status</label><input id="f6" value="in Erfassung"></div>
+    </div>
+  </div>
+  <div class="karte"><h2>Positionen</h2>
+    <table><thead><tr><th>Pos</th><th>Leistung</th><th>Intervall</th><th>Betrag</th></tr></thead>
+    <tbody id="zeilen"><tr><td colspan="4" style="color:#8a97a8">Noch keine Position.</td></tr></tbody></table>
+  </div>
+  <div class="leiste"><button class="knopf zweit">Verwerfen</button><button class="knopf" id="senden">Zur Prüfung</button></div>
+</div>
+<div class="liste" id="liste" hidden><div class="aus">Germany</div><div>Austria</div><div>Switzerland</div></div>
+<div class="dialog" id="dialog" hidden><div class="kasten"><h2 style="margin-bottom:10px">Zur Prüfung übergeben?</h2>
+  <p style="font-size:13px;color:#5a6b80;margin:0 0 18px">Der Vertrag wird an die Marktorganisation übergeben und ist danach nicht mehr änderbar.</p>
+  <div class="leiste"><button class="knopf zweit">Abbrechen</button><button class="knopf">Übergeben</button></div></div></div>
+<svg id="zeiger" viewBox="0 0 12 18"><path d="M0 0l0 14 3.5-3.5 2.5 5.5 2-1-2.5-5.5H10z" fill="#000" stroke="#fff" stroke-width="1"/></svg>
+</body></html>
