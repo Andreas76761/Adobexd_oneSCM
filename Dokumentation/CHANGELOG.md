@@ -20,6 +20,43 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.63.0] – Der Fingerzeig im Bild
+
+Aus der ersten Prüfung der **ganzen Kette** an echtem Bildschirminhalt:
+Messfilm → Video → Strecke → Designstudio → Quick Guide als PDF
+(`Testing/messungen/kette.mjs`).
+
+### Behoben
+* **Die Bilder im Quick Guide waren unlesbar.** Ein Bildschirmfoto von
+  1280 × 720 steht dort in einer Spalte von neun Zentimetern; welches Feld
+  ausgefüllt wurde, war nicht zu sehen – das Einzige, was ein Quick Guide
+  über einen Bildschirmablauf sagen muss
+
+### Neu
+* **Rahmen um den geänderten Bereich** (F-77): `bildUnterschied` wusste
+  längst, *wo* sich etwas geändert hat; `videoWahl` warf es weg. Jetzt reist
+  der Bereich mit, und beim Übernehmen wird ein Rahmen in der Akzentfarbe in
+  voller Auflösung ins Bild gezeichnet. Er geht danach durch Editor,
+  Strecke, Designstudio und Output mit
+* Der wandernde Mauszeiger bleibt draußen; eine Änderung über fast das ganze
+  Bild bekommt keinen Rahmen; das erste Bild hat keinen Vorgänger und darum
+  keinen. Abschaltbar
+* `Testing/messungen/kette.mjs` – die ganze Kette einmal durch, mit einer
+  PDF am Ende, die man ansehen kann
+
+### Nicht geändert
+* Unter jedem Schritt steht derselbe Satz aus der Gliederung. Das sieht nach
+  einem Fehler aus, ist aber der Text, der dort steht – für diese Kapitel
+  derselbe. Eine Anwendung, die Daten „verbessert“, wäre schlimmer als eine,
+  die langweilige Daten zeigt
+
+### Kern
+* `bereichAusVergleich`, `rahmenAusBereich`; `videoWahl` gibt den Bereich mit
+
+### Prüfung
+* 3 neue Kernprüfungen, 2 neue Browserprüfungen (am **Bildpunkt** geprüft,
+  nicht an einer Einstellung); zusammen 521
+
 ## [1.62.0] – Gemessen statt geraten
 
 Mit einem selbst gebauten Messfilm, bei dem bekannt ist, wann sich etwas

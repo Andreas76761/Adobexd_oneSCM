@@ -2527,7 +2527,7 @@ export function videoSchritte(dauer, anzahl = 24, { ab = 0, bis = 0 } = {}) {
 export function videoWahl(bilder = [], { anteil = 0.002, hoechstens = 0 } = {}) {
   const liste = bilder.filter((b) => b && Number.isFinite(Number(b.zeit)));
   if (!liste.length) return [];
-  const gewaehlt = [{ zeit: liste[0].zeit, anteil: 1, grund: 'erstes Bild' }];
+  const gewaehlt = [{ zeit: liste[0].zeit, anteil: 1, bereich: null, grund: 'erstes Bild' }];
   let letztes = liste[0];
   for (let i = 1; i < liste.length; i++) {
     const ergebnis = bildUnterschied(letztes, liste[i]);
@@ -2538,6 +2538,8 @@ export function videoWahl(bilder = [], { anteil = 0.002, hoechstens = 0 } = {}) 
     gewaehlt.push({
       zeit: liste[i].zeit,
       anteil: wert,
+      // Wo sich etwas geaendert hat - der Fingerzeig fuers Blatt.
+      bereich: bereichAusVergleich(ergebnis),
       grund: ergebnis.ok ? unterschiedText(ergebnis) : ergebnis.grund
     });
     letztes = liste[i];
@@ -2616,6 +2618,66 @@ export function videoFehlerBericht({ kann = {}, typ = '', groesse = 0, zweiterWe
       'Was hilft: die Datei in einem anderen Player öffnen – läuft sie dort, liegt es an dieser Umgebung, ' +
       'und die Bilder lassen sich über das Register Import einzeln hereinholen.'
   };
+}
+
+/**
+ * Die veraenderten Bereiche zu *einem* Rahmen, in Anteilen der Bildflaeche
+ * (0..1). Warum ueberhaupt: in einem Quick Guide steht ein Bildschirmfoto
+ * von 1280 x 720 in einer Spalte von neun Zentimetern. Wer darauf ein
+ * ausgefuelltes Feld finden soll, braucht einen Fingerzeig - und wo zu
+ * zeigen ist, hat der Vergleich schon ausgerechnet.
+ *
+ * Winzige Nebenschauplaetze (ein wandernder Mauszeiger) bleiben draussen:
+ * gezaehlt wird nur, was mindestens ein Zehntel der veraenderten Flaeche
+ * ausmacht. Ein Rahmen um alles waere kein Fingerzeig.
+ */
+export function bereichAusVergleich(ergebnis = {}, { anteilDerGroessten = 0.25, hoechstens = 0.5 } = {}) {
+  if (!ergebnis.ok || !Array.isArray(ergebnis.bereiche) || !ergebnis.bereiche.length) return null;
+  const breite = Math.max(1, ergebnis.breite || 1);
+  const hoehe = Math.max(1, ergebnis.hoehe || 1);
+  const sortiert = [...ergebnis.bereiche].sort((a, b) => (b.kacheln || 0) - (a.kacheln || 0));
+  const groesste = sortiert[0].kacheln || 1;
+
+  // Der groesste Bereich ist gesetzt; jeder weitere kommt nur dazu, wenn er
+  // selbst ins Gewicht faellt *und* den Rahmen nicht aufblaeht. Sonst waere
+  // ein wandernder Mauszeiger am anderen Bildrand genug, um aus dem
+  // Fingerzeig einen Rahmen um alles zu machen.
+  let kasten = { links: sortiert[0].x, oben: sortiert[0].y, rechts: sortiert[0].x + sortiert[0].breite, unten: sortiert[0].y + sortiert[0].hoehe };
+  let teile = 1;
+  for (const b of sortiert.slice(1)) {
+    if ((b.kacheln || 0) < groesste * anteilDerGroessten) continue;
+    const versuch = {
+      links: Math.min(kasten.links, b.x),
+      oben: Math.min(kasten.oben, b.y),
+      rechts: Math.max(kasten.rechts, b.x + b.breite),
+      unten: Math.max(kasten.unten, b.y + b.hoehe)
+    };
+    const flaeche = ((versuch.rechts - versuch.links) * (versuch.unten - versuch.oben)) / (breite * hoehe);
+    if (flaeche > hoechstens) continue;
+    kasten = versuch;
+    teile += 1;
+  }
+  return {
+    x: Math.max(0, kasten.links / breite),
+    y: Math.max(0, kasten.oben / hoehe),
+    breite: Math.min(1, (kasten.rechts - kasten.links) / breite),
+    hoehe: Math.min(1, (kasten.unten - kasten.oben) / hoehe),
+    teile
+  };
+}
+
+/**
+ * Derselbe Rahmen in Bildpunkten eines Bildes, mit etwas Luft darum. Ein
+ * Rahmen, der fast das ganze Bild umfasst, sagt nichts - dann kommt keiner.
+ */
+export function rahmenAusBereich(bereich, breite, hoehe, { luft = 0.012, hoechstens = 0.82 } = {}) {
+  if (!bereich || !breite || !hoehe) return null;
+  if (bereich.breite * bereich.hoehe > hoechstens) return null;
+  const x = Math.max(0, Math.round((bereich.x - luft) * breite));
+  const y = Math.max(0, Math.round((bereich.y - luft) * hoehe));
+  const b = Math.min(breite - x, Math.round((bereich.breite + luft * 2) * breite));
+  const h = Math.min(hoehe - y, Math.round((bereich.hoehe + luft * 2) * hoehe));
+  return b > 2 && h > 2 ? { x, y, breite: b, hoehe: h } : null;
 }
 
 /** Der Name eines herausgenommenen Bildes - Datei, Nummer, Zeit. */

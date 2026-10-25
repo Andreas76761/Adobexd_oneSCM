@@ -1,5 +1,5 @@
 /** Kernlogik von Aufnahme und Eingang - ohne Browser. */
-import { suite, wahr, gleich, tieferGleich } from '../hilfen/pruefe.mjs';
+import { suite, wahr, gleich, tieferGleich, nahe } from '../hilfen/pruefe.mjs';
 import * as kern from '../../app/src/core.mjs';
 import { erzeugePng } from '../hilfen/bild.mjs';
 import { baueZip, bauePptx, baueDocx, bauePdf, baueTestPng } from '../hilfen/dateien.mjs';
@@ -4101,6 +4101,84 @@ s.test('die Ursache wird genannt, nicht geraten (1.61.0)', () => {
 
   // Ein Browser, der gar nichts kann, bekommt die Formatauskunft.
   gleich(kern.videoFehlerBericht({ kann: {}, typ: 'video/mp4', groesse: 900 }).grund, 'format');
+});
+
+s.test('der geänderte Bereich wird zu einem Fingerzeig, nicht zu einem Rahmen um alles (1.63.0)', () => {
+  const bild = (bereiche) => ({ ok: true, breite: 192, hoehe: 108, bereiche });
+
+  // Ein Feld und ein wandernder Mauszeiger: der Zeiger bleibt draußen.
+  const mitZeiger = kern.bereichAusVergleich(
+    bild([{ x: 20, y: 30, breite: 40, hoehe: 12, kacheln: 9 }, { x: 150, y: 90, breite: 8, hoehe: 7, kacheln: 1 }])
+  );
+  gleich(mitZeiger.teile, 1, 'der Mauszeiger wurde eingerahmt');
+  nahe(mitZeiger.breite, 40 / 192, 0.001);
+
+  // Zwei Felder nebeneinander gehören zusammen.
+  const zweiFelder = kern.bereichAusVergleich(
+    bild([{ x: 20, y: 30, breite: 40, hoehe: 12, kacheln: 9 }, { x: 70, y: 32, breite: 30, hoehe: 12, kacheln: 8 }])
+  );
+  gleich(zweiFelder.teile, 2);
+  nahe(zweiFelder.breite, 80 / 192, 0.001);
+
+  // Ein zweiter Bereich, der den Rahmen über die Hälfte des Bildes blähen
+  // würde, bleibt draußen – auch wenn er ins Gewicht fällt.
+  const weitAuseinander = kern.bereichAusVergleich(
+    bild([{ x: 0, y: 0, breite: 40, hoehe: 40, kacheln: 9 }, { x: 150, y: 90, breite: 40, hoehe: 18, kacheln: 8 }])
+  );
+  gleich(weitAuseinander.teile, 1);
+
+  // Ohne Vergleich gibt es keinen Bereich – und keinen erfundenen.
+  gleich(kern.bereichAusVergleich({ ok: false }), null);
+  gleich(kern.bereichAusVergleich(bild([])), null);
+});
+
+s.test('aus dem Bereich wird ein Rahmen in Bildpunkten – oder keiner (1.63.0)', () => {
+  const bereich = { x: 0.1, y: 0.2, breite: 0.2, hoehe: 0.1 };
+  const rahmen = kern.rahmenAusBereich(bereich, 1280, 720);
+  // Mit etwas Luft darum, aber innerhalb des Bildes.
+  wahr(rahmen.x < 0.1 * 1280 && rahmen.x >= 0, JSON.stringify(rahmen));
+  wahr(rahmen.breite > 0.2 * 1280, JSON.stringify(rahmen));
+  wahr(rahmen.x + rahmen.breite <= 1280, JSON.stringify(rahmen));
+  wahr(rahmen.y + rahmen.hoehe <= 720, JSON.stringify(rahmen));
+
+  // Ein Rahmen um fast alles sagt nichts – dann kommt keiner.
+  gleich(kern.rahmenAusBereich({ x: 0, y: 0, breite: 1, hoehe: 1 }, 1280, 720), null);
+  gleich(kern.rahmenAusBereich({ x: 0, y: 0, breite: 0.95, hoehe: 0.9 }, 1280, 720), null);
+  // Ohne Bereich oder ohne Maße ebenso.
+  gleich(kern.rahmenAusBereich(null, 1280, 720), null);
+  gleich(kern.rahmenAusBereich(bereich, 0, 0), null);
+  // Am Rand wird nicht über das Bild hinaus gezeichnet.
+  const amRand = kern.rahmenAusBereich({ x: 0, y: 0, breite: 0.1, hoehe: 0.1 }, 1280, 720);
+  gleich(amRand.x, 0);
+  gleich(amRand.y, 0);
+});
+
+s.test('die Auswahl trägt den Bereich mit, nicht nur die Zeit (1.63.0)', () => {
+  const flaeche = (breite, hoehe, farbe, kasten) => {
+    const daten = new Uint8ClampedArray(breite * hoehe * 4);
+    for (let y = 0; y < hoehe; y++) {
+      for (let x = 0; x < breite; x++) {
+        const drin = kasten && x >= kasten.x && x < kasten.x + kasten.b && y >= kasten.y && y < kasten.y + kasten.h;
+        const i = (y * breite + x) * 4;
+        const wert = drin ? [250, 250, 250] : farbe;
+        daten[i] = wert[0];
+        daten[i + 1] = wert[1];
+        daten[i + 2] = wert[2];
+        daten[i + 3] = 255;
+      }
+    }
+    return { daten, breite, hoehe };
+  };
+  const leer = { zeit: 0, ...flaeche(96, 64, [30, 50, 90], null) };
+  const mitFeld = { zeit: 1, ...flaeche(96, 64, [30, 50, 90], { x: 10, y: 8, b: 30, h: 6 }) };
+  const gewaehlt = kern.videoWahl([leer, mitFeld], { anteil: 0.002 });
+  gleich(gewaehlt.length, 2);
+  // Das erste Bild hat keinen Vorgänger, also auch keinen Bereich.
+  gleich(gewaehlt[0].bereich, null);
+  wahr(gewaehlt[1].bereich, 'der geänderte Bereich fehlt am zweiten Bild');
+  // Er liegt dort, wo das Feld ist – links oben, nicht über dem ganzen Bild.
+  wahr(gewaehlt[1].bereich.x < 0.3, JSON.stringify(gewaehlt[1].bereich));
+  wahr(gewaehlt[1].bereich.breite < 0.7, JSON.stringify(gewaehlt[1].bereich));
 });
 
 export default s;

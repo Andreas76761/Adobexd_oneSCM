@@ -28,6 +28,7 @@ let videoClaude = null;
 let videoGeprueft = false;
 let videoBilderMoeglich = null;
 let videoUebernahmeGezeigt = false; // einmal aufklappen, dann nicht mehr dreinreden
+let videoRahmen = true; // den geänderten Bereich im übernommenen Bild markieren
 let videoLaeufe = []; // die Durchgänge dieses Films - V1, V2, V3
 let videoVorgehen = null; // Aufforderung, Stufe, Startregler; erst in zeichneVideo gelesen
 
@@ -279,6 +280,27 @@ function springe(spieler, zeit) {
   });
 }
 
+/**
+ * Zeichnet einen Rahmen um den geänderten Bereich – in der Akzentfarbe der
+ * Seite, mit weißem Grund darunter, damit er auf hellem wie dunklem
+ * Bildinhalt steht.
+ */
+function zeichneBereichsrahmen(stift, bereich, breite, hoehe) {
+  const rahmen = rahmenAusBereich(bereich, breite, hoehe);
+  if (!rahmen) return false;
+  const stark = Math.max(2, Math.round(Math.min(breite, hoehe) / 220));
+  stift.save();
+  stift.lineJoin = 'round';
+  stift.strokeStyle = '#ffffff';
+  stift.lineWidth = stark * 2.2;
+  stift.strokeRect(rahmen.x, rahmen.y, rahmen.breite, rahmen.hoehe);
+  stift.strokeStyle = token('--akzent', '#B4432B');
+  stift.lineWidth = stark;
+  stift.strokeRect(rahmen.x, rahmen.y, rahmen.breite, rahmen.hoehe);
+  stift.restore();
+  return true;
+}
+
 /** Das Bild an der jetzigen Stelle auf eine Leinwand – in voller Auflösung. */
 function bildJetzt(spieler) {
   const leinwand = document.createElement('canvas');
@@ -320,12 +342,14 @@ function vergleichsPunkte(leinwand, zeit) {
   return { zeit, daten: daten.data, breite: klein.width, hoehe: klein.height };
 }
 
-function legeBildAb(leinwand, zeit, grund = '') {
+function legeBildAb(leinwand, zeit, grund = '', bereich = null) {
   videoNummer += 1;
   const eintrag = {
     id: 'VID-' + String(videoNummer).padStart(3, '0'),
     zeit,
     grund,
+    // Wo sich etwas geändert hat - für den Rahmen im Blatt.
+    bereich,
     vorschau: baueVorschau(leinwand),
     voll: leinwand.toDataURL('image/png'),
     breite: leinwand.width,
@@ -388,7 +412,7 @@ async function nimmBilderAutomatisch() {
   let neu = 0;
   for (const treffer of gewaehlt) {
     if (videoBilder.some((b) => Math.abs(b.zeit - treffer.zeit) < 0.05)) continue;
-    legeBildAb(leinwaende.get(treffer.zeit), treffer.zeit, treffer.grund);
+    legeBildAb(leinwaende.get(treffer.zeit), treffer.zeit, treffer.grund, treffer.bereich || null);
     neu += 1;
   }
 
@@ -549,7 +573,12 @@ async function uebernimmVideobilder({ alsStrecke = false } = {}) {
       const leinwand = document.createElement('canvas');
       leinwand.width = geladen.breite;
       leinwand.height = geladen.hoehe;
-      leinwand.getContext('2d').drawImage(geladen.element, 0, 0);
+      const stift = leinwand.getContext('2d');
+      stift.drawImage(geladen.element, 0, 0);
+      // Der Fingerzeig: ein Rahmen um das, was sich geändert hat. In einem
+      // Quick Guide steht dieses Bild in einer Spalte von neun Zentimetern –
+      // ohne ihn sucht der Leser das Feld, um das es geht.
+      if (videoRahmen) zeichneBereichsrahmen(stift, bild.bereich, leinwand.width, leinwand.height);
       const kennung = naechsteAufnahmeKennung(eingang, heute());
       const stelle = bild.stelle || videoStelle;
       const aufnahme = baueAufnahme({
@@ -878,6 +907,8 @@ function verdrahteVideo() {
     }
     setzeVideoknoepfe();
   });
+
+  $('#video-rahmen').addEventListener('change', (e) => (videoRahmen = e.target.checked));
 
   $('#video-alle').addEventListener('click', () => {
     for (const bild of videoBilder) if (!bild.uebernommen) bild.gewaehlt = true;

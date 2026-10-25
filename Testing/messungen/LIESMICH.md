@@ -45,6 +45,19 @@ Dasselbe an der Kernlogik, ohne Browser, mit ffmpeg als Bildquelle – dafür
 auch über die Vergleichsbreite und den Punktabstand. Trennt die Frage
 „rechnet der Kern richtig?“ von „macht die Seite das Richtige daraus?“.
 
+### `kette.mjs`
+
+Lässt die ganze Kette einmal durchlaufen – Film, Abtastung, Texte, Strecke,
+Designstudio – und legt den fertigen **Quick Guide als PDF** hin.
+
+```bash
+node Testing/messungen/kette.mjs <ordner mit film.webm> [zielordner]
+```
+
+Dieser Durchlauf hat in 1.63.0 gezeigt, dass die Bilder im Blatt unlesbar
+waren: alles strukturell richtig, und doch unbrauchbar. Das sieht man nur,
+wenn man die PDF **ansieht**.
+
 ## Was dabei herauskam (1.62.0)
 
 | | vorher | nachher |

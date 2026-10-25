@@ -2070,3 +2070,35 @@ Arbeitsweise wie die Wortliste, kein Bestand.
 wer sie behalten will, sichert sie als Textdatei. Die Diagnose rät nach
 Zahlen, nicht nach dem Inhalt des Films.
 
+## F-77 · Der Fingerzeig im Bild
+
+**Seit** 1.63.0 · betrifft Video · **ergänzt** F-72
+
+**Das Problem** Ein Bildschirmfoto von 1280 × 720 steht im Quick Guide in
+einer Spalte von neun Zentimetern, drei nebeneinander. Wer darauf sehen
+soll, *welches Feld* ausgefüllt wurde, sieht gar nichts – und das ist das
+Einzige, was ein Quick Guide über einen Bildschirmablauf sagen muss.
+Aufgefallen ist es erst, als die ganze Kette einmal an echtem
+Bildschirminhalt durchlief und die fertige PDF danebenlag.
+
+**Die Lösung** Die Auskunft war längst da: `bildUnterschied` liefert nicht
+nur *wie viel* sich geändert hat, sondern **wo**. Diese Bereiche fielen in
+`videoWahl` weg. Jetzt reisen sie mit, und beim Übernehmen wird ein Rahmen
+in der Akzentfarbe ins Bild gezeichnet – in voller Auflösung, mit weißem
+Grund darunter, damit er auf hellem wie dunklem Inhalt steht.
+
+Danach ist der Rahmen Teil des Bildes und geht durch Editor, Strecke,
+Designstudio und Output mit, ohne dass dort etwas davon wissen muss.
+
+**Was eingerahmt wird** Der größte Bereich; weitere nur, wenn sie ins
+Gewicht fallen (ein Viertel des größten) **und** den Rahmen nicht über die
+halbe Bildfläche blähen. Ein wandernder Mauszeiger bleibt so draußen. Eine
+Änderung über fast das ganze Bild bekommt **keinen** Rahmen – einer um alles
+sagt nichts. Das erste Bild hat keinen Vorgänger und darum keinen Rahmen.
+
+Abschaltbar mit „Geänderten Bereich im Bild markieren“.
+
+**Kern** `bereichAusVergleich(ergebnis, …)` und
+`rahmenAusBereich(bereich, breite, hoehe, …)`; `videoWahl` gibt den Bereich
+je Bild mit heraus.
+

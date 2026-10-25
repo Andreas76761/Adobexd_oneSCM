@@ -424,6 +424,74 @@ s.test('ist der erste Weg versperrt, öffnet der zweite – ohne falsche Ursache
     { hash: VIDEO, initSkript: ohneObjektadressen, erwarteteFehler: ['blob:gesperrt-fuer-die-pruefung'] }
   ));
 
+/**
+ * Zählt die Bildpunkte in der Akzentfarbe im zweiten Vorschaubild des
+ * Eingangs. Gelesen wird das Bild, das die Seite ohnehin schon gezeichnet
+ * hat – ein Bild im `evaluate` nachzuladen ist unzuverlässig.
+ */
+async function akzentpunkte(seite) {
+  await seite.click('.portal-nav button[data-ansicht="eingang"]');
+  await seite.waitForSelector('.eingang-karte img');
+  await seite.waitForTimeout(400);
+  return seite.evaluate(() => {
+    const bilder = [...document.querySelectorAll('.eingang-karte img')];
+    // Die erste Aufnahme hat keinen Vorgänger und darum keinen Rahmen.
+    const bild = bilder[Math.min(1, bilder.length - 1)];
+    const l = document.createElement('canvas');
+    l.width = bild.naturalWidth;
+    l.height = bild.naturalHeight;
+    const stift = l.getContext('2d');
+    stift.drawImage(bild, 0, 0);
+    const daten = stift.getImageData(0, 0, l.width, l.height).data;
+    let zahl = 0;
+    for (let i = 0; i < daten.length; i += 4) {
+      if (daten[i] > 120 && daten[i] - daten[i + 2] > 50 && daten[i] - daten[i + 1] > 50) zahl += 1;
+    }
+    return zahl;
+  });
+}
+
+/** Nimmt Bilder heraus und übernimmt sie – mit oder ohne Rahmen. */
+async function bilderMitRahmen(seite, mitRahmen) {
+  await legeVideoEin(seite, 4);
+  await seite.click('#video-automatisch');
+  await seite.waitForFunction(() => document.querySelectorAll('.video-figur').length >= 3, null, { timeout: 90000 });
+  await seite.waitForTimeout(400);
+  // Der Schalter steckt im Übernahmeband; das klappt beim ersten Bild auf.
+  await seite.evaluate(() => (document.getElementById('video-uebernahme').open = true));
+  if (!mitRahmen) await seite.uncheck('#video-rahmen');
+  await seite.click('#video-uebernehmen');
+  await seite.waitForFunction(() => document.querySelectorAll('.video-figur--fertig').length >= 3, null, { timeout: 60000 });
+}
+
+s.test('der geänderte Bereich wird ins übernommene Bild gezeichnet (1.63.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await legeVideoEin(seite, 4);
+      await seite.click('#video-automatisch');
+      await seite.waitForFunction(() => document.querySelectorAll('.video-figur').length >= 3, null, { timeout: 90000 });
+      await seite.waitForTimeout(400);
+      await seite.evaluate(() => (document.getElementById('video-uebernahme').open = true));
+      gleich(await seite.locator('#video-rahmen').isChecked(), true, 'der Rahmen ist nicht vorgesehen');
+      await seite.click('#video-uebernehmen');
+      await seite.waitForFunction(() => document.querySelectorAll('.video-figur--fertig').length >= 3, null, { timeout: 60000 });
+
+      // Geprüft wird am Bildpunkt, nicht an einer Einstellung.
+      const rot = await akzentpunkte(seite);
+      wahr(rot > 20, 'im Bild steht kein Rahmen: ' + rot + ' Punkte in der Akzentfarbe');
+    },
+    { hash: VIDEO }
+  ));
+
+s.test('ohne Schalter bleibt das Bild unberührt (1.63.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await bilderMitRahmen(seite, false);
+      gleich(await akzentpunkte(seite), 0, 'es wurde trotzdem ein Rahmen gezeichnet');
+    },
+    { hash: VIDEO }
+  ));
+
 s.test('Browser wieder schließen', async () => {
   await schliessen();
   return true;
