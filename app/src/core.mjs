@@ -6847,6 +6847,7 @@ export function paketAngaben({
   design = null,
   ocr = {},
   wortliste = [],
+  vorgehen = null,
   stand = new Date().toISOString(),
   anwendung = ''
 } = {}) {
@@ -6862,7 +6863,11 @@ export function paketAngaben({
     projekte,
     design,
     ocr,
-    wortliste
+    wortliste,
+    // Das Vorgehen des Registers Video ist eine Arbeitsweise wie die
+    // Wortliste - wer den Bestand bekommt, soll auch so weiterarbeiten
+    // koennen, wie er entstanden ist.
+    vorgehen
   };
 }
 
@@ -6906,7 +6911,8 @@ export function lesePaketAngaben(text) {
     projekte: leseProjekte(JSON.stringify({ version: PROJEKTE_VERSION, projekte: inhalt.projekte || [] })),
     design: inhalt.design ? leseDesignEinstellungen(JSON.stringify(inhalt.design)) : null,
     ocr: leseOcr(JSON.stringify({ texte: inhalt.ocr || {} })),
-    wortliste: Array.isArray(inhalt.wortliste) ? leseWortliste(JSON.stringify({ regeln: inhalt.wortliste })) : []
+    wortliste: Array.isArray(inhalt.wortliste) ? leseWortliste(JSON.stringify({ regeln: inhalt.wortliste })) : [],
+    vorgehen: inhalt.vorgehen ? leseVorgehen(JSON.stringify(inhalt.vorgehen)) : null
   };
 }
 
@@ -6962,6 +6968,7 @@ export function paketBericht(gelesen = {}, bilder = 0) {
     gelesen.projekte.length ? `${gelesen.projekte.length} Projekt(e)` : '',
     Object.keys(gelesen.ocr || {}).length ? `${Object.keys(gelesen.ocr).length} Lesung(en)` : '',
     gelesen.wortliste.length ? `${gelesen.wortliste.length} Wortregel(n)` : '',
+    gelesen.vorgehen ? 'Vorgehen für das Register Video' : '',
     gelesen.design ? 'Einstellungen des Studios' : ''
   ].filter(Boolean);
   const woher = gelesen.erzeugt_von ? ` · aus ${gelesen.erzeugt_von}` : '';

@@ -20,6 +20,33 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.60.0] – Ein `fetch`, das nie gelaufen wäre
+
+### Behoben
+* **Das Register Video holte ein Bild mit `fetch` von einer Datenadresse** –
+  die einzige Stelle im Code mit einer Netzanfrage. In der veröffentlichten
+  Seite wäre sie **stillschweigend** abgewiesen worden: für die
+  Inhaltsrichtlinie des Artifacts ist auch eine Datenadresse eine
+  Netzanfrage. „Text deuten lassen“ hätte dort nie etwas getan. Das Bild
+  geht jetzt über die Leinwand, wie überall sonst
+* Keine Prüfung konnte das finden: die Browserprüfungen laufen über
+  `file://`, und dort gibt es keine Inhaltsrichtlinie. Grüne Prüfungen,
+  kaputte Seite
+* **Das Vorgehen des Registers Video reiste nicht in der Projektdatei mit**
+  (F-63), obwohl die Wortliste es tut. Es ist dieselbe Art Sache: eine
+  Arbeitsweise, kein Bestand
+
+### Neu
+* **Riegel gegen Netzanfragen** in der Build-Prüfung: `fetch`,
+  `XMLHttpRequest`, `EventSource`, `WebSocket`, `sendBeacon` und
+  `importScripts` dürfen im Text der fertigen Seite nicht vorkommen. Geprüft
+  wird die Datei, die veröffentlicht wird – nicht ein Verhalten in einer
+  Umgebung ohne Richtlinie
+
+### Prüfung
+* 1 neue Kernprüfung, 1 neue Build-Prüfung; der Umlauf der Projektdatei
+  prüft das Vorgehen mit (zweiter, leerer Browser). Zusammen 514
+
 ## [1.59.0] – Durchgänge: V1, V2, V3
 
 ### Neu

@@ -201,6 +201,16 @@ s.test('der ganze Bestand wandert in eine Projektdatei und wieder zurück', () =
         (await seite.locator('#paket-stand').innerText()).includes('2 Aufnahme'),
         await seite.locator('#paket-stand').innerText()
       );
+      // Ein eigenes Vorgehen für das Register Video - es soll mitreisen.
+      await seite.click('.portal-nav button[data-ansicht="video"]');
+      await seite.evaluate(() => (document.getElementById('video-vorgehen').open = true));
+      await seite.fill('#vorgehen-aufforderung', 'Nenne nur die Maske, sonst nichts.');
+      await seite.selectOption('#vorgehen-stufe', 'complex');
+      await seite.click('#vorgehen-sichern');
+      await seite.waitForTimeout(300);
+      await seite.click('.portal-nav button[data-ansicht="verzeichnis"]');
+      await seite.waitForSelector('#verzeichnis-ansicht:not([hidden])');
+
       await seite.click('#paket-sichern');
       await seite.waitForFunction(() => (window.__dateien || []).length === 1, null, { timeout: 60000 });
       const [datei] = await seite.evaluate(() => window.__dateien);
@@ -262,6 +272,20 @@ s.test('der ganze Bestand wandert in eine Projektdatei und wieder zurück', () =
             })
         );
         wahr(volle >= 2, 'die vollen Bilder fehlen in der Datenbank: ' + volle);
+
+        // Das Vorgehen des Registers Video ist mitgereist (1.60.0): eine
+        // Arbeitsweise wie die Wortliste, nicht nur Bilder.
+        wahr(
+          (await seite.locator('#paket-bericht').innerText()).includes('Vorgehen für das Register Video'),
+          await seite.locator('#paket-bericht').innerText()
+        );
+        const vorgehen = await seite.evaluate(() => JSON.parse(localStorage.getItem('screenarchiv:videovorgehen')));
+        gleich(vorgehen.aufforderung, 'Nenne nur die Maske, sonst nichts.');
+        gleich(vorgehen.stufe, 'complex');
+        await seite.click('.portal-nav button[data-ansicht="video"]');
+        await seite.evaluate(() => (document.getElementById('video-vorgehen').open = true));
+        await seite.waitForTimeout(300);
+        gleich(await seite.locator('#vorgehen-aufforderung').inputValue(), 'Nenne nur die Maske, sonst nichts.');
       },
       { hash: AUFNAHME }
     )

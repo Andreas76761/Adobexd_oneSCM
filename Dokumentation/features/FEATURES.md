@@ -2058,6 +2058,9 @@ zum Abschauen steht) und die **Modellstufe** (schnell, normal, gründlich).
 Beides liegt in `screenarchiv:videovorgehen` und steht beim nächsten Film
 wieder da.
 
+**Seit 1.60.0** reist das Vorgehen in der Projektdatei (F-63) mit – eine
+Arbeitsweise wie die Wortliste, kein Bestand.
+
 **Kern** `videoLauf`, `laufText`, `laufVergleich`, `laufDiagnose`,
 `laeufeText`, `leseVorgehen`, `schreibeVorgehen`, `MODELLSTUFEN`,
 `LAUF_REGLER`, `VORGEHEN_SCHLUESSEL`, `STANDARD_VORGEHEN`.

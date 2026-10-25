@@ -51,6 +51,25 @@ s.test('kein Platzhalter blieb stehen', () => {
   wahr(!rest, 'nicht ersetzte Platzhalter: ' + (rest || []).join(', '));
 });
 
+s.test('die Seite macht keine Netzanfrage – auch nicht auf eine Datenadresse', () => {
+  // Die Inhaltsrichtlinie des Artifacts weist eine Netzanfrage *stillschweigend*
+  // ab. Eine Prüfung über file:// merkt davon nichts: dort gibt es keine
+  // Richtlinie, und `fetch('data:…')` gelingt. Genau so stand bis 1.60.0 ein
+  // `fetch` im Register Video, das in der veröffentlichten Seite nie gelaufen
+  // wäre. Darum hier ein Riegel am Text selbst.
+  //
+  // Ein Bild wird zum Blob über eine Leinwand (`canvas.toBlob`), nicht über
+  // `fetch` – diesen Weg gehen OCR und Video.
+  const treffer = [...seite.matchAll(/\b(fetch|XMLHttpRequest|EventSource|WebSocket|sendBeacon|importScripts)\s*\(/g)].map(
+    (m) => m[1]
+  );
+  gleich(
+    treffer.join(', '),
+    '',
+    'die Seite enthält einen Aufruf, der ins Netz greifen würde: ' + treffer.join(', ')
+  );
+});
+
 s.test('lädt von außen nur erlaubte Schriftquellen', () => {
   const erlaubt = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
   // Eine XML-Namensraum-Kennung ist keine Adresse, die abgerufen wird: sie

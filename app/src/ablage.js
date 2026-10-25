@@ -319,6 +319,7 @@ async function sicherePaket() {
     design: studio,
     ocr: ocrTexte,
     wortliste,
+    vorgehen: holeVorgehen(),
     anwendung: DATEN.anwendung
   });
   dateien.unshift({ name: PAKET_NAME, daten: JSON.stringify(angaben, null, 2) });
@@ -466,6 +467,15 @@ async function lesePaketDatei(datei) {
       } catch (fehler) {
         bericht.push('Die Wortliste gilt nur für diese Sitzung – der Speicher ist voll.');
       }
+    }
+    if (gelesen.vorgehen) {
+      videoVorgehen = gelesen.vorgehen;
+      try {
+        localStorage.setItem(VORGEHEN_SCHLUESSEL, schreibeVorgehen(videoVorgehen));
+      } catch (fehler) {
+        bericht.push('Das Vorgehen gilt nur für diese Sitzung – der Speicher ist voll.');
+      }
+      zeichneVorgehen();
     }
     if (gelesen.design) {
       studio = gelesen.design;

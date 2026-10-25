@@ -4055,4 +4055,20 @@ s.test('die Durchgänge als Text nennen Ergebnis, Änderung und Rat (1.59.0)', (
   wahr(kern.laeufeText([]).includes('Noch kein Durchgang'), kern.laeufeText([]));
 });
 
+s.test('das Vorgehen reist in der Projektdatei mit (1.60.0)', () => {
+  const vorgehen = { aufforderung: 'Nenne nur die Maske.', stufe: 'complex', anzahl: 48, anteil: 0.005, hoechstens: 0 };
+  const angaben = kern.paketAngaben({ eingang: [], vorgehen, anwendung: '1.60.0' });
+  tieferGleich(angaben.vorgehen, vorgehen);
+
+  const gelesen = kern.lesePaketAngaben(JSON.stringify(angaben));
+  gleich(gelesen.ok, true);
+  tieferGleich(gelesen.vorgehen, vorgehen);
+  wahr(kern.paketBericht(gelesen).includes('Vorgehen für das Register Video'), kern.paketBericht(gelesen));
+
+  // Eine Datei ohne Vorgehen bringt keines mit - und erfindet keines.
+  const ohne = kern.lesePaketAngaben(JSON.stringify(kern.paketAngaben({ eingang: [] })));
+  gleich(ohne.vorgehen, null);
+  wahr(!kern.paketBericht(ohne).includes('Vorgehen'), kern.paketBericht(ohne));
+});
+
 export default s;

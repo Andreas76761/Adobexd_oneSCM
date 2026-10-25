@@ -10,6 +10,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
 | [durchsicht.md](durchsicht.md) | Bestandsaufnahme über 69 Funktionen in dreizehn Ansichten: was zusammengehört, was wahrscheinlich tot ist, was bewusst bleibt |
+| [versionen/v1.60.0.md](versionen/v1.60.0.md) | Ein `fetch`, das nie gelaufen wäre – grüne Prüfungen, kaputte Seite |
 | [versionen/v1.59.0.md](versionen/v1.59.0.md) | Durchgänge: V1, V2, V3 – iterieren statt raten |
 | [versionen/v1.58.0.md](versionen/v1.58.0.md) | Die Stelle schon beim Aufnehmen – und was eine Durchsicht des Codes fand |
 | [versionen/v1.57.0.md](versionen/v1.57.0.md) | Aus dem Video wird eine Strecke – der Weg zum Quick Guide |

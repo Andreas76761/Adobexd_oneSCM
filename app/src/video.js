@@ -366,10 +366,21 @@ async function holeVideoClaude() {
   return videoClaude;
 }
 
-/** Ein Bild als Blob – so nimmt `sample` es mit. */
-async function alsBlob(datenadresse) {
-  const antwort = await fetch(datenadresse);
-  return antwort.blob();
+/**
+ * Ein Bild als Blob – so nimmt `sample` es mit.
+ *
+ * Über die Leinwand, nicht über `fetch`: eine Datenadresse zu holen ist für
+ * die Inhaltsrichtlinie des Artifacts eine Netzanfrage und wird dort
+ * **stillschweigend** abgewiesen – in einer Prüfung über `file://` fällt
+ * das nie auf. Denselben Weg geht das Register OCR.
+ */
+async function alsBlob(datenadresse, name = 'Bild') {
+  const geladen = await ladeBild(datenadresse, 'datei', name);
+  const leinwand = document.createElement('canvas');
+  leinwand.width = geladen.breite;
+  leinwand.height = geladen.hoehe;
+  leinwand.getContext('2d').drawImage(geladen.element, 0, 0);
+  return new Promise((fertig) => leinwand.toBlob(fertig, 'image/jpeg', 0.92));
 }
 
 async function deuteBilder() {
@@ -413,7 +424,7 @@ async function deuteBilder() {
             nummer: fertig + 1,
             von: offen.length
           }),
-        { images: await alsBlob(bild.voll), modelTier: holeVorgehen().stufe || 'default', signal: videoAbbruch.signal }
+        { images: await alsBlob(bild.voll, bild.id), modelTier: holeVorgehen().stufe || 'default', signal: videoAbbruch.signal }
       );
       const text = videoText(antwort && antwort.text);
       if (text) {
