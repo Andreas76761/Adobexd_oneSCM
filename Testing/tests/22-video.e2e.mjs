@@ -395,6 +395,35 @@ s.test('das Vorgehen überdauert den Film und steht beim nächsten da (1.59.0)',
     { hash: VIDEO }
   ));
 
+/** Versperrt den ersten Weg: Objektadressen führen ins Leere. */
+function ohneObjektadressen() {
+  const echt = URL.createObjectURL.bind(URL);
+  URL.createObjectURL = (gegenstand) =>
+    gegenstand instanceof Blob && String(gegenstand.type || '').startsWith('video/')
+      ? 'blob:gesperrt-fuer-die-pruefung'
+      : echt(gegenstand);
+}
+
+s.test('ist der erste Weg versperrt, öffnet der zweite – ohne falsche Ursache (1.61.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await legeVideoEin(seite, 3);
+      // Der zweite Weg hat geöffnet: Leiste da, Maße bekannt.
+      gleich(await seite.locator('#video-leiste').isVisible(), true);
+      const meldung = await seite.locator('#video-meldung').innerText();
+      wahr(meldung.includes('320 × 240 px'), meldung);
+      // Und vor allem: das Format wurde *nicht* beschuldigt.
+      wahr(!meldung.includes('kein MP4'), meldung);
+      wahr(!meldung.includes('Chrome, Edge oder Safari'), meldung);
+      // Danach läuft alles weiter wie sonst.
+      await seite.click('#video-automatisch');
+      await seite.waitForFunction(() => document.querySelectorAll('.video-figur').length >= 2, null, { timeout: 90000 });
+      wahr((await seite.locator('.video-figur').count()) >= 2, 'ohne Objektadresse kam kein Bild heraus');
+    },
+    // Die versperrte Adresse schlägt in der Konsole auf - das ist der Zweck.
+    { hash: VIDEO, initSkript: ohneObjektadressen, erwarteteFehler: ['blob:gesperrt-fuer-die-pruefung'] }
+  ));
+
 s.test('Browser wieder schließen', async () => {
   await schliessen();
   return true;

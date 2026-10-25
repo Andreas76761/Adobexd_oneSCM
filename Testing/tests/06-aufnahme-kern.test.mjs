@@ -4071,4 +4071,33 @@ s.test('das Vorgehen reist in der Projektdatei mit (1.60.0)', () => {
   wahr(!kern.paketBericht(ohne).includes('Vorgehen'), kern.paketBericht(ohne));
 });
 
+s.test('die Ursache wird genannt, nicht geraten (1.61.0)', () => {
+  const kannBeides = { mp4: 'probably', webm: 'probably' };
+  const kannNurWebm = { mp4: '', webm: 'probably' };
+
+  // Der Browser kennt das Verfahren nicht: dann ist es das Verfahren.
+  const format = kern.videoFehlerBericht({ kann: kannNurWebm, typ: 'video/mp4', groesse: 900 });
+  gleich(format.grund, 'format');
+  wahr(format.text.includes('kein MP4'), format.text);
+
+  // Er kennt es: dann ist „als MP4 exportieren" ein Rat ins Leere – und
+  // bei kleiner Datei ist erst einmal der zweite Weg dran.
+  gleich(kern.videoFehlerBericht({ kann: kannBeides, typ: 'video/mp4', groesse: 900 }).grund, 'zweiter-weg');
+  gleich(kern.videoFehlerBericht({ kann: kannBeides, typ: 'video/webm', groesse: kern.VIDEO_ZWEITER_WEG }).grund, 'zweiter-weg');
+
+  // Zu groß für den zweiten Weg, oder er ist schon gescheitert.
+  const gross = kern.videoFehlerBericht({ kann: kannBeides, typ: 'video/mp4', groesse: kern.VIDEO_ZWEITER_WEG + 1 });
+  gleich(gross.grund, 'unbekannt');
+  const schon = kern.videoFehlerBericht({ kann: kannBeides, typ: 'video/mp4', groesse: 900, zweiterWegGenutzt: true });
+  gleich(schon.grund, 'unbekannt');
+  // Und dieser Text behauptet gerade *nicht*, es liege am Format.
+  wahr(schon.text.includes('liegt also nicht daran'), schon.text);
+  wahr(!schon.text.includes('kein MP4'), schon.text);
+  // Er nennt einen Weg, der weiterhilft, statt nur zu bedauern.
+  wahr(schon.text.includes('Register Import'), schon.text);
+
+  // Ein Browser, der gar nichts kann, bekommt die Formatauskunft.
+  gleich(kern.videoFehlerBericht({ kann: {}, typ: 'video/mp4', groesse: 900 }).grund, 'format');
+});
+
 export default s;

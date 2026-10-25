@@ -20,6 +20,36 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.61.0] – Zwei Wege ins Video, und eine ehrliche Ursache
+
+### Behoben
+* **Die Seite gab bei jedem Fehlschlag die Formatauskunft aus** („Dieser
+  Browser spielt kein MP4 …“). Das ist falsch, sobald der Browser sagt, er
+  *könne* das Format – dann ist „als MP4 exportieren“ ein Rat ins Leere. Sie
+  nennt jetzt drei mögliche Ursachen, keine davon als sicher, und den Weg,
+  der weiterhilft (Register Import)
+
+### Neu
+* **Ein zweiter Weg ins Video**: scheitert die Objektadresse (`blob:`),
+  versucht die Seite es über eine Datenadresse – bei Dateien bis 8 MB.
+  Manche Umgebung verwehrt das eine und erlaubt das andere
+* `mitSeite` nimmt `erwarteteFehler`: ein Prüffall, der einen Fehler
+  absichtlich auslöst, nennt ihn vorher; alles andere bleibt ein Grund zum
+  Scheitern
+
+### Nicht behauptet
+* Ob die veröffentlichte Seite Objektadressen abspielen darf, entscheidet
+  die Inhaltsrichtlinie ihres Rahmens. Sie ist von hier aus nicht zu lesen –
+  der Abruf endet ohne Antwort. Diese Fassung macht nur, dass ein Scheitern
+  nicht falsch erklärt wird und dass es einen zweiten Versuch gibt
+
+### Kern
+* `videoFehlerBericht`, `VIDEO_ZWEITER_WEG`
+
+### Prüfung
+* 1 neue Kernprüfung, 1 neue Browserprüfung (sie **versperrt** den ersten
+  Weg und verlangt, dass das Video trotzdem öffnet); zusammen 516
+
 ## [1.60.0] – Ein `fetch`, das nie gelaufen wäre
 
 ### Behoben

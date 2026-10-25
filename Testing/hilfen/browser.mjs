@@ -46,7 +46,12 @@ export function erzeugeBrowserHelfer(seitenPfad) {
       await seite.goto(adresse + (optionen.hash || ''), { waitUntil: 'domcontentloaded' });
       await seite.waitForSelector('html[data-bereit="ja"]', { timeout: 10000 });
       await fn(seite);
-      gleich(fehlerprotokoll.length, 0, 'Fehler in der Browserkonsole: ' + fehlerprotokoll.join(' | '));
+      // Ein Fall, der einen Fehler *absichtlich* auslöst (eine versperrte
+      // Quelle etwa), nennt ihn vorher mit `erwarteteFehler`. Alles andere
+      // bleibt ein Grund zum Scheitern - sonst wäre die Prüfung stumm.
+      const erwartet = optionen.erwarteteFehler || [];
+      const uebrig = fehlerprotokoll.filter((text) => !erwartet.some((teil) => text.includes(teil)));
+      gleich(uebrig.length, 0, 'Fehler in der Browserkonsole: ' + uebrig.join(' | '));
     } finally {
       await kontext.close();
     }

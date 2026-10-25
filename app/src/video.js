@@ -156,32 +156,69 @@ async function nimmVideo(datei) {
   }
   verwirfVideo(false);
   const spieler = $('#video-spieler');
-  videoAdresse = URL.createObjectURL(datei);
-  spieler.src = videoAdresse;
   spieler.hidden = false;
   $('#video-leer').hidden = true;
   meldeVideo(`${datei.name} wird geöffnet …`, 'neutral');
 
-  try {
-    await new Promise((fertig, scheitern) => {
+  /** Setzt eine Quelle und wartet, bis der Spieler sie annimmt oder abweist. */
+  const versuche = (quelle) => {
+    spieler.src = quelle;
+    return new Promise((fertig, scheitern) => {
       const gut = () => {
         spieler.removeEventListener('error', schlecht);
         fertig();
       };
       const schlecht = () => {
         spieler.removeEventListener('loadedmetadata', gut);
-        scheitern(new Error('Dieser Browser spielt dieses Format nicht ab.'));
+        scheitern(new Error('abgewiesen'));
       };
       spieler.addEventListener('loadedmetadata', gut, { once: true });
       spieler.addEventListener('error', schlecht, { once: true });
     });
+  };
+
+  videoAdresse = URL.createObjectURL(datei);
+  let offen = false;
+  try {
+    await versuche(videoAdresse);
+    offen = true;
   } catch (fehler) {
-    verwirfVideo(true);
-    // Woran es liegt, weiß der Browser selbst - also wird er gefragt, statt
-    // zu raten. „MP4 exportieren" wäre hier der falsche Rat.
-    meldeVideo(`${datei.name} lässt sich hier nicht abspielen. ${videoFormatBericht(videoKann()).text}`, 'warnung');
-    return;
+    // Der erste Weg (Objektadresse) ist der einzige, der bei großen Dateien
+    // in Frage kommt. Scheitert er, ohne dass es am Verfahren liegt, ist ein
+    // zweiter über eine Datenadresse einen Versuch wert - manche Umgebung
+    // verwehrt das Abspielen aus dem Arbeitsspeicher.
+    const bericht = videoFehlerBericht({ kann: videoKann(), typ: datei.type, groesse: datei.size || 0 });
+    if (bericht.grund === 'zweiter-weg') {
+      meldeVideo(bericht.text, 'neutral');
+      URL.revokeObjectURL(videoAdresse);
+      videoAdresse = '';
+      try {
+        const adresse = await new Promise((fertig, scheitern) => {
+          const leser = new FileReader();
+          leser.onload = () => fertig(leser.result);
+          leser.onerror = () => scheitern(leser.error || new Error('nicht lesbar'));
+          leser.readAsDataURL(datei);
+        });
+        await versuche(adresse);
+        offen = true;
+      } catch (zweiter) {
+        const letzter = videoFehlerBericht({
+          kann: videoKann(),
+          typ: datei.type,
+          groesse: datei.size || 0,
+          zweiterWegGenutzt: true
+        });
+        verwirfVideo(true);
+        meldeVideo(`${datei.name} lässt sich hier nicht öffnen. ${letzter.text}`, 'warnung');
+        return;
+      }
+    } else {
+      verwirfVideo(true);
+      meldeVideo(`${datei.name} lässt sich hier nicht öffnen. ${bericht.text}`, 'warnung');
+      return;
+    }
   }
+  if (!offen) return;
 
   videoDatei = {
     name: datei.name,

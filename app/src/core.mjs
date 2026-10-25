@@ -2583,6 +2583,41 @@ export function videoFormatBericht(kann = {}) {
   };
 }
 
+/** Bis zu dieser Groesse lohnt der zweite Weg ueber eine Datenadresse. */
+export const VIDEO_ZWEITER_WEG = 8 * 1024 * 1024;
+
+/**
+ * Warum ein Video nicht laeuft - und zwar nur das, was man wissen kann.
+ *
+ * Der erste Entwurf gab hier immer die Auskunft ueber die Formate aus. Das
+ * ist falsch, sobald der Browser sagt, er *koenne* das Format: dann liegt
+ * es nicht am Verfahren, und "als MP4 exportieren" waere ein Rat ins Leere.
+ * Was es stattdessen ist, laesst sich von hier aus nicht entscheiden - also
+ * wird es auch nicht behauptet.
+ *
+ * `kann` ist `{ mp4, webm }` wie bei `videoFormatBericht`.
+ */
+export function videoFehlerBericht({ kann = {}, typ = '', groesse = 0, zweiterWegGenutzt = false } = {}) {
+  const art = String(typ || '').toLowerCase();
+  const istMp4 = art.includes('mp4') || art.includes('quicktime');
+  const istWebm = art.includes('webm') || art.includes('ogg');
+  // Nur wenn der Browser das Verfahren wirklich nicht kennt, ist es das.
+  const formatSchuld = (istMp4 && !kann.mp4) || (istWebm && !kann.webm) || (!istMp4 && !istWebm && !kann.mp4 && !kann.webm);
+  if (formatSchuld) return { grund: 'format', text: videoFormatBericht(kann).text };
+  if (!zweiterWegGenutzt && groesse > 0 && groesse <= VIDEO_ZWEITER_WEG) {
+    return { grund: 'zweiter-weg', text: 'Der erste Weg hat nicht geöffnet – es wird ein zweiter versucht …' };
+  }
+  return {
+    grund: 'unbekannt',
+    text:
+      'Dieser Browser gibt an, das Format zu kennen – es liegt also nicht daran. ' +
+      'Möglich ist eine beschädigte Datei, ein Film ohne Bildspur, oder eine Umgebung, ' +
+      'die der Seite das Abspielen aus dem Arbeitsspeicher verwehrt. ' +
+      'Was hilft: die Datei in einem anderen Player öffnen – läuft sie dort, liegt es an dieser Umgebung, ' +
+      'und die Bilder lassen sich über das Register Import einzeln hereinholen.'
+  };
+}
+
 /** Der Name eines herausgenommenen Bildes - Datei, Nummer, Zeit. */
 export function videoBildname(dateiname, zeit, nummer = 1) {
   const stamm =

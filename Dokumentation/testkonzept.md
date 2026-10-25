@@ -26,7 +26,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `03-aufnahmen.test.mjs` | erzeugte SVG-Aufnahmen: Vollständigkeit, Maße, Sauberkeit, Determinismus | 8 |
 | `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken, doppelte Selektoren | 15 |
 | `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
-| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten, Handbuch, Labels am Entwurf, Zählung, Suchtext, Projekte nach Version und Land, Arbeitsmenge, Projektvergleich, PDF, ZIP mit Word und PowerPoint, Ausgabeplan, Lupe, OCR, Bildvergleich, Agent Sprache, Word-Handbuch, Hausmarke, Projektdatei, Fortschritt, Rückweg aus Word, Sprache der Unterlagen, Hausmarke als Datei, Suche über die Lesungen, Stapel beim Import, Video, Gebrauch und Kontaktbogen | 200 |
+| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten, Handbuch, Labels am Entwurf, Zählung, Suchtext, Projekte nach Version und Land, Arbeitsmenge, Projektvergleich, PDF, ZIP mit Word und PowerPoint, Ausgabeplan, Lupe, OCR, Bildvergleich, Agent Sprache, Word-Handbuch, Hausmarke, Projektdatei, Fortschritt, Rückweg aus Word, Sprache der Unterlagen, Hausmarke als Datei, Suche über die Lesungen, Stapel beim Import, Video, Gebrauch und Kontaktbogen | 201 |
 | `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Bilderstapel, Zwischenablage, Live-Freigabe, Navigation in fünf Aufgaben, Übersicht „Weitergeben“, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Labels am Entwurf, Kontaktbogen, Werkbank, Bild mit Zettel | 71 |
 
 | `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beipackzettel, Beenden, Sichtbarkeit im Archiv, Zettel im Ordnerband, Übernahme, Nachpflege, verwaiste Zettel, Tastatur, Filter, Metadaten im Bild, „Was hier geht“ | 35 |
@@ -51,7 +51,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `18-begehung.e2e.mjs` | Begehung: jeder sichtbare Befehl in **jeder der vierzehn** Ansichten (seit 1.51.0 auch Output und OCR, seit 1.55.0 Video), die zerstörenden Befehle, die Tastatur | 4 |
 
-| `22-video.e2e.mjs` | Video im Browser: Grenze und Formate benannt, Video öffnen, Nichtvideo abweisen, automatisch abtasten, Bild von Hand, Stellen und Labels, Übernahme in den Eingang, Strecke aus dem Video, Durchgänge mit Vergleich und Diagnose, Vorgehen, Verwerfen. Das Prüfvideo entsteht in der Seite selbst (`captureStream` + `MediaRecorder`) – keine Beispieldatei im Repo | 12 |
+| `22-video.e2e.mjs` | Video im Browser: Grenze und Formate benannt, Video öffnen, Nichtvideo abweisen, automatisch abtasten, Bild von Hand, Stellen und Labels, Übernahme in den Eingang, Strecke aus dem Video, Durchgänge mit Vergleich und Diagnose, Vorgehen, Verwerfen. Das Prüfvideo entsteht in der Seite selbst (`captureStream` + `MediaRecorder`) – keine Beispieldatei im Repo | 13 |
 
 | `21-ocr.e2e.mjs` | OCR im Browser: Bilder wählen, Lesen über Claude (nachgebildet), Kacheln, Text ändern, in die Notiz übernehmen, Textdatei und Word-Datei, fehlende Bilderlaubnis, Suche über die Lesungen | 6 |
 
@@ -59,7 +59,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-Summe: **514 Prüfungen**.
+Summe: **516 Prüfungen**.
 
 ## Eigene Helfer
 
@@ -73,7 +73,8 @@ Summe: **514 Prüfungen**.
 * `hilfen/seite.mjs` – baut `dist/index.html` in dieselbe Hülle, die das
   Artifact beim Veröffentlichen ergänzt, und findet den vorinstallierten
   Chromium.
-* `hilfen/browser.mjs` – startet den Browser je Testdatei, öffnet für jeden
+* `hilfen/browser.mjs` – nimmt seit 1.61.0 `erwarteteFehler` für Fälle, die
+  einen Konsolenfehler absichtlich auslösen; startet den Browser je Testdatei, öffnet für jeden
   Fall eine frische Ansicht (eigener Speicher!), ersetzt die Schriften lokal
   und lässt jeden Fall an einem Konsolenfehler scheitern.
 * `hilfen/bild.mjs` – erzeugt ein PNG ohne fremde Pakete, damit der

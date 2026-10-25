@@ -139,3 +139,18 @@ Mauszeiger ist für sie eine Änderung, eine geänderte Zahl in einem großen
 Formular fast keine. Darum steht an jedem Bild, warum es dasteht – und die
 Schwelle lässt sich einstellen.
 
+## Ob ein Video öffnet, hängt an der Umgebung (seit 1.61.0)
+
+Das Register Video gibt den Film über eine **Objektadresse** (`blob:`) in den
+Spieler. Ob eine veröffentlichte Seite das darf, entscheidet die
+Inhaltsrichtlinie ihres Rahmens – und die ist von außen nicht zu lesen.
+
+Darum zwei Wege: scheitert die Objektadresse, versucht die Seite es über
+eine **Datenadresse**, bei Dateien bis 8 MB. Darüber wäre das unsinnig – ein
+Film von 40 MB ergäbe eine Zeichenkette von 54 MB im Arbeitsspeicher.
+
+Fallen beide aus, sagt die Seite **nicht**, es liege am Format, wenn der
+Browser das Format kennt. Sie nennt die drei möglichen Ursachen – beschädigte
+Datei, Film ohne Bildspur, Umgebung – und den Weg, der bleibt: die Bilder
+einzeln über das Register **Import**.
+
