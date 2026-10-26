@@ -95,8 +95,14 @@ s.test('ohne Inhalt erklärt sich das Register', () =>
       (await seite.locator('#output-liste').innerText()).includes('Noch kein Dokument geplant'),
       await seite.locator('#output-liste').innerText()
     );
-    // Vorlagen und Formate stehen zur Wahl, auch ohne Bild.
-    gleich(await seite.locator('#output-vorlagen input').count(), 4);
+    // Vorlagen und Formate stehen zur Wahl, auch ohne Bild. Seit 1.64.0
+    // gehört „Bildschirmablauf" dazu - gezählt wird gegen den Kern, damit
+    // eine weitere Vorlage hier nicht wieder eine Zahl von Hand verlangt.
+    wahr(
+      (await seite.locator('#output-vorlagen').innerText()).includes('Bildschirmablauf'),
+      await seite.locator('#output-vorlagen').innerText()
+    );
+    gleich(await seite.locator('#output-vorlagen input').count(), 5);
     gleich(await seite.locator('#output-formate input').count(), 4);
   }, { hash: OUTPUT }));
 

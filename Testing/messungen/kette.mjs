@@ -77,29 +77,34 @@ await seite.waitForFunction((n) => document.querySelectorAll('.video-figur--fert
 await seite.waitForTimeout(500);
 console.log('3. Strecke:', await seite.locator('#video-meldung').innerText());
 
-// --- 5. Designstudio: Quick Guide ------------------------------------
+// --- 5. Designstudio: alle vier Unterlagen ---------------------------
 await seite.click('.portal-nav button[data-ansicht="design"]');
 await seite.waitForSelector('#design-ansicht:not([hidden])');
 await seite.waitForTimeout(600);
-const inhalte = await seite.locator('#design-quelle option').allInnerTexts();
-console.log('4. Inhalte im Studio:', inhalte.join(' | '));
 const streckenWahl = await seite.locator('#design-quelle option').evaluateAll((o) =>
-  o.map((e) => ({ wert: e.value, text: e.textContent })).find((e) => /Servicevertrag|Strecke/i.test(e.text))
+  o.map((e) => ({ wert: e.value, text: e.textContent })).find((e) => /Strecke/i.test(e.text))
 );
 if (streckenWahl) await seite.selectOption('#design-quelle', streckenWahl.wert);
-await seite.selectOption('#design-vorlage', { label: 'Quick Guide' }).catch(() => {});
-await seite.waitForTimeout(800);
-const blaetter = await seite.locator('.design-blatt, .blatt').count();
-console.log(`5. Blätter gerechnet: ${blaetter}`);
-await seite.screenshot({ path: join(ziel, 'kette-studio.png'), fullPage: false });
+await seite.waitForTimeout(400);
 
-// --- 6. Als PDF sichern ----------------------------------------------
-await seite.click('#design-pdf');
-await seite.waitForFunction(() => (window.__dateien || []).length >= 1, null, { timeout: 180000 });
-const [datei] = await seite.evaluate(() => window.__dateien);
-const bytes = await seite.evaluate(() => window.__letzte);
-writeFileSync(join(ziel, 'quickguide.pdf'), Buffer.from(bytes));
-console.log(`6. PDF: ${datei.name} – ${(datei.groesse / 1024).toFixed(0)} kB`);
+const vorlagen = await seite.locator('#design-vorlage option').evaluateAll((o) =>
+  o.map((e) => ({ wert: e.value, text: e.textContent.trim() }))
+);
+console.log('4. Vorlagen:', vorlagen.map((v) => v.text).join(' | '));
+
+for (const vorlage of vorlagen) {
+  await seite.selectOption('#design-vorlage', vorlage.wert);
+  await seite.waitForTimeout(900);
+  const blaetter = await seite.locator('.design-blatt, .blatt').count();
+  await seite.evaluate(() => (window.__dateien = []));
+  await seite.click('#design-pdf');
+  await seite.waitForFunction(() => (window.__dateien || []).length >= 1, null, { timeout: 180000 });
+  const [datei] = await seite.evaluate(() => window.__dateien);
+  const bytes = await seite.evaluate(() => window.__letzte);
+  const name = vorlage.wert + '.pdf';
+  writeFileSync(join(ziel, name), Buffer.from(bytes));
+  console.log(`   ${vorlage.text.padEnd(16)} ${String(blaetter).padStart(2)} Blatt · ${(datei.groesse / 1024).toFixed(0)} kB → ${name}`);
+}
 
 if (fehler.length) console.log('FEHLER in der Seite:', fehler.join(' | '));
 else console.log('Keine Fehler in der Seite.');

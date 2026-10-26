@@ -119,7 +119,7 @@ s.test('jede Vorlage rechnet ihr eigenes Format und ihre Seitenzahl', () =>
     async (seite) => {
       await bilderMitStellen(seite, ['7.5.1', '7.5.2', '7.5.4']);
       const gemessen = {};
-      for (const vorlage of ['quickguide', 'onepager', 'releaseletter', 'handbuch']) {
+      for (const vorlage of ['quickguide', 'onepager', 'releaseletter', 'ablauf', 'handbuch']) {
         await seite.selectOption('#design-vorlage', vorlage);
         // Gerechnet wird nebenher - gewartet wird auf den Stand am Container.
         await seite.waitForFunction(

@@ -20,6 +20,29 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.64.0] – Eine Vorlage für Bildschirmfilme
+
+Aus der Durchsicht **aller vier** Unterlagen an echtem Bildschirminhalt.
+
+### Neu
+* **Vorlage „Bildschirmablauf“** (F-78): A4 hoch, 1 Spalte, 4 Zeilen,
+  Textspalte 42 % – vier breite Bildschirmfotos je Seite, Anweisung daneben.
+  Für elf Schritte **drei** Seiten mit **1 %** Rest
+
+### Gemessen
+* Ein Mitschnitt ist 16:9, die Vorlagen stammen aus einer Zeit mit 16:10 in
+  kleiner Zahl. Für elf Schritte blieben leer: Releaseletter **49 %** (sechs
+  Seiten), One Pager 43 %, Quick Guide 22 %, Handbuchseite 16 %
+
+### Nicht geändert
+* Die vier bestehenden Vorlagen. Sie sind nicht falsch – ein Releaseletter
+  mit zwei großen Bildern und Fließtext ist, was sein Name sagt. Wer sie
+  heute benutzt, bekommt morgen dasselbe Blatt
+
+### Prüfung
+* 1 neue Kernprüfung, die den Zuschnitt **nachrechnet** statt ihn zu
+  behaupten; zwei Listen der Vorlagen nachgezogen. Zusammen 522
+
 ## [1.63.0] – Der Fingerzeig im Bild
 
 Aus der ersten Prüfung der **ganzen Kette** an echtem Bildschirminhalt:

@@ -1500,6 +1500,21 @@ export const VORLAGEN = [
     textlaenge: 420
   },
   {
+    // Fuer Bildschirmfilme: ein Mitschnitt ist 16:9, und in den uebrigen
+    // Vorlagen bleibt davon fast die halbe Zelle leer (gemessen: 49 % beim
+    // Releaseletter, 43 % beim One Pager). Hier passt der Zuschnitt zum
+    // Inhalt - 1 Prozent Rest.
+    id: 'ablauf',
+    label: 'Bildschirmablauf',
+    zweck: 'Vier breite Bildschirmfotos je Seite, Anweisung daneben – für 16:9.',
+    format: 'a4-hoch',
+    spalten: 1,
+    zeilen: 4,
+    textspalte: 0.42,
+    deckblatt: false,
+    textlaenge: 260
+  },
+  {
     id: 'handbuch',
     label: 'Handbuchseite',
     zweck: 'Ein Bild je Schritt, Text in der Spalte daneben, Kapitelkopf.',

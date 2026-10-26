@@ -600,7 +600,7 @@ s.test('jede fehlende Fähigkeit nennt einen Weg, der statt dessen geht', () => 
 /* -------------------------------------------------------- Designvorlagen */
 
 s.test('jede Vorlage hat Format, Raster und Zweck', () => {
-  tieferGleich(kern.VORLAGEN.map((v) => v.id), ['quickguide', 'onepager', 'releaseletter', 'handbuch']);
+  tieferGleich(kern.VORLAGEN.map((v) => v.id), ['quickguide', 'onepager', 'releaseletter', 'ablauf', 'handbuch']);
   for (const v of kern.VORLAGEN) {
     wahr(v.label && v.zweck, `${v.id}: Label oder Zweck fehlt`);
     wahr(kern.FORMATE.some((f) => f.id === v.format), `${v.id}: unbekanntes Format ${v.format}`);
@@ -4179,6 +4179,36 @@ s.test('die Auswahl trägt den Bereich mit, nicht nur die Zeit (1.63.0)', () => 
   // Er liegt dort, wo das Feld ist – links oben, nicht über dem ganzen Bild.
   wahr(gewaehlt[1].bereich.x < 0.3, JSON.stringify(gewaehlt[1].bereich));
   wahr(gewaehlt[1].bereich.breite < 0.7, JSON.stringify(gewaehlt[1].bereich));
+});
+
+s.test('die Vorlage Bildschirmablauf passt zu 16:9 (1.64.0)', () => {
+  const schritte = Array.from({ length: 11 }, (unbenutzt, i) => ({ art: 'schritt', aufnahmen: ['A' + i], text: 'x' }));
+  /** Wie viel der Zellenhöhe ein 16:9-Bild braucht – und wie viel dasteht. */
+  const leerAnteil = (id) => {
+    const a = kern.seitenAufteilung(schritte, { vorlage: id });
+    const k = a.seiten[0].kacheln[0];
+    const noetig = (k.bildBreite * 9) / 16;
+    const platz = k.textNeben ? k.hoehe : k.bildHoehe;
+    return { seiten: a.seiten.length, leer: 1 - noetig / platz };
+  };
+
+  const ablauf = leerAnteil('ablauf');
+  // Der Zuschnitt passt: fast nichts bleibt leer.
+  wahr(Math.abs(ablauf.leer) < 0.05, 'Bildschirmablauf lässt ' + Math.round(ablauf.leer * 100) + ' % leer');
+  // Und er ist sparsamer als der Releaseletter, der dafür nicht gemacht ist.
+  const brief = leerAnteil('releaseletter');
+  wahr(brief.leer > 0.4, 'der Releaseletter lässt wider Erwarten wenig leer');
+  wahr(ablauf.seiten < brief.seiten, `${ablauf.seiten} statt ${brief.seiten} Seiten erwartet`);
+
+  const v = kern.vorlage('ablauf');
+  gleich(v.label, 'Bildschirmablauf');
+  gleich(v.spalten, 1);
+  gleich(v.zeilen, 4);
+  gleich(v.deckblatt, false);
+  // Die Vorlage steht in der Liste und ist über ihre Kennung zu finden.
+  wahr(kern.VORLAGEN.some((x) => x.id === 'ablauf'), 'die Vorlage fehlt in VORLAGEN');
+  // Eine unbekannte Kennung gibt weiterhin die erste Vorlage, nicht diese.
+  gleich(kern.vorlage('gibtsnicht').id, kern.VORLAGEN[0].id);
 });
 
 export default s;

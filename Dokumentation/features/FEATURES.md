@@ -2102,3 +2102,32 @@ Abschaltbar mit „Geänderten Bereich im Bild markieren“.
 `rahmenAusBereich(bereich, breite, hoehe, …)`; `videoWahl` gibt den Bereich
 je Bild mit heraus.
 
+## F-78 · Vorlage „Bildschirmablauf“
+
+**Seit** 1.64.0 · betrifft Designstudio, Output · **ergänzt** F-38
+
+**Das Problem** Ein Bildschirmmitschnitt ist **16:9**; die Vorlagen stammen
+aus einer Zeit mit Beispielbildern in 16:10 und in kleiner Zahl. Die Zelle
+ist so hoch wie der Platz geteilt durch die Zeilen, das Bild füllt die
+Breite und braucht 9/16 davon – der Rest bleibt leer. Gemessen für elf
+Schritte: Releaseletter **49 %** leer auf **sechs** Seiten, One Pager 43 %
+auf drei, Quick Guide 22 %, Handbuchseite 16 %.
+
+**Die Lösung** Eine fünfte Vorlage, auf diesen Inhalt gerechnet:
+
+```
+Bildschirmablauf · A4 hoch · 1 Spalte · 4 Zeilen · Textspalte 42 %
+```
+
+Vier breite Bildschirmfotos je Seite, die Anweisung daneben. Für elf
+Schritte **drei** Seiten mit **1 %** Rest statt sechs mit 49 %.
+
+**Warum nichts umgebaut wurde** Die vier bestehenden Vorlagen sind nicht
+falsch – ein Releaseletter mit zwei großen Bildern und Fließtext ist, was
+sein Name sagt. Wer sie heute benutzt, bekommt morgen dasselbe Blatt.
+
+**Grenzen** Auf 16:9 gerechnet; bei 16:10 oder 4:3 sind Handbuchseite oder
+One Pager näher dran. Kein Deckblatt. Das Bild ist etwa elf Zentimeter
+breit – genug, um mit dem Rahmen (F-77) die Stelle zu finden, nicht, um
+Kleingedrucktes zu lesen.
+
