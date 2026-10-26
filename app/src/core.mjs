@@ -6297,6 +6297,11 @@ const DOCX_VORLAGEN =
     .join('') +
   '<w:style w:type="paragraph" w:styleId="Bildunterschrift"><w:name w:val="caption"/><w:basedOn w:val="Normal"/>' +
   '<w:pPr><w:spacing w:before="40" w:after="200"/></w:pPr><w:rPr><w:i/><w:sz w:val="18"/><w:color w:val="6B7280"/></w:rPr></w:style>' +
+  // Der Quellhinweis trägt seit 1.66.0 eine eigene Vorlage. Nicht wegen des
+  // Aussehens - er sah schon vorher so aus -, sondern damit der Rückweg
+  // (F-65) ihn wiedererkennt und nicht für geschriebenen Text hält.
+  '<w:style w:type="paragraph" w:styleId="Quellhinweis"><w:name w:val="Quellhinweis"/><w:basedOn w:val="Normal"/>' +
+  '<w:pPr><w:spacing w:before="40" w:after="160"/></w:pPr><w:rPr><w:sz w:val="18"/><w:color w:val="6B7280"/></w:rPr></w:style>' +
   '</w:styles>';
 
 /**
@@ -6374,7 +6379,7 @@ export function docxAusHandbuch(
             .join(' · ');
           return [bildAbsatz(aufnahme), absatz(unterschrift, { vorlage: 'Bildunterschrift' })];
         }),
-        mitTexten && teil.notiz ? absatz(teil.notiz, { groesse: 18 }) : ''
+        mitTexten && teil.notiz ? absatz(teil.notiz, { vorlage: 'Quellhinweis' }) : ''
       ].filter(Boolean);
     })
   ]
@@ -6795,8 +6800,11 @@ export function stellenAusDocx(absaetze = []) {
       continue;
     }
     if (!aktuell) continue;
-    // Bildunterschriften gehören zum Bild, nicht zum Text der Stelle.
-    if (absatz.vorlage === 'Bildunterschrift') continue;
+    // Bildunterschriften gehören zum Bild, der Quellhinweis zur Herkunft
+    // der Gliederung - beides ist nicht der Text der Stelle. Bis 1.65.0
+    // fehlte der Quellhinweis hier: der unveränderte Umlauf bot darum
+    // **jede** Stelle als geändert an.
+    if (absatz.vorlage === 'Bildunterschrift' || absatz.vorlage === 'Quellhinweis') continue;
     const kriterium = absatz.text.match(/^Fertig,\s*wenn:\s*(.+)$/i);
     if (kriterium) {
       aktuell.kriterium = kriterium[1].trim();
@@ -6825,7 +6833,13 @@ export function vergleicheStellentexte(gliederung = [], gelesen = [], eigene = {
     if (!eintrag) return { ...stelle, art: 'unbekannt', alt: {} };
     const alt = { text: eintrag.text || '', kriterium: eintrag.kriterium || '' };
     const felder = [];
-    if (stelle.text && stelle.text !== alt.text) felder.push('text');
+    // Eine Datei aus einer Fassung vor 1.66.0 trägt den Quellhinweis ohne
+    // eigene Vorlage; der Leser hält ihn dann für Text. Steht als „neuer
+    // Text" genau der Hinweis, den die Stelle ohnehin führt, ist das keine
+    // Änderung - sonst bietet ein Umlauf ohne eine einzige Änderung im
+    // Haus die ganze Gliederung zum Übernehmen an.
+    const altlast = Boolean(eintrag.notiz) && stelle.text.trim() === String(eintrag.notiz).trim();
+    if (stelle.text && !altlast && stelle.text !== alt.text) felder.push('text');
     if (stelle.kriterium && stelle.kriterium !== alt.kriterium) felder.push('kriterium');
     return {
       ...stelle,

@@ -20,6 +20,40 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.66.0] – Der Rückweg aus Word bot alles an
+
+Die zweite Hälfte der Durchsicht aus 1.65.0: nicht nur ansehen, was die
+Seite schreibt, sondern es **wieder hineingeben**.
+
+### Behoben
+* **Der unveränderte Umlauf bot jede Stelle als geändert an** (F-65). Am
+  echten Handbuch: **15 von 15**, alle vorangekreuzt. Der Quellhinweis
+  („Quelle: …", das Feld `notiz`) stand im Word als gewöhnlicher Absatz da;
+  der Leser kannte nur Überschrift und Bildunterschrift als „kein Text der
+  Stelle" und hielt ihn darum für neu geschriebenen Text
+* Der Hinweis trägt jetzt eine **eigene Vorlage** (`Quellhinweis`), wie die
+  Bildunterschrift eine hat, und der Leser übergeht ihn
+* **Altlast**: Dateien aus früheren Fassungen tragen ihn ohne Vorlage. Steht
+  als „neuer Text" genau die Notiz, die die Stelle ohnehin führt, ist das
+  keine Änderung
+
+### Neu
+* **`Testing/messungen/rueckweg.mjs`**: derselbe Umlauf durch die fertige
+  Seite, mit `--aendern` auch mit genau **einer** echten Änderung. Gepackt
+  und entpackt wird mit den Werkzeugen der Seite selbst
+
+### Warum keine Prüfung das fand
+* Es gab Prüfungen seit 1.47.0, und sie waren nicht falsch: sie gaben dem
+  **Leser** ein von Hand geschriebenes Word-XML. Keine prüfte, ob das, was
+  der **Schreiber** schreibt, durch den Leser unverändert herauskommt – zwei
+  Hälften, jede für sich geprüft, dazwischen eine Lücke
+
+### Prüfung
+* 1 neue Kernprüfung, die den Kreis schließt: Gliederung → `docxAusHandbuch`
+  → ZIP wieder auf → `docxAbsaetze` → `stellenAusDocx` →
+  `vergleicheStellentexte`, erwartet null. Ohne Browser, in Millisekunden.
+  Zusammen 525
+
 ## [1.65.0] – Das Register Output stand in einer Sackgasse
 
 Aus der Durchsicht von **Word und PowerPoint** an echtem Bildschirminhalt –

@@ -59,7 +59,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-Summe: **524 Prüfungen**.
+Summe: **525 Prüfungen**.
 
 ## Messungen – nicht Teil des Durchlaufs
 
@@ -74,6 +74,12 @@ einmal die ganze Kette vom Film bis zur fertigen PDF, zum Ansehen – und seit
 Dateien fiel die Sackgasse im Register Output auf (F-56), die keine der
 sieben Browserprüfungen dort finden konnte: jede kreuzte die Werte der Achse
 an, bevor sie etwas erwartete, und sah die **Vorgabe** damit nie.
+
+Seit 1.66.0 liegt dort `rueckweg.mjs`: eine Word-Datei, die die Seite selbst
+geschrieben hat, unverändert zurück – und mit `--aendern` mit genau einer
+Änderung. Auch dieser Befund kam nicht aus einer Lücke in den Prüfungen,
+sondern aus dem Raum **zwischen** zweien: Schreiber und Leser waren jeder
+für sich geprüft, der Umlauf über beide nie.
 
 ## Eigene Helfer
 

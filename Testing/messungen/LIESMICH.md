@@ -76,6 +76,20 @@ soffice --headless --convert-to pdf <datei> --outdir <ordner>
 pdftoppm -r 100 -png <datei>.pdf seite
 ```
 
+### `rueckweg.mjs`
+
+Der **Umlauf**: eine Word-Datei, die die Seite selbst geschrieben hat,
+unverändert wieder hineingeben.
+
+```bash
+node Testing/messungen/rueckweg.mjs <handbuch.docx>            # unverändert
+node Testing/messungen/rueckweg.mjs <handbuch.docx> --aendern  # eine Änderung
+```
+
+Wer nichts ändert, darf keine Änderung angeboten bekommen – und wer eine
+ändert, genau eine. Nur wenn beide Hälften stimmen, ist der Rückweg (F-65)
+in Ordnung. Gepackt und entpackt wird mit den Werkzeugen der Seite selbst.
+
 ## Was dabei herauskam (1.62.0)
 
 | | vorher | nachher |
@@ -129,3 +143,21 @@ Gefunden wurde etwas anderes, auf dem Weg dorthin: das Register **Output**
 stand in einer Sackgasse. Die Vorgabe war Achse „Sprache" ohne Werte, und
 `ausgabePlan` verlangt Werte – Vorlage und Inhalt zu wählen genügte nie,
 während der Hinweis die Achse „wenn gewünscht" nannte. Behoben in 1.65.0.
+
+## Was dabei herauskam (1.66.0)
+
+Der Umlauf, zum ersten Mal gefahren:
+
+| | vorher | nachher |
+| --- | --- | --- |
+| unverändert zurück | **15 von 15** als geändert angeboten | 0 |
+| vorangekreuzt | 15 | 0 |
+| mit einer Änderung | – | genau 1, das richtige Feld |
+
+Die Ursache war ein Absatz ohne Namen: der Quellhinweis stand im Word als
+gewöhnlicher Absatz da, und der Leser kannte nur Überschrift und
+Bildunterschrift als „kein Text der Stelle".
+
+Der Befund kam nicht aus einer Lücke in den Prüfungen, sondern aus dem Raum
+**zwischen** zweien. Schreiber und Leser waren jeder für sich geprüft, seit
+1.47.0. Den Weg über beide ging nie jemand.

@@ -1737,6 +1737,16 @@ Stand des Projekts wieder her.
 Damit ist der Kreis geschlossen: Gliederung → Blätter und Word-Handbuch →
 Änderungen im Haus → zurück in die Seite → nächste Ausgabe.
 
+**geändert in** 1.66.0: Der Kreis war **nicht** geschlossen. Eine Datei, die
+die Seite selbst geschrieben hatte, bot unverändert **jede** Stelle als
+geändert an (am echten Handbuch: 15 von 15, alle vorangekreuzt). Der
+Quellhinweis („Quelle: …", das Feld `notiz`) stand im Word als gewöhnlicher
+Absatz; der Leser kannte nur Überschrift und Bildunterschrift als „kein Text
+der Stelle". Er trägt jetzt eine eigene Vorlage (`Quellhinweis`) und wird
+übergangen. Dateien aus früheren Fassungen fängt eine Regel im Vergleich ab:
+steht als neuer Text genau die Notiz, die die Stelle ohnehin führt, ist das
+keine Änderung.
+
 ## F-66 · Die Sprache der Unterlagen
 
 **Seit** 1.48.0 · betrifft Designstudio, Handbuch, Fortschrittsblatt

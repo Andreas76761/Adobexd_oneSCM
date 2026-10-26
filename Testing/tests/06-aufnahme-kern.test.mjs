@@ -3579,6 +3579,64 @@ s.test('der Vergleich zeigt, was sich ändern würde – bevor etwas geschieht',
   gleich(danach.find((v) => v.nummer === '7').art, 'gleich');
 });
 
+s.test('der eigene Umlauf bietet nichts an: raus und wieder rein (1.66.0)', async () => {
+  // Die ehrlichste Probe für F-65: eine Datei, die die Seite selbst
+  // geschrieben hat, unverändert zurücklesen. Wer nichts ändert, darf keine
+  // Änderung angeboten bekommen.
+  //
+  // Bis 1.65.0 war das nicht so. Der Quellhinweis („Quelle: …", das Feld
+  // `notiz`) stand im Word ohne eigene Vorlage da; der Leser hielt ihn für
+  // den Text der Stelle. Am echten Handbuch bot der Umlauf **15 von 15**
+  // Stellen als geändert an, alle angekreuzt.
+  const umlaufGliederung = kern.leseGliederung({
+    eintraege: [
+      { nummer: '7', thema: 'Zahlungsdaten', ebene: 1, kriterium: 0, notiz: 1 },
+      { nummer: '7.5', thema: 'Unterschrift', ebene: 2, text: 2, kriterium: 0, notiz: 1 }
+    ],
+    texte: ['der Beleg liegt vor', 'Quelle: Gesamtgliederung_v2.docx, 7. Rollen nicht gesetzt', 'Ein Satz im Handbuch.']
+  });
+  const docx = kern.docxAusHandbuch(umlaufGliederung, { titel: 'Handbuch', bilder: new Map() });
+  wahr(docx && docx.length, 'ohne Datei keine Probe');
+
+  const xml = Buffer.from(docx).toString('latin1');
+  wahr(xml.includes('w:styleId="Quellhinweis"'), 'die Vorlage für den Quellhinweis fehlt in den Stilen');
+  wahr(xml.includes('<w:pStyle w:val="Quellhinweis"/>'), 'der Hinweis trägt die Vorlage nicht');
+
+  // Der Umlauf: dieselben Bytes zurück durch den Leser.
+  const verzeichnis = kern.leseZipVerzeichnis(docx);
+  const eintrag = verzeichnis.find((e) => e.name === 'word/document.xml');
+  wahr(eintrag, 'word/document.xml fehlt in der Datei');
+  const inhalt = await kern.entpackeZipEintrag(docx, eintrag);
+  wahr(inhalt, 'word/document.xml ließ sich nicht entpacken');
+  const gelesen = kern.stellenAusDocx(kern.docxAbsaetze(new TextDecoder().decode(inhalt)));
+  gleich(gelesen.length, 2, 'beide Stellen müssen zurückkommen');
+
+  // Der Quellhinweis ist kein Text der Stelle - sonst stünde er hier.
+  wahr(!gelesen[0].text.includes('Quelle:'), gelesen[0].text);
+  gleich(gelesen[1].text, 'Ein Satz im Handbuch.');
+  gleich(gelesen[0].kriterium, 'der Beleg liegt vor');
+
+  const vergleich = kern.vergleicheStellentexte(umlaufGliederung, gelesen, {});
+  gleich(
+    vergleich.filter((v) => v.art === 'geaendert').length,
+    0,
+    'der unveränderte Umlauf bietet an: ' + vergleich.filter((v) => v.art === 'geaendert').map((v) => v.nummer).join(', ')
+  );
+
+  // Eine echte Änderung kommt weiterhin an.
+  const geaendert = gelesen.map((g) => (g.nummer === '7' ? { ...g, kriterium: 'im Protokoll vermerkt' } : g));
+  const danach = kern.vergleicheStellentexte(umlaufGliederung, geaendert, {});
+  gleich(danach.find((v) => v.nummer === '7').art, 'geaendert');
+  tieferGleich(danach.find((v) => v.nummer === '7').felder, ['kriterium']);
+
+  // Altlast: eine Datei aus einer Fassung vor 1.66.0 trägt den Hinweis ohne
+  // Vorlage. Dort landet er im Text - und darf trotzdem keine Änderung sein.
+  const alt = gelesen.map((g) =>
+    g.nummer === '7' ? { ...g, text: 'Quelle: Gesamtgliederung_v2.docx, 7. Rollen nicht gesetzt' } : g
+  );
+  gleich(kern.vergleicheStellentexte(umlaufGliederung, alt, {}).find((v) => v.nummer === '7').art, 'gleich');
+});
+
 s.test('die eigenen Texte legen sich über die Gliederung, ohne sie zu ändern', () => {
   const eigene = { '7': { text: 'Eigener Text', geaendert_am: '2026-10-18T00:00:00.000Z' } };
   const mit = kern.gliederungMitTexten(wordGliederung, eigene);
