@@ -55,11 +55,11 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `21-ocr.e2e.mjs` | OCR im Browser: Bilder wählen, Lesen über Claude (nachgebildet), Kacheln, Text ändern, in die Notiz übernehmen, Textdatei und Word-Datei, fehlende Bilderlaubnis, Suche über die Lesungen | 6 |
 
-| `20-output.e2e.mjs` | Output im Browser: Inhalte nach Kapiteln, ein Dokument je Variante, Vorschau mit Kapitel und Labels, Sicherung als PDF, Word und PowerPoint, Ablage im Verzeichnis, die Lupe | 7 |
+| `20-output.e2e.mjs` | Output im Browser: Inhalte nach Kapiteln, ein Dokument je Variante, Vorschau mit Kapitel und Labels, Sicherung als PDF, Word und PowerPoint, Ablage im Verzeichnis, die Lupe, die Vorgabe ohne Achse und der Grund für den leeren Plan | 8 |
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-Summe: **522 Prüfungen**.
+Summe: **524 Prüfungen**.
 
 ## Messungen – nicht Teil des Durchlaufs
 
@@ -69,7 +69,11 @@ mit **bekannten** Änderungen, gegen den sich die Abtastung des Registers
 Video messen lässt (gefunden, verpasst, zusätzlich). Sie laufen nicht in
 `npm test` – sie dauern Minuten und brauchen ffmpeg. Einzelheiten in
 `Testing/messungen/LIESMICH.md`. Dort liegt seit 1.63.0 auch `kette.mjs`:
-einmal die ganze Kette vom Film bis zur fertigen PDF, zum Ansehen.
+einmal die ganze Kette vom Film bis zur fertigen PDF, zum Ansehen – und seit
+1.65.0 `word.mjs` für dasselbe in Word und PowerPoint. Beim Ansehen dieser
+Dateien fiel die Sackgasse im Register Output auf (F-56), die keine der
+sieben Browserprüfungen dort finden konnte: jede kreuzte die Werte der Achse
+an, bevor sie etwas erwartete, und sah die **Vorgabe** damit nie.
 
 ## Eigene Helfer
 

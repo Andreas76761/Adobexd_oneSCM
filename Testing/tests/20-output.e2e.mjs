@@ -77,14 +77,21 @@ async function zweiSprachen(seite) {
   }
 }
 
-/** Kreuzt alle Werte der Achse an. */
-const alleWerte = (seite) =>
-  seite.evaluate(() => {
+/**
+ * Stellt die Achse auf die Sprache und kreuzt alle ihre Werte an. Seit
+ * 1.65.0 steht die Achse anfangs auf „keine" - vorher stand dort „Sprache"
+ * ohne Werte, und damit konnte nie ein Plan entstehen.
+ */
+const alleWerte = async (seite) => {
+  await seite.selectOption('#output-achse', 'sprache');
+  await seite.waitForSelector('#output-werte input');
+  await seite.evaluate(() => {
     for (const k of document.querySelectorAll('#output-werte input')) {
       k.checked = true;
       k.dispatchEvent(new Event('change', { bubbles: true }));
     }
   });
+};
 
 s.test('ohne Inhalt erklärt sich das Register', () =>
   mitSeite(async (seite) => {
@@ -159,6 +166,39 @@ s.test('je Sprache entsteht ein Dokument – mit Kapitel und Labels', () =>
         await seite.locator('#output-schau').innerText()
       );
       gleich(await seite.locator('.output-bild').count(), 1);
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('ohne Achse genügen Vorlage und Inhalt – der Hinweis sagt, was fehlt', () =>
+  mitSeite(
+    async (seite) => {
+      await zweiSprachen(seite);
+      await seite.click('.portal-nav button[data-ansicht="output"]');
+      await seite.waitForSelector('#output-ansicht:not([hidden])');
+
+      // Die Vorgabe: eine Vorlage steht, der Inhalt fehlt. Bis 1.65.0 stand
+      // die Achse auf „Sprache" ohne Werte - kein Inhalt der Welt hätte
+      // daraus einen Plan gemacht.
+      gleich(await seite.locator('#output-achse').inputValue(), '');
+      wahr(
+        (await seite.locator('#output-liste').innerText()).includes('einen Inhalt'),
+        await seite.locator('#output-liste').innerText()
+      );
+
+      // Vorlage und Inhalt allein ergeben ein Dokument.
+      await seite.selectOption('#output-inhalte', ['kapitel:7.5.1']);
+      await seite.waitForTimeout(250);
+      gleich(await seite.locator('.output-zeile').count(), 1);
+      gleich(await seite.locator('#output-erzeugen').isDisabled(), false);
+
+      // Eine Achse ohne Werte hält den Plan an - und sagt, welche.
+      await seite.selectOption('#output-achse', 'sprache');
+      await seite.waitForTimeout(250);
+      gleich(await seite.locator('.output-zeile').count(), 0);
+      const hinweis = await seite.locator('#output-liste').innerText();
+      wahr(hinweis.includes('Sprache'), hinweis);
+      wahr(hinweis.includes('keine'), hinweis);
     },
     { hash: AUFNAHME }
   ));

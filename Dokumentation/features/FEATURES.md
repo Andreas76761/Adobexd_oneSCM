@@ -1463,6 +1463,13 @@ sechs Dokumente, mit drei Formaten achtzehn Dateien.
 Ein Auftrag ohne Bild bleibt in der Liste und wird als leer ausgewiesen: wer
 drei Sprachen erwartet und zwei bekommt, soll die Lücke sehen.
 
+**geändert in** 1.65.0: Das Register stand in einer **Sackgasse**. Die
+Vorgabe war Achse „Sprache" **ohne Werte**, und ein Plan entsteht nur mit
+Werten – Vorlage und Inhalt zu wählen genügte nie, auch wenn der Hinweis die
+Achse „wenn gewünscht" nannte. Jetzt steht die Achse anfangs auf **keine**,
+und der leere Plan nennt seinen Grund beim Namen: welche Angabe fehlt, und
+ob Ankreuzen überhaupt hilft oder erst ein Label im Editor nachzutragen ist.
+
 ## F-57 · Die Lupe – ein Bild groß, mit allem, was dazugehört
 
 **Seit** 1.39.0 · betrifft Eingang, Suchchat, Editor, Output

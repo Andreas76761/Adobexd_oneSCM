@@ -20,6 +20,39 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.65.0] – Das Register Output stand in einer Sackgasse
+
+Aus der Durchsicht von **Word und PowerPoint** an echtem Bildschirminhalt –
+gefunden wurde nicht dort, sondern auf dem Weg dorthin.
+
+### Behoben
+* **Im Register Output konnte mit der Vorgabe nie ein Dokument entstehen**
+  (F-56). Die Achse stand anfangs auf „Sprache" **ohne Werte**, und ein Plan
+  entsteht nur mit Werten. Wer Vorlage und Inhalt wählte, bekam denselben
+  Satz wie vorher – und der nannte die Achse „wenn gewünscht". Die Achse
+  steht jetzt auf **keine**; Vorlage und Inhalt allein ergeben ein Dokument
+
+### Neu
+* **Der leere Plan nennt seinen Grund** (`ausgabeGrund`): welche Angabe
+  fehlt, und bei einer Achse ohne Werte, ob Ankreuzen hilft oder erst ein
+  Label im Editor nachzutragen ist
+* **`Testing/messungen/word.mjs`**: Word und PowerPoint an echtem
+  Bildschirminhalt erzeugen und zum Ansehen hinlegen
+
+### Angesehen, nicht beanstandet
+* **Das Handbuch als `.docx`**: 615 kB, 68 Absätze, 2 × Heading1,
+  3 × Heading2, 11 × Heading3, 11 Bildunterschriften, 11 eingebettete
+  JPEGs, als A4-PDF sieben Seiten. Die Überschriftenebenen stehen wirklich
+  im Dokument – daran hängt der Rückweg aus Word (F-65)
+* **Der Bildschirmablauf als `.pptx`**: drei Folien im A4-Hochmaß, je ein
+  Blatt als Bild, Rahmen sichtbar, Text lesbar. Zum ersten Mal angesehen
+
+### Prüfung
+* 1 neue Kernprüfung (`ausgabeGrund` mit allen fünf Fällen, dazu die
+  Vorgabe des Registers), 1 neue Browserprüfung (die Sackgasse im Register
+  selbst); drei bestehende Browserprüfungen stellen die Achse jetzt
+  ausdrücklich ein. Zusammen 524
+
 ## [1.64.0] – Eine Vorlage für Bildschirmfilme
 
 Aus der Durchsicht **aller vier** Unterlagen an echtem Bildschirminhalt.

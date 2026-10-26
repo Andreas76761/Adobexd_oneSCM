@@ -7237,6 +7237,34 @@ export function ausgabeInhaltName(inhalt = '', strecken = [], gliederung = []) {
 }
 
 /**
+ * Warum kein Dokument geplant ist. Bis 1.65.0 stand dort immer derselbe
+ * Satz - auch dann, wenn Vorlage und Inhalt längst gewählt waren und es
+ * allein an einer Achse ohne Werte lag. Wer das nicht wusste, kam nicht
+ * weiter; die Vorgabe war genau dieser Fall.
+ *
+ * `werteMoeglich` sagt, ob die gewählte Achse im Bestand überhaupt Werte
+ * hat - das weiß nur die Ansicht.
+ */
+export function ausgabeGrund(wahl = {}, { werteMoeglich = true } = {}) {
+  const vorlagen = (wahl.vorlagen || []).filter(Boolean);
+  const inhalte = (wahl.inhalte || []).filter(Boolean);
+  const achse = String(wahl.achse || '');
+  const werte = (wahl.werte || []).filter((w) => String(w).length);
+  const fehlt = [];
+  if (!vorlagen.length) fehlt.push('eine Vorlage');
+  if (!inhalte.length) fehlt.push('einen Inhalt');
+  if (fehlt.length) return `Noch kein Dokument geplant: links ${fehlt.join(' und ')} wählen.`;
+  if (achse && !werte.length) {
+    const feld = LABEL_FELDER.find((f) => f.id === achse);
+    const name = (feld && feld.label) || achse;
+    return werteMoeglich
+      ? `Vorlage und Inhalt stehen. Es fehlen die Werte der Achse „${name}" – links ankreuzen, welche Fassungen entstehen sollen, oder die Achse auf „keine" stellen.`
+      : `Vorlage und Inhalt stehen. Die Achse „${name}" ist gewählt, aber kein Bild trägt diese Angabe – die Achse auf „keine" stellen, oder das Label im Editor nachtragen.`;
+  }
+  return '';
+}
+
+/**
  * Der Plan: ein Auftrag je Vorlage × Inhalt × Variante. Aufträge ohne Bild
  * bleiben in der Liste und werden als leer ausgewiesen - wer drei Sprachen
  * erwartet und zwei bekommt, soll die Lücke sehen.

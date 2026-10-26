@@ -2918,6 +2918,48 @@ s.test('aus Vorlage × Inhalt × Variante entsteht je ein Dokument', () => {
   gleich(kern.ausgabePlan(outputBestand, [], outputGliederung, { vorlagen: ['quickguide'], inhalte: [] }, kern.VORLAGEN).length, 0);
 });
 
+s.test('der leere Ausgabeplan nennt seinen Grund', () => {
+  // Bis 1.65.0 stand im Register immer derselbe Satz. Die Vorgabe war
+  // „Sprache" ohne Werte - damit konnte nie ein Plan entstehen, und der
+  // Hinweis nannte die Achse „wenn gewünscht".
+  const grund = (wahl, opt) => kern.ausgabeGrund(wahl, opt);
+
+  wahr(
+    grund({ vorlagen: [], inhalte: [] }).includes('eine Vorlage und einen Inhalt'),
+    grund({ vorlagen: [], inhalte: [] })
+  );
+  wahr(grund({ vorlagen: ['quickguide'], inhalte: [] }).includes('einen Inhalt'), 'der Inhalt fehlt');
+  wahr(grund({ vorlagen: [], inhalte: ['kapitel:6.2'] }).includes('eine Vorlage'), 'die Vorlage fehlt');
+
+  // Vorlage und Inhalt stehen, die Achse hat keine Werte: der Satz nennt
+  // die Achse beim Namen und beide Auswege.
+  const offen = grund({ vorlagen: ['quickguide'], inhalte: ['kapitel:6.2'], achse: 'sprache', werte: [] });
+  wahr(offen.includes('Sprache'), offen);
+  wahr(offen.includes('keine'), offen);
+
+  // Trägt kein Bild die Angabe, hilft Ankreuzen nicht - das sagt der Satz.
+  const leer = grund(
+    { vorlagen: ['quickguide'], inhalte: ['kapitel:6.2'], achse: 'sprache', werte: [] },
+    { werteMoeglich: false }
+  );
+  wahr(leer.includes('kein Bild'), leer);
+  wahr(leer.includes('Editor'), leer);
+
+  // Was einen Plan ergibt, hat keinen Grund mehr.
+  gleich(grund({ vorlagen: ['quickguide'], inhalte: ['kapitel:6.2'], achse: '', werte: [] }), '');
+  gleich(grund({ vorlagen: ['quickguide'], inhalte: ['kapitel:6.2'], achse: 'sprache', werte: ['de'] }), '');
+
+  // Die Vorgabe des Registers selbst darf nicht in der Sackgasse stehen:
+  // Vorlage gewählt, Achse leer - es fehlt allein der Inhalt.
+  const vorgabe = { vorlagen: ['quickguide'], inhalte: [], achse: '', werte: [], formate: ['pdf'] };
+  wahr(grund(vorgabe).includes('einen Inhalt'), grund(vorgabe));
+  gleich(
+    kern.ausgabePlan(outputBestand, [], outputGliederung, { ...vorgabe, inhalte: ['kapitel:6.2'] }, kern.VORLAGEN).length,
+    1,
+    'die Vorgabe muss mit einem Inhalt allein zu einem Plan führen'
+  );
+});
+
 s.test('eine Strecke als Inhalt folgt der Variante, nicht dem Filter', () => {
   const strecken = [
     { id: 'STR-1', name: 'Vorlage anlegen', schritte: [{ art: 'schritt', aufnahmen: ['B1'], text: 'Liste öffnen' }] }

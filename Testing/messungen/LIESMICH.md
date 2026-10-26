@@ -58,6 +58,24 @@ Dieser Durchlauf hat in 1.63.0 gezeigt, dass die Bilder im Blatt unlesbar
 waren: alles strukturell richtig, und doch unbrauchbar. Das sieht man nur,
 wenn man die PDF **ansieht**.
 
+### `word.mjs`
+
+Dasselbe für **Word und PowerPoint**: die Kette läuft bis zum Output,
+sichert `.docx` und `.pptx` und legt sie zum Ansehen hin.
+
+```bash
+node Testing/messungen/word.mjs <ordner mit film.webm> [zielordner]
+```
+
+Bei Word ist „Text bleibt Text" das ganze Versprechen (F-61), und der
+Rückweg aus Word (F-65) hängt daran: was keine Überschrift ist, findet nicht
+zurück in die Gliederung. Angesehen wird mit LibreOffice:
+
+```bash
+soffice --headless --convert-to pdf <datei> --outdir <ordner>
+pdftoppm -r 100 -png <datei>.pdf seite
+```
+
 ## Was dabei herauskam (1.62.0)
 
 | | vorher | nachher |
@@ -92,3 +110,22 @@ einen Ordner und schreibt die echten Änderungen von Hand in `wahrheit.json`:
 Dann sagt `miss-abtastung.mjs`, welche Einstellung für **dieses** Material
 taugt. Das ist der ehrlichste Weg zu Voreinstellungen – und der einzige, den
 ein synthetischer Film nicht ersetzt.
+
+## Was dabei herauskam (1.65.0)
+
+Word und PowerPoint zum ersten Mal **angesehen**, an elf Schritten aus dem
+Film:
+
+| | Ergebnis |
+| --- | --- |
+| Handbuch als `.docx` | 615 kB, 68 Absätze, 2 × Heading1, 3 × Heading2, 11 × Heading3, 11 Bildunterschriften, 11 eingebettete JPEGs, 7 A4-Seiten |
+| Bildschirmablauf als `.pptx` | 3 Folien im A4-Hochmaß, je ein Blatt als Bild |
+
+An den Dateien war **nichts zu beanstanden** – die Überschriftenebenen
+stehen wirklich im Dokument, die Rahmen sind sichtbar, die Bilder lesbar.
+Das ist auch ein Ergebnis und wird hier so festgehalten.
+
+Gefunden wurde etwas anderes, auf dem Weg dorthin: das Register **Output**
+stand in einer Sackgasse. Die Vorgabe war Achse „Sprache" ohne Werte, und
+`ausgabePlan` verlangt Werte – Vorlage und Inhalt zu wählen genügte nie,
+während der Hinweis die Achse „wenn gewünscht" nannte. Behoben in 1.65.0.

@@ -14,7 +14,10 @@
 let outputWahl = {
   vorlagen: ['quickguide'],
   inhalte: [],
-  achse: 'sprache',
+  // Keine Achse als Vorgabe: mit „sprache" und ohne Werte konnte bis 1.65.0
+  // nie ein Plan entstehen - Vorlage und Inhalt zu wählen genügte nicht,
+  // und der Hinweis sagte das Gegenteil („wenn gewünscht").
+  achse: '',
   werte: [],
   formate: ['pdf']
 };
@@ -137,7 +140,10 @@ function zeichneOutputListe() {
     kasten.replaceChildren(
       el('p', {
         klasse: 'feld-hinweis',
-        text: 'Noch kein Dokument geplant: links eine Vorlage, einen Inhalt und – wenn gewünscht – eine Achse mit Werten wählen.'
+        text:
+          ausgabeGrund(outputWahl, {
+            werteMoeglich: outputWerte(outputWahl.achse).length > 0
+          }) || 'Noch kein Dokument geplant: links eine Vorlage und einen Inhalt wählen.'
       })
     );
     return;

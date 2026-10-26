@@ -10,6 +10,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
 | [durchsicht.md](durchsicht.md) | Bestandsaufnahme über 69 Funktionen in dreizehn Ansichten: was zusammengehört, was wahrscheinlich tot ist, was bewusst bleibt |
+| [versionen/v1.65.0.md](versionen/v1.65.0.md) | Das Register Output stand in einer Sackgasse – Word und PowerPoint angesehen |
 | [versionen/v1.64.0.md](versionen/v1.64.0.md) | Eine Vorlage für Bildschirmfilme – 49 % Leerraum nachgerechnet |
 | [versionen/v1.63.0.md](versionen/v1.63.0.md) | Der Fingerzeig im Bild – die ganze Kette an echtem Inhalt |
 | [versionen/v1.62.0.md](versionen/v1.62.0.md) | Gemessen statt geraten – ein Messfilm für die Abtastung |
