@@ -26,8 +26,10 @@ function leseVerzeichnisSpeicher() {
 function sichereVerzeichnisWahl() {
   try {
     localStorage.setItem(VERZEICHNIS_SCHLUESSEL, schreibeVerzeichnisWahl(verzeichnisWahl));
+    return true;
   } catch (fehler) {
     // Ohne Speicher gilt das Muster nur für diese Sitzung.
+    return false;
   }
 }
 
@@ -320,6 +322,10 @@ async function sicherePaket() {
     ocr: ocrTexte,
     wortliste,
     vorgehen: holeVorgehen(),
+    // `stellentexte` steht in gliederung.js - alle Oberflächenmodule teilen
+    // sich eine Klammer, und gliederung.js wird vorher geladen.
+    texte: stellentexte,
+    verzeichnis: verzeichnisWahl,
     anwendung: DATEN.anwendung
   });
   dateien.unshift({ name: PAKET_NAME, daten: JSON.stringify(angaben, null, 2) });
@@ -476,6 +482,18 @@ async function lesePaketDatei(datei) {
         bericht.push('Das Vorgehen gilt nur für diese Sitzung – der Speicher ist voll.');
       }
       zeichneVorgehen();
+    }
+    if (Object.keys(gelesen.texte || {}).length) {
+      // Eigene Texte sind Inhalt: beim Ergänzen kommen die fremden dazu,
+      // ohne eigene zu verdrängen - wer dieselbe Stelle geschrieben hat,
+      // behält seinen Satz.
+      stellentexte = art === 'ersetzen' ? gelesen.texte : { ...gelesen.texte, ...stellentexte };
+      if (!sichereStellentexte()) bericht.push('Die eigenen Texte gelten nur für diese Sitzung – der Speicher ist voll.');
+      zeichneRuecklauf();
+    }
+    if (gelesen.verzeichnis) {
+      verzeichnisWahl = gelesen.verzeichnis;
+      if (!sichereVerzeichnisWahl()) bericht.push('Das Namensmuster gilt nur für diese Sitzung – der Speicher ist voll.');
     }
     if (gelesen.design) {
       studio = gelesen.design;

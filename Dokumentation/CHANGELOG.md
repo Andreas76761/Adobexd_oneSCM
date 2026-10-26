@@ -20,6 +20,39 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.68.0] – Was die Projektdatei vergaß
+
+Der dritte Umlauf, und der wichtigste: der Bestand von einem Menschen zum
+nächsten. Er *wurde* geprüft, seit 1.45.0, und die Prüfung war grün.
+
+### Behoben
+* **Die eigenen Texte aus dem Rückweg aus Word reisten nicht mit** (F-63,
+  F-65). Sie sind Inhalt – im Haus geschriebene Sätze, die es sonst nirgends
+  gibt. Wer den Bestand weitergab, gab sie verloren, lautlos und mit grünem
+  Bericht. Beim Ergänzen verdrängen sie nichts: wer dieselbe Stelle selbst
+  geschrieben hat, behält seinen Satz
+* **Das Namensmuster des Verzeichnisses** reist ebenfalls mit – aus
+  demselben Grund wie das Vorgehen in 1.60.0: wer anders ablegt, legt
+  anderswohin ab
+
+### Neu
+* **`PAKET_INHALT`**: jeder Speicherschlüssel sagt, ob er mitreist – auch
+  jeder, der bleiben soll, mit seinem Grund (`:ablage` hängt am
+  Ordnerzugriff, `:chat` ist ein Gespräch, `:gebrauch` zählt diesen
+  Browser). Eine Kernprüfung hält die Liste gegen die Schlüssel des Kerns:
+  ein neuer ohne Eintrag lässt sie fallen, ein Eintrag ohne Grund auch
+
+### Warum der Riegel und nicht nur die Behebung
+* Derselbe Fehler war 1.60.0 schon einmal passiert (das Vorgehen des
+  Registers Video). Zweimal derselbe Fehler heißt: es fehlt nicht ein Feld,
+  es fehlt eine **Stelle, an der die Frage gestellt wird**
+* Der Riegel kann eine Entscheidung erzwingen, nicht treffen. Wer
+  `reist: false` einträgt und eine Begründung dazuschreibt, kommt durch
+
+### Prüfung
+* 1 neue Kernprüfung (eine Millisekunde, kein Browser); der Umlauf der
+  Projektdatei prüft eigene Texte und Namensmuster mit. Zusammen 528
+
 ## [1.67.0] – Elf Bilder, eine Stelle
 
 Derselbe Umlauf wie in 1.66.0, nur in die andere Richtung: die Word-Datei

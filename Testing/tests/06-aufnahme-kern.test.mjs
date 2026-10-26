@@ -3649,6 +3649,69 @@ s.test('der Vergleich zeigt, was sich ändern würde – bevor etwas geschieht',
   gleich(danach.find((v) => v.nummer === '7').art, 'gleich');
 });
 
+s.test('jeder Speicherschlüssel sagt, ob er mitreist (1.68.0)', () => {
+  // Zweimal ist derselbe Fehler passiert: ein neuer Schlüssel kam dazu, und
+  // niemand dachte an die Projektdatei. 1.60.0 das Vorgehen des Registers
+  // Video, 1.68.0 die eigenen Texte aus dem Rückweg aus Word.
+  //
+  // Diese Prüfung hält die Liste gegen die Schlüssel des Kerns. Wer einen
+  // neuen einführt, muss sich hier entscheiden - vergessen geht nicht mehr.
+  const schluessel = Object.entries(kern)
+    .filter(([name, wert]) => name.endsWith('_SCHLUESSEL') && typeof wert === 'string' && wert.startsWith('screenarchiv:'))
+    .map(([, wert]) => wert)
+    .sort();
+  wahr(schluessel.length >= 12, 'die Schlüssel des Kerns wurden nicht gefunden: ' + schluessel.length);
+
+  const genannt = kern.PAKET_INHALT.map((e) => e.schluessel).sort();
+  const fehlen = schluessel.filter((k) => !genannt.includes(k));
+  tieferGleich(fehlen, [], 'diese Schlüssel sagen nicht, ob sie mitreisen: ' + fehlen.join(', '));
+  const zuviel = genannt.filter((k) => !schluessel.includes(k));
+  tieferGleich(zuviel, [], 'diese stehen in der Liste, aber nicht im Kern: ' + zuviel.join(', '));
+  gleich(new Set(genannt).size, genannt.length, 'ein Schlüssel steht doppelt in der Liste');
+
+  // Wer bleibt, sagt warum. Ein leerer Grund ist keine Entscheidung.
+  for (const eintrag of kern.PAKET_INHALT) {
+    if (eintrag.reist) wahr(eintrag.feld, `${eintrag.schluessel} reist, nennt aber kein Feld`);
+    else wahr(String(eintrag.grund || '').length > 20, `${eintrag.schluessel} bleibt ohne Begründung`);
+  }
+
+  // Und was reist, steht auch wirklich im Paket.
+  const angaben = kern.paketAngaben({
+    eingang: [{ id: 'AUF-1', titel: 'Maske' }],
+    strecken: [{ id: 'STR-1', name: 'Weg' }],
+    projekte: [{ name: 'oneSCM' }],
+    design: { vorlage: 'quickguide' },
+    ocr: { 'AUF-1': { text: 'Vertragsnummer' } },
+    wortliste: [{ falsch: 'Kunde', richtig: 'Kundin' }],
+    vorgehen: { aufforderung: 'Nenne die Maske.' },
+    texte: { '7.5.1': { text: 'Im Haus geschrieben.' } },
+    verzeichnis: { muster: '{kapitel}/{kennung}' }
+  });
+  for (const eintrag of kern.PAKET_INHALT.filter((e) => e.reist)) {
+    wahr(angaben[eintrag.feld] !== undefined, `${eintrag.feld} fehlt in der Projektdatei`);
+  }
+
+  // Der Umlauf im Kleinen: hinein und wieder heraus, ohne Verlust.
+  const zurueck = kern.lesePaketAngaben(JSON.stringify(angaben));
+  gleich(zurueck.ok, true, zurueck.grund);
+  gleich(zurueck.texte['7.5.1'].text, 'Im Haus geschrieben.');
+  gleich(zurueck.verzeichnis.muster, '{kapitel}/{kennung}');
+  gleich(zurueck.vorgehen.aufforderung, 'Nenne die Maske.');
+
+  const bericht = kern.paketBericht(zurueck, 3);
+  wahr(bericht.includes('eigene(r) Text aus Word'), bericht);
+  wahr(bericht.includes('Namensmuster des Verzeichnisses'), bericht);
+
+  // Eine Datei ohne die neuen Felder bleibt lesbar - sie ist nur älter.
+  const alt = { ...angaben };
+  delete alt.texte;
+  delete alt.verzeichnis;
+  const gelesen = kern.lesePaketAngaben(JSON.stringify(alt));
+  gleich(gelesen.ok, true);
+  tieferGleich(gelesen.texte, {});
+  gleich(gelesen.verzeichnis, null);
+});
+
 s.test('der eigene Umlauf bietet nichts an: raus und wieder rein (1.66.0)', async () => {
   // Die ehrlichste Probe für F-65: eine Datei, die die Seite selbst
   // geschrieben hat, unverändert zurücklesen. Wer nichts ändert, darf keine

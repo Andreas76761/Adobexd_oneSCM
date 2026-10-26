@@ -45,7 +45,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `15-pruefung.e2e.mjs` | Prüfung im Browser: vier Agenten, Kennzahlen, Befunde mit Weg, Bericht, Kommentar von Claude, Projektvergleich zweier Fassungen als Tabelle und als Text, Bildvergleich zweier Aufnahmen, Agent Sprache mit eigener Wortliste, gezählter Gebrauch samt Zurücksetzen | 13 |
 
-| `16-verzeichnis.e2e.mjs` | Verzeichnis im Browser: Plan vor der Datei, Muster, Schalter, Schreiben mit Unterordnern, Bericht, Projektdatei im vollen Umlauf | 8 |
+| `16-verzeichnis.e2e.mjs` | Verzeichnis im Browser: Plan vor der Datei, Muster, Schalter, Schreiben mit Unterordnern, Bericht, Projektdatei im vollen Umlauf samt eigenen Texten und Namensmuster | 8 |
 
 | `17-varianten.e2e.mjs` | Varianten im Browser: verbinden und lösen, Deckungsmatrix, Ausgabe in einer anderen Sprache | 5 |
 
@@ -59,7 +59,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-Summe: **527 Prüfungen**.
+Summe: **528 Prüfungen**.
 
 ## Messungen – nicht Teil des Durchlaufs
 

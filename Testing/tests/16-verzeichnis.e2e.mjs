@@ -208,8 +208,28 @@ s.test('der ganze Bestand wandert in eine Projektdatei und wieder zurück', () =
       await seite.selectOption('#vorgehen-stufe', 'complex');
       await seite.click('#vorgehen-sichern');
       await seite.waitForTimeout(300);
+      // Ein eigener Text aus dem Rückweg aus Word (F-65) - er ist Inhalt,
+      // nicht Einstellung, und muss mitreisen. Sonst verliert ihn jeder,
+      // der den Bestand weitergibt.
+      await seite.evaluate(() =>
+        localStorage.setItem(
+          'screenarchiv:texte',
+          JSON.stringify({
+            version: 1,
+            texte: {
+              '7.5.1': { text: 'Im Haus neu geschrieben.', geaendert_am: '2026-10-26T00:00:00.000Z' }
+            }
+          })
+        )
+      );
+      await seite.reload();
+      await seite.waitForSelector('.portal-nav');
       await seite.click('.portal-nav button[data-ansicht="verzeichnis"]');
       await seite.waitForSelector('#verzeichnis-ansicht:not([hidden])');
+
+      // Auch das Namensmuster ist eine Verabredung dieses Projekts.
+      await seite.fill('#verzeichnis-muster', '{kapitel}/{kennung}_{titel}');
+      await seite.waitForTimeout(250);
 
       await seite.click('#paket-sichern');
       await seite.waitForFunction(() => (window.__dateien || []).length === 1, null, { timeout: 60000 });
@@ -286,6 +306,35 @@ s.test('der ganze Bestand wandert in eine Projektdatei und wieder zurück', () =
         await seite.evaluate(() => (document.getElementById('video-vorgehen').open = true));
         await seite.waitForTimeout(300);
         gleich(await seite.locator('#vorgehen-aufforderung').inputValue(), 'Nenne nur die Maske, sonst nichts.');
+
+        // Und die eigenen Texte aus dem Rückweg aus Word (1.68.0). Bis
+        // 1.67.0 blieben sie zurück: wer den Bestand weitergab, gab jede
+        // im Haus geschriebene Zeile verloren.
+        wahr(
+          (await seite.locator('#paket-bericht').innerText()).includes('eigene(r) Text'),
+          await seite.locator('#paket-bericht').innerText()
+        );
+        const texte = await seite.evaluate(() => JSON.parse(localStorage.getItem('screenarchiv:texte') || 'null'));
+        wahr(texte && texte.texte && texte.texte['7.5.1'], 'die eigenen Texte sind nicht mitgereist');
+        gleich(texte.texte['7.5.1'].text, 'Im Haus neu geschrieben.');
+        // Sie liegen auch über der Gliederung, nicht nur im Speicher.
+        await seite.click('.portal-nav button[data-ansicht="gliederung"]');
+        await seite.waitForSelector('#gliederung-ansicht:not([hidden])');
+        await seite.waitForTimeout(300);
+        wahr(
+          (await seite.locator('#ruecklauf-stand').innerText()).includes('1'),
+          await seite.locator('#ruecklauf-stand').innerText()
+        );
+
+        // Und das Namensmuster (1.68.0) – dieselbe Art Sache wie das
+        // Vorgehen: wer anders ablegt, legt anderswohin ab.
+        await seite.click('.portal-nav button[data-ansicht="verzeichnis"]');
+        await seite.waitForSelector('#verzeichnis-ansicht:not([hidden])');
+        gleich(await seite.locator('#verzeichnis-muster').inputValue(), '{kapitel}/{kennung}_{titel}');
+        wahr(
+          (await seite.locator('#paket-bericht').innerText()).includes('Namensmuster'),
+          await seite.locator('#paket-bericht').innerText()
+        );
       },
       { hash: AUFNAHME }
     )

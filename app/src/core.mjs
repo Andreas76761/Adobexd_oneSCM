@@ -7022,6 +7022,8 @@ export const PAKET_VERSION = 1;
 export const PAKET_NAME = 'screenarchiv.json';
 
 /** Die Angaben eines Pakets, ohne die Bilder - die liegen als Dateien daneben. */
+// Was das Paket mitnimmt und was nicht, steht in `PAKET_INHALT` am Ende
+// dieser Datei - dort stehen alle Schlüssel schon bereit.
 export function paketAngaben({
   eingang = [],
   strecken = [],
@@ -7030,6 +7032,8 @@ export function paketAngaben({
   ocr = {},
   wortliste = [],
   vorgehen = null,
+  texte = {},
+  verzeichnis = null,
   stand = new Date().toISOString(),
   anwendung = ''
 } = {}) {
@@ -7049,7 +7053,15 @@ export function paketAngaben({
     // Das Vorgehen des Registers Video ist eine Arbeitsweise wie die
     // Wortliste - wer den Bestand bekommt, soll auch so weiterarbeiten
     // koennen, wie er entstanden ist.
-    vorgehen
+    vorgehen,
+    // Die eigenen Texte aus dem Rueckweg aus Word (F-65) sind **Inhalt**:
+    // im Haus geschriebene Saetze, die es sonst nirgends gibt. Bis 1.67.0
+    // blieben sie zurueck - wer den Bestand weitergab, gab sie verloren.
+    texte,
+    // Das Namensmuster des Verzeichnisses ist dieselbe Art Sache wie das
+    // Vorgehen: eine Verabredung, wie dieses Projekt seine Dateien nennt.
+    // Wer den Bestand bekommt und anders ablegt, legt anderswohin ab.
+    verzeichnis
   };
 }
 
@@ -7094,7 +7106,9 @@ export function lesePaketAngaben(text) {
     design: inhalt.design ? leseDesignEinstellungen(JSON.stringify(inhalt.design)) : null,
     ocr: leseOcr(JSON.stringify({ texte: inhalt.ocr || {} })),
     wortliste: Array.isArray(inhalt.wortliste) ? leseWortliste(JSON.stringify({ regeln: inhalt.wortliste })) : [],
-    vorgehen: inhalt.vorgehen ? leseVorgehen(JSON.stringify(inhalt.vorgehen)) : null
+    vorgehen: inhalt.vorgehen ? leseVorgehen(JSON.stringify(inhalt.vorgehen)) : null,
+    texte: inhalt.texte ? leseStellentexte(JSON.stringify(inhalt.texte)) : {},
+    verzeichnis: inhalt.verzeichnis ? leseVerzeichnisWahl(JSON.stringify(inhalt.verzeichnis)) : null
   };
 }
 
@@ -7151,6 +7165,8 @@ export function paketBericht(gelesen = {}, bilder = 0) {
     Object.keys(gelesen.ocr || {}).length ? `${Object.keys(gelesen.ocr).length} Lesung(en)` : '',
     gelesen.wortliste.length ? `${gelesen.wortliste.length} Wortregel(n)` : '',
     gelesen.vorgehen ? 'Vorgehen für das Register Video' : '',
+    Object.keys(gelesen.texte || {}).length ? `${Object.keys(gelesen.texte).length} eigene(r) Text aus Word` : '',
+    gelesen.verzeichnis ? 'Namensmuster des Verzeichnisses' : '',
     gelesen.design ? 'Einstellungen des Studios' : ''
   ].filter(Boolean);
   const woher = gelesen.erzeugt_von ? ` · aus ${gelesen.erzeugt_von}` : '';
@@ -7760,3 +7776,49 @@ export function projekteAusBestand(aufnahmen = [], vorhandene = []) {
   }
   return [...gefunden.values()];
 }
+
+/* =========================================================================
+   Was die Projektdatei mitnimmt - und was absichtlich nicht.
+
+   Diese Liste steht am **Ende** der Datei, weil sie jeden Speicherschluessel
+   nennt und die weiter unten stehenden sonst noch nicht bereit waeren.
+   ========================================================================= */
+
+/**
+ * Was die Projektdatei mitnimmt - und was absichtlich nicht.
+ *
+ * Zweimal ist derselbe Fehler passiert: ein neuer Speicherschlüssel kam
+ * dazu, und niemand dachte an das Paket. 1.60.0 war es das Vorgehen des
+ * Registers Video, 1.68.0 die eigenen Texte aus dem Rückweg aus Word -
+ * im Haus geschriebene Sätze, die es sonst nirgends gibt.
+ *
+ * Darum steht hier **jeder** Schlüssel, auch jeder, der bleiben soll. Eine
+ * Prüfung hält die Liste gegen die Schlüssel des Kerns; wer einen neuen
+ * einführt, muss sich entscheiden, statt ihn zu vergessen.
+ */
+export const PAKET_INHALT = [
+  { schluessel: EINGANG_SCHLUESSEL, reist: true, feld: 'aufnahmen' },
+  { schluessel: STRECKEN_SCHLUESSEL, reist: true, feld: 'strecken' },
+  { schluessel: PROJEKTE_SCHLUESSEL, reist: true, feld: 'projekte' },
+  { schluessel: DESIGN_SCHLUESSEL, reist: true, feld: 'design' },
+  { schluessel: OCR_SCHLUESSEL, reist: true, feld: 'ocr' },
+  { schluessel: WORTLISTE_SCHLUESSEL, reist: true, feld: 'wortliste' },
+  { schluessel: VORGEHEN_SCHLUESSEL, reist: true, feld: 'vorgehen' },
+  { schluessel: TEXTE_SCHLUESSEL, reist: true, feld: 'texte' },
+  { schluessel: VERZEICHNIS_SCHLUESSEL, reist: true, feld: 'verzeichnis' },
+  {
+    schluessel: ABLAGE_SCHLUESSEL,
+    reist: false,
+    grund: 'Ziel und Schalter des Ausschneiden-Modus hängen am Ordnerzugriff dieses Rechners.'
+  },
+  {
+    schluessel: CHAT_SCHLUESSEL,
+    reist: false,
+    grund: 'Ein Gespräch ist kein Bestand - es gehört dem, der es geführt hat.'
+  },
+  {
+    schluessel: GEBRAUCH_SCHLUESSEL,
+    reist: false,
+    grund: 'Der Gebrauch zählt diesen Browser. Gereiste Zahlen wären eine fremde Antwort auf die eigene Frage.'
+  }
+];

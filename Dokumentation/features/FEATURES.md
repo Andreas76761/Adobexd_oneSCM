@@ -1679,6 +1679,7 @@ es keinen Weg – und zwischen zwei Rechnern derselben Person auch nicht.
 | --- | --- |
 | Aufnahmen samt Labels, Stellen, Marken, Fassungen | `screenarchiv.json` |
 | Strecken, Projekte, Einstellungen des Studios, Wortliste, Lesungen aus OCR | dieselbe Datei |
+| Vorgehen des Registers Video, eigene Texte aus Word, Namensmuster des Verzeichnisses | dieselbe Datei |
 | Jedes Bild in **voller Auflösung**, jede Fassung einzeln | `bilder/auf-2026-001.jpeg`, `…--f2.jpeg` |
 | Wie man sie einliest | `LIESMICH.txt` |
 
@@ -1695,6 +1696,25 @@ Gelesen wird nachsichtig: eine Datei aus einer neueren Fassung wird
 eingelesen und als solche genannt; ein Bild, das sich nicht entpacken lässt,
 fehlt und wird im Bericht benannt; eine fremde Datei bekommt den Grund
 gesagt, statt stumm zu scheitern.
+
+**geändert in** 1.68.0: Die **eigenen Texte aus dem Rückweg aus Word**
+(F-65) reisen mit. Sie sind Inhalt – im Haus geschriebene Sätze, die es
+sonst nirgends gibt –, und bis 1.67.0 blieben sie zurück: wer den Bestand
+weitergab, gab jede im Haus geschriebene Zeile verloren. Dazu das
+**Namensmuster des Verzeichnisses**, aus demselben Grund wie das Vorgehen
+(1.60.0): wer anders ablegt, legt anderswohin ab.
+
+**Der Riegel dagegen** Derselbe Fehler war schon einmal passiert, 1.60.0 mit
+dem Vorgehen. Darum nennt `PAKET_INHALT` jetzt **jeden** Speicherschlüssel –
+auch jeden, der absichtlich bleibt, mit seinem Grund. Eine Prüfung hält die
+Liste gegen die Schlüssel des Kerns; wer einen neuen einführt, muss sich
+entscheiden, statt ihn zu vergessen.
+
+| Bleibt | Warum |
+| --- | --- |
+| `screenarchiv:ablage` | Ziel und Schalter des Ausschneiden-Modus hängen am Ordnerzugriff dieses Rechners |
+| `screenarchiv:chat` | Ein Gespräch ist kein Bestand – es gehört dem, der es geführt hat |
+| `screenarchiv:gebrauch` | Zählt diesen Browser; gereiste Zahlen wären eine fremde Antwort auf die eigene Frage |
 
 ## F-64 · Das Fortschrittsblatt – wie weit ist das Handbuch?
 
