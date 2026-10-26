@@ -1475,6 +1475,76 @@ s.test('ein Word-Dokument hat einen Träger und ein Bild', async () => {
   tieferGleich(kern.officeBilder(eintraege).bilder.map((b) => b.name), ['word/media/image1.png']);
 });
 
+s.test('ein Word-Handbuch wird an seinen Überschriften geteilt (1.67.0)', () => {
+  // Ohne Teilung bekommt jedes Bild den Text des **ganzen** Dokuments. Am
+  // echten Handbuch (elf Kapitel, elf Bilder) hieß das: „11 von 11 Bild(ern)
+  // eine Stelle zugeordnet" - und alle elf auf dieselbe Stelle. Eine
+  // Fehlmeldung ist schlimmer als keine Zuordnung.
+  const rels =
+    '<?xml version="1.0"?><Relationships>' +
+    '<Relationship Id="rIdBild1" Target="media/bild1.jpeg"/>' +
+    '<Relationship Id="rIdBild2" Target="media/bild2.jpeg"/>' +
+    '<Relationship Id="rIdVorlagen" Target="styles.xml"/>' +
+    '<Relationship Id="rIdWeg" Target="https://example.invalid"/>' +
+    '</Relationships>';
+  const absatz = (text, vorlage) =>
+    `<w:p>${vorlage ? `<w:pPr><w:pStyle w:val="${vorlage}"/></w:pPr>` : ''}<w:r><w:t>${text}</w:t></w:r></w:p>`;
+  const bild = (id) => `<w:p><w:r><w:drawing><a:blip r:embed="${id}"/></w:drawing></w:r></w:p>`;
+  const xml =
+    '<?xml version="1.0"?><w:document><w:body>' +
+    absatz('Benutzerhandbuch', 'Heading1') +
+    absatz('7.5.1 Dokumentierte Signaturwege', 'Heading3') +
+    absatz('Fertig, wenn: der Beleg vorliegt') +
+    bild('rIdBild1') +
+    absatz('Schritt 1 · Vertragsnummer', 'Bildunterschrift') +
+    absatz('7.5.2 Signaturergebnis', 'Heading3') +
+    bild('rIdBild2') +
+    absatz('Schritt 2 · Signatur geprüft', 'Bildunterschrift') +
+    '</w:body></w:document>';
+
+  const abschnitte = kern.wordAbschnitte(xml, rels);
+  tieferGleich(
+    abschnitte.map((a) => a.name),
+    ['Benutzerhandbuch', '7.5.1 Dokumentierte Signaturwege', '7.5.2 Signaturergebnis'],
+    'jede Überschrift beginnt einen Abschnitt'
+  );
+  tieferGleich(abschnitte.map((a) => a.medien), [[], ['bild1.jpeg'], ['bild2.jpeg']]);
+  tieferGleich(abschnitte.map((a) => a.nummer), [1, 2, 3]);
+
+  // Der Text eines Abschnitts endet an der nächsten Überschrift.
+  wahr(abschnitte[1].text.includes('der Beleg vorliegt'), abschnitte[1].text);
+  wahr(abschnitte[1].text.includes('Schritt 1'), 'die Bildunterschrift gehört zum Abschnitt');
+  wahr(!abschnitte[1].text.includes('Signaturergebnis'), abschnitte[1].text);
+
+  // Nur darum findet „Stelle aus dem Text" je Bild seine eigene Stelle.
+  const gliederung = kern.leseGliederung({
+    eintraege: [
+      { nummer: '7.5.1', thema: 'Dokumentierte Signaturwege', ebene: 3 },
+      { nummer: '7.5.2', thema: 'Signaturergebnis', ebene: 3 }
+    ]
+  });
+  gleich(kern.stelleAusText(gliederung, abschnitte[1].name), '7.5.1');
+  gleich(kern.stelleAusText(gliederung, abschnitte[2].name), '7.5.2');
+
+  // Ein Verweis, der kein Bild meint, wird nicht zum Bild.
+  const ohneBild = kern.wordAbschnitte(
+    '<?xml version="1.0"?><w:document><w:body>' + absatz('Nur Text') + '<w:p><w:hyperlink r:id="rIdWeg"/></w:p></w:body></w:document>',
+    rels
+  );
+  tieferGleich(ohneBild.map((a) => a.medien), [[]]);
+
+  // Ein Dokument ohne Überschrift bleibt ein Abschnitt - wie bisher.
+  const eins = kern.wordAbschnitte('<?xml version="1.0"?><w:document><w:body>' + absatz('Vertrag anlegen') + bild('rIdBild1') + '</w:body></w:document>', rels);
+  gleich(eins.length, 1);
+  gleich(eins[0].name, 'Dokument');
+  tieferGleich(eins[0].medien, ['bild1.jpeg']);
+
+  // Und die Art sagt dem Import, dass ein Word-Dokument geteilt werden muss.
+  const docx = baueDocx();
+  gleich(kern.officeFolien(kern.leseZipVerzeichnis(docx))[0].art, 'wort');
+  gleich(kern.officeFolien(kern.leseZipVerzeichnis(bauePptx()))[0].art, 'folie');
+});
+
 s.test('image10 steht hinter image9', () => {
   const namen = ['image10.png', 'image2.png', 'image1.png'].sort(kern.natuerlich);
   tieferGleich(namen, ['image1.png', 'image2.png', 'image10.png']);

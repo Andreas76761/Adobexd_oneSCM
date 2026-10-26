@@ -20,6 +20,39 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.67.0] – Elf Bilder, eine Stelle
+
+Derselbe Umlauf wie in 1.66.0, nur in die andere Richtung: die Word-Datei
+geht nicht in die **Gliederung** zurück, sondern über das Register Import
+wieder in die **Galerie**.
+
+### Behoben
+* **Ein Word-Dokument war ein einziger Träger** (F-39): jedes Bild bekam den
+  Text des **ganzen** Dokuments. Beim Umlauf mit dem eigenen Handbuch (elf
+  Kapitel, elf Bilder) meldete „Stellen aus dem Folientext" darauf *11 von 11
+  zugeordnet* – und setzte alle elf auf **dieselbe** Stelle (7.5). Eine
+  Fehlmeldung ist schlimmer als keine Zuordnung
+* Ein Dokument wird jetzt an seinen **Überschriften** geteilt
+  (`wordAbschnitte`). Aus elf Bildern werden elf Stellen: 7.5.1 bis 7.7.3
+* Nennt der Text des Dokuments kein einziges Bild – weil ein fremdes
+  Programm sie anders einbindet –, bleibt es beim einen Träger wie bisher.
+  Gelesen werden `r:embed` und das ältere `r:id`
+
+### Neu
+* **`Testing/messungen/einfuhr.mjs`**: der Umlauf durch das Register Import,
+  mit einer Datei, die die Seite selbst geschrieben hat
+
+### Gemessen
+| mit dem eigenen Handbuch | vorher | nachher |
+| --- | --- | --- |
+| verschiedene Texte je Bild | 1 von 11 | **11 von 11** |
+| verschiedene Stellen | **1** (alle auf 7.5) | **11** |
+
+### Prüfung
+* 1 neue Kernprüfung (`wordAbschnitte` samt Verweis, der kein Bild meint,
+  und Dokument ohne Überschrift), 1 neue Browserprüfung mit einem
+  Word-Handbuch aus zwei Kapiteln. Zusammen 527
+
 ## [1.66.0] – Der Rückweg aus Word bot alles an
 
 Die zweite Hälfte der Durchsicht aus 1.65.0: nicht nur ansehen, was die

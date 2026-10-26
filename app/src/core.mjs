@@ -1368,16 +1368,20 @@ export function officeFolien(eintraege = []) {
     .sort((a, b) => natuerlich(a.name, b.name));
   if (folien.length) {
     return folien.map((e, i) => ({
+      art: 'folie',
       nummer: i + 1,
       name: `Folie ${i + 1}`,
       xml: e,
       rels: finde(String(e.name).toLowerCase().replace(/slides\/(slide\d+\.xml)$/, 'slides/_rels/$1.rels'))
     }));
   }
+  // Ein Word-Dokument ist **ein** Traeger, aber kein Foliensatz: wer seine
+  // Bilder einzeln braucht, teilt es mit `wordAbschnitte` an den
+  // Ueberschriften. Die Art sagt, dass das noetig ist.
   const wort = finde('word/document.xml');
-  if (wort) return [{ nummer: 1, name: 'Dokument', xml: wort, rels: finde('word/_rels/document.xml.rels') }];
+  if (wort) return [{ art: 'wort', nummer: 1, name: 'Dokument', xml: wort, rels: finde('word/_rels/document.xml.rels') }];
   const tabelle = finde('xl/sharedstrings.xml');
-  if (tabelle) return [{ nummer: 1, name: 'Tabelle', xml: tabelle, rels: null }];
+  if (tabelle) return [{ art: 'tabelle', nummer: 1, name: 'Tabelle', xml: tabelle, rels: null }];
   return [];
 }
 
@@ -1390,6 +1394,54 @@ export function medienAusRels(xml) {
     if (BILD_ENDUNGEN.test(name) && !namen.includes(name)) namen.push(name);
   }
   return namen;
+}
+
+/**
+ * Ein Word-Dokument in Abschnitte: jede Überschrift beginnt einen, die
+ * Absätze und Bilder darunter gehören dazu.
+ *
+ * Ohne diese Teilung bekäme in einem Handbuch mit elf Kapiteln **jedes**
+ * Bild den Text des ganzen Dokuments. Bis 1.66.0 war das so, und „Stellen
+ * aus dem Folientext" meldete darauf elf von elf zugeordnet - alle auf
+ * dieselbe Stelle. Eine Fehlmeldung ist schlimmer als keine Zuordnung.
+ *
+ * `rels` ist `word/_rels/document.xml.rels`; nur sie sagt, welche Kennung
+ * im Dokument welche Mediendatei meint.
+ */
+export function wordAbschnitte(xml = '', rels = '') {
+  const relsText = typeof rels === 'string' ? rels : new TextDecoder('utf-8').decode(rels || new Uint8Array());
+  const ziele = new Map();
+  for (const treffer of relsText.matchAll(/<Relationship\b[^>]*\/?>/g)) {
+    const id = (treffer[0].match(/Id="([^"]+)"/) || [])[1];
+    const ziel = (treffer[0].match(/Target="([^"]+)"/) || [])[1];
+    if (id && ziel && BILD_ENDUNGEN.test(ziel)) ziele.set(id, ziel.split('/').pop());
+  }
+
+  const text = typeof xml === 'string' ? xml : new TextDecoder('utf-8').decode(xml || new Uint8Array());
+  const abschnitte = [];
+  // Was vor der ersten Überschrift steht, geht nicht verloren.
+  let aktuell = { art: 'wort', nummer: 1, name: 'Dokument', text: '', medien: [] };
+  abschnitte.push(aktuell);
+  for (const treffer of text.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)) {
+    const stueck = treffer[0];
+    const inhalt = officeText(stueck);
+    const vorlage = (stueck.match(/<w:pStyle\s+w:val="([^"]+)"/) || [])[1] || '';
+    if (/^Heading[0-9]$/.test(vorlage) && inhalt) {
+      aktuell = { art: 'wort', nummer: abschnitte.length + 1, name: inhalt, text: inhalt, medien: [] };
+      abschnitte.push(aktuell);
+      continue;
+    }
+    if (inhalt) aktuell.text = aktuell.text ? `${aktuell.text} ${inhalt}` : inhalt;
+    // `r:embed` ist der heutige Weg, `r:id` der ältere (VML). Eine Kennung,
+    // die kein Bild meint - etwa ein Verweis -, steht nicht in `ziele`.
+    for (const bezug of stueck.matchAll(/r:(?:embed|id)="([^"]+)"/g)) {
+      const name = ziele.get(bezug[1]);
+      if (name && !aktuell.medien.includes(name)) aktuell.medien.push(name);
+    }
+  }
+  // Ein leerer Vorspann ist kein Abschnitt.
+  const brauchbar = abschnitte.filter((a, i) => i > 0 || a.text || a.medien.length);
+  return brauchbar.map((a, i) => ({ ...a, nummer: i + 1 }));
 }
 
 /**

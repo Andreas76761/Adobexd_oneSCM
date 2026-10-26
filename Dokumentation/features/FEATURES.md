@@ -910,7 +910,7 @@ Screenshots, Präsentationen und Dokumente geben ihre Bilder an die Galerie ab.
 | --- | --- |
 | PNG, JPEG, GIF, WebP | das Bild selbst, in voller Auflösung |
 | PPTX | die eingebetteten Bilder **je Folie**, dazu der Text der Folie |
-| DOCX | die eingebetteten Bilder, dazu der Text des Dokuments |
+| DOCX | die eingebetteten Bilder **je Überschrift**, dazu der Text des Abschnitts |
 | XLSX | die eingebetteten Bilder, dazu die Zeichenkettentabelle |
 | PDF | die eingebetteten **JPEG**-Bilder |
 | PPT, DOC, XLS | nichts – das alte Format ist kein Archiv; der Hinweis sagt es |
@@ -937,6 +937,16 @@ Browserspeicher, das volle Bild in die Datenbank. An der Aufnahme bleibt
 `einfuhr` stehen – Datei, Dateiart, Bildname, Folie –, damit später zu
 erkennen ist, woher sie kam. Von dort aus stehen sie dem Editor, der Strecke
 und dem Designstudio zur Verfügung.
+
+**geändert in** 1.67.0: Ein Word-Dokument wird an seinen **Überschriften**
+geteilt (`wordAbschnitte`). Vorher war es **ein** Träger: jedes Bild bekam
+den Text des ganzen Dokuments. Beim Umlauf mit dem eigenen Handbuch (elf
+Kapitel, elf Bilder) meldete „Stellen aus dem Folientext" darauf *11 von 11
+zugeordnet* – und setzte alle elf auf dieselbe Stelle. Eine Fehlmeldung ist
+schlimmer als keine Zuordnung. Jetzt trägt jedes Bild den Text seines
+Abschnitts, und aus elf Bildern werden elf Stellen. Nennt der Text des
+Dokuments kein einziges Bild – weil ein fremdes Programm sie anders
+einbindet –, bleibt es beim einen Träger wie bisher.
 
 ---
 

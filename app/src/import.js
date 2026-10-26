@@ -89,24 +89,34 @@ async function liesOfficeDatei(bytes) {
 
   for (const seite of traeger) {
     const xml = await entpackeZipEintrag(bytes, seite.xml);
-    const text = officeText(xml);
-    if (text) texte.push(`${seite.name}: ${text}`);
     const rels = seite.rels ? await entpackeZipEintrag(bytes, seite.rels) : null;
-    for (const medienname of medienAusRels(rels)) {
-      const eintrag = nachName.get(medienname.toLowerCase());
-      if (!eintrag || schonDa.has(eintrag.name)) continue;
-      const daten = await entpackeZipEintrag(bytes, eintrag);
-      if (!daten) continue;
-      schonDa.add(eintrag.name);
-      bilder.push(
-        await baueImportBild({
-          name: String(eintrag.name).split('/').pop(),
-          adresse: await alsAdresse(daten, bildTyp(eintrag.name)),
-          seite: seite.nummer,
-          seitenname: seite.name,
-          text
-        })
-      );
+    // Ein Foliensatz bringt seine Teilung mit, ein Word-Dokument nicht: dort
+    // wird an den Überschriften geteilt. Ohne das bekäme jedes Bild eines
+    // Handbuchs den Text des ganzen Handbuchs (bis 1.66.0 war das so).
+    const ganz = { nummer: seite.nummer, name: seite.name, text: officeText(xml), medien: medienAusRels(rels) };
+    const abschnitte = seite.art === 'wort' ? wordAbschnitte(xml, rels) : [];
+    // Nennt der Text des Dokuments kein einziges Bild - etwa weil ein
+    // fremdes Programm sie anders einbindet -, bleibt es bei einem Stück.
+    // Sonst gingen die Bilder in den Rest „ohne Folie".
+    const stuecke = abschnitte.some((a) => a.medien.length) ? abschnitte : [ganz];
+    for (const stueck of stuecke) {
+      if (stueck.text) texte.push(`${stueck.name}: ${stueck.text}`);
+      for (const medienname of stueck.medien) {
+        const eintrag = nachName.get(medienname.toLowerCase());
+        if (!eintrag || schonDa.has(eintrag.name)) continue;
+        const daten = await entpackeZipEintrag(bytes, eintrag);
+        if (!daten) continue;
+        schonDa.add(eintrag.name);
+        bilder.push(
+          await baueImportBild({
+            name: String(eintrag.name).split('/').pop(),
+            adresse: await alsAdresse(daten, bildTyp(eintrag.name)),
+            seite: stueck.nummer,
+            seitenname: stueck.name,
+            text: stueck.text
+          })
+        );
+      }
     }
   }
 

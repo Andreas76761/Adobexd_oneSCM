@@ -90,6 +90,20 @@ Wer nichts ändert, darf keine Änderung angeboten bekommen – und wer eine
 ändert, genau eine. Nur wenn beide Hälften stimmen, ist der Rückweg (F-65)
 in Ordnung. Gepackt und entpackt wird mit den Werkzeugen der Seite selbst.
 
+### `einfuhr.mjs`
+
+Der Umlauf **durch das Register Import**: eine Office-Datei, die die Seite
+selbst geschrieben hat, wieder hineingeben.
+
+```bash
+node Testing/messungen/einfuhr.mjs <datei.docx|.pptx> [weitere …]
+```
+
+Gezählt wird, wie viele Bilder ankommen, wie viele **verschiedene** Texte sie
+tragen und wie viele **verschiedene** Stellen daraus werden. Die Zahl der
+verschiedenen Texte ist die eigentliche Frage: trägt jedes Bild seinen
+eigenen Text oder alle denselben?
+
 ## Was dabei herauskam (1.62.0)
 
 | | vorher | nachher |
@@ -161,3 +175,22 @@ Bildunterschrift als „kein Text der Stelle".
 Der Befund kam nicht aus einer Lücke in den Prüfungen, sondern aus dem Raum
 **zwischen** zweien. Schreiber und Leser waren jeder für sich geprüft, seit
 1.47.0. Den Weg über beide ging nie jemand.
+
+## Was dabei herauskam (1.67.0)
+
+Dieselbe Word-Datei, diesmal durch den **Import**:
+
+| mit dem eigenen Handbuch | vorher | nachher |
+| --- | --- | --- |
+| Bilder | 11 | 11 |
+| verschiedene Texte je Bild | **1** | **11** |
+| verschiedene Stellen | **1** (alle 7.5) | **11** |
+
+Die Meldung lautete vorher „11 von 11 Bild(ern) eine Stelle zugeordnet" –
+ohne Einschränkung, und zehn davon falsch. Eine Fehlmeldung ist schlimmer
+als keine Zuordnung.
+
+Dass es niemandem auffiel, lag an der Prüfdatei: sie trug **ein** Bild und
+**einen** Satz. Bei einem Bild ist „der Text des Dokuments" und „der Text
+neben dem Bild" dasselbe. Der Unterschied beginnt beim zweiten. Eine
+Prüfdatei mit einem Element prüft die Zahl eins, nicht die Regel.

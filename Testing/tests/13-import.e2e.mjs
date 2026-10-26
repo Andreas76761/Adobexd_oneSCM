@@ -279,6 +279,37 @@ s.test('der Stapel liest die Stelle aus dem Folientext, sonst bleibt sie leer (1
     { hash: IMPORT }
   ));
 
+s.test('ein Word-Handbuch wird an seinen Überschriften geteilt (1.67.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Der Umlauf: die Seite schreibt ein Handbuch als Word (F-61), und es
+      // kommt zurück. Bis 1.66.0 bekam dabei **jedes** Bild den Text des
+      // ganzen Dokuments; „aus dem Folientext" meldete darauf alle
+      // zugeordnet - alle auf dieselbe Stelle.
+      await liesEin(seite, [dateien.handbuch]);
+      gleich(await seite.locator('.import-figur').count(), 2);
+
+      // Jedes Bild steht bei seiner Überschrift, nicht beim „Dokument".
+      const traeger = await seite.locator('.import-figur figcaption').allInnerTexts();
+      wahr(traeger[0].includes('7.5.1 Dokumentierte Signaturwege'), traeger.join(' | '));
+      wahr(traeger[1].includes('7.5.2 Signaturergebnis'), traeger.join(' | '));
+      // Nicht der ganze Satz als ein Träger: „· Dokument" am Ende wäre das.
+      wahr(!traeger.some((t) => /·\s*Dokument$/.test(t.trim())), traeger.join(' | '));
+
+      // Und der Text endet an der nächsten Überschrift.
+      const rezepte = await seite.locator('.import-figur textarea').evaluateAll((l) => l.map((t) => t.value));
+      wahr(rezepte[0].includes('Schritt 1'), rezepte[0]);
+      wahr(!rezepte[0].includes('Signaturergebnis'), rezepte[0]);
+
+      await oeffneStapel(seite);
+      await seite.click('#stapel-aus-text');
+      const stellen = await seite.locator('.import-figur input[id^=stelle-]').all();
+      gleich(await stellen[0].inputValue(), '7.5.1');
+      gleich(await stellen[1].inputValue(), '7.5.2', 'zwei Bilder, zwei Stellen – nicht zweimal dieselbe');
+    },
+    { hash: IMPORT }
+  ));
+
 s.test('der Stapel wählt alle und keines und sagt seinen Stand (1.50.0)', () =>
   mitSeite(
     async (seite) => {

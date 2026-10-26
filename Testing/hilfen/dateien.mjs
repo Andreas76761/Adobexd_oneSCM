@@ -150,6 +150,44 @@ export function baueDocx() {
   ]);
 }
 
+/**
+ * Ein Word-Handbuch mit zwei Kapiteln und je einem Bild - so, wie die Seite
+ * selbst eines schreibt (F-61). Daran hängt, ob der Import ein Dokument an
+ * seinen Überschriften teilt oder jedem Bild denselben Text gibt.
+ */
+export function baueHandbuchDocx() {
+  const absatz = (text, vorlage) =>
+    `<w:p>${vorlage ? `<w:pPr><w:pStyle w:val="${vorlage}"/></w:pPr>` : ''}<w:r><w:t>${text}</w:t></w:r></w:p>`;
+  const bild = (id) => `<w:p><w:r><w:drawing><a:blip r:embed="${id}"/></w:drawing></w:r></w:p>`;
+  return baueZip([
+    { name: '[Content_Types].xml', inhalt: '<?xml version="1.0"?><Types/>' },
+    {
+      name: 'word/document.xml',
+      inhalt:
+        '<?xml version="1.0"?><w:document><w:body>' +
+        absatz('Benutzerhandbuch', 'Heading1') +
+        absatz('7.5.1 Dokumentierte Signaturwege', 'Heading3') +
+        absatz('Fertig, wenn: der Beleg vorliegt', '') +
+        bild('rIdBild1') +
+        absatz('Schritt 1 · Vertragsnummer', 'Bildunterschrift') +
+        absatz('7.5.2 Signaturergebnis', 'Heading3') +
+        bild('rIdBild2') +
+        absatz('Schritt 2 · Signatur geprüft', 'Bildunterschrift') +
+        '</w:body></w:document>'
+    },
+    {
+      name: 'word/_rels/document.xml.rels',
+      inhalt:
+        '<?xml version="1.0"?><Relationships>' +
+        '<Relationship Id="rIdBild1" Target="media/bild1.png"/>' +
+        '<Relationship Id="rIdBild2" Target="media/bild2.png"/>' +
+        '</Relationships>'
+    },
+    { name: 'word/media/bild1.png', inhalt: baueTestPng(200, 120), gepackt: false },
+    { name: 'word/media/bild2.png', inhalt: baueTestPng(210, 130), gepackt: false }
+  ]);
+}
+
 /* --------------------------------------------------------------------- PDF */
 
 /** Eine PDF-Datei; mit `jpeg` steckt ein JPEG-Block im Datenstrom. */
@@ -177,12 +215,14 @@ export function legeTestdateienAb() {
     png: join(ordner, 'Screen Template Market.png'),
     pptx: join(ordner, 'Quickguide oneSCM.pptx'),
     docx: join(ordner, 'Handbuch Auszug.docx'),
+    handbuch: join(ordner, 'Benutzerhandbuch oneSCM.docx'),
     pdfLeer: join(ordner, 'Releaseletter.pdf'),
     alt: join(ordner, 'Altes Deck.ppt')
   };
   writeFileSync(pfade.png, baueTestPng(360, 220));
   writeFileSync(pfade.pptx, bauePptx());
   writeFileSync(pfade.docx, baueDocx());
+  writeFileSync(pfade.handbuch, baueHandbuchDocx());
   writeFileSync(pfade.pdfLeer, bauePdf());
   writeFileSync(pfade.alt, Buffer.from('altes Format'));
   return { ordner, ...pfade };
