@@ -1122,7 +1122,7 @@ ganze Galerie samt Zusatzdaten in ein lokales Verzeichnis.
 | `…/<name>.png` | das Bild in voller Auflösung, mit Beipackzettel im PNG |
 | `…/<name>.json` | der Beipackzettel daneben (abschaltbar) |
 | `index.json` | Übersicht: Datei, Stelle, Thema, Labels, Maße, Einfuhr |
-| `index.csv` | dieselbe Übersicht für eine Tabelle (Semikolon getrennt) |
+| `index.csv` | dieselbe Übersicht für eine Tabelle: Semikolon getrennt, **mit BOM und CRLF** – sonst liest Excel „Prüfung" als „PrÃ¼fung" (seit 1.72.0) |
 | `strecken.json` | alle Strecken im Format der Seite |
 | `prozesse/<name>.bpmn` | je Strecke der Prozess (F-41) |
 
