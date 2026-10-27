@@ -20,6 +20,41 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.73.0] – Der Zettel zeigte auf nichts
+
+Zwei Wege nach draußen waren noch nie angesehen worden: die BPMN-Datei und
+der Ordner, den das Register Verzeichnis schreibt.
+
+### Behoben
+* **Der Beipackzettel nannte eine Datei, die es in seinem Ordner nicht
+  gibt.** `zettelFuer` setzte fest `AUF-2026-001.png`, während die
+  Bilddatei nach dem Muster des Verzeichnisses heißt. Zettel und Bild
+  finden sich zwar über den gemeinsamen Dateinamen, aber wer den Zettel
+  liest, um das Bild zu finden, greift ins Leere – und genau dafür ist das
+  Feld da (F-28). Der Name kommt jetzt aus dem Plan
+
+### Angesehen, nicht beanstandet
+* **Die BPMN-Datei hängt zusammen**: kein Fluss ins Leere, keine Form ohne
+  Element, kein Knoten ohne Form, ein vollständiges `BPMNDiagram` mit
+  Koordinaten. Ein Platzhalter steht als schlichtes `task` da, mit Text
+* **Der Ordnerbaum stimmt**: 26 Dateien, Namen nach Muster, Bilder in
+  voller Auflösung, Übersicht und Prozesse an ihrem Platz
+
+### Warum keine Prüfung das sah
+* Der Ordner-Nachbau hielt nur Pfad, Größe und Typ fest – **nicht den
+  Inhalt**. Was nicht festgehalten wird, lässt sich nicht prüfen. Er hält
+  jetzt beides fest, dazu die ersten Bytes: `Blob.text()` entfernt ein
+  führendes BOM (so ist UTF-8-Dekodierung spezifiziert), und die erste
+  Fassung dieser Prüfung fiel genau darauf herein
+* Die BPMN-Prüfung **zählte** acht Flüsse und acht Formen. Das bleibt
+  richtig, auch wenn ein Fluss ins Leere zeigt
+
+### Prüfung
+* Die BPMN-Prüfung prüft den Zusammenhang statt der Zahl und einen
+  Platzhalter; die Ordnerprüfung liest den Beipackzettel und die Bytes von
+  `index.csv` (BOM) und `index.json` (keines). Neu:
+  `Testing/messungen/ordner.mjs`. Zusammen 533
+
 ## [1.72.0] – Dieselbe Falle, eine Datei weiter
 
 ### Behoben

@@ -10,6 +10,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
 | [durchsicht.md](durchsicht.md) | Bestandsaufnahme über 69 Funktionen in dreizehn Ansichten: was zusammengehört, was wahrscheinlich tot ist, was bewusst bleibt |
+| [versionen/v1.73.0.md](versionen/v1.73.0.md) | Der Zettel zeigte auf nichts – der geschriebene Ordner, zum ersten Mal gelesen |
 | [versionen/v1.72.0.md](versionen/v1.72.0.md) | Dieselbe Falle, eine Datei weiter – die CSV und Excel |
 | [versionen/v1.71.0.md](versionen/v1.71.0.md) | Der offene Punkt aus 1.70.0 – drei Meldungen, die nicht stimmten |
 | [versionen/v1.70.0.md](versionen/v1.70.0.md) | Claude löschte, was die Seite gefunden hatte – jeder Ausgang von `sample` |

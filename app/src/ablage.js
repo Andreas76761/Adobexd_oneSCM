@@ -147,10 +147,17 @@ async function bildAlsBlob(aufnahme, fassungsnummer) {
 }
 
 /** Der Beipackzettel einer Aufnahme - dieselbe Form wie bei der Ablage. */
-function zettelFuer(aufnahme) {
+/**
+ * `bildname` ist der Name, unter dem das Bild **wirklich** daneben liegt.
+ * Bis 1.72.0 stand dort fest `AUF-2026-001.png`, während die Datei nach dem
+ * Muster des Verzeichnisses hieß - der Zettel nannte eine Datei, die es in
+ * seinem Ordner nicht gab. Gefunden beim ersten Blick in einen wirklich
+ * geschriebenen Ordner.
+ */
+function zettelFuer(aufnahme, bildname = '') {
   return baueBeipackzettel({
     entwurf: aufnahme,
-    bildname: aufnahme.id + '.png',
+    bildname: bildname || aufnahme.id + '.png',
     ausschnitt: aufnahme.ausschnitt || { x: 0, y: 0, breite: aufnahme.breite || 0, hoehe: aufnahme.hoehe || 0 },
     quelle: aufnahme.quelle || { art: 'datei', name: '', breite: 0, hoehe: 0 },
     erfasstAm: aufnahme.erfasst_am || '',
@@ -204,7 +211,16 @@ async function schreibeGalerie() {
         await schreibeDatei(ordner, datei.name, inhalt);
       } else if (datei.art === 'zettel') {
         const aufnahme = eingang.find((a) => a.id === datei.aufnahme);
-        await schreibeDatei(ordner, datei.name, new Blob([zettelFuer(aufnahme)], { type: 'application/json' }));
+        // Das Bild zu diesem Zettel steht im selben Plan, im selben Ordner,
+        // mit demselben Namen - nur mit der Endung .png.
+        const bild = plan.find(
+          (d) => d.art === 'bild' && d.aufnahme === datei.aufnahme && d.ordner.join('/') === datei.ordner.join('/')
+        );
+        await schreibeDatei(
+          ordner,
+          datei.name,
+          new Blob([zettelFuer(aufnahme, bild ? bild.name : '')], { type: 'application/json' })
+        );
       } else if (datei.art === 'index') {
         await schreibeDatei(ordner, datei.name, new Blob([JSON.stringify(index, null, 2)], { type: 'application/json' }));
       } else if (datei.art === 'tabelle') {

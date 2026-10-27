@@ -138,6 +138,18 @@ Antwort –, und die Prüfungen nahmen bisher nur den guten Fall. Gefragt
 wird je Register und je Ausgang: sagt die Seite, was los ist; ist der
 Knopf danach wieder offen; bleibt die Seite fehlerfrei.
 
+### `ordner.mjs`
+
+Was das Register Verzeichnis **wirklich** auf die Platte legt.
+
+```bash
+node Testing/messungen/ordner.mjs <ordner mit film.webm> [zielordner]
+```
+
+Die Browserpruefung haelt von jeder Datei nur Pfad, Groesse und Typ fest;
+dieser Pruefstand schreibt den Ordner wirklich und zeigt den Baum samt
+Beipackzettel und Uebersicht. Nur so sieht man, was in den Dateien steht.
+
 ## Was dabei herauskam (1.62.0)
 
 | | vorher | nachher |
@@ -287,3 +299,26 @@ Keiner saß in der Fehlerbehandlung, sondern **dahinter**. Die Fangzweige
 waren sorgfältig geschrieben; im OCR überschrieb die Schlusszeile ihre
 Meldung eine Zeile später wieder. Was fehlte, war der Blick auf die Zeile,
 die danach läuft.
+
+## Was dabei herauskam (1.73.0)
+
+Der geschriebene Ordner, zum ersten Mal gelesen. Baum und Namen stimmten;
+im Beipackzettel stand:
+
+```json
+{ "bild": "AUF-2026-001.png", ... }
+```
+
+Die Datei daneben hiess
+`2026-10-27-auf-2026-001-servicevertrag-anlegen-01-00m00s2.png`. Der Zettel
+nannte eine Datei, die es in seinem Ordner nicht gibt.
+
+Dass es niemandem auffiel, lag wieder am Nachbau: er hielt Pfad, Groesse
+und Typ fest - **nicht den Inhalt**. Was nicht festgehalten wird, laesst
+sich nicht pruefen.
+
+Und ein Stolperstein beim Pruefen selbst: `Blob.text()` entfernt ein
+fuehrendes BOM. Das ist die UTF-8-Dekodierung der Spezifikation und kein
+Fehler - wer wissen will, ob das BOM in der Datei steht, muss die Bytes
+ansehen. Die erste Fassung der Pruefung fiel genau darauf herein und
+meldete einen Fehler, den es nicht gab.

@@ -861,6 +861,51 @@ s.test('aus der Strecke wird ein Prozess mit paralleler Teilung', () => {
   );
   wahr(boese.includes('name="A &amp; B &lt;weg/&gt;"'), 'der Name wird nicht maskiert');
   wahr(!boese.includes('<weg/>'), 'Freitext steht ungemaskiert im Dokument');
+
+  // Gezählte Knoten sagen nichts darüber, ob sie zusammenhängen (1.73.0).
+  // Ein Fluss, der ins Leere zeigt, oder eine Form ohne Element lässt ein
+  // BPMN-Werkzeug mit einer leeren Fläche stehen - und die Zahlen oben
+  // bleiben dabei richtig.
+  const kennungen = new Set([...xml.matchAll(/<bpmn:\w+ id="([^"]+)"/g)].map((m) => m[1]));
+  const verweise = [...xml.matchAll(/sourceRef="([^"]+)" targetRef="([^"]+)"/g)].flatMap((m) => [m[1], m[2]]);
+  wahr(verweise.length >= 16, 'die Flüsse wurden nicht gelesen: ' + verweise.length);
+  tieferGleich(
+    [...new Set(verweise.filter((id) => !kennungen.has(id)))],
+    [],
+    'ein Fluss zeigt auf einen Knoten, den es nicht gibt'
+  );
+
+  // Jede Form und jede Linie muss ein Element meinen, das es gibt.
+  const prozess = (xml.match(/<bpmn:process id="([^"]+)"/) || [])[1];
+  const gemeint = [...xml.matchAll(/bpmnElement="([^"]+)"/g)].map((m) => m[1]).filter((id) => id !== prozess);
+  const fluesse = new Set([...xml.matchAll(/<bpmn:sequenceFlow id="([^"]+)"/g)].map((m) => m[1]));
+  tieferGleich(
+    [...new Set(gemeint.filter((id) => !kennungen.has(id) && !fluesse.has(id)))],
+    [],
+    'eine Form im Diagramm meint ein Element, das es nicht gibt'
+  );
+  // Und jeder Knoten hat auch eine Form - sonst fehlt er auf der Fläche.
+  const ohneForm = [...kennungen].filter(
+    (id) => !fluesse.has(id) && !xml.includes(`bpmnElement="${id}"`)
+  );
+  tieferGleich(ohneForm, [], 'diese Knoten stehen im Prozess, aber nicht im Diagramm');
+
+  // Ein Platzhalter ist keine Aufgabe für einen Menschen, sondern eine
+  // Lücke - er steht als schlichtes `task` da, mit seinem Text.
+  const mitLuecke = kern.streckeAlsBpmn(
+    {
+      id: 'STR-L',
+      name: 'Mit Lücke',
+      schritte: [
+        { art: 'schritt', aufnahmen: [streckenEingang[0].id], text: 'Nummer eingeben' },
+        { art: 'platzhalter', aufnahmen: [], text: 'Hier fehlt das Bild der Freigabe' }
+      ]
+    },
+    streckenEingang
+  );
+  wahr(mitLuecke.includes('Hier fehlt das Bild der Freigabe'), 'der Text des Platzhalters fehlt');
+  gleich((mitLuecke.match(/<bpmn:task /g) || []).length, 1, 'der Platzhalter ist keine schlichte Aufgabe');
+  gleich((mitLuecke.match(/<bpmn:userTask /g) || []).length, 1);
 });
 
 /* ------------------------------------------------------------- Labels */

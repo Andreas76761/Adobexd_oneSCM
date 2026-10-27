@@ -5,7 +5,7 @@
  * entstanden wäre.
  */
 import { join } from 'node:path';
-import { suite, wahr, gleich } from '../hilfen/pruefe.mjs';
+import { suite, wahr, gleich, tieferGleich } from '../hilfen/pruefe.mjs';
 import { erzeugeBrowserHelfer } from '../hilfen/browser.mjs';
 
 const wurzel = join(import.meta.dirname, '..', '..');
@@ -29,10 +29,21 @@ const ordnerNachbau = `
     getFileHandle: async (name) => ({
       createWritable: async () => ({
         write: async (blob) => {
+          // Seit 1.73.0 auch der Inhalt der Textdateien: ohne ihn liess
+          // sich nie pruefen, was in einem Beipackzettel wirklich steht.
+          const istText = /json|csv|xml|text/.test(blob.type || '') || typeof blob === 'string';
+          // Blob.text() entfernt ein fuehrendes BOM - das ist die
+          // UTF-8-Dekodierung der Spezifikation. Wer wissen will, ob es in
+          // der Datei steht, muss die Bytes ansehen.
+          const kopf = istText && typeof blob !== 'string'
+            ? [...new Uint8Array((await blob.arrayBuffer()).slice(0, 3))]
+            : [];
           window.__geschrieben.push({
             pfad: [...pfad, name].join('/'),
             groesse: blob.size || String(blob).length,
-            typ: blob.type || ''
+            typ: blob.type || '',
+            kopf,
+            inhalt: istText ? (typeof blob === 'string' ? blob : await blob.text()) : ''
           });
         },
         close: async () => {}
@@ -158,6 +169,24 @@ s.test('die Galerie wird mit Unterordnern geschrieben und berichtet', () =>
       const bild = dateien.find((d) => d.pfad.endsWith('.png'));
       wahr(bild.groesse > 5000, 'das Bild ist verdächtig klein: ' + bild.groesse);
       gleich(bild.typ, 'image/png');
+      // Der Beipackzettel nennt die Datei, die **neben ihm** liegt (1.73.0).
+      // Bis 1.72.0 stand dort fest „AUF-2026-001.png", während die Datei
+      // nach dem Muster hieß – der Zettel zeigte auf nichts.
+      const zettel = dateien.find((d) => d.pfad.endsWith('.json') && d.pfad !== 'index.json');
+      const nebenan = zettel.pfad.replace(/\.json$/, '.png');
+      gleich(JSON.parse(zettel.inhalt).bild, nebenan.split('/').pop());
+      wahr(pfade.includes(nebenan), 'die genannte Bilddatei liegt nicht daneben: ' + nebenan);
+
+      // Und die CSV trägt ihr BOM, sonst liest Excel die Umlaute falsch.
+      const tabelle = dateien.find((d) => d.pfad === 'index.csv');
+      tieferGleich(tabelle.kopf, [0xef, 0xbb, 0xbf], 'das BOM fehlt in der geschriebenen Datei');
+      // Und die JSON-Dateien tragen **keines** – JSON darf keines haben.
+      tieferGleich(
+        dateien.find((d) => d.pfad === 'index.json').kopf,
+        [0x7b, 0x0a, 0x20],
+        'die Übersicht beginnt nicht mit einer geschweiften Klammer'
+      );
+
       // Die Übersicht trägt die Bilder mit ihrem Pfad.
       const bericht = await seite.locator('#verzeichnis-meldung').innerText();
       wahr(/2 Bilder/.test(bericht), bericht);
