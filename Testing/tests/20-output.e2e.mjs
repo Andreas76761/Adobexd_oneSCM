@@ -130,6 +130,9 @@ s.test('die Inhalte stehen nach Kapiteln geordnet', () =>
     { hash: AUFNAHME }
   ));
 
+// Gewartet wird auf „N Dokument(e) gerechnet", nicht auf „gerechnet":
+// die Meldung während des Rechnens lautet „… wird gerechnet – 1 von 3 …"
+// und enthält dasselbe Wort. Wer darauf wartet, drückt zu früh.
 s.test('je Sprache entsteht ein Dokument – mit Kapitel und Labels', () =>
   mitSeite(
     async (seite) => {
@@ -155,7 +158,7 @@ s.test('je Sprache entsteht ein Dokument – mit Kapitel und Labels', () =>
 
       await seite.click('#output-erzeugen');
       await seite.waitForFunction(
-        () => /gerechnet/.test(document.getElementById('output-meldung').textContent),
+        () => /Dokument\(e\) gerechnet/.test(document.getElementById('output-meldung').textContent),
         null,
         { timeout: 40000 }
       );
@@ -217,7 +220,7 @@ s.test('die Dokumente werden als PDF, Word und PowerPoint gesichert', () =>
       await seite.waitForTimeout(150);
       await seite.click('#output-erzeugen');
       await seite.waitForFunction(
-        () => /gerechnet/.test(document.getElementById('output-meldung').textContent),
+        () => /Dokument\(e\) gerechnet/.test(document.getElementById('output-meldung').textContent),
         null,
         { timeout: 40000 }
       );
@@ -244,7 +247,7 @@ s.test('alle Dokumente landen in einem Verzeichnis', () =>
       await seite.waitForTimeout(200);
       await seite.click('#output-erzeugen');
       await seite.waitForFunction(
-        () => /gerechnet/.test(document.getElementById('output-meldung').textContent),
+        () => /Dokument\(e\) gerechnet/.test(document.getElementById('output-meldung').textContent),
         null,
         { timeout: 40000 }
       );

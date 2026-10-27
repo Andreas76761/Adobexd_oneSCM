@@ -1807,6 +1807,13 @@ es die Varianten (dieselbe Maske auf Englisch) und die eigenen Texte (F-65).
 in den Markt. Eine weitere Sprache braucht nur einen Eintrag in `WORTE` –
 unbekannte Schlüssel fallen auf Deutsch zurück, es bleibt also nie etwas leer.
 
+**geändert in** 1.69.0: Die Sprache steht jetzt an **jeder** HTML-Ausgabe.
+Das Handbuch trug sie seit 1.48.0; die **Blätter zum Drucken** und das
+Format **HTML im Register Output** trugen `lang="de"`, auch bei englischer
+Ausgabe – eine Unterlage, die falsch vorgelesen und falsch getrennt wird.
+Der Bildtext heißt dort jetzt `Blatt 1/3` bzw. `Sheet 1/3` statt dreimal
+„Blatt".
+
 ## F-67 · Die Hausmarke als eigene Datei
 
 **Seit** 1.49.0 · betrifft Designstudio

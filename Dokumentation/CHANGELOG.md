@@ -20,6 +20,43 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.69.0] – Ein Nachbau, der enger ist als der Vertrag
+
+Die drei HTML-Ausgaben zum ersten Mal angesehen – deutsch und englisch,
+und ohne Netz geöffnet.
+
+### Angesehen, nicht beanstandet
+* **Alle drei Dateien stehen für sich**: Handbuch, Blätter zum Drucken und
+  das Format HTML im Register Output holen **nichts** von draußen. Keine
+  nachgeladene Schrift, kein nachgeladenes Bild – auch hinter einer
+  Firewall nicht leer. Das war die wichtigste Frage bei HTML
+
+### Behoben
+* **Die Sprache stand nicht am Dokument** (F-66). Die Blätter zum Drucken
+  und das Output-HTML trugen `lang="de"`, auch bei englischer Ausgabe – ein
+  Vorleseprogramm spricht sie dann deutsch aus, der Browser trennt nach
+  deutschen Regeln. Das Handbuch machte es seit 1.48.0 richtig
+* **Der Bildtext hieß dreimal „Blatt"**. Jetzt `Blatt 1/3` bzw. `Sheet 1/3`
+* **Drei Browserprüfungen warteten auf `/gerechnet/`** – das trifft schon
+  die Meldung „… wird gerechnet – 1 von 3 …" und drückt zu früh. Sie warten
+  jetzt auf `Dokument(e) gerechnet`
+
+### Warum keine Prüfung das sah
+* `downloads.save` nimmt laut Vertrag auch eine **Zeichenkette**, und die
+  Blätter zum Drucken geben genau die. Der Nachbau in den Prüfungen kannte
+  nur `data.text()`; eine Zeichenkette ließ ihn scheitern, die Ablage
+  meldete still „fehlgeschlagen", und keine Prüfung konnte je in diese
+  Datei hineinsehen. **Ein Nachbau, der enger ist als der Vertrag, verbirgt
+  Code**
+
+### Neu
+* **`Testing/messungen/netzseite.mjs`**: die drei HTML-Ausgaben erzeugen,
+  ohne Netz öffnen und jede Anfrage nach draußen nennen
+
+### Prüfung
+* Der Nachbau nimmt beides, Blob und Zeichenkette; die englische Ausgabe
+  prüft die Blätter mit. Zusammen 528
+
 ## [1.68.0] – Was die Projektdatei vergaß
 
 Der dritte Umlauf, und der wichtigste: der Bestand von einem Menschen zum

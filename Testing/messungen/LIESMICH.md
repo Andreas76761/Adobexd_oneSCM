@@ -104,6 +104,22 @@ tragen und wie viele **verschiedene** Stellen daraus werden. Die Zahl der
 verschiedenen Texte ist die eigentliche Frage: trägt jedes Bild seinen
 eigenen Text oder alle denselben?
 
+### `netzseite.mjs`
+
+Die **drei HTML-Ausgaben** – das ganze Handbuch (F-55), die Blätter zum
+Drucken und das Format HTML im Register Output (F-56) – an echtem
+Bildschirminhalt, auf Deutsch und auf Englisch.
+
+```bash
+node Testing/messungen/netzseite.mjs <ordner mit film.webm> [zielordner]
+```
+
+Bei HTML sind die Fragen andere als bei PDF. Die wichtigste: **öffnet sich
+die Datei ohne Netz?** Dafür wird jede Anfrage abgewiesen, die nicht die
+Datei selbst ist, und genannt – eine Seite, die eine Schrift oder ein Bild
+nachlädt, ist im Haus hinter der Firewall leer. Dazu: trägt das Dokument
+die Sprache, in der es geschrieben ist, und haben die Bilder einen Text?
+
 ## Was dabei herauskam (1.62.0)
 
 | | vorher | nachher |
@@ -194,3 +210,27 @@ Dass es niemandem auffiel, lag an der Prüfdatei: sie trug **ein** Bild und
 **einen** Satz. Bei einem Bild ist „der Text des Dokuments" und „der Text
 neben dem Bild" dasselbe. Der Unterschied beginnt beim zweiten. Eine
 Prüfdatei mit einem Element prüft die Zahl eins, nicht die Regel.
+
+## Was dabei herauskam (1.69.0)
+
+Alle drei HTML-Ausgaben, einmal deutsch und einmal englisch:
+
+| | Befund |
+| --- | --- |
+| von draußen geholt | **nichts** – jede Datei steht für sich |
+| Handbuch | 11 von 11 Bildern, 16 Überschriften, 6085 Zeichen Text |
+| Blätter und Output | Bilder, kein Text – so gebaut, kein Fehler |
+| Sprache am Dokument | war bei zweien **immer `de`** |
+
+Dass keine Prüfung das sah, lag am Nachbau: `downloads.save` nimmt laut
+Vertrag auch eine **Zeichenkette**, und die Blätter zum Drucken geben genau
+die. Der Nachbau kannte nur `data.text()` – eine Zeichenkette ließ ihn
+scheitern, und damit konnte keine Prüfung je in diese Datei hineinsehen.
+
+**Ein Nachbau, der enger ist als der Vertrag, verbirgt Code.**
+
+Beim Messen selbst noch ein Stolperstein, zum zweiten Mal in dieser Reihe:
+die Meldung *während* des Rechnens heißt „… wird gerechnet – 1 von 3 …" und
+enthält dasselbe Wort wie die Meldung danach. Wer auf `/gerechnet/` wartet,
+drückt zu früh. Drei Browserprüfungen taten das und kamen bisher damit
+durch, weil die Rechnung dort schnell ist.

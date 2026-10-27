@@ -25,15 +25,23 @@ const ablageNachbau = `
  * Für das PDF reicht die Größe nicht: die Ablage liest die Datei mit und
  * zählt, was drinsteht. Mehr als Text braucht die Prüfung nicht - ein PDF
  * ist Text mit Datenströmen darin.
+ *
+ * `downloads.save` nimmt laut Vertrag `string | Blob | ArrayBuffer |
+ * ArrayBufferView`, und die Seite gibt beides: das Handbuch als Blob, die
+ * Blätter zum Drucken als Zeichenkette. Bis 1.68.0 kannte dieser Nachbau
+ * nur `data.text()` - eine Zeichenkette ließ ihn scheitern, die Ablage
+ * meldete „fehlgeschlagen", und keine Prüfung konnte je in diese Datei
+ * hineinsehen. Genau dort stand dann auch `lang="de"` für eine englische
+ * Unterlage. Ein Nachbau, der enger ist als der Vertrag, verbirgt Code.
  */
 const pdfNachbau = `
   window.__abgelegt = [];
   window.claude = { use: async (name) => name !== 'downloads' ? null : {
     save: async (auftrag) => {
-      const text = await auftrag.data.text();
+      const text = typeof auftrag.data === 'string' ? auftrag.data : await auftrag.data.text();
       window.__abgelegt.push({
         filename: auftrag.filename,
-        groesse: auftrag.data.size,
+        groesse: typeof auftrag.data === 'string' ? auftrag.data.length : auftrag.data.size,
         kopf: text.slice(0, 8),
         seiten: (text.match(/\\/Type\\/Page[^s]/g) || []).length,
         inhalt: text
@@ -532,6 +540,16 @@ s.test('die Unterlagen lassen sich auf Englisch ausgeben', () =>
       const [datei] = await seite.evaluate(() => window.__abgelegt);
       wahr(datei.inhalt.includes('<html lang="en"'), 'das Handbuch ist nicht englisch');
       wahr(datei.inhalt.includes('Completion criterion') || datei.inhalt.includes('User manual'), 'die Rahmentexte fehlen');
+
+      // Auch die Blätter zum Drucken (1.69.0). Bis 1.68.0 stand dort
+      // `lang="de"`, auch bei englischer Ausgabe – eine Unterlage, die
+      // falsch vorgelesen und falsch getrennt wird.
+      await seite.click('#design-html');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length >= 2, null, { timeout: 40000 });
+      const blaetter = await seite.evaluate(() => window.__abgelegt[window.__abgelegt.length - 1]);
+      wahr(blaetter.inhalt.includes('<html lang="en"'), 'die Blätter tragen die Sprache nicht');
+      // Und der Bildtext nennt das Blatt, statt dreimal „Blatt" zu sagen.
+      wahr(blaetter.inhalt.includes('alt="Sheet 1/'), 'der Bildtext ist nicht übersetzt oder nicht gezählt');
 
       // Die Wahl überlebt das Neuladen.
       await seite.reload();

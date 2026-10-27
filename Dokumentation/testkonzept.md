@@ -75,6 +75,13 @@ Dateien fiel die Sackgasse im Register Output auf (F-56), die keine der
 sieben Browserprüfungen dort finden konnte: jede kreuzte die Werte der Achse
 an, bevor sie etwas erwartete, und sah die **Vorgabe** damit nie.
 
+Seit 1.69.0 liegt dort auch `netzseite.mjs`: die drei HTML-Ausgaben ohne
+Netz öffnen und jede Anfrage nach draußen nennen. Dabei kam ein Befund
+über die **Prüfungen selbst** heraus: `downloads.save` nimmt laut Vertrag
+auch eine Zeichenkette, der Nachbau kannte nur Blobs – eine der drei
+Dateien war darum für jede Prüfung unsichtbar. Ein Nachbau, der enger ist
+als der Vertrag, verbirgt Code.
+
 Seit 1.66.0 liegt dort `rueckweg.mjs`: eine Word-Datei, die die Seite selbst
 geschrieben hat, unverändert zurück – und mit `--aendern` mit genau einer
 Änderung. Auch dieser Befund kam nicht aus einer Lücke in den Prüfungen,

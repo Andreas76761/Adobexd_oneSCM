@@ -5118,7 +5118,8 @@ export const WORTE = {
     belegt: 'belegt',
     ohneStelle: 'ohne Stelle',
     gezaehlt: 'gezählt werden Stellen, nicht Bilder',
-    alleProjekte: 'alle Projekte'
+    alleProjekte: 'alle Projekte',
+    blatt: 'Blatt'
   },
   en: {
     unterlage: 'Document',
@@ -5144,7 +5145,8 @@ export const WORTE = {
     belegt: 'covered',
     ohneStelle: 'without a section',
     gezaehlt: 'sections are counted, not images',
-    alleProjekte: 'all projects'
+    alleProjekte: 'all projects',
+    blatt: 'Sheet'
   }
 };
 

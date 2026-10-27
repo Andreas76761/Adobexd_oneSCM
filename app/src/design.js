@@ -873,15 +873,21 @@ async function sichereAlsHtml() {
   const { titel } = designSchritte();
   const bilder = designSeiten.map((b) => b.leinwand.toDataURL('image/png'));
   const hoch = designSeiten[0].leinwand.height > designSeiten[0].leinwand.width;
+  // Die Sprache gehört an das Dokument, nicht an die Oberfläche: eine
+  // englische Unterlage mit `lang="de"` wird falsch vorgelesen und falsch
+  // getrennt. Bis 1.68.0 stand hier „de", auch für eine englische Ausgabe.
+  const sprache = ausgabeSprache();
   const html = [
-    '<!doctype html><html lang="de"><head><meta charset="utf-8">',
+    `<!doctype html><html lang="${sprache}"><head><meta charset="utf-8">`,
     `<title>${maskiereHtml(titel)} – ${maskiereHtml(designVorlageSatz().label)}</title>`,
     `<style>@page{size:A4 ${hoch ? 'portrait' : 'landscape'};margin:0}`,
     'body{margin:0;background:#eceef2;font-family:system-ui,sans-serif}',
     'figure{margin:0 auto 18px;max-width:1100px}img{display:block;width:100%;height:auto;box-shadow:0 2px 10px rgba(0,0,0,.18)}',
     '@media print{body{background:#fff}figure{margin:0;max-width:none;page-break-after:always}img{box-shadow:none}}',
     '</style></head><body>',
-    ...bilder.map((b) => `<figure><img src="${b}" alt="Blatt"></figure>`),
+    ...bilder.map(
+      (b, i) => `<figure><img src="${b}" alt="${maskiereHtml(sagen('blatt', sprache))} ${i + 1}/${bilder.length}"></figure>`
+    ),
     '</body></html>'
   ].join('');
   const name = `${bereinigeDateiname(`${studio.vorlage}-${titel}`) || 'blatt'}.html`;

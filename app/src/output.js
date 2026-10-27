@@ -313,12 +313,20 @@ async function outputDatei(auftrag, format) {
   if (format === 'pptx') return pptxAusSeiten(seiten, angaben);
   if (format === 'html') {
     const bilder = fertig.blaetter.map((b) => b.leinwand.toDataURL('image/jpeg', 0.9));
+    // Wie im Designstudio: die Sprache gehört an das Dokument. Bis 1.68.0
+    // trug auch eine englische Ausgabe `lang="de"`.
+    const sprache = ausgabeSprache();
     return new TextEncoder().encode(
-      `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${maskiereHtml(auftrag.titel)}</title>` +
+      `<!doctype html><html lang="${sprache}"><head><meta charset="utf-8"><title>${maskiereHtml(auftrag.titel)}</title>` +
         '<style>body{margin:0;background:#eceef2}figure{margin:0 auto 16px;max-width:1100px}' +
         'img{display:block;width:100%;height:auto}@media print{figure{margin:0;page-break-after:always}}</style>' +
         '</head><body>' +
-        bilder.map((b) => `<figure><img src="${b}" alt="Blatt"></figure>`).join('') +
+        bilder
+          .map(
+            (b, i) =>
+              `<figure><img src="${b}" alt="${maskiereHtml(sagen('blatt', sprache))} ${i + 1}/${bilder.length}"></figure>`
+          )
+          .join('') +
         '</body></html>'
     );
   }
