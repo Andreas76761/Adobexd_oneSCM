@@ -238,6 +238,12 @@ async function leseAusgewaehlte() {
   zeichneOcrKnoepfe();
   let fertig = 0;
   let gescheitert = 0;
+  let leer = 0; // Claude hat geantwortet, aber nichts gelesen
+  // Der Grund, warum abgebrochen wurde. Bis 1.70.0 stand er in der Meldung
+  // und wurde eine Zeile später von der Schlusszeile überschrieben - übrig
+  // blieb „0 von 1 Bildern gelesen, 1 nicht." ohne jeden Hinweis, ob es
+  // sich lohnt, es noch einmal zu versuchen.
+  let grund = '';
 
   for (const aufnahme of bilder) {
     if (ocrAbbruch.signal.aborted) break;
@@ -262,26 +268,32 @@ async function leseAusgewaehlte() {
         });
         teile.push(String((antwort && antwort.text) || ''));
       }
-      if (teile.length) {
-        setzeOcrText(aufnahme.id, ocrZusammenfuegen(teile), 'claude', kacheln.length);
+      const zusammen = teile.length ? ocrZusammenfuegen(teile) : '';
+      if (zusammen.trim()) {
+        setzeOcrText(aufnahme.id, zusammen, 'claude', kacheln.length);
         fertig += 1;
         zeichneOcrTexte();
+      } else if (teile.length) {
+        // Eine leere Antwort ist kein Lesen. Bis 1.70.0 zählte sie als
+        // gelesen - und `setzeOcrText('')` löschte dabei den Text, der
+        // vielleicht schon dastand.
+        leer += 1;
       }
     } catch (fehler) {
       const code = (fehler && fehler.code) || '';
       if (code === 'cancelled') break;
       gescheitert += 1;
       if (code === 'not_granted') {
-        meldeOcr('Das Lesen wurde nicht erlaubt. Die Felder bleiben zum Eintragen von Hand.', 'warnung');
+        grund = 'Das Lesen wurde nicht erlaubt. Die Felder bleiben zum Eintragen von Hand.';
         break;
       }
       if (code === 'rate_limited') {
-        meldeOcr('Zu viele Anfragen in kurzer Zeit – später noch einmal, oder weniger Bilder auf einmal.', 'warnung');
+        grund = 'Zu viele Anfragen in kurzer Zeit – später noch einmal, oder weniger Bilder auf einmal.';
         break;
       }
       if (code === 'images_unavailable') {
         ocrBilderMoeglich = false;
-        meldeOcr('Claude darf hier keine Bilder sehen – die Texterkennung entfällt.', 'warnung');
+        grund = 'Claude darf hier keine Bilder sehen – die Texterkennung entfällt.';
         break;
       }
     }
@@ -291,13 +303,19 @@ async function leseAusgewaehlte() {
   ocrLaeuft = false;
   ocrAbbruch = null;
   zeichneOcr();
+  const zahl = `${fertig} von ${bilder.length} Bildern gelesen`;
   meldeOcr(
     angehalten
-      ? `Angehalten – ${fertig} von ${bilder.length} Bildern gelesen.`
-      : gescheitert
-        ? `${fertig} von ${bilder.length} Bildern gelesen, ${gescheitert} nicht.`
-        : `${fertig} von ${bilder.length} Bildern gelesen.`,
-    gescheitert && !fertig ? 'warnung' : fertig ? 'gut' : 'neutral'
+      ? `Angehalten – ${zahl}.`
+      : grund
+        ? // Der Grund steht voran: er sagt, ob sich ein zweiter Versuch lohnt.
+          `${grund} ${zahl}.`
+        : gescheitert
+          ? `${zahl}, ${gescheitert} nicht.`
+          : leer
+            ? `${zahl}. Bei ${leer} hat Claude nichts gelesen – der vorhandene Text bleibt stehen.`
+            : `${zahl}.`,
+    (gescheitert || grund || leer) && !fertig ? 'warnung' : fertig ? 'gut' : 'neutral'
   );
 }
 

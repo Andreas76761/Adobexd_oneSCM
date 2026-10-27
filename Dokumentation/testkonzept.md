@@ -51,15 +51,15 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `18-begehung.e2e.mjs` | Begehung: jeder sichtbare Befehl in **jeder der vierzehn** Ansichten (seit 1.51.0 auch Output und OCR, seit 1.55.0 Video), die zerstörenden Befehle, die Tastatur | 4 |
 
-| `22-video.e2e.mjs` | Video im Browser: Grenze und Formate benannt, Video öffnen, Nichtvideo abweisen, automatisch abtasten, Bild von Hand, Stellen und Labels, Übernahme in den Eingang, Strecke aus dem Video, Durchgänge mit Vergleich und Diagnose, Vorgehen, Verwerfen. Das Prüfvideo entsteht in der Seite selbst (`captureStream` + `MediaRecorder`) – keine Beispieldatei im Repo | 15 |
+| `22-video.e2e.mjs` | Video im Browser: Grenze und Formate benannt, Video öffnen, Nichtvideo abweisen, automatisch abtasten, Bild von Hand, Stellen und Labels, Übernahme in den Eingang, Strecke aus dem Video, Durchgänge mit Vergleich und Diagnose, Vorgehen, Verwerfen, leere Antwort beim Deuten. Das Prüfvideo entsteht in der Seite selbst (`captureStream` + `MediaRecorder`) – keine Beispieldatei im Repo | 16 |
 
-| `21-ocr.e2e.mjs` | OCR im Browser: Bilder wählen, Lesen über Claude (nachgebildet), Kacheln, Text ändern, in die Notiz übernehmen, Textdatei und Word-Datei, fehlende Bilderlaubnis, Suche über die Lesungen | 6 |
+| `21-ocr.e2e.mjs` | OCR im Browser: Bilder wählen, Lesen über Claude (nachgebildet), Kacheln, Text ändern, in die Notiz übernehmen, Textdatei und Word-Datei, fehlende Bilderlaubnis, Suche über die Lesungen, abgewiesene und leere Antwort | 8 |
 
 | `20-output.e2e.mjs` | Output im Browser: Inhalte nach Kapiteln, ein Dokument je Variante, Vorschau mit Kapitel und Labels, Sicherung als PDF, Word und PowerPoint, Ablage im Verzeichnis, die Lupe, die Vorgabe ohne Achse und der Grund für den leeren Plan | 8 |
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-Summe: **530 Prüfungen**.
+Summe: **533 Prüfungen**.
 
 ## Messungen – nicht Teil des Durchlaufs
 

@@ -36,6 +36,23 @@ const claudeNachbau = `
       } }
     : null };`;
 
+/** Claude weist die Anfrage ab - der Grund gehört in die Schlusszeile. */
+const claudeAbweisend = `
+  const sample = async () => { const e = new Error('nicht erlaubt'); e.code = 'not_granted'; throw e; };
+  sample.limits = async () => ({ maxPromptBytes: 65536, images: { maxCount: 4, mediaTypes: ['image/jpeg'] } });
+  window.claude = { use: async (name) => (name === 'sample' ? sample : null) };`;
+
+/**
+ * Beim ersten Lauf liest Claude, beim zweiten antwortet er ohne Text -
+ * vertragsgemäß und kein Lesen. Nur so lässt sich prüfen, ob die leere
+ * Antwort das Vorhandene löscht.
+ */
+const claudeDannLeer = `
+  window.__leer = false;
+  const sample = async () => (window.__leer ? { text: '   ' } : { text: 'Übersicht Einkauf' });
+  sample.limits = async () => ({ maxPromptBytes: 65536, images: { maxCount: 4, mediaTypes: ['image/jpeg'] } });
+  window.claude = { use: async (name) => (name === 'sample' ? sample : null) };`;
+
 /** Claude ohne Bilder: die Fähigkeit ist da, Bilder darf sie nicht sehen. */
 const claudeOhneBilder = `
   const sample = async () => ({ text: 'nie gefragt' });
@@ -213,6 +230,65 @@ s.test('ohne Bilderlaubnis sagt die Ansicht, was bleibt', () =>
       gleich(await seite.locator('.ocr-feld textarea').count(), 2);
     },
     { hash: AUFNAHME, initSkript: claudeOhneBilder }
+  ));
+
+s.test('wird abgewiesen, steht der Grund in der Schlusszeile (1.71.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Bis 1.70.0 setzte der Fangzweig die genaue Meldung – und die
+      // Schlusszeile überschrieb sie eine Zeile später. Übrig blieb
+      // „0 von 2 Bildern gelesen, 2 nicht." ohne jeden Hinweis darauf, ob
+      // sich ein zweiter Versuch lohnt.
+      await zweiBilder(seite);
+      await seite.click('#ocr-alle');
+      await seite.click('#ocr-lesen');
+      await seite.waitForFunction(
+        () => /Bildern gelesen/.test(document.getElementById('ocr-meldung').textContent),
+        null,
+        { timeout: 15000 }
+      );
+      const meldung = await seite.locator('#ocr-meldung').innerText();
+      wahr(meldung.includes('nicht erlaubt'), meldung);
+      wahr(meldung.includes('0 von 2 Bildern gelesen'), meldung);
+    },
+    { hash: AUFNAHME, initSkript: claudeAbweisend }
+  ));
+
+s.test('eine leere Antwort löscht keinen Text (1.71.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Bis 1.70.0 zählte eine leere Antwort als gelesen – und
+      // `setzeOcrText('')` löschte dabei, was schon dastand.
+      await zweiBilder(seite);
+      // Erst ein echter Lauf, damit überhaupt ein Text dasteht.
+      await seite.click('#ocr-alle');
+      await seite.click('#ocr-lesen');
+      await seite.waitForFunction(
+        () => /2 von 2 Bildern gelesen/.test(document.getElementById('ocr-meldung').textContent),
+        null,
+        { timeout: 60000 }
+      );
+      // Ein großes Bild wird in Kacheln gelesen; der Text steht dann
+      // mehrzeilig da. Geprüft wird, dass überhaupt etwas dasteht.
+      const vorher = await seite.locator('.ocr-feld textarea').first().inputValue();
+      wahr(vorher.includes('Übersicht Einkauf'), vorher);
+
+      // Jetzt derselbe Knopf, und Claude antwortet ohne Text.
+      await seite.evaluate(() => (window.__leer = true));
+      await seite.click('#ocr-alle');
+      await seite.click('#ocr-lesen');
+      await seite.waitForFunction(
+        () => /nichts gelesen/.test(document.getElementById('ocr-meldung').textContent),
+        null,
+        { timeout: 60000 }
+      );
+      const meldung = await seite.locator('#ocr-meldung').innerText();
+      wahr(meldung.includes('0 von 2 Bildern gelesen'), meldung);
+      wahr(meldung.includes('bleibt stehen'), meldung);
+      // Und die Lesung von vorhin steht noch da.
+      gleich(await seite.locator('.ocr-feld textarea').first().inputValue(), vorher);
+    },
+    { hash: AUFNAHME, initSkript: claudeDannLeer }
   ));
 
 s.test('der Eingang findet, was im Bild steht', () =>

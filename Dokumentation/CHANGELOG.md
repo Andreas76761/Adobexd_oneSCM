@@ -20,6 +20,42 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.71.0] – Der offene Punkt aus 1.70.0
+
+OCR und Video blieben in 1.70.0 ausdrücklich liegen: beide brauchen ein
+Bild bzw. einen Film im Browser. Jetzt gefahren – der Prüfstand legt sich
+sein Bild selbst an und öffnet den Messfilm.
+
+### Behoben
+* **Die Schlusszeile überschrieb den Grund** (Register OCR). Der Fangzweig
+  schrieb „Das Lesen wurde nicht erlaubt" bzw. „Zu viele Anfragen", und
+  eine Zeile später stand dort „0 von 1 Bildern gelesen, 1 nicht." – für
+  zwei ganz verschiedene Lagen dieselbe Zeile. Der Grund steht jetzt voran
+* **Eine leere Antwort löschte den vorhandenen Text** (Register OCR). Sie
+  zählte als gelesen, und `setzeOcrText('')` löscht den Eintrag – ein
+  Verlust, als Gelingen gemeldet. Jetzt zählt nur ein nichtleerer Text,
+  und die Meldung sagt: „der vorhandene Text bleibt stehen"
+* **Die Fortschrittszeile blieb stehen** (Register Video). Bei leerer
+  Antwort lief kein Zweig der Schlussmeldung, und „Bild bei 00:00,0 wird
+  gedeutet …" blieb da, obwohl der Lauf vorbei war
+
+### Angesehen, nicht beanstandet
+* Kein Lauf hängt, kein Knopf bleibt gesperrt, keine Seite wirft einen
+  Fehler – in keinem der vier Register, in keinem Ausgang. Alle vier sagen
+  bei fehlender Fähigkeit genau, was stattdessen geht
+
+### Was die drei gemeinsam haben
+* Keiner ist ein Absturz; alle drei sind **Meldungen, die nicht stimmen**,
+  und zwei melden Erfolg, wo keiner war
+* Keiner saß in der Fehlerbehandlung, sondern **dahinter**. Die Fangzweige
+  waren sorgfältig geschrieben – es fehlte der Blick auf die Zeile danach
+
+### Prüfung
+* 2 neue Browserprüfungen für OCR (Grund in der Schlusszeile, leere
+  Antwort löscht nichts), 1 für Video (Fortschrittszeile). Der Deutungsweg
+  des Registers Video wurde damit überhaupt zum ersten Mal mit einem
+  Claude-Nachbau gefahren. Zusammen 533
+
 ## [1.70.0] – Claude löschte, was die Seite gefunden hatte
 
 Derselbe Satz wie in 1.69.0, diesmal auf `sample` angewandt: jeden Ausgang

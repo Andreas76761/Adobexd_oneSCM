@@ -125,8 +125,12 @@ die Sprache, in der es geschrieben ist, und haben die Bilder einen Text?
 Was die Register tun, wenn Claude **nicht** antwortet.
 
 ```bash
-node Testing/messungen/fehlschlag.mjs
+node Testing/messungen/fehlschlag.mjs [ordner mit film.webm]
 ```
+
+Ohne den Ordner bleibt das Register Video aus – es braucht einen Film, und
+ohne ihn ist sein Knopf zu Recht gesperrt. Für OCR legt der Prüfstand sich
+sein Bild selbst an.
 
 Vier Register fragen Claude über `sample`. Der Vertrag kennt mehrere
 Ausgänge – die Fähigkeit fehlt, `not_granted`, `rate_limited`, eine leere
@@ -267,3 +271,19 @@ mit festem Vokabular; `text`, `markt` und `grenze` kamen ungeprüft durch.
 
 Wer so denkt, schützt, was sich prüfen lässt – und übersieht, dass ein
 freies Feld genauso verloren gehen kann.
+
+## Was dabei herauskam (1.71.0)
+
+OCR und Video nachgeholt – in 1.70.0 ausdrücklich liegen geblieben. Drei
+Befunde, alle derselben Art: **Meldungen, die nicht stimmen.**
+
+| Register | Ausgang | stand da | richtig |
+| --- | --- | --- | --- |
+| OCR | abgewiesen | „0 von 1 gelesen, 1 nicht." | Grund voran, dann die Zahl |
+| OCR | leere Antwort | „1 von 1 gelesen." | nichts gelesen – **und der vorhandene Text war gelöscht** |
+| Video | leere Antwort | „… wird gedeutet …" | der Lauf war längst vorbei |
+
+Keiner saß in der Fehlerbehandlung, sondern **dahinter**. Die Fangzweige
+waren sorgfältig geschrieben; im OCR überschrieb die Schlusszeile ihre
+Meldung eine Zeile später wieder. Was fehlte, war der Blick auf die Zeile,
+die danach läuft.

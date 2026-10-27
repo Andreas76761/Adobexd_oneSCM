@@ -497,6 +497,10 @@ async function deuteBilder() {
   setzeVideoknoepfe();
   let fertig = 0;
   let gescheitert = 0;
+  let leer = 0; // Claude hat geantwortet, aber nichts gedeutet
+  // Wie im Register OCR: der Grund gehört in die Schlusszeile, sonst
+  // überschreibt sie ihn.
+  let grund = '';
 
   for (const bild of offen) {
     if (videoAbbruch.signal.aborted) break;
@@ -520,17 +524,19 @@ async function deuteBilder() {
         bild.text = text;
         fertig += 1;
         zeichneVideo();
+      } else {
+        leer += 1;
       }
     } catch (fehler) {
       const code = (fehler && fehler.code) || '';
       if (code === 'cancelled') break;
       gescheitert += 1;
       if (code === 'not_granted') {
-        meldeVideo('Das Deuten wurde nicht erlaubt. Die Felder bleiben zum Eintragen von Hand.', 'warnung');
+        grund = 'Das Deuten wurde nicht erlaubt. Die Felder bleiben zum Eintragen von Hand.';
         break;
       }
       if (code === 'rate_limited') {
-        meldeVideo('Zu viele Anfragen in kurzer Zeit – später noch einmal, oder weniger Bilder auf einmal.', 'warnung');
+        grund = 'Zu viele Anfragen in kurzer Zeit – später noch einmal, oder weniger Bilder auf einmal.';
         break;
       }
     }
@@ -544,14 +550,23 @@ async function deuteBilder() {
     { zahl: fertig, gescheitert, gesendet: offen.length }
   );
   zeichneVideo();
-  if (fertig) {
-    meldeVideo(
-      `${fertig} Bild${fertig === 1 ? '' : 'er'} gedeutet` +
-        (gescheitert ? `, ${gescheitert} nicht` : '') +
-        '. Der Text ist eine Deutung – er lässt sich in jedem Feld ändern.',
-      gescheitert ? 'warnung' : 'gut'
-    );
-  }
+  // Bis 1.70.0 stand hier `if (fertig)`: kam nichts zurück und scheiterte
+  // auch nichts - eine leere Antwort -, blieb die Zeile „wird gedeutet …"
+  // stehen, und niemand konnte sehen, dass der Lauf vorbei war.
+  const zahl = `${fertig} Bild${fertig === 1 ? '' : 'er'} gedeutet`;
+  meldeVideo(
+    grund
+      ? `${grund} ${zahl}.`
+      : fertig
+        ? `${zahl}` +
+          (gescheitert ? `, ${gescheitert} nicht` : '') +
+          (leer ? `, bei ${leer} kam nichts zurück` : '') +
+          '. Der Text ist eine Deutung – er lässt sich in jedem Feld ändern.'
+        : leer
+          ? `Claude hat nichts gedeutet (${leer} von ${offen.length}). Die Felder bleiben zum Eintragen von Hand.`
+          : `Kein Bild gedeutet.`,
+    fertig && !gescheitert && !leer && !grund ? 'gut' : 'warnung'
+  );
 }
 
 /* --------------------------------------------------------- Übernehmen */

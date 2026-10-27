@@ -11,15 +11,23 @@
  *   2. Ist der Knopf danach wieder offen, oder hängt der Lauf fest?
  *   3. Bleibt die Seite fehlerfrei?
  *
- *   node Testing/messungen/fehlschlag.mjs
+ *   node Testing/messungen/fehlschlag.mjs [ordner mit film.webm]
+ *
+ * Ohne den Ordner bleibt das Register Video aus: es braucht einen Film,
+ * und ohne ihn ist sein Knopf zu Recht gesperrt.
  */
 import { pathToFileURL } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { chromium } from 'playwright-core';
 import { baueVorschau, findeChromium } from '../hilfen/seite.mjs';
 
 const hier = dirname(new URL(import.meta.url).pathname);
 const adresse = pathToFileURL(baueVorschau(join(hier, '..', '..', 'dist', 'index.html'))).href;
+// Das Register Video braucht einen Film; ohne ihn ist sein Knopf zu Recht
+// gesperrt und sein Fehlerweg nicht zu fahren.
+const filmPfad = process.argv[2] ? join(process.argv[2], 'film.webm') : '';
+const film = filmPfad ? [...readFileSync(filmPfad)] : null;
 
 /** Die Ausgänge, die der Vertrag von `sample` kennt. */
 const AUSGAENGE = {
@@ -79,17 +87,56 @@ async function laufPruefung(seite) {
   };
 }
 
+/** Ein Bild in den Eingang legen - ohne das ist OCR zu Recht gesperrt. */
+async function legeBildAn(seite) {
+  await seite.goto(adresse + '#ans=aufnahme');
+  await seite.waitForSelector('#aufnahme-ansicht:not([hidden])');
+  await seite.click('#quelle-beispiel');
+  await seite.waitForFunction(() => !document.getElementById('ausloesen').disabled, null, { timeout: 15000 });
+  await seite.fill('#feld-titel', 'Übersicht Einkauf');
+  await seite.click('#ausloesen');
+  await seite.waitForTimeout(400);
+}
+
 /** OCR: ein Bild lesen lassen. */
 async function laufOcr(seite) {
-  await seite.goto(adresse + '#ans=ocr');
+  await legeBildAn(seite);
+  await seite.click('.portal-nav button[data-ansicht="ocr"]');
   await seite.waitForSelector('#ocr-ansicht:not([hidden])');
-  await seite.waitForTimeout(400);
-  if (await seite.locator('#ocr-lesen').isDisabled()) return { meldung: '(ohne Bild gesperrt – richtig)', offen: true };
+  await seite.waitForTimeout(500);
+  await seite.click('#ocr-alle');
+  await seite.waitForTimeout(300);
+  if (await seite.locator('#ocr-lesen').isDisabled()) return { meldung: 'KNOPF GESPERRT – mit Bild falsch', offen: false };
   await seite.click('#ocr-lesen');
-  await seite.waitForTimeout(2500);
+  await seite.waitForTimeout(3000);
   return {
     meldung: (await seite.locator('#ocr-meldung').innerText()).trim().slice(0, 130),
     offen: !(await seite.locator('#ocr-lesen').isDisabled())
+  };
+}
+
+/** Video: einen Film öffnen, ein Bild von Hand nehmen, deuten lassen. */
+async function laufVideo(seite) {
+  await seite.goto(adresse + '#ans=video');
+  await seite.waitForSelector('#video-ansicht:not([hidden])');
+  await seite.evaluate((bytes) => {
+    const datei = new File([new Uint8Array(bytes)], 'Probe.webm', { type: 'video/webm' });
+    const t = new DataTransfer();
+    t.items.add(datei);
+    const e = document.getElementById('video-eingabe');
+    e.files = t.files;
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+  }, film);
+  await seite.waitForFunction(() => !document.getElementById('video-leiste').hidden, null, { timeout: 60000 });
+  await seite.click('#video-hier');
+  await seite.waitForSelector('.video-figur', { timeout: 30000 });
+  await seite.waitForTimeout(400);
+  if (await seite.locator('#video-deuten').isDisabled()) return { meldung: 'KNOPF GESPERRT – mit Bild falsch', offen: false };
+  await seite.click('#video-deuten');
+  await seite.waitForTimeout(3000);
+  return {
+    meldung: (await seite.locator('#video-meldung').innerText()).trim().slice(0, 130),
+    offen: !(await seite.locator('#video-deuten').isDisabled())
   };
 }
 
@@ -114,7 +161,8 @@ for (const ausgang of Object.keys(AUSGAENGE)) {
   for (const [name, lauf] of [
     ['Suchchat', laufChat],
     ['Prüfung', laufPruefung],
-    ['OCR', laufOcr]
+    ['OCR', laufOcr],
+    ...(film ? [['Video', laufVideo]] : [])
   ]) {
     const r = await probiere(ausgang, name, lauf);
     ergebnisse.push({ ausgang, register: name, ...r });

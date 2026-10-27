@@ -492,6 +492,37 @@ s.test('ohne Schalter bleibt das Bild unberührt (1.63.0)', () =>
     { hash: VIDEO }
   ));
 
+s.test('eine leere Antwort lässt die Fortschrittszeile nicht stehen (1.71.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Bis 1.70.0 stand am Ende `if (fertig)`: kam nichts zurück und
+      // scheiterte auch nichts – eine vertragsgemäße leere Antwort –,
+      // blieb „Bild bei 00:00,0 wird gedeutet …" stehen. Niemand konnte
+      // sehen, dass der Lauf vorbei war.
+      await legeVideoEin(seite, 3);
+      await seite.click('#video-hier');
+      await seite.waitForSelector('.video-figur', { timeout: 20000 });
+      await seite.click('#video-deuten');
+      await seite.waitForFunction(
+        () => /nichts gedeutet/.test(document.getElementById('video-meldung').textContent),
+        null,
+        { timeout: 30000 }
+      );
+      const meldung = await seite.locator('#video-meldung').innerText();
+      wahr(!meldung.includes('wird gedeutet'), 'die Fortschrittszeile steht noch: ' + meldung);
+      wahr(meldung.includes('von Hand'), meldung);
+      // Und der Knopf lädt weiter ein, es noch einmal zu versuchen.
+      gleich(await seite.locator('#video-deuten').isDisabled(), false);
+    },
+    {
+      hash: VIDEO,
+      initSkript: `
+        const sample = async () => ({ text: '   ' });
+        sample.limits = async () => ({ maxPromptBytes: 65536, images: { maxCount: 4, mediaTypes: ['image/jpeg'] } });
+        window.claude = { use: async (name) => (name === 'sample' ? sample : null) };`
+    }
+  ));
+
 s.test('Browser wieder schließen', async () => {
   await schliessen();
   return true;
