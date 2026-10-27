@@ -380,6 +380,11 @@ Browser bleiben.
 
 ---
 
+**gemessen in** 1.72.0: Mit elf Bildern wiegt der Bogen **306 kB** – er
+bettet die Vorschauen ein, nicht die vollen Bilder. Damit ist er der
+**kleinste** Weg nach draußen (Handbuch als Word 615 kB, als HTML 758 kB).
+Der Verdacht der Durchsicht galt seiner Größe und ist ausgeräumt.
+
 ## F-24 · Kompakter Aufnahmemodus
 
 **Zweck** Serienaufnahmen vom geteilten Bildschirm. Ausschnitt einmal

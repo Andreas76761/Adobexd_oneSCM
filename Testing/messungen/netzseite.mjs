@@ -85,6 +85,13 @@ async function sichere(knopf, name, wartezeit = 180000) {
   return join(ziel, name);
 }
 
+// Der Kontaktbogen (F-23): alle Aufnahmen auf einem Blatt, als eine Datei.
+// Die Durchsicht hat seine **Größe** in Verdacht - also gemessen.
+await seite.click('.portal-nav button[data-ansicht="eingang"]');
+await seite.waitForSelector('#eingang-ansicht:not([hidden])');
+await seite.waitForTimeout(600);
+const bogen = await sichere('#eingang-kontaktbogen', 'kontaktbogen.html');
+
 await seite.click('.portal-nav button[data-ansicht="design"]');
 await seite.waitForSelector('#design-ansicht:not([hidden])');
 await seite.waitForTimeout(600);
@@ -169,6 +176,7 @@ async function pruefe(pfad, name) {
   return masse;
 }
 
+await pruefe(bogen, 'kontaktbogen.html');
 await pruefe(handbuch, 'handbuch.html');
 await pruefe(blaetter, 'blaetter.html');
 await pruefe(blatt, 'ablauf.html');

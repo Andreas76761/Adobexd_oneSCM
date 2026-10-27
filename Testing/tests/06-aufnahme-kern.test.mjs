@@ -2179,13 +2179,32 @@ s.test('die Übersicht trägt Datei, Stelle und Labels – als JSON und als CSV'
   wahr(index.bilder[0].datei.endsWith('.png'), index.bilder[0].datei);
 
   const csv = kern.galerieCsv(index);
-  const zeilen = csv.trim().split('\n');
+  // Die Datei wird in Excel geöffnet, und das heißt: BOM und CRLF (1.72.0).
+  // Ohne BOM hält Excel UTF-8 für Windows-1252 und macht aus „Prüfung" ein
+  // „PrÃ¼fung" - dieselbe Falle wie bei `tEXt` im PNG.
+  gleich(csv.charCodeAt(0), 0xfeff, 'das BOM fehlt – Excel liest Umlaute falsch');
+  wahr(csv.includes('\r\n'), 'die Zeilen enden nicht nach RFC 4180');
+  const zeilen = csv.slice(1).trim().split('\r\n');
   gleich(zeilen.length, 4, 'Kopfzeile und drei Bilder');
-  wahr(zeilen[0].startsWith('id;datei;stelle;thema;titel'), zeilen[0]);
+  gleich(zeilen[0], 'id;datei;stelle;thema;titel;projekt;version;land;sprache;rolle;sparte;markt;datum;breite;hoehe;begriffe');
   wahr(zeilen[1].includes('6.2;Market Settings'));
+  // Kein nacktes \n zwischen den Zeilen - sonst zerfällt die Tabelle.
+  gleich((csv.match(/(?<!\r)\n/g) || []).length, 0, 'eine Zeile endet ohne CR');
+
+  // Der Umlaut überlebt den Weg durch UTF-8 - das ist der ganze Zweck.
+  const mitUmlaut = kern.galerieCsv({ bilder: [{ id: 'U', titel: 'Prüfung', begriffe: ['Größe'] }] });
+  const bytes = Buffer.from(mitUmlaut, 'utf8');
+  tieferGleich([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf], 'das BOM steht nicht in den Bytes');
+  wahr(bytes.toString('utf8').includes('Prüfung'), 'der Umlaut ist unterwegs verloren gegangen');
+
   // Ein Semikolon im Titel darf die Spalten nicht verschieben.
   const heikel = kern.galerieCsv({ bilder: [{ id: 'X', titel: 'a;b', begriffe: ['c'] }] });
   wahr(heikel.includes('"a;b"'), heikel);
+  // Ein Zeilenumbruch **in** einer Zelle bleibt ein einzelnes \n in
+  // Anführungszeichen - er darf die Zeile nicht beenden.
+  const umbruch = kern.galerieCsv({ bilder: [{ id: 'Y', titel: 'erste\nzweite' }] });
+  wahr(umbruch.includes('"erste\nzweite"'), umbruch);
+  gleich(umbruch.slice(1).trim().split('\r\n').length, 2, 'der Umbruch in der Zelle hat eine Zeile erzeugt');
 });
 
 s.test('die Wahl des Verzeichnisses überlebt das Ablegen', () => {
@@ -2691,7 +2710,7 @@ s.test('Version und Land wandern vom Entwurf ins Bild, in den Pfad und in die Ü
 
   const plan = kern.verzeichnisPlan([gebaut], {}, kern.leseGliederung({ eintraege: [] }), []);
   const csv = kern.galerieCsv(kern.galerieIndex([gebaut], plan, { anwendung: '1.35.0' }));
-  const zeilen = csv.trim().split('\n');
+  const zeilen = csv.slice(1).trim().split('\r\n');
   const spalten = zeilen[0].split(';');
   wahr(spalten.includes('version') && spalten.includes('land'), zeilen[0]);
   gleich(zeilen[1].split(';')[spalten.indexOf('version')], '2.4');

@@ -20,6 +20,37 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.72.0] – Dieselbe Falle, eine Datei weiter
+
+### Behoben
+* **Die `index.csv` trug kein Byte Order Mark.** Excel rät das Format einer
+  CSV und rät ohne BOM Windows-1252: aus „Prüfung der Signaturwege" wurde
+  „PrÃ¼fung der Signaturwege". Das ist genau die Falle, die der Kern seit
+  1.15.0 beim PNG umgeht (`iTXt` statt `tEXt`) – mit demselben Wort im
+  Kommentar. Dazu **CRLF** nach RFC 4180; ein Umbruch *in* einer Zelle
+  bleibt ein `\n` in Anführungszeichen
+
+### Geprüft und unverändert
+* `index.json`, Beipackzettel und `strecken.json` bekommen **kein** BOM –
+  JSON darf keines haben. BPMN deklariert `encoding="UTF-8"` selbst, die
+  HTML-Ausgaben tragen `<meta charset>`, und die OCR-Textdatei geht in
+  einen Editor, nicht in Excel. Die CSV war die einzige Datei, die ihr
+  Format weder erklärt noch mitteilt
+
+### Gemessen statt vermutet
+* **Der Kontaktbogen (F-23) ist der kleinste Weg nach draußen**, nicht der
+  größte: elf Bilder ergeben **306 kB**, weil er die Vorschauen einbettet.
+  Zum Vergleich: Handbuch als Word 615 kB, als HTML 758 kB, Blätter als
+  HTML 1640 kB. Der sechste der sechs Verdachtsfälle der Durchsicht ist
+  damit ausgeräumt – es bleiben fünf
+* Dazu etwas über die Durchsicht selbst: sie führte „zu groß" und „wird
+  nicht gebraucht" als **eine** Art Verdacht. Das erste lässt sich in einer
+  Minute wiegen, das zweite braucht Wochen echter Benutzung
+
+### Prüfung
+* Die CSV-Prüfung verlangt jetzt BOM, CRLF, kein nacktes `\n` zwischen den
+  Zeilen und einen Umlaut, der den Weg durch UTF-8 übersteht. Zusammen 533
+
 ## [1.71.0] – Der offene Punkt aus 1.70.0
 
 OCR und Video blieben in 1.70.0 ausdrücklich liegen: beide brauchen ein

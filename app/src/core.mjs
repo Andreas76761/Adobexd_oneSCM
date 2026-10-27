@@ -5435,6 +5435,22 @@ export function galerieIndex(eingang = [], plan = [], { stand = new Date().toISO
 }
 
 /** Dieselbe Übersicht als CSV - zum Öffnen in einer Tabelle. */
+/** Das Byte Order Mark als Zeichen - drei Bytes, sobald es UTF-8 wird. */
+export const CSV_BOM = '\ufeff';
+
+/**
+ * Die Übersicht als CSV - für Excel, und das heißt: mit **Byte Order Mark**
+ * und mit CRLF.
+ *
+ * Ohne BOM hält Excel eine UTF-8-Datei für Windows-1252 und macht aus
+ * „Prüfung" ein „PrÃ¼fung". Dieselbe Falle wie bei `tEXt` im PNG, eine
+ * Datei weiter - dort ist sie seit 1.15.0 umgangen, hier stand sie offen.
+ * Drei Bytes beheben das, und kein Werkzeug stolpert darüber: wer die
+ * Datei als UTF-8 liest, wirft das BOM weg.
+ *
+ * CRLF nach RFC 4180, weil Excel selbst so schreibt. Ein Zeilenumbruch
+ * **in** einer Zelle bleibt ein einzelnes \n und steht in Anführungszeichen.
+ */
 export function galerieCsv(index = {}) {
   const spalten = [
     'id', 'datei', 'stelle', 'thema', 'titel', 'projekt', 'version', 'land',
@@ -5446,7 +5462,7 @@ export function galerieCsv(index = {}) {
   };
   const zeilen = [spalten.join(';')];
   for (const bild of index.bilder || []) zeilen.push(spalten.map((s) => zelle(bild[s])).join(';'));
-  return zeilen.join('\n') + '\n';
+  return CSV_BOM + zeilen.join('\r\n') + '\r\n';
 }
 
 /** Der Bericht nach dem Schreiben: was liegt wo, und was fehlte. */

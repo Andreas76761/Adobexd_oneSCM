@@ -117,7 +117,16 @@ und dieser Nachweis fehlt.
 | 3 | **F-41 Prozess als BPMN 2.0** | Eine Strecke als BPMN-XML. Eindrucksvoll, aber wer ein BPMN-Werkzeug hat, zeichnet dort; wer keines hat, braucht die Datei nicht |
 | 4 | **F-29 Beleg bilden in der Seite** | Zwei Aufnahmen zu einem Beleg verbinden. Der Beleg war das Ziel von 1.0; heute ist das Ziel die Stelle im Handbuch |
 | 5 | **F-30 „Was hier geht“** | Eine Liste der Befehle im Ausschneiden-Modus. Gute Idee, aber nur in einer von dreizehn Ansichten – also entweder überall oder nirgends |
-| 6 | **F-23 Kontaktbogen** | Siehe oben: er kann etwas Eigenes. Der Verdacht gilt nur seiner Größe (eine HTML-Datei mit allen Bildern), nicht seinem Zweck |
+| 6 | ~~**F-23 Kontaktbogen**~~ | ~~Der Verdacht gilt seiner Größe (eine HTML-Datei mit allen Bildern)~~ — **in 1.72.0 gemessen und ausgeräumt**: elf Bilder ergeben **306 kB**, weil der Bogen die Vorschauen einbettet und nicht die vollen Bilder. Das Word-Handbuch mit denselben elf Bildern wiegt 615 kB, das HTML-Handbuch 758 kB. Der Bogen ist der **kleinste** der Wege nach draußen |
+
+> **Einer ist erledigt (1.72.0).** Nummer 6 brauchte keine Nutzungsdaten,
+> sondern eine Waage: 306 kB für elf Bilder. Von den sechs Verdachtsfällen
+> bleiben **fünf**, und die brauchen weiterhin Benutzung.
+>
+> Daran ist auch etwas über die Durchsicht selbst zu lernen: die Liste
+> führte „zu groß" und „wird nicht gebraucht" als eine Art Verdacht. Das
+> erste lässt sich messen, das zweite nicht. Hätte jemand früher
+> nachgewogen, hätte dieser Eintrag nie zwei Jahre dort gestanden.
 
 **Die Probe, die das entscheiden würde:** eine Fassung, in der diese Knöpfe
 nicht verschwinden, sondern an eine Stelle rutschen, die man aufklappen muss.
