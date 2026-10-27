@@ -173,6 +173,35 @@ s.test('Claude kommentiert, wenn die Fähigkeit da ist – als Kommentar', () =>
     }
   ));
 
+s.test('eine leere Antwort ist kein Kommentar (1.70.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Der Vertrag lässt eine Antwort ohne Text zu. Bis 1.69.0 meldete die
+      // Seite darauf „Kommentar steht" - und darunter stand nichts.
+      await zweiAufnahmen(seite);
+      await seite.click('.portal-nav button[data-ansicht="pruefung"]');
+      await seite.click('#pruef-faden');
+      await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 1, null, { timeout: 8000 });
+      await seite.click('#pruef-claude-faden');
+      await seite.waitForFunction(
+        () => /nichts geschrieben/.test(document.getElementById('pruef-meldung').textContent),
+        null,
+        { timeout: 8000 }
+      );
+      gleich(await seite.locator('.pruef-kommentar').count(), 0, 'ein leerer Kommentar steht trotzdem da');
+      // Und der Knopf lädt weiter ein, es noch einmal zu versuchen.
+      gleich(await seite.locator('#pruef-claude-faden').innerText(), 'Claude kommentieren lassen');
+    },
+    {
+      hash: AUFNAHME,
+      initSkript: `
+        window.claude = { use: async (name) => name !== 'sample' ? null : Object.assign(
+          async () => ({ text: '   ' }),
+          { json: async () => ({}) }
+        ) };`
+    }
+  ));
+
 /* ------------------------------------------- Projektvergleich (1.37.0) */
 
 /**

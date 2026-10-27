@@ -120,6 +120,20 @@ Datei selbst ist, und genannt – eine Seite, die eine Schrift oder ein Bild
 nachlädt, ist im Haus hinter der Firewall leer. Dazu: trägt das Dokument
 die Sprache, in der es geschrieben ist, und haben die Bilder einen Text?
 
+### `fehlschlag.mjs`
+
+Was die Register tun, wenn Claude **nicht** antwortet.
+
+```bash
+node Testing/messungen/fehlschlag.mjs
+```
+
+Vier Register fragen Claude über `sample`. Der Vertrag kennt mehrere
+Ausgänge – die Fähigkeit fehlt, `not_granted`, `rate_limited`, eine leere
+Antwort –, und die Prüfungen nahmen bisher nur den guten Fall. Gefragt
+wird je Register und je Ausgang: sagt die Seite, was los ist; ist der
+Knopf danach wieder offen; bleibt die Seite fehlerfrei.
+
 ## Was dabei herauskam (1.62.0)
 
 | | vorher | nachher |
@@ -234,3 +248,22 @@ die Meldung *während* des Rechnens heißt „… wird gerechnet – 1 von 3 …
 enthält dasselbe Wort wie die Meldung danach. Wer auf `/gerechnet/` wartet,
 drückt zu früh. Drei Browserprüfungen taten das und kamen bisher damit
 durch, weil die Rechnung dort schnell ist.
+
+## Was dabei herauskam (1.70.0)
+
+Die **Fehlerwege waren in Ordnung** – kein hängender Lauf, kein gesperrter
+Knopf, keine stumme Seite. Gefunden wurde ein Fehler im **guten** Fall:
+
+| Frage: „Zeig mir die Formulare auf Englisch" | gefiltert nach |
+| --- | --- |
+| ohne Claude | Sprache Englisch, Text „formulare" |
+| mit Claude (vorher) | Sprache Englisch |
+| mit Claude (nachher) | Sprache Englisch, Text „formulare" |
+
+Die Antwort war nicht falsch: `{sprache:'en', text:''}` – Sprache richtig
+erkannt, `text` leer. Genau die wahrscheinlichste Antwort. Der Schutz
+„Claude darf ergänzen, nicht widersprechen" galt nur für die fünf Felder
+mit festem Vokabular; `text`, `markt` und `grenze` kamen ungeprüft durch.
+
+Wer so denkt, schützt, was sich prüfen lässt – und übersieht, dass ein
+freies Feld genauso verloren gehen kann.

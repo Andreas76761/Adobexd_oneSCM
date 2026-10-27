@@ -556,11 +556,16 @@ async function kommentiereMitClaude(agent) {
         berichtAlsText([ergebnis], { anwendung: DATEN.anwendung }),
       { modelTier: 'default', cache: false }
     );
-    pruefErgebnisse = {
-      ...pruefErgebnisse,
-      [agent.id]: { ...ergebnis, kommentar: String((antwort && antwort.text) || '').trim() }
-    };
-    meldePruefung(`${agent.label}: Kommentar steht.`, 'gut');
+    const kommentar = String((antwort && antwort.text) || '').trim();
+    pruefErgebnisse = { ...pruefErgebnisse, [agent.id]: { ...ergebnis, kommentar } };
+    // Eine leere Antwort ist kein Kommentar. Bis 1.69.0 stand hier trotzdem
+    // „Kommentar steht" - und darunter nichts.
+    meldePruefung(
+      kommentar
+        ? `${agent.label}: Kommentar steht.`
+        : `${agent.label}: Claude hat nichts geschrieben. Die Befunde stehen trotzdem.`,
+      kommentar ? 'gut' : 'warnung'
+    );
   } catch (fehler) {
     const code = (fehler && fehler.code) || '';
     meldePruefung(

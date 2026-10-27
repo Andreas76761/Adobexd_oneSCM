@@ -260,16 +260,9 @@ async function frageChat() {
   let wer = 'gedeutet in der Seite';
   const vonClaude = await deuteMitClaude(frage);
   if (vonClaude) {
-    // Claude darf ergänzen, nicht widersprechen: was die Seite sicher erkannt
-    // hat (festes Vokabular), bleibt stehen.
-    filter = {
-      ...vonClaude,
-      sprache: eigen.filter.sprache || vonClaude.sprache,
-      rolle_label: eigen.filter.rolle_label || vonClaude.rolle_label,
-      sparte: eigen.filter.sparte || vonClaude.sparte,
-      stelle: eigen.filter.stelle || vonClaude.stelle,
-      nur: [...new Set([...(eigen.filter.nur || []), ...(vonClaude.nur || [])])]
-    };
+    // Claude darf ergänzen, nicht widersprechen – für **jedes** Feld, nicht
+    // nur für die mit festem Vokabular (siehe `vereineFilter`).
+    filter = vereineFilter(eigen.filter, vonClaude);
     wer = 'gedeutet mit Claude, gefiltert in der Seite';
   }
 

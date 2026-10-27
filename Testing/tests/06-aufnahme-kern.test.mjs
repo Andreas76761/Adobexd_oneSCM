@@ -1626,6 +1626,50 @@ const chatEingang = [
   { id: 'AUF-2026-003', titel: 'Ohne Stelle', begriffe: [], datum: '2026-10-03', einfuhr: { datei: 'deck.pptx', art: 'pptx' } }
 ];
 
+s.test('Claude ergänzt die Deutung, er löscht sie nicht (1.70.0)', () => {
+  // Zwei Deutungen derselben Frage: die eigene der Seite und die von
+  // Claude. Bis 1.69.0 galt „Claude darf ergänzen, nicht widersprechen"
+  // nur für die Felder mit festem Vokabular. `text`, `markt` und `grenze`
+  // kamen ungeprüft von Claude - ein leeres Feld löschte, was die Seite
+  // gefunden hatte.
+  //
+  // Das traf nicht nur den Fehlerfall: eine Antwort, die die Sprache
+  // richtig erkennt und `text` leer lässt, ist die wahrscheinlichste. Aus
+  // „Zeig mir die Formulare auf Englisch" wurde dann „Sprache Englisch" -
+  // ohne das Wort, nach dem gefragt war.
+  const eigen = kern.deuteFrage('Zeig mir die Formulare auf Englisch').filter;
+  gleich(eigen.sprache, 'en');
+  gleich(eigen.text, 'formulare', 'die Seite findet das Suchwort selbst nicht mehr: ' + eigen.text);
+
+  // Die wahrscheinlichste Antwort: Sprache erkannt, `text` leer.
+  const knapp = kern.vereineFilter(eigen, { sprache: 'en', text: '', nur: [] });
+  gleich(knapp.text, 'formulare', 'das Suchwort der Seite ging verloren');
+  gleich(knapp.sprache, 'en');
+
+  // Eine Antwort, die gar nichts enthält, ändert nichts.
+  tieferGleich(kern.vereineFilter(eigen, {}), kern.vereineFilter(eigen, eigen));
+
+  // Was die Seite **nicht** hat, darf Claude beisteuern.
+  const dazu = kern.vereineFilter(eigen, { rolle_label: 'dealer', markt: 'DE', grenze: 5, nur: ['import'] });
+  gleich(dazu.rolle_label, 'dealer');
+  gleich(dazu.markt, 'DE');
+  gleich(dazu.grenze, 5);
+  tieferGleich(dazu.nur, ['import']);
+  gleich(dazu.text, 'formulare', 'das Eigene bleibt daneben stehen');
+
+  // Und was die Seite hat, bleibt stehen - auch wenn Claude etwas anderes sagt.
+  const streit = kern.vereineFilter({ ...eigen, grenze: 3 }, { sprache: 'de', text: 'etwas anderes', grenze: 9 });
+  gleich(streit.sprache, 'en', 'Claude hat die Sprache überschrieben');
+  gleich(streit.text, 'formulare', 'Claude hat das Suchwort überschrieben');
+  gleich(streit.grenze, 3, 'Claude hat die Anzahl überschrieben');
+
+  // Die Listen werden vereinigt, nicht ersetzt.
+  tieferGleich(
+    kern.vereineFilter({ nur: ['unkenntlich'] }, { nur: ['import', 'unkenntlich'] }).nur,
+    ['unkenntlich', 'import']
+  );
+});
+
 s.test('die Frage wird gedeutet, nicht geraten', () => {
   const eins = kern.deuteFrage('Zeige mir Bilder von Dealer in Kapitel 6.2 auf Englisch', chatGliederung);
   gleich(eins.filter.rolle_label, 'dealer');

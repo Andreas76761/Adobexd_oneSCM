@@ -10,6 +10,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
 | [durchsicht.md](durchsicht.md) | Bestandsaufnahme über 69 Funktionen in dreizehn Ansichten: was zusammengehört, was wahrscheinlich tot ist, was bewusst bleibt |
+| [versionen/v1.70.0.md](versionen/v1.70.0.md) | Claude löschte, was die Seite gefunden hatte – jeder Ausgang von `sample` |
 | [versionen/v1.69.0.md](versionen/v1.69.0.md) | Ein Nachbau, der enger ist als der Vertrag – die HTML-Ausgaben angesehen |
 | [versionen/v1.68.0.md](versionen/v1.68.0.md) | Was die Projektdatei vergaß – ein Riegel gegen den dritten Vergessensfall |
 | [versionen/v1.67.0.md](versionen/v1.67.0.md) | Elf Bilder, eine Stelle – der Umlauf durch den Import |

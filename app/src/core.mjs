@@ -3914,6 +3914,32 @@ const FUELLWOERTER = new Set([
 
 export const CHAT_FELDER = ['sprache', 'rolle_label', 'sparte', 'markt', 'stelle', 'text', 'grenze', 'nur'];
 
+/**
+ * Zwei Deutungen derselben Frage zu einer: die eigene der Seite und die
+ * von Claude. Claude darf **ergänzen, nicht widersprechen** - was die Seite
+ * selbst erkannt hat, bleibt stehen.
+ *
+ * Bis 1.69.0 galt das nur für die Felder mit festem Vokabular. `text`,
+ * `markt` und `grenze` kamen ungeprüft von Claude, und ein leeres Feld
+ * löschte, was die Seite gefunden hatte: aus „Zeig mir die Formulare auf
+ * Englisch" wurde „Sprache Englisch" - ohne das Wort, nach dem gefragt
+ * war. Das traf nicht nur den Fehlerfall: eine Antwort, die die Sprache
+ * richtig erkennt und `text` leer lässt, ist die wahrscheinlichste.
+ */
+export function vereineFilter(eigen = {}, fremd = {}) {
+  const zusammen = {};
+  for (const feld of CHAT_FELDER) {
+    if (feld === 'nur') {
+      zusammen.nur = [...new Set([...(eigen.nur || []), ...(fremd.nur || [])])];
+    } else if (feld === 'grenze') {
+      zusammen.grenze = Number(eigen.grenze) > 0 ? Number(eigen.grenze) : Number(fremd.grenze) || 0;
+    } else {
+      zusammen[feld] = String(eigen[feld] || '').trim() || String(fremd[feld] || '').trim();
+    }
+  }
+  return zusammen;
+}
+
 const CHAT_NUR = [
   { id: 'unkenntlich', worte: ['unkenntlich', 'geblurrt', 'blurrt', 'anonymisiert', 'verpixelt'] },
   { id: 'markiert', worte: ['markiert', 'rahmen', 'kommentiert'] },

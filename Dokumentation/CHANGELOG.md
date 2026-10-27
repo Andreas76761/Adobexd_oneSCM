@@ -20,6 +20,43 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.70.0] – Claude löschte, was die Seite gefunden hatte
+
+Derselbe Satz wie in 1.69.0, diesmal auf `sample` angewandt: jeden Ausgang
+nachbauen, den der Vertrag kennt, und jedes Register damit fahren.
+
+### Behoben
+* **Der Suchchat verlor sein Suchwort, sobald Claude antwortete.** Aus
+  „Zeig mir die Formulare auf Englisch" wurde „Sprache Englisch" – ohne
+  das Wort, nach dem gefragt war. Der Schutz „Claude darf ergänzen, nicht
+  widersprechen" galt nur für die fünf Felder mit festem Vokabular;
+  `text`, `markt` und `grenze` kamen ungeprüft von Claude. Das traf nicht
+  den Fehlerfall, sondern die **wahrscheinlichste** Antwort: Sprache
+  erkannt, `text` leer. Jetzt vereint `vereineFilter` jedes Feld
+* **„Kommentar steht" bei leerer Antwort** (Register Prüfung). Darunter
+  stand nichts. Jetzt: „Claude hat nichts geschrieben. Die Befunde stehen
+  trotzdem."
+
+### Angesehen, nicht beanstandet
+* **Die Fehlerwege selbst sind in Ordnung.** Fähigkeit fehlt, `not_granted`,
+  `rate_limited`: kein Lauf hängt, kein Knopf bleibt gesperrt, keine Seite
+  wirft einen Fehler, jede Meldung sagt, was los ist. Der Suchchat sucht
+  ohne Claude weiter und schreibt „gedeutet in der Seite" darunter
+
+### Neu
+* **`Testing/messungen/fehlschlag.mjs`**: jedes Register durch jeden
+  Ausgang, mit drei Fragen – sagt die Seite was los ist, ist der Knopf
+  danach offen, bleibt die Seite fehlerfrei
+
+### Offen
+* **OCR und Video** ließen sich so nicht fahren: beide brauchen ein Bild
+  bzw. einen Film im Browser. Ihre Fehlerwege sind gelesen, nicht gefahren
+
+### Prüfung
+* 1 neue Kernprüfung (`vereineFilter` mit leerer, ergänzender und
+  widersprechender Antwort), 1 neue Browserprüfung (leere Antwort im
+  Register Prüfung). Zusammen 530
+
 ## [1.69.0] – Ein Nachbau, der enger ist als der Vertrag
 
 Die drei HTML-Ausgaben zum ersten Mal angesehen – deutsch und englisch,

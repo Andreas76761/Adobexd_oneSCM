@@ -59,7 +59,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-Summe: **528 Prüfungen**.
+Summe: **530 Prüfungen**.
 
 ## Messungen – nicht Teil des Durchlaufs
 
@@ -74,6 +74,13 @@ einmal die ganze Kette vom Film bis zur fertigen PDF, zum Ansehen – und seit
 Dateien fiel die Sackgasse im Register Output auf (F-56), die keine der
 sieben Browserprüfungen dort finden konnte: jede kreuzte die Werte der Achse
 an, bevor sie etwas erwartete, und sah die **Vorgabe** damit nie.
+
+Seit 1.70.0 liegt dort `fehlschlag.mjs`: jedes Register, das Claude fragt,
+durch jeden Ausgang, den der Vertrag von `sample` kennt – Fähigkeit fehlt,
+`not_granted`, `rate_limited`, leere Antwort. Gefragt wird dreierlei: sagt
+die Seite was los ist, ist der Knopf danach wieder offen, bleibt die Seite
+fehlerfrei. Die Fehlerwege waren in Ordnung; gefunden wurde ein Fehler im
+**guten** Fall.
 
 Seit 1.69.0 liegt dort auch `netzseite.mjs`: die drei HTML-Ausgaben ohne
 Netz öffnen und jede Anfrage nach draußen nennen. Dabei kam ein Befund
