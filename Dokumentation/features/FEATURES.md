@@ -953,6 +953,10 @@ Abschnitts, und aus elf Bildern werden elf Stellen. Nennt der Text des
 Dokuments kein einziges Bild – weil ein fremdes Programm sie anders
 einbindet –, bleibt es beim einen Träger wie bisher.
 
+**geändert in** 1.74.0: Geteilt wird an der **Rolle** der Vorlage, nicht
+an ihrer Kennung (siehe F-65). Ein Dokument aus einem deutschen Word
+(`berschrift1`) wäre vorher ungeteilt geblieben.
+
 ---
 
 ## F-40 · Parallele Bilder und Platzhalter in der Strecke
@@ -1771,6 +1775,16 @@ Stand des Projekts wieder her.
 
 Damit ist der Kreis geschlossen: Gliederung → Blätter und Word-Handbuch →
 Änderungen im Haus → zurück in die Seite → nächste Ausgabe.
+
+**geändert in** 1.74.0: Erkannt wird die **Rolle** einer Absatzvorlage,
+nicht ihre Kennung. Eine Vorlage hat zwei Namen – die Kennung
+(`w:styleId`) schreibt jedes Programm anders, der Name (`w:name`) ist
+festgelegt. Nach einem Durchlauf durch LibreOffice hieß die
+`Bildunterschrift` `Caption`, und die Unterschriften wurden als Text der
+Stelle gelesen: elf von elf Stellen als geändert angeboten. Überschriften
+wurden nur an `Heading1` erkannt – ein deutsches Word schreibt
+`berschrift1` und hätte **gar keine** Stelle ergeben. Gelesen wird jetzt
+`word/styles.xml`; fehlt sie, wird an den gängigen Kennungen geraten.
 
 **geändert in** 1.66.0: Der Kreis war **nicht** geschlossen. Eine Datei, die
 die Seite selbst geschrieben hatte, bot unverändert **jede** Stelle als

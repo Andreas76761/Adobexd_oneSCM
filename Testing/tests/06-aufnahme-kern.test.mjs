@@ -3820,6 +3820,74 @@ s.test('jeder Speicherschlüssel sagt, ob er mitreist (1.68.0)', () => {
   gleich(gelesen.verzeichnis, null);
 });
 
+s.test('ein echtes Office benennt die Vorlagen um – die Rolle zählt (1.74.0)', () => {
+  // Eine Vorlage hat zwei Namen: ihre Kennung (`w:styleId`) und ihren
+  // sprechenden Namen (`w:name`). Die Kennung schreibt jedes Programm
+  // anders; der Name ist festgelegt.
+  //
+  // Gefunden mit einer Datei, die einmal durch LibreOffice gegangen war -
+  // also genau der Fall, für den es den Rückweg gibt. Dort hieß unsere
+  // `Bildunterschrift` danach `Caption`, und die Unterschriften wurden als
+  // Text der Stelle gelesen: elf von elf Stellen als geändert angeboten.
+  const stile =
+    '<?xml version="1.0"?><w:styles>' +
+    '<w:style w:type="paragraph" w:styleId="berschrift1"><w:name w:val="Heading 1"/></w:style>' +
+    '<w:style w:type="paragraph" w:styleId="berschrift3"><w:name w:val="heading 3"/></w:style>' +
+    '<w:style w:type="paragraph" w:styleId="Beschriftung"><w:name w:val="Caption"/></w:style>' +
+    '<w:style w:type="paragraph" w:styleId="Quelle42"><w:name w:val="Quellhinweis"/></w:style>' +
+    '<w:style w:type="paragraph" w:styleId="Standard"><w:name w:val="Normal"/></w:style>' +
+    '</w:styles>';
+  const rollen = kern.docxVorlagenrollen(stile);
+  gleich(rollen.get('berschrift1'), 'ueberschrift1', 'die Überschrift wird am Namen nicht erkannt');
+  gleich(rollen.get('berschrift3'), 'ueberschrift3', 'Kleinschreibung im Namen zählt nicht');
+  gleich(rollen.get('Beschriftung'), 'bildunterschrift');
+  gleich(rollen.get('Quelle42'), 'quellhinweis');
+  gleich(rollen.get('Standard'), undefined, 'ein gewöhnlicher Absatz hat keine Rolle');
+
+  // Ohne `styles.xml` wird an der Kennung geraten - das deckt ab, was die
+  // gängigen Programme schreiben, auch das deutsche Word ohne führendes Ü.
+  gleich(kern.vorlagenrolleAusKennung('Heading2'), 'ueberschrift2');
+  gleich(kern.vorlagenrolleAusKennung('berschrift2'), 'ueberschrift2');
+  gleich(kern.vorlagenrolleAusKennung('Caption'), 'bildunterschrift');
+  gleich(kern.vorlagenrolleAusKennung('Bildunterschrift'), 'bildunterschrift');
+  gleich(kern.vorlagenrolleAusKennung('Normal'), '');
+
+  // Und jetzt dieselbe Datei mit fremden Kennungen durch den Leser.
+  const absatz = (text, vorlage) =>
+    `<w:p>${vorlage ? `<w:pPr><w:pStyle w:val="${vorlage}"/></w:pPr>` : ''}<w:r><w:t>${text}</w:t></w:r></w:p>`;
+  const xml =
+    '<?xml version="1.0"?><w:document><w:body>' +
+    absatz('7.5.1 Dokumentierte Signaturwege', 'berschrift3') +
+    absatz('Fertig, wenn: der Beleg vorliegt') +
+    absatz('Schritt 1 · Vertragsnummer', 'Beschriftung') +
+    absatz('Quelle: Gesamtgliederung_v2.docx', 'Quelle42') +
+    '</w:body></w:document>';
+
+  const mitRollen = kern.stellenAusDocx(kern.docxAbsaetze(xml, rollen));
+  gleich(mitRollen.length, 1, 'die Überschrift wurde nicht als solche gelesen');
+  gleich(mitRollen[0].nummer, '7.5.1');
+  gleich(mitRollen[0].kriterium, 'der Beleg vorliegt');
+  gleich(mitRollen[0].text, '', 'Bildunterschrift oder Quellhinweis sind in den Text geraten: ' + mitRollen[0].text);
+
+  // Ohne `styles.xml` trägt der Rateweg so weit, wie Kennungen bekannt
+  // sind: „berschrift3" und „Beschriftung" kennt er. Eine frei vergebene
+  // Kennung wie „Quelle42" kann er nicht kennen - dort landet der
+  // Quellhinweis im Text. Das ist die Grenze des Ratens, und sie ist der
+  // Grund, warum `styles.xml` mitgelesen wird.
+  const ohneStile = kern.stellenAusDocx(kern.docxAbsaetze(xml));
+  gleich(ohneStile.length, 1, 'die Überschrift wurde an der Kennung nicht erkannt');
+  gleich(ohneStile[0].kriterium, 'der Beleg vorliegt');
+  wahr(!ohneStile[0].text.includes('Schritt 1'), 'die Bildunterschrift ist in den Text geraten');
+  gleich(ohneStile[0].text, 'Quelle: Gesamtgliederung_v2.docx', 'die Grenze des Ratens hat sich verschoben');
+
+  // Und der Import teilt ein solches Dokument ebenso an den Überschriften.
+  const rels = '<?xml version="1.0"?><Relationships><Relationship Id="r1" Target="media/b1.png"/></Relationships>';
+  const mitBild = xml.replace('</w:body>', '<w:p><w:r><w:drawing><a:blip r:embed="r1"/></w:drawing></w:r></w:p></w:body>');
+  const abschnitte = kern.wordAbschnitte(mitBild, rels, rollen);
+  tieferGleich(abschnitte.map((a) => a.name), ['7.5.1 Dokumentierte Signaturwege']);
+  tieferGleich(abschnitte[0].medien, ['b1.png']);
+});
+
 s.test('der eigene Umlauf bietet nichts an: raus und wieder rein (1.66.0)', async () => {
   // Die ehrlichste Probe für F-65: eine Datei, die die Seite selbst
   // geschrieben hat, unverändert zurücklesen. Wer nichts ändert, darf keine

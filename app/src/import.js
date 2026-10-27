@@ -94,7 +94,10 @@ async function liesOfficeDatei(bytes) {
     // wird an den Überschriften geteilt. Ohne das bekäme jedes Bild eines
     // Handbuchs den Text des ganzen Handbuchs (bis 1.66.0 war das so).
     const ganz = { nummer: seite.nummer, name: seite.name, text: officeText(xml), medien: medienAusRels(rels) };
-    const abschnitte = seite.art === 'wort' ? wordAbschnitte(xml, rels) : [];
+    const stileEintrag = seite.art === 'wort' ? eintraege.find((e) => e.name === 'word/styles.xml') : null;
+    const stile = stileEintrag ? await entpackeZipEintrag(bytes, stileEintrag) : null;
+    const rollen = stile ? docxVorlagenrollen(new TextDecoder().decode(stile)) : null;
+    const abschnitte = seite.art === 'wort' ? wordAbschnitte(xml, rels, rollen) : [];
     // Nennt der Text des Dokuments kein einziges Bild - etwa weil ein
     // fremdes Programm sie anders einbindet -, bleibt es bei einem Stück.
     // Sonst gingen die Bilder in den Rest „ohne Folie".

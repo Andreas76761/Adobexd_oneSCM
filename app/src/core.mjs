@@ -1408,7 +1408,7 @@ export function medienAusRels(xml) {
  * `rels` ist `word/_rels/document.xml.rels`; nur sie sagt, welche Kennung
  * im Dokument welche Mediendatei meint.
  */
-export function wordAbschnitte(xml = '', rels = '') {
+export function wordAbschnitte(xml = '', rels = '', rollen = null) {
   const relsText = typeof rels === 'string' ? rels : new TextDecoder('utf-8').decode(rels || new Uint8Array());
   const ziele = new Map();
   for (const treffer of relsText.matchAll(/<Relationship\b[^>]*\/?>/g)) {
@@ -1426,7 +1426,11 @@ export function wordAbschnitte(xml = '', rels = '') {
     const stueck = treffer[0];
     const inhalt = officeText(stueck);
     const vorlage = (stueck.match(/<w:pStyle\s+w:val="([^"]+)"/) || [])[1] || '';
-    if (/^Heading[0-9]$/.test(vorlage) && inhalt) {
+    // Nach der Rolle, nicht nach der Kennung: ein deutsches Word schreibt
+    // „berschrift1", LibreOffice behält „Heading1". Ohne das bliebe ein
+    // Dokument aus einem echten Office ungeteilt.
+    const rolle = (rollen && rollen.get(vorlage)) || vorlagenrolleAusKennung(vorlage);
+    if (rolle.startsWith('ueberschrift') && inhalt) {
       aktuell = { art: 'wort', nummer: abschnitte.length + 1, name: inhalt, text: inhalt, medien: [] };
       abschnitte.push(aktuell);
       continue;
@@ -6856,7 +6860,55 @@ export function gliederungMitTexten(gliederung = [], texte = {}) {
  * Ebene. Gelesen wird `word/document.xml` - mehr braucht es nicht, und
  * mehr soll es auch nicht sein: die Seite ist kein Textprogramm.
  */
-export function docxAbsaetze(xml = '') {
+/**
+ * Welche Rolle eine Absatzvorlage spielt - gelesen aus `word/styles.xml`.
+ *
+ * Eine Vorlage hat zwei Namen: ihre Kennung (`w:styleId`) und ihren
+ * sprechenden Namen (`w:name`). Die Kennung schreibt jedes Programm
+ * anders - ein deutsches Word nennt die erste Überschrift `berschrift1`,
+ * LibreOffice macht aus unserer `Bildunterschrift` beim Speichern ein
+ * `Caption`. Der Name dagegen ist festgelegt: `heading 1`, `caption`.
+ *
+ * Bis 1.73.0 wurde nur die Kennung angesehen. Eine Datei, die einmal durch
+ * ein echtes Office gegangen war - also genau der Fall, für den es den
+ * Rückweg (F-65) gibt -, kam mit `Caption` zurück, und die
+ * Bildunterschriften wurden als Text der Stelle gelesen: **elf von elf**
+ * Stellen als geändert angeboten.
+ */
+export function docxVorlagenrollen(stylesXml = '') {
+  const text = typeof stylesXml === 'string' ? stylesXml : new TextDecoder('utf-8').decode(stylesXml || new Uint8Array());
+  const rollen = new Map();
+  for (const treffer of text.matchAll(/<w:style\b[^>]*w:styleId="([^"]+)"[^>]*>([\s\S]*?)<\/w:style>/g)) {
+    const kennung = treffer[1];
+    const name = ((treffer[2].match(/<w:name\s+w:val="([^"]+)"/) || [])[1] || '').toLowerCase();
+    const ueberschrift = name.match(/^heading\s*([1-9])$/);
+    if (ueberschrift) rollen.set(kennung, 'ueberschrift' + ueberschrift[1]);
+    else if (name === 'caption') rollen.set(kennung, 'bildunterschrift');
+    else if (name === 'quellhinweis') rollen.set(kennung, 'quellhinweis');
+  }
+  return rollen;
+}
+
+/**
+ * Die Rolle einer Vorlage, wenn `styles.xml` nichts hergibt: an der
+ * Kennung erraten. Deckt ab, was die gängigen Programme schreiben.
+ */
+export function vorlagenrolleAusKennung(kennung = '') {
+  const k = String(kennung);
+  // „berschrift1" ist kein Tippfehler: ein deutsches Word schreibt die
+  // Kennung ohne das führende Ü.
+  const ueberschrift = k.match(/^(?:Heading|berschrift|Überschrift|Titre|Kop)\s*([1-9])$/);
+  if (ueberschrift) return 'ueberschrift' + ueberschrift[1];
+  if (/^(Bildunterschrift|Beschriftung|Caption|Legende)$/.test(k)) return 'bildunterschrift';
+  if (k === 'Quellhinweis') return 'quellhinweis';
+  return '';
+}
+
+/**
+ * `rollen` ist die Karte aus `docxVorlagenrollen`. Fehlt sie oder kennt sie
+ * die Vorlage nicht, wird die Kennung befragt.
+ */
+export function docxAbsaetze(xml = '', rollen = null) {
   const absaetze = [];
   for (const treffer of String(xml).matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)) {
     const stueck = treffer[0];
@@ -6871,8 +6923,9 @@ export function docxAbsaetze(xml = '') {
       .trim();
     if (!text) continue;
     const vorlage = (stueck.match(/<w:pStyle w:val="([^"]+)"/) || [])[1] || '';
-    const ebene = /^Heading(\d)$/.test(vorlage) ? Number(vorlage.slice(7)) : 0;
-    absaetze.push({ text, ebene, vorlage });
+    const rolle = (rollen && rollen.get(vorlage)) || vorlagenrolleAusKennung(vorlage);
+    const ebene = Number((rolle.match(/^ueberschrift([1-9])$/) || [])[1] || 0);
+    absaetze.push({ text, ebene, vorlage, rolle });
   }
   return absaetze;
 }
@@ -6900,7 +6953,11 @@ export function stellenAusDocx(absaetze = []) {
     // der Gliederung - beides ist nicht der Text der Stelle. Bis 1.65.0
     // fehlte der Quellhinweis hier: der unveränderte Umlauf bot darum
     // **jede** Stelle als geändert an.
-    if (absatz.vorlage === 'Bildunterschrift' || absatz.vorlage === 'Quellhinweis') continue;
+    //
+    // Gefragt wird nach der **Rolle**, nicht nach der Kennung: ein echtes
+    // Office benennt die Vorlagen um (siehe `docxVorlagenrollen`).
+    const rolle = absatz.rolle || vorlagenrolleAusKennung(absatz.vorlage);
+    if (rolle === 'bildunterschrift' || rolle === 'quellhinweis') continue;
     const kriterium = absatz.text.match(/^Fertig,\s*wenn:\s*(.+)$/i);
     if (kriterium) {
       aktuell.kriterium = kriterium[1].trim();

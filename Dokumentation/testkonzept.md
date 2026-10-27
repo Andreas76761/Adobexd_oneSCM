@@ -59,7 +59,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-Summe: **533 Prüfungen**.
+Summe: **534 Prüfungen**.
 
 ## Messungen – nicht Teil des Durchlaufs
 

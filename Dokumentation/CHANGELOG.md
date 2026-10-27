@@ -20,6 +20,44 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.74.0] – Die Datei war noch nie in Word
+
+Acht Fassungen lang blieb die Datei zwischen Schreiben und Lesen
+**unberührt**. Genau das tut sie im Leben nie: den Rückweg aus Word gibt
+es, weil die Datei im Haus geöffnet und gespeichert wird. Also einmal
+durch ein echtes Office geschickt (`soffice --convert-to docx`).
+
+### Behoben
+* **Nach einem Durchlauf durch LibreOffice bot der Rückweg wieder elf von
+  elf Stellen als geändert an** (F-65). Aus der Kennung `Bildunterschrift`
+  war `Caption` geworden, und die Unterschriften wurden als Text der
+  Stelle gelesen
+* **Überschriften wurden nur an `Heading1` erkannt.** Ein deutsches Word
+  schreibt die Kennung `berschrift1` – eine solche Datei hätte **gar keine
+  Stelle** ergeben. Das war nie aufgefallen, weil hier nie ein deutsches
+  Word im Spiel war
+* Gelesen wird jetzt `word/styles.xml`: dort steht zu jeder Kennung ihr
+  **Name**, und daraus wird die Rolle. Fehlt die Datei, wird an den
+  gängigen Kennungen geraten. Dieselbe Karte bekommt der Import (F-39),
+  der ein Dokument ebenso an den Überschriften teilt
+
+### Angesehen, nicht beanstandet
+* Die eigene Vorlage `Quellhinweis` aus 1.66.0 überlebt den Durchlauf mit
+  Kennung und Namen; alle elf `r:embed` bleiben im Text; der Import
+  derselben Datei ergibt 11 Bilder und 11 verschiedene Stellen; die
+  PowerPoint-Datei bleibt unverändert lesbar
+
+### Selbst eingebaut und gefunden
+* Die erste Fassung las `styles.xml` richtig und fand **null** Stellen:
+  `rolle.slice(13)` statt `slice(12)` – „ueberschrift" hat zwölf Zeichen.
+  Aufgefallen beim Nachmessen, nicht beim Lesen
+
+### Prüfung
+* 1 neue Kernprüfung mit fremden Kennungen (`berschrift1`,
+  `Beschriftung`), mit und ohne `styles.xml`, für Rückweg und Import.
+  Sie hält auch die **Grenze** fest: eine frei vergebene Kennung kann der
+  Rateweg nicht kennen. Zusammen 534
+
 ## [1.73.0] – Der Zettel zeigte auf nichts
 
 Zwei Wege nach draußen waren noch nie angesehen worden: die BPMN-Datei und

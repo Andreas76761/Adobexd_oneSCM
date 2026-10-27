@@ -394,7 +394,12 @@ async function leseWordDatei(datei) {
     const eintrag = verzeichnis.find((e) => e.name === 'word/document.xml');
     if (!eintrag) throw new Error('Das ist keine Word-Datei (word/document.xml fehlt).');
     const xml = new TextDecoder().decode(await entpackeZipEintrag(bytes, eintrag));
-    const gelesen = stellenAusDocx(docxAbsaetze(xml));
+    // `styles.xml` sagt, welche Vorlage welche Rolle spielt. Ohne sie wird
+    // an der Kennung geraten, und die schreibt jedes Programm anders.
+    const stileEintrag = verzeichnis.find((e) => e.name === 'word/styles.xml');
+    const stile = stileEintrag ? await entpackeZipEintrag(bytes, stileEintrag) : null;
+    const rollen = stile ? docxVorlagenrollen(new TextDecoder().decode(stile)) : null;
+    const gelesen = stellenAusDocx(docxAbsaetze(xml, rollen));
     if (!gelesen.length) {
       throw new Error('In der Datei steht keine Überschrift, die mit einer Nummer beginnt – daraus lässt sich keine Stelle lesen.');
     }
