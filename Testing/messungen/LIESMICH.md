@@ -13,6 +13,17 @@ weil kein Film da war, bei dem man **weiß**, wann sich etwas ändert.
 
 ## Die Werkzeuge
 
+`hilfen.mjs` traegt, was alle brauchen: den Nachbau von `downloads.save`
+(er nimmt Zeichenkette **und** Blob, wie der Vertrag es erlaubt), das
+Lesen des Messfilms und `bestandAusFilm()` - Film oeffnen, abtasten,
+beschriften, als Strecke uebernehmen.
+
+Vier Prueffstaende hatten davon je eine eigene Abschrift. Das hat sich
+geraecht: der Nachbau musste in **drei** Dateien repariert werden, die
+Wartezeile `/gerechnet/` in **zwei**. Zwei Fehler, je mehrfach kopiert -
+seit 1.75.0 stehen sie an einer Stelle.
+
+
 ### `erzeuge-film.mjs`
 
 Baut einen Bildschirmfilm einer oneSCM-ähnlichen Maske (`maske.html`,
@@ -322,3 +333,21 @@ fuehrendes BOM. Das ist die UTF-8-Dekodierung der Spezifikation und kein
 Fehler - wer wissen will, ob das BOM in der Datei steht, muss die Bytes
 ansehen. Die erste Fassung der Pruefung fiel genau darauf herein und
 meldete einen Fehler, den es nicht gab.
+
+## Was dabei herauskam (1.75.0)
+
+Der PDF-Weg des Imports, erstmals mit **echten** PDFs geprueft (aus
+LibreOffice, nicht aus der Seite selbst):
+
+| | |
+| --- | --- |
+| Handbuch-PDF, 11 Bilder | **11** gefunden, 1280 x 720 - volle Aufloesung |
+| PDF aus PNG-Quellen | 2 von 2; die Flate-Stroeme daneben sind Masken und wurden **nicht** mitgezaehlt |
+| Text je Bild | keiner - eine PDF gibt ihn nicht her, und die Seite behauptet das auch nicht |
+
+**Nichts zu beanstanden.** Der Weg tut, was er ankuendigt.
+
+Dafuer wurde beim Aufraeumen etwas anderes belegt: dieselben
+fuenfundzwanzig Zeilen standen in vier Dateien, und genau dort waren in
+dieser Sitzung zweimal dieselben Fehler zu reparieren. Das ist der
+Nachweis fuer die Zusammenfuehrung, nicht die Vermutung.

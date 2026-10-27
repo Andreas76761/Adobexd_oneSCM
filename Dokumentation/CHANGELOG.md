@@ -20,6 +20,30 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.75.0] – Der PDF-Weg hält, und vier Abschriften werden eine
+
+### Angesehen, nicht beanstandet
+* **Der PDF-Import, erstmals mit echten PDFs** (aus LibreOffice statt aus
+  dem Prüfbaukasten): 11 von 11 Bildern, in voller Auflösung 1280 × 720;
+  eine PDF aus PNG-Quellen gibt 2 von 2, die Flate-Ströme daneben sind
+  Masken und werden nicht mitgezählt. Text je Bild gibt eine PDF nicht
+  her – und die Seite behauptet es auch nicht
+
+### Aufgeräumt
+* **Vier Prüfstände hatten je eine eigene Abschrift derselben
+  fünfundzwanzig Zeilen.** Das hat sich gerächt: der Nachbau von
+  `downloads.save` musste in **drei** Dateien repariert werden, die
+  Wartezeile `/gerechnet/` in **zwei**. `Testing/messungen/hilfen.mjs`
+  trägt sie jetzt einmal – 135 Zeilen weniger, und die Stelle, an der ein
+  Nachbau falsch sein kann, ist eine statt vier
+* Geprüft wurde das nicht durch die Suite (die Messskripte laufen nicht
+  darin), sondern durch **Fahren**: alle drei liefern Zeichen für Zeichen
+  dieselbe Ausgabe wie vorher
+
+### Unverändert
+* Die Anwendung selbst. `dist/index.html` ist dasselbe wie in 1.74.0 –
+  diese Fassung betrifft nur den Werkzeugkasten
+
 ## [1.74.0] – Die Datei war noch nie in Word
 
 Acht Fassungen lang blieb die Datei zwischen Schreiben und Lesen

@@ -13,91 +13,43 @@
  *   node Testing/messungen/netzseite.mjs <ordner mit film.webm> [zielordner]
  */
 import { pathToFileURL } from 'node:url';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { chromium } from 'playwright-core';
 import { baueVorschau, findeChromium } from '../hilfen/seite.mjs';
+import { DOWNLOAD_NACHBAU, leseMessfilm, bestandAusFilm, sichereDurchKnopf } from './hilfen.mjs';
 
 const hier = dirname(new URL(import.meta.url).pathname);
 const ordner = process.argv[2] || join(hier, 'ausgabe');
 const ziel = process.argv[3] || ordner;
 mkdirSync(ziel, { recursive: true });
-const wahrheit = JSON.parse(readFileSync(join(ordner, 'wahrheit.json'), 'utf8'));
-const film = readFileSync(join(ordner, 'film.webm'));
-
-// \`downloads.save\` nimmt laut Vertrag auch eine Zeichenkette - und eine
-// der drei HTML-Ausgaben gibt genau die. Ein Nachbau, der nur Blobs kennt,
-// behauptet einen Fehler, den die Seite nicht hat.
-const nachbau = `
-  window.__dateien = [];
-  window.claude = { use: async (n) => n !== 'downloads' ? null : { save: async (a) => {
-    const roh = typeof a.data === 'string' ? new TextEncoder().encode(a.data)
-      : new Uint8Array(await new Blob([a.data]).arrayBuffer());
-    window.__letzte = Array.from(roh);
-    window.__dateien.push({ name: a.filename, groesse: roh.byteLength });
-    return { status: 'saved' };
-  } } };`;
+const { film, wahrheit } = leseMessfilm(ordner);
 
 const browser = await chromium.launch({ executablePath: findeChromium(), args: ['--no-sandbox', '--disable-gpu'] });
 const kontext = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
-await kontext.addInitScript(nachbau);
+await kontext.addInitScript(DOWNLOAD_NACHBAU);
 const seite = await kontext.newPage();
 const fehler = [];
 seite.on('pageerror', (e) => fehler.push(String(e)));
 seite.on('console', (m) => m.type() === 'error' && fehler.push(m.text()));
 
 const adresse = pathToFileURL(baueVorschau(join(hier, '..', '..', 'dist', 'index.html'))).href;
-await seite.goto(adresse + '#ans=video');
-await seite.waitForSelector('#video-ansicht:not([hidden])');
-await seite.evaluate((bytes) => {
-  const datei = new File([new Uint8Array(bytes)], 'Servicevertrag anlegen.webm', { type: 'video/webm' });
-  const t = new DataTransfer();
-  t.items.add(datei);
-  const e = document.getElementById('video-eingabe');
-  e.files = t.files;
-  e.dispatchEvent(new Event('change', { bubbles: true }));
-}, [...film]);
-await seite.waitForFunction(() => !document.getElementById('video-leiste').hidden, null, { timeout: 30000 });
-await seite.click('#video-automatisch');
-await seite.waitForFunction(() => !document.getElementById('video-automatisch').disabled, null, { timeout: 180000 });
-await seite.waitForTimeout(400);
-const anzahl = await seite.locator('.video-figur').count();
-const anweisungen = wahrheit.aenderungen.map((a) => a.was);
-for (let i = 0; i < anzahl; i++) {
-  await seite.locator('.video-figur textarea').nth(i).fill(anweisungen[i] || `Schritt ${i + 1}`);
-}
-await seite.fill('#video-stelle', '7.5.1');
-await seite.click('#video-fortlaufend');
-await seite.waitForTimeout(300);
-await seite.click('#video-strecke');
-await seite.waitForFunction((n) => document.querySelectorAll('.video-figur--fertig').length >= n, anzahl, { timeout: 120000 });
+const anzahl = await bestandAusFilm(seite, adresse, { film, wahrheit });
 console.log(`Bestand: ${anzahl} Bilder, Stellen 7.5.1 aufwärts`);
-
-/** Drückt einen Knopf und schreibt die Datei heraus. */
-async function sichere(knopf, name, wartezeit = 180000) {
-  await seite.evaluate(() => (window.__dateien = []));
-  await seite.click(knopf);
-  await seite.waitForFunction(() => (window.__dateien || []).length >= 1, null, { timeout: wartezeit });
-  const [datei] = await seite.evaluate(() => window.__dateien);
-  const bytes = await seite.evaluate(() => window.__letzte);
-  writeFileSync(join(ziel, name), Buffer.from(bytes));
-  console.log(`${name.padEnd(22)} ${(datei.groesse / 1024).toFixed(0)} kB  (${datei.name})`);
-  return join(ziel, name);
-}
 
 // Der Kontaktbogen (F-23): alle Aufnahmen auf einem Blatt, als eine Datei.
 // Die Durchsicht hat seine **Größe** in Verdacht - also gemessen.
 await seite.click('.portal-nav button[data-ansicht="eingang"]');
 await seite.waitForSelector('#eingang-ansicht:not([hidden])');
 await seite.waitForTimeout(600);
-const bogen = await sichere('#eingang-kontaktbogen', 'kontaktbogen.html');
+const bogen = await sichereDurchKnopf(seite, '#eingang-kontaktbogen', ziel, 'kontaktbogen.html');
 
 await seite.click('.portal-nav button[data-ansicht="design"]');
 await seite.waitForSelector('#design-ansicht:not([hidden])');
 await seite.waitForTimeout(600);
 await seite.evaluate(() => (document.getElementById('design-studio').open = true));
 await seite.waitForTimeout(300);
-const handbuch = await sichere('#handbuch-sichern', 'handbuch.html');
+const handbuch = await sichereDurchKnopf(seite, '#handbuch-sichern', ziel, 'handbuch.html');
 // Das dritte HTML: die gerechneten Blätter zum Drucken. Dafür muss eine
 // Quelle gewählt sein - die Blätter rechnen sich daraufhin von selbst.
 const quelle = await seite.locator('#design-quelle option').evaluateAll((o) => {
@@ -106,7 +58,7 @@ const quelle = await seite.locator('#design-quelle option').evaluateAll((o) => {
 });
 await seite.selectOption('#design-quelle', quelle);
 await seite.waitForFunction(() => !document.getElementById('design-html').disabled, null, { timeout: 180000 });
-const blaetter = await sichere('#design-html', 'blaetter.html');
+const blaetter = await sichereDurchKnopf(seite, '#design-html', ziel, 'blaetter.html');
 
 // Dieselben Blätter als HTML über das Register Output.
 await seite.click('.portal-nav button[data-ansicht="output"]');
@@ -135,7 +87,7 @@ await seite.selectOption('#output-inhalte', [streckenWert]);
 await seite.waitForTimeout(600);
 await seite.click('#output-erzeugen');
 await seite.waitForFunction(() => !document.getElementById('output-sichern').disabled, null, { timeout: 240000 });
-const blatt = await sichere('#output-sichern', 'ablauf.html', 240000);
+const blatt = await sichereDurchKnopf(seite, '#output-sichern', ziel, 'ablauf.html', 240000);
 
 /* ------------------------------------------------- Die Dateien ansehen */
 
@@ -190,7 +142,7 @@ await seite.selectOption('#design-sprache', 'en');
 await seite.waitForTimeout(600);
 await seite.evaluate(() => (document.getElementById('design-studio').open = true));
 await seite.waitForTimeout(400);
-const handbuchEn = await sichere('#handbuch-sichern', 'handbuch-en.html');
+const handbuchEn = await sichereDurchKnopf(seite, '#handbuch-sichern', ziel, 'handbuch-en.html');
 await pruefe(handbuchEn, 'handbuch-en.html');
 
 await seite.click('.portal-nav button[data-ansicht="output"]');
@@ -206,7 +158,7 @@ await seite.waitForFunction(
   null,
   { timeout: 240000 }
 );
-const blattEn = await sichere('#output-sichern', 'ablauf-en.html', 240000);
+const blattEn = await sichereDurchKnopf(seite, '#output-sichern', ziel, 'ablauf-en.html', 240000);
 await pruefe(blattEn, 'ablauf-en.html');
 
 if (fehler.length) console.log('\nFEHLER in der Seite:', fehler.join(' | '));

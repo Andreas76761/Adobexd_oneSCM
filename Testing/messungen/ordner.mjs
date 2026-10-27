@@ -9,18 +9,18 @@
  *   node Testing/messungen/ordner.mjs <ordner mit film.webm> [zielordner]
  */
 import { pathToFileURL } from 'node:url';
-import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { chromium } from 'playwright-core';
 import { baueVorschau, findeChromium } from '../hilfen/seite.mjs';
+import { leseMessfilm, bestandAusFilm } from './hilfen.mjs';
 
 const hier = dirname(new URL(import.meta.url).pathname);
 const quelle = process.argv[2] || join(hier, 'ausgabe');
 const ziel = process.argv[3] || join(quelle, 'galerie');
 rmSync(ziel, { recursive: true, force: true });
 mkdirSync(ziel, { recursive: true });
-const wahrheit = JSON.parse(readFileSync(join(quelle, 'wahrheit.json'), 'utf8'));
-const film = readFileSync(join(quelle, 'film.webm'));
+const { film, wahrheit } = leseMessfilm(quelle);
 
 /** Ein Ordner im Browser, der jede Datei mit Inhalt festhält. */
 const ordnerNachbau = `
@@ -54,30 +54,7 @@ seite.on('pageerror', (e) => fehler.push(String(e)));
 seite.on('console', (m) => m.type() === 'error' && fehler.push(m.text()));
 
 const adresse = pathToFileURL(baueVorschau(join(hier, '..', '..', 'dist', 'index.html'))).href;
-await seite.goto(adresse + '#ans=video');
-await seite.waitForSelector('#video-ansicht:not([hidden])');
-await seite.evaluate((bytes) => {
-  const datei = new File([new Uint8Array(bytes)], 'Servicevertrag anlegen.webm', { type: 'video/webm' });
-  const t = new DataTransfer();
-  t.items.add(datei);
-  const e = document.getElementById('video-eingabe');
-  e.files = t.files;
-  e.dispatchEvent(new Event('change', { bubbles: true }));
-}, [...film]);
-await seite.waitForFunction(() => !document.getElementById('video-leiste').hidden, null, { timeout: 30000 });
-await seite.click('#video-automatisch');
-await seite.waitForFunction(() => !document.getElementById('video-automatisch').disabled, null, { timeout: 180000 });
-await seite.waitForTimeout(400);
-const anzahl = await seite.locator('.video-figur').count();
-const anweisungen = wahrheit.aenderungen.map((a) => a.was);
-for (let i = 0; i < anzahl; i++) {
-  await seite.locator('.video-figur textarea').nth(i).fill(anweisungen[i] || `Schritt ${i + 1}`);
-}
-await seite.fill('#video-stelle', '7.5.1');
-await seite.click('#video-fortlaufend');
-await seite.waitForTimeout(300);
-await seite.click('#video-strecke');
-await seite.waitForFunction((n) => document.querySelectorAll('.video-figur--fertig').length >= n, anzahl, { timeout: 120000 });
+const anzahl = await bestandAusFilm(seite, adresse, { film, wahrheit });
 console.log(`Bestand: ${anzahl} Bilder`);
 
 await seite.click('.portal-nav button[data-ansicht="verzeichnis"]');

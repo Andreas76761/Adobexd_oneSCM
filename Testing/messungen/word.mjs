@@ -9,81 +9,38 @@
  *   node Testing/messungen/word.mjs <ordner mit film.webm> [zielordner]
  */
 import { pathToFileURL } from 'node:url';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { chromium } from 'playwright-core';
 import { baueVorschau, findeChromium } from '../hilfen/seite.mjs';
+import { DOWNLOAD_NACHBAU, leseMessfilm, bestandAusFilm, sichereDurchKnopf } from './hilfen.mjs';
 
 const hier = dirname(new URL(import.meta.url).pathname);
 const ordner = process.argv[2] || join(hier, 'ausgabe');
 const ziel = process.argv[3] || ordner;
 mkdirSync(ziel, { recursive: true });
-const wahrheit = JSON.parse(readFileSync(join(ordner, 'wahrheit.json'), 'utf8'));
-const film = readFileSync(join(ordner, 'film.webm'));
-
-const nachbau = `
-  window.__dateien = [];
-  window.claude = { use: async (n) => n !== 'downloads' ? null : { save: async (a) => {
-    const puffer = await a.data.arrayBuffer();
-    window.__letzte = Array.from(new Uint8Array(puffer));
-    window.__dateien.push({ name: a.filename, groesse: puffer.byteLength });
-    return { status: 'saved' };
-  } } };`;
+const { film, wahrheit } = leseMessfilm(ordner);
 
 const browser = await chromium.launch({ executablePath: findeChromium(), args: ['--no-sandbox', '--disable-gpu'] });
 const kontext = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
-await kontext.addInitScript(nachbau);
+await kontext.addInitScript(DOWNLOAD_NACHBAU);
 const seite = await kontext.newPage();
 const fehler = [];
 seite.on('pageerror', (e) => fehler.push(String(e)));
 seite.on('console', (m) => m.type() === 'error' && fehler.push(m.text()));
 
 const adresse = pathToFileURL(baueVorschau(join(hier, '..', '..', 'dist', 'index.html'))).href;
-await seite.goto(adresse + '#ans=video');
-await seite.waitForSelector('#video-ansicht:not([hidden])');
-await seite.evaluate((bytes) => {
-  const datei = new File([new Uint8Array(bytes)], 'Servicevertrag anlegen.webm', { type: 'video/webm' });
-  const t = new DataTransfer();
-  t.items.add(datei);
-  const e = document.getElementById('video-eingabe');
-  e.files = t.files;
-  e.dispatchEvent(new Event('change', { bubbles: true }));
-}, [...film]);
-await seite.waitForFunction(() => !document.getElementById('video-leiste').hidden, null, { timeout: 30000 });
-await seite.click('#video-automatisch');
-await seite.waitForFunction(() => !document.getElementById('video-automatisch').disabled, null, { timeout: 180000 });
-await seite.waitForTimeout(400);
-const anzahl = await seite.locator('.video-figur').count();
-const anweisungen = wahrheit.aenderungen.map((a) => a.was);
-for (let i = 0; i < anzahl; i++) {
-  await seite.locator('.video-figur textarea').nth(i).fill(anweisungen[i] || `Schritt ${i + 1}`);
-}
-await seite.fill('#video-stelle', '7.5.1');
-await seite.click('#video-fortlaufend');
-await seite.waitForTimeout(300);
-await seite.click('#video-strecke');
-await seite.waitForFunction((n) => document.querySelectorAll('.video-figur--fertig').length >= n, anzahl, { timeout: 120000 });
+const anzahl = await bestandAusFilm(seite, adresse, { film, wahrheit });
 console.log(`Bestand: ${anzahl} Bilder, Stellen 7.5.1 aufwärts`);
 
 await seite.click('.portal-nav button[data-ansicht="design"]');
 await seite.waitForSelector('#design-ansicht:not([hidden])');
 await seite.waitForTimeout(600);
 
-/** Drückt einen Knopf und schreibt die Datei heraus. */
-async function sichere(knopf, name, wartezeit = 180000) {
-  await seite.evaluate(() => (window.__dateien = []));
-  await seite.click(knopf);
-  await seite.waitForFunction(() => (window.__dateien || []).length >= 1, null, { timeout: wartezeit });
-  const [datei] = await seite.evaluate(() => window.__dateien);
-  const bytes = await seite.evaluate(() => window.__letzte);
-  writeFileSync(join(ziel, name), Buffer.from(bytes));
-  console.log(`${name.padEnd(22)} ${(datei.groesse / 1024).toFixed(0)} kB  (${datei.name})`);
-}
-
 // Das ganze Handbuch als Word – „Text bleibt Text".
 await seite.evaluate(() => (document.getElementById('design-studio').open = true));
 await seite.waitForTimeout(300);
-await sichere('#handbuch-word', 'handbuch.docx');
+await sichereDurchKnopf(seite, '#handbuch-word', ziel, 'handbuch.docx');
 
 // Dieselben Blätter als Word und PowerPoint über das Register Output.
 await seite.click('.portal-nav button[data-ansicht="output"]');
