@@ -96,16 +96,27 @@ function zeichneLogo(stift, x, y, hoehe, ausrichtung = 'links') {
   return breite;
 }
 
-/** Die Inhalte, aus denen ein Blatt entstehen kann. */
+/**
+ * Die Inhalte, aus denen ein Blatt entstehen kann.
+ *
+ * `schild` und `bilder` stehen getrennt neben dem fertigen `label`, damit
+ * ein Aufrufer die Zahl neu rechnen und die Beschriftung daraus wieder
+ * zusammensetzen kann – das Register Output tut das, wenn Vorgemerktes
+ * wegfällt (1.80.0).
+ */
 function designQuellen() {
   const ausStrecken = strecken.map((s) => ({
     id: 'strecke:' + s.id,
+    schild: `Strecke · ${s.name || 'ohne Namen'}`,
+    bilder: s.schritte.length,
     label: `Strecke · ${s.name || 'ohne Namen'} (${s.schritte.length})`
   }));
   // Jede Stelle mit Bildern ist auch eine mögliche Vorlage.
   const { zahlen } = zaehleBilder(GLIEDERUNG, imProjekt());
   const ausKapiteln = GLIEDERUNG.filter((e) => (zahlen.get(e.nummer) || {}).gesamt).map((e) => ({
     id: 'kapitel:' + e.nummer,
+    schild: `Kapitel · ${e.nummer} ${e.thema}`,
+    bilder: zahlen.get(e.nummer).gesamt,
     label: `Kapitel · ${e.nummer} ${e.thema} (${zahlen.get(e.nummer).gesamt})`
   }));
   return [...ausStrecken, ...ausKapiteln];

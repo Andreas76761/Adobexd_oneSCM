@@ -83,9 +83,20 @@ function zeichneOutputWahl() {
   const vorgemerkteStellen = new Set(
     gliederungJetzt().filter((e) => vormerkungVon(e)).map((e) => e.nummer)
   );
-  const quellen = outputWahl.vorgemerkt
+  const gefiltert = outputWahl.vorgemerkt
     ? alleQuellen
     : alleQuellen.filter((q) => !(q.id.startsWith('kapitel:') && vorgemerkteStellen.has(q.id.slice(8))));
+  // Die Zahl in der Zeile ist die Zahl, die der Plan rechnet - und die
+  // rechnet seit 1.80.0 am Bild. Ein Oberkapitel mit genau einem Bild an
+  // einer vorgemerkten Unterstelle versprach bis dahin „(1)" und lieferte
+  // nichts. Die Stelle bleibt in der Liste: wer sie gewählt hat, soll
+  // sehen, dass nichts übrig ist, statt seine Wahl stumm zu verlieren.
+  const vormerkWahl = { gliederung: gliederungJetzt(), mitVorgemerkten: Boolean(outputWahl.vorgemerkt) };
+  const quellen = gefiltert.map((q) => {
+    if (!q.id.startsWith('kapitel:')) return q;
+    const bilder = ausgabeBilder(imProjekt(), strecken, q.id, '', '', vormerkWahl).length;
+    return bilder === q.bilder ? q : { ...q, bilder, label: `${q.schild} (${bilder})` };
+  });
   const weggefallen = alleQuellen.length - quellen.length;
   const hinweis = $('#output-vorgemerkt-stand');
   if (hinweis) {
@@ -436,7 +447,9 @@ function zeichneOutputKnoepfe() {
 function zeichneOutput() {
   if (document.getElementById('output-ansicht').hidden) return;
   zeichneOutputWahl();
-  outputPlan = ausgabePlan(imProjekt(), strecken, GLIEDERUNG, outputWahl, alleVorlagen(studio.eigene));
+  // Die gelebte Gliederung, nicht die gelieferte: nur sie kennt die
+  // Vormerkungen, die jemand hier gesetzt hat.
+  outputPlan = ausgabePlan(imProjekt(), strecken, gliederungJetzt(), outputWahl, alleVorlagen(studio.eigene));
   // Was nicht mehr im Plan steht, ist auch nicht mehr gerechnet.
   for (const kennung of [...outputFertig.keys()]) {
     if (!outputPlan.some((a) => a.id === kennung)) outputFertig.delete(kennung);

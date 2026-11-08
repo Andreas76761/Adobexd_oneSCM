@@ -24,9 +24,9 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 | `01-daten.test.mjs` | Bestand gegen Schema und inhaltliche Regeln | 10 |
 | `02-kern.test.mjs` | Kernlogik ohne DOM: Suche, Filter, Facetten, Wirkung, Sortierung, Zustand, Formate | 19 |
 | `03-aufnahmen.test.mjs` | erzeugte SVG-Aufnahmen: Vollständigkeit, Maße, Sauberkeit, Determinismus | 8 |
-| `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken, doppelte Selektoren | 15 |
-| `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 16 |
-| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten, Handbuch, Labels am Entwurf, Zählung, Suchtext, Projekte nach Version und Land, Arbeitsmenge, Projektvergleich, PDF, ZIP mit Word und PowerPoint, Ausgabeplan, Lupe, OCR, Bildvergleich, Agent Sprache, Word-Handbuch, Hausmarke, Projektdatei, Fortschritt, Rückweg aus Word, Sprache der Unterlagen, Hausmarke als Datei, Suche über die Lesungen, Stapel beim Import, Video, Gebrauch und Kontaktbogen | 205 |
+| `04-build.test.mjs` | `dist/index.html`: Aktualität, Titel, Gerüst, externe Quellen, Größe, Farbtoken, doppelte Selektoren | 17 |
+| `05-oberflaeche.e2e.mjs` | die Seite im Browser: Suchen, Filtern, Archiv, Detail, Tastatur, Adresszeile, Themen, Überlauf | 18 |
+| `06-aufnahme-kern.test.mjs` | Kernlogik von Aufnahme, Eingang, Ablage, Beipackzettel, Übernahme, Nachpflege, Ordnersuche, Belegentwurf, PNG-Metadaten, Fähigkeiten, Marken, Fassungen, Gliederung, Labels, Strecken, Designvorlagen, Archive, Suchchat, Agenten, Designstudio, Verzeichnis, Varianten, Handbuch, Labels am Entwurf, Zählung, Suchtext, Projekte nach Version und Land, Arbeitsmenge, Projektvergleich, PDF, ZIP mit Word und PowerPoint, Ausgabeplan, Lupe, OCR, Bildvergleich, Agent Sprache, Word-Handbuch, Hausmarke, Projektdatei, Fortschritt, Rückweg aus Word, Sprache der Unterlagen, Hausmarke als Datei, Suche über die Lesungen, Stapel beim Import, Video, Gebrauch und Kontaktbogen | 217 |
 | `07-aufnahme.e2e.mjs` | Aufnahmemodus im Browser: Navigation, Quellen, Bilderstapel, Zwischenablage, Live-Freigabe, Navigation in fünf Aufgaben, Übersicht „Weitergeben“, Kompaktmodus, Ausschnitt mit der Maus, Auslösen, Fehlerwege, Eingang, Nachpflege, Labels am Entwurf, Kontaktbogen, Werkbank, Bild mit Zettel | 71 |
 
 | `08-ausschneiden.e2e.mjs` | Schnipsel-Modus im Browser: Ablageziele, Namensmuster, Freigabe, Aufziehen, Ordner, Datei, Beipackzettel, Beenden, Sichtbarkeit im Archiv, Zettel im Ordnerband, Übernahme, Nachpflege, verwaiste Zettel, Tastatur, Filter, Metadaten im Bild, „Was hier geht“ | 35 |
@@ -43,7 +43,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `14-chat.e2e.mjs` | Suchchat im Browser: Fenster über jeder Ansicht, Deutung der Frage, Treffer, Weg in Editor und Strecke, Ziehen und Lage | 6 |
 
-| `15-pruefung.e2e.mjs` | Prüfung im Browser: vier Agenten, Kennzahlen, Befunde mit Weg, Bericht, Kommentar von Claude, Projektvergleich zweier Fassungen als Tabelle und als Text, Bildvergleich zweier Aufnahmen, Agent Sprache mit eigener Wortliste, gezählter Gebrauch samt Zurücksetzen | 13 |
+| `15-pruefung.e2e.mjs` | Prüfung im Browser: vier Agenten, Kennzahlen, Befunde mit Weg, Bericht, Kommentar von Claude, Projektvergleich zweier Fassungen als Tabelle und als Text, Bildvergleich zweier Aufnahmen, Agent Sprache mit eigener Wortliste, gezählter Gebrauch samt Zurücksetzen | 14 |
 
 | `16-verzeichnis.e2e.mjs` | Verzeichnis im Browser: Plan vor der Datei, Muster, Schalter, Schreiben mit Unterordnern samt gelesenem Beipackzettel und den Bytes der Uebersicht, Bericht, Projektdatei im vollen Umlauf samt eigenen Texten und Namensmuster | 8 |
 
@@ -53,15 +53,15 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `22-video.e2e.mjs` | Video im Browser: Grenze und Formate benannt, Video öffnen, Nichtvideo abweisen, automatisch abtasten, Bild von Hand, Stellen und Labels, Übernahme in den Eingang, Strecke aus dem Video, Durchgänge mit Vergleich und Diagnose, Vorgehen, Verwerfen, leere Antwort beim Deuten. Das Prüfvideo entsteht in der Seite selbst (`captureStream` + `MediaRecorder`) – keine Beispieldatei im Repo | 16 |
 
-| `21-ocr.e2e.mjs` | OCR im Browser: Bilder wählen, Lesen über Claude (nachgebildet), Kacheln, Text ändern, in die Notiz übernehmen, Textdatei und Word-Datei, fehlende Bilderlaubnis, Suche über die Lesungen, abgewiesene und leere Antwort | 8 |
+| `21-ocr.e2e.mjs` | OCR im Browser: Bilder wählen, Lesen über Claude (nachgebildet), Kacheln, Text ändern, in die Notiz übernehmen, Textdatei und Word-Datei, fehlende Bilderlaubnis, Suche über die Lesungen, abgewiesene und leere Antwort | 9 |
 
 | `20-output.e2e.mjs` | Output im Browser: Inhalte nach Kapiteln, ein Dokument je Variante, Vorschau mit Kapitel und Labels, Sicherung als PDF, Word und PowerPoint, Ablage im Verzeichnis, die Lupe, die Vorgabe ohne Achse und der Grund für den leeren Plan | 8 |
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-| `23-regelwerk.e2e.mjs` | Regelwerk im Browser: leeres Register, Regel anlegen und über das Neuladen behalten, Anhalten im Eingang, im Designstudio und als Agent, Vormerkung von intern und in Planung, Output lässt Vorgemerktes weg, die Marke im Baum | 8 |
+| `23-regelwerk.e2e.mjs` | Regelwerk im Browser: leeres Register, Regel anlegen und über das Neuladen behalten, Anhalten im Eingang, im Designstudio und als Agent, Vormerkung von intern und in Planung, Output lässt Vorgemerktes weg, ein Bild an vorgemerkter Unterstelle fällt auch über das Oberkapitel weg, die Marke im Baum | 9 |
 
-Summe: **551 Prüfungen**.
+Summe: **553 Prüfungen**.
 
 ## Messungen – nicht Teil des Durchlaufs
 

@@ -10,6 +10,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
 | [durchsicht.md](durchsicht.md) | Bestandsaufnahme über 69 Funktionen in dreizehn Ansichten: was zusammengehört, was wahrscheinlich tot ist, was bewusst bleibt |
+| [versionen/v1.80.0.md](versionen/v1.80.0.md) | Vorgemerkt ist das Bild, nicht nur die Stelle |
 | [versionen/v1.79.0.md](versionen/v1.79.0.md) | Zwei Wege, zwei Antworten – Output filtert Vorgemerktes mit |
 | [versionen/v1.78.0.md](versionen/v1.78.0.md) | Regeln, Vormerkungen und eine dritte Sparte |
 | [versionen/v1.77.0.md](versionen/v1.77.0.md) | 798 Textstellen, zwei Zahlen – Kontrast über alle Ansichten |

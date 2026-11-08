@@ -3160,6 +3160,35 @@ s.test('eine Strecke als Inhalt folgt der Variante, nicht dem Filter', () => {
   tieferGleich(kern.ausgabeBilder(outputBestand, strecken, 'kapitel:6', '', ''), [outputBestand[0], outputBestand[1], outputBestand[2]]);
 });
 
+s.test('Vorgemerktes faellt am Bild weg, nicht erst an der gewaehlten Stelle', () => {
+  // 6.2 ist vorgemerkt, 6.3 nicht. Wer 6 waehlt, waehlt keine
+  // vorgemerkte Stelle an - und bekam bis 1.79.0 ihr Bild trotzdem.
+  const gliederung = outputGliederung.map((e) => (e.nummer === '6.2' ? { ...e, vormerkung: 'intern' } : e));
+  const strecken = [
+    { id: 'STR-1', name: 'Vorlage anlegen', schritte: [{ art: 'schritt', aufnahmen: ['B1'], text: 'Liste oeffnen' }] }
+  ];
+  const ohne = { gliederung, mitVorgemerkten: false };
+  const mit = { gliederung, mitVorgemerkten: true };
+  tieferGleich(kern.ausgabeBilder(outputBestand, strecken, 'kapitel:6', '', '', ohne).map((a) => a.id), ['B3']);
+  tieferGleich(kern.ausgabeBilder(outputBestand, strecken, 'kapitel:6', '', '', mit).map((a) => a.id), ['B1', 'B2', 'B3']);
+  // Eine Strecke ist kein Kapitel - ihre Bilder haengen aber an Stellen.
+  tieferGleich(kern.ausgabeBilder(outputBestand, strecken, 'strecke:STR-1', '', '', ohne), []);
+  tieferGleich(kern.ausgabeBilder(outputBestand, strecken, 'strecke:STR-1', '', '', mit).map((a) => a.id), ['B1']);
+  // Ohne Gliederung weiss niemand von Vormerkungen - dann bleibt alles.
+  tieferGleich(kern.ausgabeBilder(outputBestand, strecken, 'kapitel:6', '', '').length, 3);
+  // Der Plan traegt die Wahl weiter.
+  const plan = (vorgemerkt) =>
+    kern.ausgabePlan(
+      outputBestand,
+      strecken,
+      gliederung,
+      { vorlagen: ['quickguide'], inhalte: ['kapitel:6'], formate: ['pdf'], vorgemerkt },
+      kern.VORLAGEN
+    );
+  gleich(plan(false)[0].bilder, 1);
+  gleich(plan(true)[0].bilder, 3);
+});
+
 /* ------------------------------- Die Lupe: Rezept und Kapitelweg (1.39.0) */
 
 s.test('die Lupe nennt Weg, Rezept und Schritte eines Bildes', () => {

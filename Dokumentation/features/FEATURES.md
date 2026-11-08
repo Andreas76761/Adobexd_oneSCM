@@ -2213,7 +2213,9 @@ Kleingedrucktes zu lesen.
 
 ## F-79 · Vormerken – intern und in Planung
 
-**Seit** 1.78.0 · **Ansicht** Gliederung, Design · betrifft Handbuch
+**Seit** 1.78.0 · **Ansicht** Gliederung, Design, Output · betrifft Handbuch
+· **geändert in** 1.79.0 (Output, Marke im Baum), 1.80.0 (gefiltert wird
+am Bild)
 
 **Das Problem** Nicht jeder Abschnitt gehört ins Benutzerhandbuch. Ein
 Arbeitsstand, eine offene Absprache, eine Funktion, die erst kommen soll –
@@ -2235,6 +2237,16 @@ hebt „keine" die Vormerkung eines Kapitels für eine einzelne Stelle auf.
 Umfang: so stimmen auch Seitenzahl und Kennzahlen. Der Umfang sagt dabei,
 *was* wegfällt – „4 Abschnitt(e) nicht in der Ausgabe: 2 Intern, 2 In
 Planung" –, damit es nicht stillschweigend geschieht.
+
+**Gefiltert wird am Bild, nicht an der gewählten Stelle** (seit 1.80.0).
+Vorgemerkt ist eine *Stelle*; gerechnet wird ein *Bild*, und jedes Bild
+hängt an genau einer Unterstelle. Wer nur die Liste der Stellen filtert,
+lässt das Bild einer vorgemerkten Unterstelle durch, sobald jemand das
+Oberkapitel wählt – oder eine Klickstrecke, die es mitbringt. Den Maßstab
+dazu gibt `ohneVorgemerkteBilder()` einmal für alle Wege vor. Die
+Inhaltsliste in Output zählt mit demselben Maßstab, damit sie keine Zahl
+nennt, die der Plan nicht rechnet; eine Stelle, von der nichts übrig ist,
+bleibt mit „(0)" stehen statt zu verschwinden.
 
 **Schaltbar, aber nicht aus Versehen.** Im Designstudio **und im Register
 Output** nimmt „Vorgemerktes mitnehmen" sie wieder dazu. Eine interne

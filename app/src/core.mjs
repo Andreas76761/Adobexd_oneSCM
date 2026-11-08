@@ -7743,21 +7743,55 @@ export const AUSGABE_FORMATE = [
   { id: 'html', label: 'HTML', endung: 'html', typ: 'text/html' }
 ];
 
+/**
+ * Die Aufnahmen ohne die, die an einer vorgemerkten Stelle haengen (F-79).
+ *
+ * Vorgemerkt ist eine **Stelle**; ein Bild haengt an einer Stelle. Wer nur
+ * die Stellenliste filtert, laesst das Bild einer vorgemerkten Unterstelle
+ * durch, sobald jemand das Oberkapitel waehlt - oder eine Klickstrecke, die
+ * es mitbringt. Darum zaehlt und filtert jeder Weg am Bild.
+ */
+export function ohneVorgemerkteBilder(aufnahmen = [], gliederung = [], { mitVorgemerkten = false } = {}) {
+  if (mitVorgemerkten) return [...aufnahmen];
+  const vorgemerkt = gliederung.filter((eintrag) => vormerkungVon(eintrag)).map((eintrag) => eintrag.nummer);
+  if (!vorgemerkt.length) return [...aufnahmen];
+  return aufnahmen.filter(
+    (aufnahme) => !vorgemerkt.some((nummer) => gehoertZu(String(aufnahme.gliederung || ''), nummer))
+  );
+}
+
 /** Die Bilder eines Inhalts in einer Variante - dieselbe Regel wie im Studio. */
-export function ausgabeBilder(aufnahmen = [], strecken = [], inhalt = '', feld = '', wert = '') {
+export function ausgabeBilder(
+  aufnahmen = [],
+  strecken = [],
+  inhalt = '',
+  feld = '',
+  wert = '',
+  { gliederung = [], mitVorgemerkten = false } = {}
+) {
+  // Vorgemerktes faellt am **Bild** weg, nicht am gewaehlten Inhalt.
+  //
+  // Bis 1.79.0 filterte das Register Output die Liste der Inhalte - und
+  // damit nur die Stelle, die jemand anklickt. Ein Bild an einer
+  // vorgemerkten Unterstelle kam trotzdem mit, sobald das Oberkapitel
+  // gewaehlt war; eine Klickstrecke brachte es ohnehin mit. Dieselbe
+  // Aufnahme war im Handbuch weg und im Quick Guide drin.
+  const uebrig = new Set(ohneVorgemerkteBilder(aufnahmen, gliederung, { mitVorgemerkten }));
+  const erlaubt = (a) => uebrig.has(a);
   if (String(inhalt).startsWith('strecke:')) {
     const gefunden = strecken.find((s) => 'strecke:' + s.id === inhalt);
     if (!gefunden) return [];
     const strecke = feld && wert ? streckeInVariante(gefunden, aufnahmen, feld, wert).strecke : gefunden;
     return streckeMitAufnahmen(strecke, aufnahmen)
       .filter((s) => s.aufnahme)
-      .map((s) => s.aufnahme);
+      .map((s) => s.aufnahme)
+      .filter(erlaubt);
   }
   if (String(inhalt).startsWith('kapitel:')) {
     const stelle = inhalt.slice(8);
     return sortiereNachKapitel(
       aufnahmen.filter(
-        (a) => gehoertZu(String(a.gliederung || ''), stelle) && (!feld || String(a[feld] || '') === wert)
+        (a) => gehoertZu(String(a.gliederung || ''), stelle) && (!feld || String(a[feld] || '') === wert) && erlaubt(a)
       )
     );
   }
@@ -7812,6 +7846,9 @@ export function ausgabeGrund(wahl = {}, { werteMoeglich = true } = {}) {
  * erwartet und zwei bekommt, soll die Lücke sehen.
  */
 export function ausgabePlan(aufnahmen = [], strecken = [], gliederung = [], wahl = {}, vorlagen = []) {
+  // Die Gliederung weiss, was vorgemerkt ist; `wahl.vorgemerkt` sagt, ob
+  // es trotzdem mit soll.
+  const vormerkWahl = { gliederung, mitVorgemerkten: Boolean(wahl.vorgemerkt) };
   const gewaehlteVorlagen = (wahl.vorlagen || []).filter(Boolean);
   const inhalte = (wahl.inhalte || []).filter(Boolean);
   const achse = String(wahl.achse || '');
@@ -7823,7 +7860,7 @@ export function ausgabePlan(aufnahmen = [], strecken = [], gliederung = [], wahl
     const satz = vorlagen.find((v) => v.id === vorlageId) || vorlage(vorlageId);
     for (const inhalt of inhalte) {
       for (const wert of werte) {
-        const bilder = ausgabeBilder(aufnahmen, strecken, inhalt, achse, wert);
+        const bilder = ausgabeBilder(aufnahmen, strecken, inhalt, achse, wert, vormerkWahl);
         const inhaltName = ausgabeInhaltName(inhalt, strecken, gliederung);
         const variante = achse && wert ? labelWert(achse, wert) : '';
         auftraege.push({

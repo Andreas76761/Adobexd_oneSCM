@@ -218,6 +218,61 @@ s.test('das Register Output lässt Vorgemerktes ebenso weg (1.79.0)', () =>
     { hash: AUFNAHME }
   ));
 
+s.test('ein Bild an vorgemerkter Unterstelle kommt auch ueber das Oberkapitel nicht mit (1.80.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // 1.79.0 filterte die Liste der Inhalte - also die Stelle, die jemand
+      // anklickt. 7.5 ist nicht vormerkt, 7.5.1 ist es: wer 7.5 waehlte,
+      // bekam das Bild von 7.5.1 trotzdem. Im Handbuch fehlte es.
+      await eineAufnahme(seite);
+      await seite.click('#letzte-editor');
+      await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden, null, { timeout: 8000 });
+      await seite.fill('#markier-stelle', '7.5.1');
+      await seite.click('#markier-sichern');
+      await seite.waitForTimeout(300);
+
+      await seite.click('.portal-nav button[data-ansicht="output"]');
+      await seite.waitForSelector('#output-ansicht:not([hidden])');
+      await seite.waitForTimeout(400);
+      // Ohne Vormerkung steht 7.5 mit seinem einen Bild da.
+      wahr(/7\.5 /.test(await seite.locator('#output-inhalte').innerText()), 'ohne Vormerkung fehlt 7.5');
+      await seite.selectOption('#output-inhalte', ['kapitel:7.5']);
+      await seite.waitForTimeout(400);
+      gleich(await seite.locator('.output-zeile td:nth-child(6)').first().innerText(), '1');
+
+      // Jetzt 7.5.1 vormerken - die Wahl 7.5 bleibt stehen, das Bild nicht.
+      await seite.click('.portal-nav button[data-ansicht="gliederung"]');
+      await seite.waitForSelector('#gliederung-ansicht:not([hidden])');
+      await seite.fill('#gliederung-suche', '7.5.1');
+      await seite.waitForTimeout(350);
+      await seite.locator('.stelle-waehlen[data-waehlen="7.5.1"]').first().click();
+      await seite.waitForSelector('#stelle-vormerkung');
+      await seite.selectOption('#stelle-vormerkung', 'intern');
+      await seite.waitForTimeout(300);
+
+      await seite.click('.portal-nav button[data-ansicht="output"]');
+      await seite.waitForSelector('#output-ansicht:not([hidden])');
+      await seite.waitForTimeout(400);
+      const gewaehlt = await seite.evaluate(() =>
+        [...document.getElementById('output-inhalte').selectedOptions].map((o) => o.value)
+      );
+      gleich(gewaehlt.join(','), 'kapitel:7.5', 'die Wahl 7.5 ist nicht mehr gesetzt: ' + gewaehlt.join(','));
+      // Die Zeile verspricht auch nicht mehr ein Bild, das nicht kommt.
+      const schild = await seite.evaluate(
+        () => [...document.getElementById('output-inhalte').options].find((o) => o.value === 'kapitel:7.5').textContent
+      );
+      wahr(/\(0\)$/.test(schild.trim()), 'die Liste nennt eine Zahl, die der Plan nicht rechnet: ' + schild);
+      gleich(await seite.locator('.output-zeile td:nth-child(6)').first().innerText(), '0', 'das Bild wird weitergerechnet');
+      wahr(await seite.locator('#output-erzeugen').isDisabled(), 'Erzeugen steht offen, obwohl kein Bild bleibt');
+
+      // Mit dem Schalter ist es wieder da - eine interne Fassung darf es.
+      await seite.check('#output-vorgemerkt');
+      await seite.waitForTimeout(400);
+      gleich(await seite.locator('.output-zeile td:nth-child(6)').first().innerText(), '1');
+    },
+    { hash: AUFNAHME }
+  ));
+
 s.test('der Baum zeigt, was vorgemerkt ist (1.79.0)', () =>
   mitSeite(async (seite) => {
     await seite.fill('#gliederung-suche', 'Intern');

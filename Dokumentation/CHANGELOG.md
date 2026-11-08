@@ -20,6 +20,35 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.80.0] – Vorgemerkt ist das Bild, nicht nur die Stelle
+
+Schließt die Grenze, die 1.79.0 sich selbst aufgeschrieben hat – sie war
+weiter als dort beschrieben.
+
+### Behoben
+* **Vorgemerktes fiel nur an der gewählten Stelle weg, nicht am Bild**
+  (F-79). 7.5 ist nicht vorgemerkt, 7.5.1 ist es: wer das Oberkapitel
+  wählte, bekam das Bild der vorgemerkten Unterstelle trotzdem – dieselbe
+  Aufnahme war im Handbuch weg und im Quick Guide drin. Eine Klickstrecke
+  brachte es ohnehin mit. `ausgabeBilder()` filtert jetzt am **Bild**, in
+  beiden Zweigen; der Maßstab steht als `ohneVorgemerkteBilder()` einmal da
+* **Die Inhaltsliste nannte eine Zahl, die der Plan nicht rechnete.**
+  „Kapitel · 7.5 (1)" versprach ein Bild, die Ausgabe brachte keins. Die
+  Liste rechnet jetzt mit demselben Maßstab; die Stelle bleibt mit „(0)"
+  stehen, damit niemand seine Wahl stumm verliert
+* **Das Register Output gab dem Plan die gelieferte Gliederung** – die kennt
+  nur die Vormerkung der Kapitel 24 und 25, nicht die von Hand gesetzten.
+  Derselbe Fehler wie beim Baum in 1.79.0, an einer anderen Stelle
+
+### Prüfung
+* 1 neue Kernprüfung (Kapitel, Strecke, Plan und der Fall ohne Gliederung)
+  und 1 neue Browserprüfung (Oberkapitel wählen, Unterstelle vormerken,
+  Zahl und Zeile prüfen). Zusammen 553
+* **Das Testkonzept zählte falsch.** Die Tabelle summierte sich auf 535,
+  der Durchlauf meldete 553: fünf Zeilen (04, 05, 06, 15, 21) waren
+  stehengeblieben, während die Gesamtzahl darunter nachgeführt wurde. Jetzt
+  stimmen Tabelle und Summe mit dem Durchlauf überein
+
 ## [1.79.0] – Zwei Wege, zwei Antworten
 
 Schließt, was 1.78.0 offen gelassen hat. Beides fiel beim Nachfahren auf.
