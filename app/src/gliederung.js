@@ -642,7 +642,9 @@ function zeichneFortschritt() {
       })
     )
   );
-  const daten = fortschrittDaten(GLIEDERUNG, imProjekt(), { achse: fortschrittAchse });
+  // Die gelebte Gliederung: nur sie kennt die von Hand gesetzten
+  // Vormerkungen - und die eigenen Texte, an denen die Stellen haengen.
+  const daten = fortschrittDaten(gliederungJetzt(), imProjekt(), { achse: fortschrittAchse });
   $('#fortschritt-stand').textContent = fortschrittText(daten);
   fortschrittBlatt = zeichneFortschrittsblatt(daten);
   const schau = el('canvas');

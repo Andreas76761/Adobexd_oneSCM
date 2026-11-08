@@ -7507,9 +7507,19 @@ export function uebernimmStellentexte(eigene = {}, vergleich = [], nummern = nul
    machen ein Kapitel nicht fertiger als eines.
    ========================================================================= */
 
-export function fortschrittDaten(gliederung = [], eingang = [], { achse = '', stelle = '' } = {}) {
+export function fortschrittDaten(
+  gliederung = [],
+  eingang = [],
+  { achse = '', stelle = '', mitVorgemerkten = false } = {}
+) {
   const gefiltert = stelle ? gliederung.filter((e) => gehoertZu(e.nummer, stelle)) : gliederung;
-  const stellen = gefiltert.filter((e) => e.art !== 'uebergang');
+  // Das Blatt heisst „Stand des Handbuchs". Vorgemerktes kommt nicht ins
+  // Handbuch (F-79) - es zu zaehlen hiesse, einen Rueckstand auszuweisen,
+  // den niemand je aufholen kann und auch nicht aufholen soll. Bis 1.83.0
+  // standen „24 Intern" und „25 In Planung" als zwei Kapitel bei 0 Prozent
+  // im Blatt.
+  const echte = gefiltert.filter((e) => e.art !== 'uebergang');
+  const stellen = mitVorgemerkten ? echte : echte.filter((e) => !vormerkungVon(e));
   const { zahlen, ohneStelle } = zaehleBilder(stellen, eingang);
   const belegteStelle = (nummer) => (zahlen.get(nummer) || { eigene: 0 }).eigene > 0;
 
@@ -7545,8 +7555,16 @@ export function fortschrittDaten(gliederung = [], eingang = [], { achse = '', st
       };
     });
 
-  const alleStellen = stellen.filter((e) => e.ebene > 1 || !stellen.some((x) => x.ebene > 1 && gehoertZu(x.nummer, e.nummer)));
+  // Gezaehlt werden die Blaetter der Gliederung: ein Kapitelkopf mit
+  // Unterstellen ist keine eigene Stelle.
+  const blaetter = (liste) =>
+    liste.filter((e) => e.ebene > 1 || !liste.some((x) => x.ebene > 1 && gehoertZu(x.nummer, e.nummer)));
+  const alleStellen = blaetter(stellen);
   const belegtGesamt = alleStellen.filter((e) => belegteStelle(e.nummer)).length;
+  // Was weggelassen wurde, steht dabei - stillschweigend weglassen waere
+  // dasselbe Verschweigen wie vorher das Mitzaehlen. Gezaehlt wird in
+  // derselben Einheit wie oben: Blaetter, nicht Eintraege.
+  const vorgemerkt = mitVorgemerkten ? 0 : blaetter(echte).filter((e) => vormerkungVon(e)).length;
   return {
     achse,
     werte: werte.map((wert) => ({ wert, label: labelWert(achse, wert) })),
@@ -7557,24 +7575,27 @@ export function fortschrittDaten(gliederung = [], eingang = [], { achse = '', st
       belegt: belegtGesamt,
       anteil: alleStellen.length ? belegtGesamt / alleStellen.length : 0,
       bilder: eingang.length,
-      ohneStelle
+      ohneStelle,
+      vorgemerkt
     }
   };
 }
 
 /** Der Fortschritt in einem Satz - für Kopfzeile, Bericht und Meldung. */
 export function fortschrittText(daten = {}, sprache = 'de') {
-  const g = daten.gesamt || { belegt: 0, stellen: 0, bilder: 0, ohneStelle: 0 };
+  const g = daten.gesamt || { belegt: 0, stellen: 0, bilder: 0, ohneStelle: 0, vorgemerkt: 0 };
   const anteil = Math.round((g.anteil || 0) * 100);
   if (sprache === 'en') {
     return (
       `${g.belegt} of ${g.stellen} sections covered (${anteil} %) · ${g.bilder} images` +
-      (g.ohneStelle ? ` · ${g.ohneStelle} without a section` : '')
+      (g.ohneStelle ? ` · ${g.ohneStelle} without a section` : '') +
+      (g.vorgemerkt ? ` · ${g.vorgemerkt} sections marked internal are left out` : '')
     );
   }
   return (
     `${g.belegt} von ${g.stellen} Stellen belegt (${anteil} %) · ${g.bilder} Bilder` +
-    (g.ohneStelle ? ` · ${g.ohneStelle} ohne Stelle` : '')
+    (g.ohneStelle ? ` · ${g.ohneStelle} ohne Stelle` : '') +
+    (g.vorgemerkt ? ` · ${g.vorgemerkt} vorgemerkte Stellen bleiben außen vor` : '')
   );
 }
 

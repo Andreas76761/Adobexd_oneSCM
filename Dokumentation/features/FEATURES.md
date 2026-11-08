@@ -2215,7 +2215,8 @@ Kleingedrucktes zu lesen.
 
 **Seit** 1.78.0 · **Ansicht** Gliederung, Design, Output · betrifft Handbuch
 · **geändert in** 1.79.0 (Output, Marke im Baum), 1.80.0 (gefiltert wird
-am Bild), 1.83.0 (die interne Fassung trägt ihren Vermerk)
+am Bild), 1.83.0 (die interne Fassung trägt ihren Vermerk), 1.84.0 (das
+Fortschrittsblatt zählt sie nicht)
 
 **Das Problem** Nicht jeder Abschnitt gehört ins Benutzerhandbuch. Ein
 Arbeitsstand, eine offene Absprache, eine Funktion, die erst kommen soll –
@@ -2281,6 +2282,13 @@ deren *Bilder* an vorgemerkten Stellen hängen. Mit Schalter, aber ohne
 vorgemerktes Bild bleibt sie die gewöhnliche Unterlage – ein Vermerk, der
 immer dasteht, wird nicht gelesen. Umgekehrt trägt auch die Vorschau von
 Kapitel 24 im Designstudio den Vermerk.
+
+**Das Fortschrittsblatt zählt sie nicht** (seit 1.84.0). Es heißt „Stand
+des Handbuchs", und Vorgemerktes kommt nie ins Handbuch. Bis dahin standen
+„24 Intern" und „25 In Planung" als zwei Kapitel bei null Prozent darin –
+ein Rückstand, den niemand aufholen kann und auch nicht aufholen soll. Die
+Zeile sagt jetzt, wie viele Stellen draußen bleiben: weggelassen, aber nicht
+verschwiegen.
 
 **Wo die Vormerkung liegt** Bei den eigenen Texten
 (`screenarchiv:texte`, F-65). Sie reist damit in der Projektdatei (F-63)

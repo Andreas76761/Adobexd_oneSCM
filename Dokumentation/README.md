@@ -10,6 +10,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
 | [durchsicht.md](durchsicht.md) | Bestandsaufnahme über 69 Funktionen in dreizehn Ansichten: was zusammengehört, was wahrscheinlich tot ist, was bewusst bleibt |
+| [versionen/v1.84.0.md](versionen/v1.84.0.md) | Ein Rückstand, den niemand aufholen soll |
 | [versionen/v1.83.0.md](versionen/v1.83.0.md) | Eine interne Fassung, die es selbst sagt |
 | [versionen/v1.82.0.md](versionen/v1.82.0.md) | „2 Regel(n)“ stand im Bericht, angekommen ist keine |
 | [versionen/v1.81.0.md](versionen/v1.81.0.md) | Eine Regel, die nie erfüllbar war |

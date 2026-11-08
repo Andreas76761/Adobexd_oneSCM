@@ -20,6 +20,33 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.84.0] – Ein Rückstand, den niemand aufholen soll
+
+### Behoben
+* **Das Fortschrittsblatt zählte die Kapitel 24 und 25 mit** (F-79). Es
+  heißt „Stand des Handbuchs"; Vorgemerktes kommt nie ins Handbuch. Zwei
+  Kapitel standen für immer bei null Prozent – ein Rückstand, den niemand
+  aufholen kann und auch nicht aufholen soll. Statt 25 Kapitel und 1129
+  Stellen jetzt 23 und 1123, mit dem Zusatz „6 vorgemerkte Stellen bleiben
+  außen vor": weggelassen, aber nicht verschwiegen
+* **Das Register Gliederung gab dem Blatt die gelieferte Gliederung** – die
+  kennt nur die Vormerkung der Kapitel 24 und 25, nicht die von Hand
+  gesetzten. Derselbe Fehler wie beim Baum (1.79.0) und beim Register
+  Output (1.80.0), an einer dritten Stelle
+* **Prüfung und Regelwerk trugen dasselbe Symbol** in der Navigation. Ein
+  Symbol, das zwei Dinge meint, bezeichnet keines. Das Regelwerk hat jetzt
+  seine Waage
+
+### Prüfung
+* **Vier Listen, eine Ansicht.** Eine Ansicht steht in `ANSICHTEN`
+  (`core.mjs`), in `ABSCHNITTE` (`ui.js`), als Knopf in der Vorlage und in
+  der Liste der Begehung. Beim Regelwerk fehlte 1.78.0 der Eintrag im Kern:
+  der Knopf war da, der Abschnitt war da, und `#ans=regelwerk` öffnete
+  nichts. Der Build hält die vier jetzt gegeneinander – dazu: keine zwei
+  Ansichten auf demselben Abschnitt, kein Symbol zweimal
+* 1 neue Buildprüfung und 1 neue Kernprüfung; das Fortschrittsblatt im
+  Browser prüft jetzt auch seine Zahlen. Zusammen 562
+
 ## [1.83.0] – Eine interne Fassung, die es selbst sagt
 
 ### Neu

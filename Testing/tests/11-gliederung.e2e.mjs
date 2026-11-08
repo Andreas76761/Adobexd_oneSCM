@@ -306,6 +306,14 @@ s.test('das Fortschrittsblatt zeigt jedes Kapitel und lässt sich sichern', () =
       await seite.click('.portal-nav button[data-ansicht="gliederung"]');
       await seite.waitForSelector('#fortschritt-schau canvas');
 
+      // Die Kapitel 24 und 25 sind vorgemerkt geboren und kommen nie ins
+      // Handbuch - das Blatt zählt sie nicht mit, sagt aber, dass es sie
+      // gibt (1.84.0). Die gelieferte Gliederung hat 23 Kapitel und 1123
+      // Stellen; mit den vorgemerkten wären es 25 und 1129.
+      const umfangZeile = await seite.locator('#fortschritt-stand').innerText();
+      wahr(/von 1123 Stellen belegt/.test(umfangZeile), umfangZeile);
+      wahr(/6 vorgemerkte Stellen bleiben außen vor/.test(umfangZeile), umfangZeile);
+
       // Das Blatt ist A4 quer in 300 dpi - und es wird gezeichnet, nicht leer.
       const masse = await seite.locator('#fortschritt-schau canvas').evaluate((l) => [l.width, l.height]);
       gleich(masse[0], 3508);

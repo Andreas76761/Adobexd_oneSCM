@@ -3731,6 +3731,36 @@ const fortschrittGliederung = kern.leseGliederung({
   ]
 });
 
+s.test('der Fortschritt z\u00e4hlt nicht, was nie ins Handbuch kommt (1.84.0)', () => {
+  // Das Blatt hei\u00dft „Stand des Handbuchs". Vorgemerktes kommt nicht ins
+  // Handbuch (F-79) - bis 1.83.0 standen „24 Intern" und „25 In Planung"
+  // darin, zwei Kapitel bei 0 Prozent, ein R\u00fcckstand, den niemand aufholen
+  // kann und auch nicht aufholen soll.
+  const gliederung = fortschrittGliederung.map((e) =>
+    e.nummer === '7' || e.nummer === '7.1' ? { ...e, vormerkung: 'intern' } : e
+  );
+  const bilder = [{ id: 'A1', gliederung: '6.1' }];
+  const ohne = kern.fortschrittDaten(gliederung, bilder);
+  gleich(ohne.gesamt.kapitel, 1, 'das vorgemerkte Kapitel steht noch im Blatt');
+  gleich(ohne.gesamt.stellen, 2);
+  gleich(ohne.gesamt.vorgemerkt, 1, 'gez\u00e4hlt wird in derselben Einheit wie oben: Bl\u00e4tter');
+  wahr(!ohne.kapitel.some((k) => k.nummer === '7'), ohne.kapitel.map((k) => k.nummer).join(', '));
+  // Weggelassen, aber nicht verschwiegen.
+  wahr(/1 vorgemerkte Stellen bleiben au\u00dfen vor/.test(kern.fortschrittText(ohne)), kern.fortschrittText(ohne));
+  wahr(/1 sections marked internal are left out/.test(kern.fortschrittText(ohne, 'en')), kern.fortschrittText(ohne, 'en'));
+
+  // Mit Schalter ist alles wieder da - und dann steht kein Hinweis dabei.
+  const mit = kern.fortschrittDaten(gliederung, bilder, { mitVorgemerkten: true });
+  gleich(mit.gesamt.kapitel, 2);
+  gleich(mit.gesamt.stellen, 3);
+  gleich(mit.gesamt.vorgemerkt, 0);
+  wahr(!/bleiben au\u00dfen vor/.test(kern.fortschrittText(mit)), kern.fortschrittText(mit));
+
+  // Ohne Vormerkung \u00e4ndert sich nichts an den bisherigen Zahlen.
+  gleich(kern.fortschrittDaten(fortschrittGliederung, bilder).gesamt.stellen, 3);
+  gleich(kern.fortschrittDaten(fortschrittGliederung, bilder).gesamt.vorgemerkt, 0);
+});
+
 s.test('der Fortschritt zählt Stellen, nicht Bilder', () => {
   const bilder = [
     { id: 'A1', gliederung: '6.1', sprache: 'de' },

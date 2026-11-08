@@ -125,6 +125,57 @@ s.test('der Skriptbereich ist die einzige Stelle mit Dokumentgerüst', () => {
   gleich((markup.match(/<!doctype/gi) || []).length, 0);
 });
 
+s.test('die vier Listen der Ansichten sagen dasselbe (1.84.0)', () => {
+  // Eine Ansicht steht an vier Stellen: `ANSICHTEN` im Kern (sie entscheidet,
+  // ob `#ans=…` sie öffnet), `ABSCHNITTE` in `ui.js` (sie entscheidet, was
+  // sichtbar wird), der Knopf in der Vorlage und die Liste der Begehung.
+  // Beim Regelwerk fehlte 1.78.0 der Eintrag im Kern: der Knopf war da, der
+  // Abschnitt war da, und `#ans=regelwerk` öffnete nichts. Gemerkt hat es
+  // niemand - jede Liste für sich war in Ordnung.
+  const kern = readFileSync(join(wurzel, 'app', 'src', 'core.mjs'), 'utf8');
+  const ui = readFileSync(join(wurzel, 'app', 'src', 'ui.js'), 'utf8');
+  const vorlage = readFileSync(join(wurzel, 'app', 'src', 'index.template.html'), 'utf8');
+  const begehung = readFileSync(join(wurzel, 'Testing', 'tests', '18-begehung.e2e.mjs'), 'utf8');
+
+  const liste = (text, anfang) => {
+    const ab = text.slice(text.indexOf(anfang) + anfang.length);
+    return [...ab.slice(0, ab.indexOf('};')).matchAll(/^  ([a-z]+):/gm)].map((t) => t[1]);
+  };
+  const ansichten = (() => {
+    const ab = kern.slice(kern.indexOf('export const ANSICHTEN = ['));
+    return [...ab.slice(0, ab.indexOf('];')).matchAll(/'([a-z]+)'/g)].map((t) => t[1]);
+  })();
+  const abschnitte = liste(ui, 'const ABSCHNITTE = {');
+  const knoepfe = [...vorlage.matchAll(/data-ansicht="([a-z]+)"/g)].map((t) => t[1]);
+  const geprüft = liste(begehung, 'const ABSCHNITTE = {');
+
+  wahr(ansichten.length >= 10, 'ANSICHTEN wurde nicht gelesen: ' + ansichten.join(', '));
+  for (const [name, andere] of [
+    ['ABSCHNITTE in ui.js', abschnitte],
+    ['Knöpfe der Navigation', knoepfe],
+    ['Liste der Begehung', geprüft]
+  ]) {
+    const fehlt = ansichten.filter((a) => !andere.includes(a));
+    const zuviel = andere.filter((a) => !ansichten.includes(a));
+    gleich(fehlt.join(', '), '', `${name}: fehlt`);
+    gleich(zuviel.join(', '), '', `${name}: kennt eine Ansicht, die ANSICHTEN nicht kennt`);
+  }
+
+  // Jede Ansicht trägt ihr eigenes Symbol. Regelwerk und Prüfung trugen bis
+  // 1.83.0 dasselbe - ein Symbol, das zwei Dinge meint, bezeichnet keines.
+  const nav = vorlage.slice(vorlage.indexOf('class="portal-nav"'), vorlage.indexOf('</nav>'));
+  const symbole = [...nav.matchAll(/data-ansicht="[a-z]+"[\s\S]*?use href="#([a-z-]+)"/g)].map((t) => t[1]);
+  gleich(symbole.length, ansichten.length, 'nicht jeder Knopf trägt ein Symbol');
+  gleich(new Set(symbole).size, symbole.length, 'zwei Ansichten tragen dasselbe Symbol');
+  for (const symbol of symbole) wahr(vorlage.includes(`id="${symbol}"`), `das Symbol ${symbol} ist nicht gezeichnet`);
+
+  // Und jede Ansicht hat ihren eigenen Abschnitt - zwei Ansichten auf
+  // denselben Abschnitt zu legen hieße, eine von beiden nie zu zeigen.
+  const ziele = [...ui.slice(ui.indexOf('const ABSCHNITTE = {')).matchAll(/^  [a-z]+: '([a-z-]+)'/gm)].map((t) => t[1]);
+  gleich(new Set(ziele).size, ziele.length, 'zwei Ansichten zeigen denselben Abschnitt');
+  for (const ziel of ziele) wahr(vorlage.includes(`id="${ziel}"`), `der Abschnitt ${ziel} steht nicht in der Vorlage`);
+});
+
 s.test('die Projektdatei trägt wirklich, was sie zu tragen verspricht (1.82.0)', () => {
   // `PAKET_INHALT` sagt je Speicherschlüssel, ob er mitreist. Geprüft wurde
   // daran bisher nur der **Kern**: dass die Liste alle Schlüssel kennt. Ob
