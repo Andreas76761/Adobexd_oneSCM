@@ -2269,7 +2269,7 @@ beim Rückweg aus Word.
 
 ## F-80 · Register Regelwerk – woran dieses Haus seine Unterlagen misst
 
-**Seit** 1.78.0 · **Ansicht** Regelwerk · betrifft Prüfung, Design, Output, Eingang
+**Seit** 1.78.0 · **Ansicht** Regelwerk · betrifft Prüfung, Design, Output, Eingang · **geändert in** 1.81.0 („Nichts Vorgemerktes“ misst die Ausgabe)
 
 **Das Problem** Was ein Bild oder ein Abschnitt erfüllen muss, hängt am Haus
 und nicht an dieser Seite: der eine verlangt an jedem Bild einen Markt, der
@@ -2289,12 +2289,26 @@ ein **Kapitel**:
 | Text muss / darf nicht ein Wort enthalten | jeder Stelle |
 | Höchstlänge des Textes | jeder Stelle |
 | Abschlusskriterium muss gesetzt sein | jeder Stelle |
-| Nichts Vorgemerktes in der Ausgabe | jeder Stelle |
+| Nichts Vorgemerktes in der Ausgabe | der **Ausgabe** |
 | **Freie Regel**, von Claude geprüft | jeder Stelle |
 
 **Pflicht oder Hinweis.** Nur eine **Pflichtregel** hält das Erzeugen an; ein
 **Hinweis** wird genannt und lässt weiterarbeiten. Die Seite entscheidet
 nicht, was wichtig ist – das Haus entscheidet es.
+
+**Eine Regel über die Ausgabe misst die Ausgabe** (seit 1.81.0). „Nichts
+Vorgemerktes in der Ausgabe“ prüfte bis dahin den *Bestand*: lag irgendwo
+unter einer vorgemerkten Stelle ein Bild, hielt sie als Pflicht jede Ausgabe
+an – obwohl nichts Vorgemerktes in ihr stand, denn es fällt von sich aus weg
+(F-79). Damit war sie nie erfüllbar, solange die Kapitel 24 und 25 benutzt
+werden, und die sind dafür da. Sie misst jetzt den Schalter „Vorgemerktes
+mitnehmen“: ohne ihn eingehalten, mit ihm angehalten. Das ist die Aussage,
+die ein Haus treffen will – *diese Unterlage darf keine interne Fassung
+sein.*
+
+**Bedingt erfüllt heißt nicht erfüllt.** Eine Regel, die nur eingehalten
+ist, *weil* ein Schalter aus steht, nennt im Register auch die Bedingung,
+statt bloß „eingehalten“ zu melden.
 
 **Geprüft an drei Stellen**, damit ein Verstoß dort auffällt, wo er entsteht:
 

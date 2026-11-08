@@ -137,6 +137,9 @@ function zeichneRegelliste() {
       const art = REGEL_ARTEN.find((a) => a.id === regel.art);
       const eigene = pruefeRegeln([regel], bestand, gliederungJetzt());
       const verstoss = eigene.find((b) => b.art === 'fehler' || b.art === 'warnung');
+      // Eine Regel kann eingehalten sein, *weil* ein Schalter aus ist. Dann
+      // ist „eingehalten" allein die halbe Wahrheit (1.80.0).
+      const bedingt = eigene.find((b) => b.art === 'hinweis');
       return el('div', { klasse: 'regel-zeile' + (regel.aktiv === false ? ' regel-zeile--aus' : '') }, [
         el('div', { klasse: 'regel-kopf' }, [
           el('span', {
@@ -151,7 +154,9 @@ function zeichneRegelliste() {
             ? 'Freie Regel – geprüft wird sie im Register Prüfung, und das Ergebnis ist eine Deutung.'
             : verstoss
               ? `Heute: ${verstoss.titel}.`
-              : 'Heute: eingehalten.'
+              : bedingt
+                ? `Heute: eingehalten – ${bedingt.titel}. ${bedingt.text}`
+                : 'Heute: eingehalten.'
         }),
         el('div', { klasse: 'markier-knoepfe' }, [
           el('button', {

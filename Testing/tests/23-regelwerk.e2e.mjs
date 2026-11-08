@@ -105,6 +105,49 @@ s.test('eine Pflichtregel hält das Erzeugen an, ein Hinweis nicht', () =>
     { hash: AUFNAHME }
   ));
 
+s.test('„Nichts Vorgemerktes" haelt erst an, wenn der Schalter an ist (1.80.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Die Kapitel 24 und 25 sind vorgemerkt geboren. Ein Bild dort hielt
+      // bis 1.80.0 jede Ausgabe an - obwohl nichts Vorgemerktes in ihr
+      // stand. Die Regel war als Pflicht nie erfuellbar.
+      await eineAufnahme(seite);
+      await seite.click('#letzte-editor');
+      await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden, null, { timeout: 8000 });
+      await seite.fill('#markier-stelle', '24.1');
+      await seite.click('#markier-sichern');
+      await seite.waitForTimeout(300);
+      await legeRegelAn(seite, { art: 'keine-vorgemerkten', schaerfe: 'pflicht' });
+      // Im Register selbst steht sie als Hinweis da, nicht als Verstoss.
+      const vorschau = await seite.locator('#regelwerk-liste').innerText();
+      wahr(/vorgemerkte Stelle/.test(vorschau), vorschau);
+
+      await seite.click('.portal-nav button[data-ansicht="design"]');
+      await seite.waitForSelector('#design-ansicht:not([hidden])');
+      await seite.evaluate(() => (document.getElementById('design-studio').open = true));
+      await seite.selectOption('#handbuch-umfang', 'alle');
+      await seite.waitForTimeout(500);
+      await seite.click('#handbuch-sichern');
+      // Ohne Schalter laeuft es durch: die Meldung nennt keine Pflichtregel.
+      await seite.waitForTimeout(2500);
+      const ohne = await seite.locator('#design-meldung').innerText();
+      wahr(!/Pflichtregel/.test(ohne), 'die Regel haelt an, obwohl nichts Vorgemerktes ausgegeben wird: ' + ohne);
+
+      // Mit Schalter ist die Ausgabe eine interne Fassung - dann haelt sie an.
+      await seite.check('#handbuch-vorgemerkt');
+      await seite.waitForTimeout(400);
+      await seite.click('#handbuch-sichern');
+      await seite.waitForFunction(
+        () => /Pflichtregel/.test(document.getElementById('design-meldung').textContent),
+        null,
+        { timeout: 8000 }
+      );
+      const mit = await seite.locator('#design-meldung').innerText();
+      wahr(/vorgemerkte Abschnitte/.test(mit), mit);
+    },
+    { hash: AUFNAHME }
+  ));
+
 s.test('der Agent Regelwerk zählt im Register Prüfung mit', () =>
   mitSeite(
     async (seite) => {

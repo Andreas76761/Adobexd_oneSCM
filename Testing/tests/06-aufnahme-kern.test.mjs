@@ -3850,9 +3850,13 @@ s.test('eine Regel misst an der Stelle (1.78.0)', () => {
   wahr(krit[0].titel.includes('2 Stelle'), krit[0].titel);
 
   // Vorgemerktes in der Ausgabe: Kapitel 24 ist vorgemerkt und hat ein Bild.
+  // Gemessen wird aber die **Ausgabe** - und dort fällt es von sich aus weg
+  // (1.80.0). Also ein Hinweis, der sagt, woran die Regel hängt.
   const vorgemerkt = kern.pruefeRegeln([regel({ art: 'keine-vorgemerkten', schaerfe: 'pflicht' })], regelBestand, regelGliederung);
   gleich(vorgemerkt.length, 1);
   gleich(vorgemerkt[0].stelle, '24');
+  gleich(vorgemerkt[0].art, 'hinweis', 'ohne Schalter ist nichts Vorgemerktes in der Ausgabe');
+  wahr(/Vorgemerktes mitnehmen/.test(vorgemerkt[0].text), vorgemerkt[0].text);
 
   // Die freie Regel wird **genannt, nicht geprüft** – sonst stünde im
   // Bericht eine Antwort, die niemand gegeben hat.
@@ -3871,6 +3875,35 @@ s.test('nur eine Pflichtregel hält das Erzeugen an (1.78.0)', () => {
   gleich(kern.regelSperre([], regelBestand, regelGliederung), '');
   // Auch eine freie Pflichtregel hält nichts an: sie ist nicht geprüft.
   gleich(kern.regelSperre([kern.leereRegel({ art: 'frei', wert: 'Etwas.', schaerfe: 'pflicht' })], regelBestand, regelGliederung), '');
+});
+
+s.test('„Nichts Vorgemerktes" misst die Ausgabe, nicht den Bestand (1.80.0)', () => {
+  const regel = kern.leereRegel({ art: 'keine-vorgemerkten', schaerfe: 'pflicht' });
+
+  // Bis 1.80.0 hielt diese Regel als Pflicht **jede** Ausgabe an, solange
+  // irgendwo unter einer vorgemerkten Stelle ein Bild lag - und das ist der
+  // Normalfall: die Kapitel 24 und 25 sind dafür da. Erfüllbar wäre sie nur
+  // gewesen, wenn niemand sie benutzt. Dabei stand nichts Vorgemerktes in
+  // der Ausgabe: es fällt von sich aus weg (F-79).
+  gleich(kern.regelSperre([regel], regelBestand, regelGliederung), '', 'die Regel hält an, obwohl nichts Vorgemerktes ausgegeben wird');
+
+  // Mit dem Schalter ist die Ausgabe eine interne Fassung - dann hält sie an.
+  const sperre = kern.regelSperre([regel], regelBestand, regelGliederung, { mitVorgemerkten: true });
+  wahr(sperre.includes('vorgemerkte Abschnitte'), sperre);
+
+  // Und als Befund: ohne Schalter ein Hinweis, mit Schalter ein Fehler.
+  const ohne = kern.pruefeRegeln([regel], regelBestand, regelGliederung);
+  gleich(ohne[0].art, 'hinweis');
+  wahr(/1 vorgemerkte Stelle/.test(ohne[0].titel), ohne[0].titel);
+  const mit = kern.pruefeRegeln([regel], regelBestand, regelGliederung, { mitVorgemerkten: true });
+  gleich(mit[0].art, 'fehler');
+  wahr(/1 Stelle\(n\) gegen eine Regel/.test(mit[0].titel), mit[0].titel);
+
+  // Ohne ein Bild unter einer vorgemerkten Stelle sagt die Regel nichts -
+  // ein Hinweis über nichts wäre Lärm.
+  const ohneBild = regelBestand.filter((a) => a.gliederung !== '24');
+  gleich(kern.pruefeRegeln([regel], ohneBild, regelGliederung).length, 0);
+  gleich(kern.pruefeRegeln([regel], ohneBild, regelGliederung, { mitVorgemerkten: true }).length, 0);
 });
 
 s.test('das Regelwerk überlebt Speichern und Lesen (1.78.0)', () => {

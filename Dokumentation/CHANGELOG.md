@@ -20,6 +20,28 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.81.0] – Eine Regel, die nie erfüllbar war
+
+### Behoben
+* **„Nichts Vorgemerktes in der Ausgabe“ maß den Bestand, nicht die
+  Ausgabe** (F-80). Als Pflichtregel hielt sie jede Ausgabe an, solange
+  irgendwo unter einer vorgemerkten Stelle ein Bild lag – und das ist der
+  Normalfall, denn die Kapitel 24 und 25 sind dafür da. In der Ausgabe stand
+  dabei nichts Vorgemerktes: es fällt von sich aus weg (F-79). Die Regel war
+  als Pflicht **nie erfüllbar**; wer sie anlegte, sperrte sich dauerhaft
+  aus. `pruefeRegeln()` und `regelSperre()` nehmen jetzt `mitVorgemerkten`
+  entgegen – denselben Schalter, den Designstudio und Output führen. Ohne
+  Schalter eingehalten, mit Schalter angehalten
+* **„Heute: eingehalten“ war die halbe Wahrheit.** Eine Regel, die nur
+  erfüllt ist, *weil* ein Schalter aus steht, nennt jetzt auch die
+  Bedingung. Liegt kein Bild unter einer vorgemerkten Stelle, steht nichts
+  da – ein Hinweis über nichts wäre Lärm
+
+### Prüfung
+* 1 neue Kernprüfung (Sperre ohne und mit Schalter, Befundart, der Fall
+  ohne vorgemerktes Bild) und 1 neue Browserprüfung (Regel anlegen, ohne
+  Schalter läuft das Handbuch durch, mit Schalter hält es an). Zusammen 555
+
 ## [1.80.0] – Vorgemerkt ist das Bild, nicht nur die Stelle
 
 Schließt die Grenze, die 1.79.0 sich selbst aufgeschrieben hat – sie war

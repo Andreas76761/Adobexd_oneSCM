@@ -918,7 +918,10 @@ async function sichereAlsHtml() {
  * gestoppt wurde, und sagt dann auch, warum.
  */
 function regelwerkHaeltAn() {
-  const sperre = regelSperre(regeln, imProjekt(), gliederungJetzt());
+  // „Nichts Vorgemerktes in der Ausgabe" misst die Ausgabe, nicht den
+  // Bestand - darum muss der Schalter mit (1.80.0).
+  const mitVorgemerkten = Boolean($('#handbuch-vorgemerkt') && $('#handbuch-vorgemerkt').checked);
+  const sperre = regelSperre(regeln, imProjekt(), gliederungJetzt(), { mitVorgemerkten });
   if (!sperre) return false;
   meldeDesign(`${sperre} – im Register Regelwerk nachsehen, oder die Regel auf „Hinweis" stellen.`, 'warnung');
   return true;

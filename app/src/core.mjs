@@ -4389,7 +4389,12 @@ export function regelGiltFuer(regel = {}, nummer = '') {
  * braucht Claude und wird hier **genannt, nicht geprueft** - sonst stuende
  * im Bericht eine Antwort, die niemand gegeben hat.
  */
-export function pruefeRegeln(regeln = [], aufnahmen = [], gliederung = [], { nurPflicht = false } = {}) {
+export function pruefeRegeln(
+  regeln = [],
+  aufnahmen = [],
+  gliederung = [],
+  { nurPflicht = false, mitVorgemerkten = false } = {}
+) {
   const befunde = [];
   const aktive = regeln.filter((r) => r && r.aktiv !== false).filter((r) => !nurPflicht || r.schaerfe === 'pflicht');
   const stelleVon = (a) => String(a.gliederung || '').trim();
@@ -4434,6 +4439,9 @@ export function pruefeRegeln(regeln = [], aufnahmen = [], gliederung = [], { nur
     // Regeln an der Stelle.
     const stellen = gliederung.filter((e) => e.art !== 'uebergang' && regelGiltFuer(regel, e.nummer));
     const verstoesse = [];
+    // Vorgemerkte Stellen mit Bildern: `keine-vorgemerkten` misst an der
+    // **Ausgabe**, nicht am Bestand - ohne Schalter sind sie kein Verstoss.
+    const wartend = [];
     for (const eintrag of stellen) {
       const eigene = aufnahmen.filter((a) => stelleVon(a) === eintrag.nummer);
       const darunter = aufnahmen.filter((a) => gehoertZu(stelleVon(a), eintrag.nummer));
@@ -4451,7 +4459,16 @@ export function pruefeRegeln(regeln = [], aufnahmen = [], gliederung = [], { nur
       } else if (regel.art === 'kriterium-gesetzt') {
         if (darunter.length && !String(eintrag.kriterium || '').trim()) verstoesse.push(eintrag.nummer);
       } else if (regel.art === 'keine-vorgemerkten') {
-        if (darunter.length && vormerkungVon(eintrag)) verstoesse.push(eintrag.nummer);
+        // Die Regel heisst „duerfen nicht ausgegeben werden" - gemessen wird
+        // also die Ausgabe. Vorgemerktes faellt von sich aus weg (F-79); wer
+        // das so laesst, verletzt die Regel nicht, auch wenn im Bestand
+        // Kapitel 24 und 25 voller Bilder stehen. Bis 1.80.0 hielt die Regel
+        // als Pflicht jede Ausgabe an, und zwar fuer immer: erfuellbar waere
+        // sie nur gewesen, wenn niemand die beiden Kapitel benutzt.
+        if (darunter.length && vormerkungVon(eintrag)) {
+          if (mitVorgemerkten) verstoesse.push(eintrag.nummer);
+          else wartend.push(eintrag.nummer);
+        }
       }
     }
     if (verstoesse.length) {
@@ -4462,14 +4479,27 @@ export function pruefeRegeln(regeln = [], aufnahmen = [], gliederung = [], { nur
           gewicht: regel.schaerfe === 'pflicht' ? 3 : 2
         })
       );
+    } else if (wartend.length) {
+      // Erfuellt, aber nicht bedeutungslos: die Regel sagt, woran sie haengt.
+      befunde.push(
+        befund(
+          'hinweis',
+          `${wartend.length} vorgemerkte Stelle(n) mit Bildern`,
+          'Vorgemerktes fällt von sich aus aus der Ausgabe. Die Regel hält an, sobald ' +
+            '„Vorgemerktes mitnehmen" eingeschaltet wird.',
+          { stelle: wartend[0], weg: 'gliederung', gewicht: 1 }
+        )
+      );
     }
   }
   return sortiereBefunde(befunde);
 }
 
 /** Hält eine Pflichtregel das Erzeugen an? Dann sagt dieser Satz, warum. */
-export function regelSperre(regeln = [], aufnahmen = [], gliederung = []) {
-  const harte = pruefeRegeln(regeln, aufnahmen, gliederung, { nurPflicht: true }).filter((b) => b.art === 'fehler');
+export function regelSperre(regeln = [], aufnahmen = [], gliederung = [], { mitVorgemerkten = false } = {}) {
+  const harte = pruefeRegeln(regeln, aufnahmen, gliederung, { nurPflicht: true, mitVorgemerkten }).filter(
+    (b) => b.art === 'fehler'
+  );
   if (!harte.length) return '';
   return `${harte.length} Pflichtregel(n) verletzt: ${harte.map((b) => b.text).join(' · ')}`;
 }

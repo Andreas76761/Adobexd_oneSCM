@@ -257,7 +257,9 @@ async function erzeugeOutput() {
   // Eine verletzte Pflichtregel hält das Erzeugen an (F-80). Ein Hinweis
   // nicht: die Seite entscheidet nicht, was wichtig ist - das Regelwerk
   // entscheidet es, und dort steht die Schärfe.
-  const sperre = regelSperre(regeln, imProjekt(), gliederungJetzt());
+  const sperre = regelSperre(regeln, imProjekt(), gliederungJetzt(), {
+    mitVorgemerkten: Boolean(outputWahl.vorgemerkt)
+  });
   if (sperre) {
     meldeOutput(`${sperre} – im Register Regelwerk nachsehen, oder die Regel auf „Hinweis" stellen.`, 'warnung');
     return;
