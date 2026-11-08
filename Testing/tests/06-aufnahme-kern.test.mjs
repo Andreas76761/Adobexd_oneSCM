@@ -2286,7 +2286,7 @@ s.test('die Übersicht trägt Datei, Stelle und Labels – als JSON und als CSV'
   wahr(csv.includes('\r\n'), 'die Zeilen enden nicht nach RFC 4180');
   const zeilen = csv.slice(1).trim().split('\r\n');
   gleich(zeilen.length, 4, 'Kopfzeile und drei Bilder');
-  gleich(zeilen[0], 'id;datei;stelle;thema;titel;projekt;version;land;sprache;rolle;sparte;markt;datum;breite;hoehe;begriffe');
+  gleich(zeilen[0], kern.GALERIE_SPALTEN.join(';'));
   wahr(zeilen[1].includes('6.2;Market Settings'));
   // Kein nacktes \n zwischen den Zeilen - sonst zerfällt die Tabelle.
   gleich((csv.match(/(?<!\r)\n/g) || []).length, 0, 'eine Zeile endet ohne CR');
@@ -2305,6 +2305,56 @@ s.test('die Übersicht trägt Datei, Stelle und Labels – als JSON und als CSV'
   const umbruch = kern.galerieCsv({ bilder: [{ id: 'Y', titel: 'erste\nzweite' }] });
   wahr(umbruch.includes('"erste\nzweite"'), umbruch);
   gleich(umbruch.slice(1).trim().split('\r\n').length, 2, 'der Umbruch in der Zelle hat eine Zeile erzeugt');
+});
+
+s.test('kein Labelfeld f\u00e4llt auf dem Weg in den Ordner weg (1.87.0)', () => {
+  // Die \u00dcbersicht ist das, was ein anderer vom Ordner hat. Bis 1.86.0 fielen
+  // `domaene`, `reiter` und `schritt` darin weg - drei von neun Feldern, die
+  // der Editor anbietet und ein Mensch ausf\u00fcllt. In der CSV fehlten
+  // zus\u00e4tzlich `kategorie` und `notiz`. Gemerkt hat es niemand, weil nichts
+  // die eine Liste gegen die andere hielt.
+  const voll = {
+    id: 'AUF-V1', titel: 'Vertragsmaske', projekt: 'oneSCM', datum: '2026-11-08',
+    gliederung: '6.2', kategorie: 'Maske', begriffe: ['laufzeit'], notiz: 'Grund',
+    sprache: 'fr', rolle_label: 'dealer', sparte: 'van', markt: 'France',
+    version: '4.2', land: 'FR', domaene: 'Vertrag', reiter: 'Uebersicht',
+    schritt_label: '3', breite: 1440, hoehe: 900
+  };
+  const plan = kern.verzeichnisPlan([voll], {}, verzeichnisGliederung, []);
+  const index = kern.galerieIndex([voll], plan, { stand: '2026-11-08', gliederung: verzeichnisGliederung });
+  const bild = index.bilder[0];
+
+  // Jedes Labelfeld des Kerns steht in der \u00dcbersicht - die Kennung ohne
+  // „_label", wie schon bei `rolle`.
+  for (const feld of kern.LABEL_FELDER) {
+    const schluessel = feld.id.replace(/_label$/, "");
+    gleich(bild[schluessel], String(voll[feld.id]), `das Feld „${feld.label}" fehlt in der \u00dcbersicht`);
+  }
+
+  // Und jedes Feld der \u00dcbersicht steht in der Tabelle - oder es steht mit
+  // Grund in `GALERIE_OHNE_SPALTE`.
+  const ohne = new Map(kern.GALERIE_OHNE_SPALTE.map((x) => [x.feld, x.grund]));
+  for (const schluessel of Object.keys(bild)) {
+    wahr(
+      kern.GALERIE_SPALTEN.includes(schluessel) || ohne.has(schluessel),
+      `„${schluessel}" steht in der \u00dcbersicht, aber weder in der Tabelle noch in GALERIE_OHNE_SPALTE`
+    );
+  }
+  // Umgekehrt auch: keine Spalte, die niemand f\u00fcllt.
+  for (const spalte of kern.GALERIE_SPALTEN) {
+    wahr(spalte in bild, `die Spalte „${spalte}" wird von der \u00dcbersicht nie gef\u00fcllt`);
+  }
+  // Und jeder genannte Grund gilt einem Feld, das es wirklich gibt.
+  for (const [feld, grund] of ohne) {
+    wahr(feld in bild, `GALERIE_OHNE_SPALTE nennt „${feld}" - das Feld gibt es nicht`);
+    wahr(String(grund || "").length > 20, `der Grund f\u00fcr „${feld}" ist zu knapp`);
+  }
+
+  // In der Tabelle stehen die Werte dann auch wirklich.
+  const zeilen = kern.galerieCsv(index).slice(1).trim().split("\r\n");
+  for (const wert of ["Vertrag", "Uebersicht", "Maske", "Grund", "FR", "4.2"]) {
+    wahr(zeilen[1].includes(wert), `„${wert}" fehlt in der Zeile: ${zeilen[1]}`);
+  }
 });
 
 s.test('die Wahl des Verzeichnisses überlebt das Ablegen', () => {

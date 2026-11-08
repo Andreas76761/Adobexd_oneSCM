@@ -74,6 +74,11 @@ async function zweiBilder(seite) {
   await seite.selectOption('#label-sprache', 'de');
   await seite.selectOption('#label-rolle_label', 'dealer');
   await seite.selectOption('#label-sparte', 'pkw');
+  // Die drei freien Felder mit: sie fielen bis 1.86.0 auf dem Weg in den
+  // Ordner weg, und nichts hat es gemerkt.
+  await seite.fill('#label-domaene', 'Vertragswesen');
+  await seite.fill('#label-reiter', 'Übersicht');
+  await seite.fill('#label-schritt_label', '3');
   await seite.waitForTimeout(150);
   await seite.click('#markier-sichern');
   await seite.waitForTimeout(250);
@@ -190,6 +195,24 @@ s.test('die Galerie wird mit Unterordnern geschrieben und berichtet', () =>
         [0x7b, 0x0a, 0x20],
         'die Übersicht beginnt nicht mit einer geschweiften Klammer'
       );
+
+      // Jedes Labelfeld, das im Editor gesetzt wurde, steht in der Übersicht
+      // und in der Tabelle (1.87.0). Bis 1.86.0 fielen Domäne, Reiter und
+      // Schritt auf dem Weg in den Ordner weg.
+      const uebersicht = JSON.parse(dateien.find((d) => d.pfad === 'index.json').inhalt);
+      const gelabelt = uebersicht.bilder.find((b) => b.stelle === '6.2');
+      gleich(gelabelt.sprache, 'de');
+      gleich(gelabelt.rolle, 'dealer');
+      gleich(gelabelt.sparte, 'pkw');
+      gleich(gelabelt.domaene, 'Vertragswesen', 'die Domäne fehlt in der Übersicht');
+      gleich(gelabelt.reiter, 'Übersicht', 'der Reiter fehlt in der Übersicht');
+      gleich(gelabelt.schritt, '3', 'der Schritt fehlt in der Übersicht');
+      gleich(gelabelt.kategorie, 'Navigation');
+      const spalten = tabelle.inhalt.replace('\ufeff', '').split('\r\n')[0].split(';');
+      for (const spalte of ['domaene', 'reiter', 'schritt', 'kategorie', 'notiz']) {
+        wahr(spalten.includes(spalte), `die Spalte „${spalte}" fehlt: ` + spalten.join(','));
+      }
+      wahr(/Vertragswesen/.test(tabelle.inhalt), 'die Domäne steht nicht in der Tabelle');
 
       // Die Übersicht trägt die Bilder mit ihrem Pfad.
       const bericht = await seite.locator('#verzeichnis-meldung').innerText();

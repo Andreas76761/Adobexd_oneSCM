@@ -1134,7 +1134,8 @@ einmal einrichtet, findet man wieder.
 
 ## F-45 · Verzeichnis: die Galerie auf die Platte
 
-**Seit** 1.29.0 · **Ansicht** Verzeichnis
+**Seit** 1.29.0 · **Ansicht** Verzeichnis · **geändert in** 1.87.0 (die
+Übersicht trägt alle Labels)
 
 **Zweck** Der Eingang liegt im Browser – wer die Browserdaten löscht, löscht
 ihn. Dauerhaft wird eine Aufnahme erst als Datei. Diese Ansicht schreibt die
@@ -1146,8 +1147,20 @@ ganze Galerie samt Zusatzdaten in ein lokales Verzeichnis.
 | --- | --- |
 | `…/<name>.png` | das Bild in voller Auflösung, mit Beipackzettel im PNG |
 | `…/<name>.json` | der Beipackzettel daneben (abschaltbar) |
-| `index.json` | Übersicht: Datei, Stelle, Thema, Labels, Maße, Einfuhr |
+| `index.json` | Übersicht: Datei, Stelle, Thema, **alle neun Labels**, Kategorie, Notiz, Maße, Einfuhr |
 | `index.csv` | dieselbe Übersicht für eine Tabelle: Semikolon getrennt, **mit BOM und CRLF** – sonst liest Excel „Prüfung" als „PrÃ¼fung" (seit 1.72.0) |
+
+**Was in der Übersicht steht, steht auch in der Tabelle** (seit 1.87.0).
+`GALERIE_SPALTEN` nennt die Spalten, `GALERIE_OHNE_SPALTE` das, was mit
+Grund draußen bleibt – derzeit nur `einfuhr`, ein Satz aus Datei, Seite und
+Folie und damit keine Zelle. Eine Prüfung hält drei Richtungen
+gegeneinander: jedes Labelfeld des Kerns steht in der Übersicht (die
+Kennung ohne „_label", wie bei `rolle`), jedes Feld der Übersicht in der
+Tabelle oder mit Grund draußen, und keine Spalte bleibt ungefüllt. Bis
+1.86.0 fielen `domaene`, `reiter` und `schritt` in beiden weg und
+`kategorie` und `notiz` in der Tabelle; die damalige Prüfung verglich die
+Kopfzeile mit einer abgeschriebenen Zeichenkette und bestätigte damit nur,
+dass sich nichts geändert hatte.
 | `strecken.json` | alle Strecken im Format der Seite |
 | `prozesse/<name>.bpmn` | je Strecke der Prozess (F-41) |
 

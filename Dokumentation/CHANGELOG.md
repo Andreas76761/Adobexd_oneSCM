@@ -20,6 +20,34 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.87.0] – Drei Labels, die den Ordner nie erreichten
+
+### Behoben
+* **Die Übersicht der Galerie ließ drei Labelfelder weg** (F-45). `domaene`,
+  `reiter` und `schritt` fehlten in `index.json` **und** in `index.csv`; in
+  der CSV zusätzlich `kategorie` und `notiz`, die die Übersicht sehr wohl
+  führt. Es sind keine vergessenen Reste: der Editor baut aus `LABEL_FELDER`
+  für jedes ein Eingabefeld. Wer sie ausfüllte, füllte ein Feld, das es bis
+  in den Ordner nicht schaffte
+
+### Prüfung
+* **Die Prüfung hielt eine Liste gegen ihre eigene Abschrift.** Es gab eine
+  grüne Prüfung „die Übersicht trägt Datei, Stelle und Labels"; sie verglich
+  die Kopfzeile der CSV mit einer abgeschriebenen Zeichenkette und
+  bestätigte damit nur, dass sich nichts geändert hat. Dasselbe Muster wie
+  bei `PAKET_INHALT` (1.82.0) und den vier Listen der Ansichten (1.84.0)
+* Neu: `GALERIE_SPALTEN` und `GALERIE_OHNE_SPALTE` (je mit Grund). Die
+  Prüfung hält drei Richtungen gegeneinander – jedes Labelfeld in der
+  Übersicht, jedes Feld der Übersicht in der Tabelle oder mit Grund draußen,
+  keine Spalte ohne Füllung. Übrig bleibt `einfuhr`: ein Gebilde, keine Zelle
+* 1 neue Kernprüfung, gegengeprüft; die Browserprüfung füllt die drei Felder
+  jetzt im Editor aus, statt sie leer zu lassen. Zusammen 567
+
+### Geändert
+* Die Kopfzeile von `index.csv` trägt sieben Spalten mehr. Wer sie nach
+  **Spaltennummer** liest, muss nachziehen; wer sie nach Namen liest, merkt
+  nichts
+
 ## [1.86.0] – Das Blatt zur Durchsicht kannte die Labels nicht
 
 ### Behoben

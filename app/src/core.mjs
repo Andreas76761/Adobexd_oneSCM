@@ -5849,6 +5849,13 @@ export function galerieIndex(eingang = [], plan = [], { stand = new Date().toISO
         rolle: a.rolle_label || '',
         sparte: a.sparte || '',
         markt: a.markt || '',
+        // Bis 1.86.0 endete die Uebersicht hier. Drei Labelfelder, die der
+        // Editor anbietet und ein Mensch ausfuellt, fielen weg: wer den
+        // Ordner bekam, bekam sie nicht. `rolle_label` heisst hier `rolle`,
+        // darum auch `schritt_label` -> `schritt`.
+        domaene: a.domaene || '',
+        reiter: a.reiter || '',
+        schritt: a.schritt_label || '',
         begriffe: a.begriffe || [],
         notiz: a.notiz || '',
         breite: a.breite || 0,
@@ -5876,11 +5883,29 @@ export const CSV_BOM = '\ufeff';
  * CRLF nach RFC 4180, weil Excel selbst so schreibt. Ein Zeilenumbruch
  * **in** einer Zelle bleibt ein einzelnes \n und steht in Anführungszeichen.
  */
+/**
+ * Die Spalten der Galerie-CSV, in der Reihenfolge, in der sie stehen.
+ *
+ * Was `galerieIndex` je Bild fuehrt, steht entweder hier oder in
+ * `GALERIE_OHNE_SPALTE` - mit Grund. Eine Pruefung haelt beides gegen die
+ * Uebersicht, damit die Listen nicht auseinanderlaufen: bis 1.86.0 fehlten
+ * `domaene`, `reiter` und `schritt` in beiden, und `kategorie` und `notiz`
+ * nur in der CSV. Gemerkt hat es niemand, weil nichts die eine Liste gegen
+ * die andere hielt.
+ */
+export const GALERIE_SPALTEN = [
+  'id', 'datei', 'fassung', 'stelle', 'thema', 'titel', 'projekt', 'kategorie',
+  'version', 'land', 'sprache', 'rolle', 'sparte', 'markt', 'domaene', 'reiter',
+  'schritt', 'datum', 'erfasst_am', 'breite', 'hoehe', 'begriffe', 'notiz'
+];
+
+/** Was die Uebersicht fuehrt, die Tabelle aber nicht - jedes mit Grund. */
+export const GALERIE_OHNE_SPALTE = [
+  { feld: 'einfuhr', grund: 'Ein Satz aus Datei, Seite und Folie - keine Zelle, sondern ein Gebilde.' }
+];
+
 export function galerieCsv(index = {}) {
-  const spalten = [
-    'id', 'datei', 'stelle', 'thema', 'titel', 'projekt', 'version', 'land',
-    'sprache', 'rolle', 'sparte', 'markt', 'datum', 'breite', 'hoehe', 'begriffe'
-  ];
+  const spalten = GALERIE_SPALTEN;
   const zelle = (wert) => {
     const text = Array.isArray(wert) ? wert.join(' ') : String(wert ?? '');
     return /[";\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
