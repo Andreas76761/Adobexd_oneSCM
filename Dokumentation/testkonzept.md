@@ -59,9 +59,9 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-| `23-regelwerk.e2e.mjs` | Regelwerk im Browser: leeres Register, Regel anlegen und über das Neuladen behalten, Anhalten im Eingang, im Designstudio und als Agent, Vormerkung von intern und in Planung | 6 |
+| `23-regelwerk.e2e.mjs` | Regelwerk im Browser: leeres Register, Regel anlegen und über das Neuladen behalten, Anhalten im Eingang, im Designstudio und als Agent, Vormerkung von intern und in Planung, Output lässt Vorgemerktes weg, die Marke im Baum | 8 |
 
-Summe: **549 Prüfungen**.
+Summe: **551 Prüfungen**.
 
 ## Messungen – nicht Teil des Durchlaufs
 

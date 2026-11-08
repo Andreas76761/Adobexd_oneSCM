@@ -178,6 +178,58 @@ s.test('vorgemerkte Abschnitte fallen aus dem Handbuch – bis man sie dazunimmt
     { hash: '#ans=gliederung' }
   ));
 
+s.test('das Register Output lässt Vorgemerktes ebenso weg (1.79.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Bis 1.78.0 filterte nur das Designstudio: im Register Output stand
+      // eine vorgemerkte Stelle zur Wahl und wurde auch gerechnet. Zwei
+      // Wege, zwei Antworten.
+      await eineAufnahme(seite);
+      // Das Bild an eine vorgemerkte Stelle hängen.
+      await seite.click('#letzte-editor');
+      await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden, null, { timeout: 8000 });
+      await seite.fill('#markier-stelle', '24.1');
+      await seite.click('#markier-sichern');
+      await seite.waitForTimeout(300);
+
+      await seite.click('.portal-nav button[data-ansicht="output"]');
+      await seite.waitForSelector('#output-ansicht:not([hidden])');
+      await seite.waitForTimeout(400);
+      const ohne = await seite.locator('#output-inhalte').innerText();
+      wahr(!/24\.1/.test(ohne), 'die vorgemerkte Stelle steht zur Wahl: ' + ohne);
+      wahr(
+        /vorgemerkte/.test(await seite.locator('#output-vorgemerkt-stand').innerText()),
+        await seite.locator('#output-vorgemerkt-stand').innerText()
+      );
+
+      // Mit dem Schalter steht sie da – eine interne Fassung ist möglich.
+      await seite.check('#output-vorgemerkt');
+      await seite.waitForTimeout(400);
+      wahr(/24\.1/.test(await seite.locator('#output-inhalte').innerText()), 'mit Schalter fehlt sie immer noch');
+
+      // Und wer sie wählt und den Schalter wieder ausmacht, rechnet sie
+      // nicht stillschweigend weiter.
+      await seite.selectOption('#output-inhalte', ['kapitel:24.1']);
+      await seite.waitForTimeout(300);
+      await seite.uncheck('#output-vorgemerkt');
+      await seite.waitForTimeout(400);
+      gleich(await seite.locator('.output-zeile').count(), 0, 'die vorgemerkte Stelle wird weitergerechnet');
+    },
+    { hash: AUFNAHME }
+  ));
+
+s.test('der Baum zeigt, was vorgemerkt ist (1.79.0)', () =>
+  mitSeite(async (seite) => {
+    await seite.fill('#gliederung-suche', 'Intern');
+    await seite.waitForTimeout(350);
+    // Gelesen wird der Text im Markup: angezeigt wird er in Kapitälchen,
+    // und `allInnerTexts` liefert dann „INTERN".
+    const marken = await seite.evaluate(() =>
+      [...document.querySelectorAll('.gliederung-baum .regel-marke')].map((e) => e.textContent.trim())
+    );
+    wahr(marken.includes('Intern'), 'der Baum nennt die Vormerkung nicht: ' + marken.join(' | '));
+  }, { hash: '#ans=gliederung' }));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

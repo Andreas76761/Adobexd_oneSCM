@@ -14,6 +14,10 @@
 let outputWahl = {
   vorlagen: ['quickguide'],
   inhalte: [],
+  // Vorgemerktes (intern, in Planung) fällt aus der Ausgabe - wie im
+  // Designstudio, und aus demselben Grund: eine interne Fassung soll
+  // möglich sein, aber nicht aus Versehen entstehen (F-79).
+  vorgemerkt: false,
   // Keine Achse als Vorgabe: mit „sprache" und ohne Werte konnte bis 1.65.0
   // nie ein Plan entstehen - Vorlage und Inhalt zu wählen genügte nicht,
   // und der Hinweis sagte das Gegenteil („wenn gewünscht").
@@ -72,7 +76,25 @@ function zeichneOutputWahl() {
   // Die Inhalte stehen nach Kapiteln geordnet: erst die Strecken, dann je
   // Kapitel seine Stellen mit Bildern. Eine flache Liste mit 1161 Stellen
   // wäre keine Auswahl.
-  const quellen = designQuellen();
+  const alleQuellen = designQuellen();
+  // Eine vorgemerkte Stelle steht nicht zur Wahl, solange der Schalter aus
+  // ist. Bis 1.78.0 stand sie dort und wurde auch gerechnet - während das
+  // Designstudio sie weggelassen hat. Zwei Wege, zwei Antworten.
+  const vorgemerkteStellen = new Set(
+    gliederungJetzt().filter((e) => vormerkungVon(e)).map((e) => e.nummer)
+  );
+  const quellen = outputWahl.vorgemerkt
+    ? alleQuellen
+    : alleQuellen.filter((q) => !(q.id.startsWith('kapitel:') && vorgemerkteStellen.has(q.id.slice(8))));
+  const weggefallen = alleQuellen.length - quellen.length;
+  const hinweis = $('#output-vorgemerkt-stand');
+  if (hinweis) {
+    hinweis.textContent = outputWahl.vorgemerkt
+      ? 'Vorgemerktes steht zur Wahl – die Ausgabe wird eine interne Fassung.'
+      : weggefallen
+        ? `${weggefallen} vorgemerkte(r) Abschnitt(e) stehen nicht zur Wahl.`
+        : 'Kein vorgemerkter Abschnitt im Bestand.';
+  }
   const strecken1 = quellen.filter((q) => q.id.startsWith('strecke:'));
   const stellen = quellen.filter((q) => q.id.startsWith('kapitel:'));
   const nachKapitel = new Map();
@@ -432,6 +454,21 @@ function zeichneOutput() {
 }
 
 function verdrahteOutput() {
+  $('#output-vorgemerkt').addEventListener('change', (e) => {
+    outputWahl = { ...outputWahl, vorgemerkt: e.target.checked };
+    if (!e.target.checked) {
+      const vorgemerkteStellen = new Set(
+        gliederungJetzt().filter((eintrag) => vormerkungVon(eintrag)).map((eintrag) => eintrag.nummer)
+      );
+      outputWahl = {
+        ...outputWahl,
+        inhalte: outputWahl.inhalte.filter(
+          (i) => !(i.startsWith('kapitel:') && vorgemerkteStellen.has(i.slice(8)))
+        )
+      };
+    }
+    zeichneOutput();
+  });
   $('#output-inhalte').addEventListener('change', (e) => {
     outputWahl = {
       ...outputWahl,

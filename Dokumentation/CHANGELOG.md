@@ -20,6 +20,31 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.79.0] – Zwei Wege, zwei Antworten
+
+Schließt, was 1.78.0 offen gelassen hat. Beides fiel beim Nachfahren auf.
+
+### Behoben
+* **Das Register Output filterte Vorgemerktes nicht mit** (F-79). Dieselbe
+  Stelle, zwei Wege, zwei Antworten: über das Designstudio fiel sie weg,
+  über Output wurde sie gerechnet – ohne Hinweis. Output hat jetzt denselben
+  Schalter und dieselbe Vorgabe, und daneben steht, wie viele Abschnitte
+  weggelassen wurden. Wer eine wählt und den Schalter wieder ausmacht,
+  rechnet sie nicht stillschweigend weiter: die Wahl wird bereinigt
+* **Der Baum der Gliederung zeigte die Vormerkung nicht** – sie stand erst
+  nach dem Anklicken in der Beschreibung. Bei 1161 Stellen heißt das
+  unsichtbar. Der Baum wird dafür aus der Gliederung **mit den eigenen
+  Texten darüber** gebaut; die rohe kennt nur die Vormerkung der Kapitel
+
+### Zum dritten Mal
+* `allInnerTexts()` liefert, was man **sieht**: `text-transform: uppercase`
+  machte aus „Intern" ein „INTERN", und die erste Fassung der Prüfung
+  meldete einen Fehler, den es nicht gab. Gelesen wird `textContent`
+
+### Prüfung
+* 2 neue Browserprüfungen (Output lässt Vorgemerktes weg und bereinigt die
+  Wahl; der Baum zeigt die Marke). Zusammen 551
+
 ## [1.78.0] – Regeln, Vormerkungen und eine dritte Sparte
 
 ### Neu

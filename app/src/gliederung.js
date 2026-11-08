@@ -63,7 +63,9 @@ function zeichneGliederung() {
   zeichneRuecklauf();
   zeichneFortschritt();
 
-  const baum = gliederungBaum(GLIEDERUNG);
+  // Mit den eigenen Texten darüber: nur so trägt der Baum auch die von
+  // Hand gesetzten Vormerkungen (F-79) und nicht bloß die der Kapitel.
+  const baum = gliederungBaum(gliederungJetzt());
   $('#gliederung-baum').replaceChildren(
     ...baum
       .map((knoten) => zeichneStelle(knoten, zahlen, sichtbareNummern))
@@ -224,8 +226,16 @@ function zeichneStelle(knoten, zahlen, sichtbar) {
       }
     }, [
       el('span', { klasse: 'stelle-nummer', text: knoten.nummer }),
-      el('span', { klasse: 'stelle-thema', text: knoten.thema })
-    ]),
+      el('span', { klasse: 'stelle-thema', text: knoten.thema }),
+      // Vorgemerktes soll man im Baum sehen, nicht erst nach dem Anklicken.
+      vormerkungVon(knoten)
+        ? el('span', {
+            klasse: 'regel-marke',
+            text: (VORMERKUNGEN.find((v) => v.id === vormerkungVon(knoten)) || {}).label || '',
+            title: 'Fällt aus dem Handbuch, solange „Vorgemerktes mitnehmen" aus ist.'
+          })
+        : null
+    ].filter(Boolean)),
     el('span', {
       klasse: 'stelle-zahl' + (zahl.gesamt ? ' stelle-zahl--voll' : ''),
       text: zahl.eigene === zahl.gesamt ? String(zahl.gesamt) : `${zahl.eigene} (${zahl.gesamt})`,

@@ -2236,9 +2236,17 @@ Umfang: so stimmen auch Seitenzahl und Kennzahlen. Der Umfang sagt dabei,
 *was* wegfällt – „4 Abschnitt(e) nicht in der Ausgabe: 2 Intern, 2 In
 Planung" –, damit es nicht stillschweigend geschieht.
 
-**Schaltbar, aber nicht aus Versehen.** Im Designstudio nimmt
-„Vorgemerktes mitnehmen" sie wieder dazu. Eine interne Fassung soll möglich
-sein; sie soll nur nicht entstehen, weil niemand hingesehen hat.
+**Schaltbar, aber nicht aus Versehen.** Im Designstudio **und im Register
+Output** nimmt „Vorgemerktes mitnehmen" sie wieder dazu. Eine interne
+Fassung soll möglich sein; sie soll nur nicht entstehen, weil niemand
+hingesehen hat. In Output steht eine vorgemerkte Stelle ohne den Schalter
+gar nicht erst zur Wahl, und wer eine wählt und den Schalter wieder
+ausmacht, verliert sie aus der Wahl statt sie stillschweigend mitzurechnen
+(seit 1.79.0).
+
+**Im Baum sichtbar** Jede vorgemerkte Stelle trägt ihre Marke in der
+Gliederung – bei 1161 Stellen wäre eine Angabe, die erst nach dem Anklicken
+erscheint, keine.
 
 **Wo die Vormerkung liegt** Bei den eigenen Texten
 (`screenarchiv:texte`, F-65). Sie reist damit in der Projektdatei (F-63)
