@@ -488,12 +488,25 @@ gespeichert.
 
 **Beipackzettel** (ab 1.9.0) Neben jedes abgelegte Bild kommt eine gleichnamige
 `.json` mit allen Metadaten – ohne sie trüge die Datei nur, was ins
-Namensmuster passt. Feste Feldfolge, auch bei leeren Werten: Zettelversion,
-erzeugende Anwendung, Bildname, Erfassungszeitpunkt, Datum, Titel, Projekt,
-Seite, Kategorie, Status, Rolle, Begriffe, Notiz, Autor, Browser, Ausschnitt,
-Quelle. Abschaltbar; das Kästchen erscheint nur bei Ordner- oder Dateizielen
-und nennt die zweite Bestätigung beim Sichern als Einzeldatei. Im Archiv ist er
-seit 1.10.0 lesbar, ohne den Dateimanager zu öffnen – siehe F-27.
+Namensmuster passt. Feste Feldfolge, auch bei leeren Werten – sie steht in
+`BEIPACK_FELDER` und nirgends sonst: Zettelversion, erzeugende Anwendung,
+Bildname, Erfassungszeitpunkt, Datum, Titel, Projekt, Version, Land, Seite,
+Kategorie, Status, Rolle, Begriffe, Notiz, Autor, Browser, Ausschnitt, Quelle,
+**Labels**, Unkenntliches, Marken. Abschaltbar; das Kästchen erscheint nur bei
+Ordner- oder Dateizielen und nennt die zweite Bestätigung beim Sichern als
+Einzeldatei. Im Archiv ist er seit 1.10.0 lesbar, ohne den Dateimanager zu
+öffnen – siehe F-27.
+
+**Die Labels im Zettel** (seit 1.88.0, Zettelversion 3) Der Satz `labels`
+führt alle neun Felder aus `LABEL_FELDER`, gebildet aus dieser Liste statt
+von Hand aufgezählt; angezeigt wird er als eine Zeile im Klartext
+(„Sprache Französisch · Sparte Van …"), nicht in Kennungen. Bis 1.87.0 trug
+der Zettel sieben davon nicht, und die zwei vorhandenen nur, weil `version`
+und `land` zufällig auch eigene Felder sind. Wer ein Bild samt Zettel aus dem
+Ordner nahm, nahm Sprache, Markt und Sparte nicht mit – auch nicht in der
+PNG-Datei, in der derselbe Zettel als `tEXt` steht. `version` und `land`
+bleiben zusätzlich oben, weil alte Zettel sie dort führen; ein Zettel der
+Fassung 2 bleibt lesbar und zeigt eine leere Labelzeile.
 
 **Namensmuster** `{datum}` `{zeit}` `{nummer}` `{projekt}` `{titel}`
 `{kategorie}`, mit lebendem Beispiel. Namen werden entschärft: Umlaute

@@ -10,6 +10,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
 | [durchsicht.md](durchsicht.md) | Bestandsaufnahme über 69 Funktionen in dreizehn Ansichten: was zusammengehört, was wahrscheinlich tot ist, was bewusst bleibt |
+| [versionen/v1.88.0.md](versionen/v1.88.0.md) | Sieben von neun, eine Ebene tiefer |
 | [versionen/v1.87.0.md](versionen/v1.87.0.md) | Drei Labels, die den Ordner nie erreichten |
 | [versionen/v1.86.0.md](versionen/v1.86.0.md) | Das Blatt zur Durchsicht kannte die Labels nicht |
 | [versionen/v1.85.0.md](versionen/v1.85.0.md) | Die Suche fand nur, was geliefert wurde |

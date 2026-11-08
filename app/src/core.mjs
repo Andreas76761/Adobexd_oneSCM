@@ -1130,7 +1130,7 @@ export const ABLAGE_STANDARD = {
   muster: 'screenarchiv-{datum}-{nummer}'
 };
 
-export const BEIPACKZETTEL_VERSION = 2; // seit 1.17.0 mit Marken
+export const BEIPACKZETTEL_VERSION = 3; // 2 seit 1.17.0 mit Marken, 3 seit 1.88.0 mit Labels
 
 /**
  * Der Beipackzettel: alle Metadaten neben der Bilddatei, gleicher Name, Endung
@@ -1160,6 +1160,15 @@ export function baueBeipackzettel({ entwurf = {}, bildname, ausschnitt, quelle, 
       browser: String(entwurf.browser || '').trim(),
       ausschnitt: ausschnitt ? { ...ausschnitt } : null,
       quelle: quelle ? { art: quelle.art, name: quelle.name || '', breite: quelle.breite, hoehe: quelle.hoehe } : null,
+      // Seit 1.88.0: die Labels, aus `LABEL_FELDER` gefuehrt und nicht von
+      // Hand aufgezaehlt. Bis dahin trug der Zettel zwei der neun - `version`
+      // und `land`, und die nur, weil sie zufaellig auch oben stehen. Wer ein
+      // Bild samt Zettel aus dem Ordner nahm, nahm Sprache, Markt und Sparte
+      // nicht mit. `version` und `land` bleiben zusaetzlich oben: dort standen
+      // sie, bevor es `labels` gab, und alte Zettel fuehren sie so.
+      labels: Object.fromEntries(
+        LABEL_FELDER.map((feld) => [feld.id, String(entwurf[feld.id] || '').trim()])
+      ),
       // Seit Zettelversion 2: was auf dem Bild liegt. Wurde etwas unkenntlich
       // gemacht, steht das hier - sonst waere der Eingriff spurlos.
       unkenntlich_gemacht: liste.filter((m) => m.art === 'unkenntlich').length,
@@ -1193,6 +1202,7 @@ export const BEIPACK_FELDER = [
   ['browser', 'Browser'],
   ['ausschnitt', 'Ausschnitt'],
   ['quelle', 'Quelle'],
+  ['labels', 'Labels'],
   ['unkenntlich_gemacht', 'Unkenntlich gemacht'],
   ['marken', 'Marken'],
   ['erzeugt_von', 'Erzeugt von']
@@ -1210,6 +1220,16 @@ function beipackWert(schluessel, wert) {
     if (!zahlen.every((zahl) => Number.isFinite(zahl))) return '';
     const [breite, hoehe, x, y] = zahlen.map(Math.round);
     return `${breite} \u00d7 ${hoehe} px ab ${x}, ${y}`;
+  }
+  if (schluessel === 'labels') {
+    if (typeof wert !== 'object' || Array.isArray(wert)) return '';
+    // Gezeigt wird, was gesetzt ist - ein Zettel voller Gedankenstriche
+    // liest sich schlechter als einer ohne.
+    return LABEL_FELDER.map((feld) =>
+      String(wert[feld.id] || '').trim() ? `${feld.label} ${labelWert(feld.id, wert[feld.id])}` : ''
+    )
+      .filter(Boolean)
+      .join(' \u00b7 ');
   }
   if (schluessel === 'unkenntlich_gemacht') {
     const zahl = Number(wert);

@@ -312,23 +312,85 @@ s.test('der Beipackzettel führt alle Felder in fester Folge', () => {
   tieferGleich(zettel.ausschnitt, { x: 10, y: 20, breite: 300, hoehe: 200 });
   gleich(zettel.quelle.name, 'Geteilter Bildschirm');
   gleich(zettel.rolle, 'vorher');
+  // Abgeleitet, nicht abgeschrieben: eine Prüfung, die eine Liste gegen ihre
+  // eigene Abschrift hält, bestätigt nur, dass sich nichts geändert hat
+  // (1.87.0). `BEIPACK_FELDER` gibt Folge und Umfang vor; die Zettelversion
+  // steht als einziges Feld nicht darin, weil sie keine Zeile ist.
+  // In der Datei stehen die beiden Kopffelder vorn, danach die Felder in der
+  // Folge der Anzeige. `erzeugt_von` ist ein Kopffeld und steht in
+  // `BEIPACK_FELDER` trotzdem unten - dort gehoert die Herkunft hin.
   tieferGleich(
     Object.keys(zettel),
-    ['beipackzettel', 'erzeugt_von', 'bild', 'erfasst_am', 'datum', 'titel', 'projekt', 'version', 'land',
-     'seite', 'kategorie', 'status', 'rolle', 'begriffe', 'notiz', 'autor', 'browser', 'ausschnitt', 'quelle',
-     'unkenntlich_gemacht', 'marken'],
+    ['beipackzettel', 'erzeugt_von', ...kern.BEIPACK_FELDER.map(([x]) => x).filter((x) => x !== 'erzeugt_von')],
     'die Feldfolge ist nicht stabil'
   );
 });
 
 s.test('der Beipackzettel bleibt auch ohne Angaben vollständig geformt', () => {
   const zettel = JSON.parse(kern.baueBeipackzettel({ bildname: 'a.png' }));
-  gleich(Object.keys(zettel).length, 21, 'Felder fehlen, wenn nichts eingetragen ist');
+  gleich(
+    Object.keys(zettel).length,
+    kern.BEIPACK_FELDER.length + 1,
+    'Felder fehlen, wenn nichts eingetragen ist'
+  );
   gleich(zettel.titel, '');
   tieferGleich(zettel.begriffe, []);
   gleich(zettel.ausschnitt, null);
   gleich(zettel.quelle, null);
   gleich(zettel.erzeugt_von, 'Screenarchiv');
+});
+
+s.test('der Beipackzettel tr\u00e4gt alle neun Labels (1.88.0)', () => {
+  // Der Zettel ist das, was ein einzelnes Bild bei sich tr\u00e4gt - er reist mit
+  // ihm, auch in die PNG-Datei hinein. Bis 1.87.0 trug er zwei der neun
+  // Labelfelder, `version` und `land`, und die nur, weil sie zuf\u00e4llig auch
+  // oben stehen. Wer ein Bild samt Zettel aus dem Ordner nahm, nahm Sprache,
+  // Markt und Sparte nicht mit.
+  const entwurf = {
+    titel: 'Vertragsmaske',
+    sprache: 'fr', rolle_label: 'dealer', sparte: 'van', markt: 'France',
+    version: '4.2', land: 'FR', domaene: 'Vertrag', reiter: 'Uebersicht', schritt_label: '3'
+  };
+  const roh = kern.baueBeipackzettel({ entwurf, bildname: 'a.png', anwendung: '1.88.0' });
+  const zettel = JSON.parse(roh);
+
+  // Jedes Labelfeld des Kerns steht im Zettel - gef\u00fchrt aus `LABEL_FELDER`,
+  // nicht von Hand aufgez\u00e4hlt.
+  tieferGleich(Object.keys(zettel.labels), kern.LABEL_FELDER.map((f) => f.id), 'der Labelsatz ist unvollst\u00e4ndig');
+  for (const feld of kern.LABEL_FELDER) {
+    gleich(zettel.labels[feld.id], entwurf[feld.id], `das Feld „${feld.label}" fehlt im Zettel`);
+  }
+  // `version` und `land` stehen zus\u00e4tzlich oben: dort standen sie, bevor es
+  // `labels` gab, und alte Zettel f\u00fchren sie so.
+  gleich(zettel.version, '4.2');
+  gleich(zettel.land, 'FR');
+
+  // Gelesen wird er ohne fremde Felder - sonst h\u00e4tte der Leser das neue Feld
+  // als unbekannt gemeldet.
+  const gelesen = kern.leseBeipackzettel(roh);
+  gleich(gelesen.ok, true);
+  tieferGleich(gelesen.fremd, [], 'der eigene Zettel gilt als fremd');
+  gleich(gelesen.kuenftig, false);
+  const zeile = gelesen.zeilen.find((z) => z.schluessel === 'labels');
+  wahr(zeile && !zeile.leer, 'die Labelzeile fehlt in der Anzeige');
+  // Angezeigt wird der Klartext, nicht die Kennung.
+  wahr(/Sprache Franz\u00f6sisch/.test(zeile.wert), zeile.wert);
+  wahr(/Sparte Van/.test(zeile.wert), zeile.wert);
+  wahr(!/dealer/.test(zeile.wert), 'die Kennung steht statt des Klartexts: ' + zeile.wert);
+
+  // Ohne Labels bleibt der Satz da, aber leer - die Zeile zeigt nichts.
+  const ohne = kern.leseBeipackzettel(kern.baueBeipackzettel({ entwurf: { titel: 'T' }, bildname: 'a.png' }));
+  gleich(ohne.zeilen.find((z) => z.schluessel === 'labels').wert, '');
+  tieferGleich(ohne.fremd, []);
+
+  // Und ein Zettel der alten Fassung bleibt lesbar: ihm fehlt `labels`.
+  const alt = JSON.parse(roh);
+  delete alt.labels;
+  alt.beipackzettel = 2;
+  const altGelesen = kern.leseBeipackzettel(JSON.stringify(alt));
+  gleich(altGelesen.ok, true, 'ein Zettel der Fassung 2 ist nicht mehr lesbar');
+  gleich(altGelesen.kuenftig, false);
+  gleich(altGelesen.zeilen.find((z) => z.schluessel === 'labels').wert, '');
 });
 
 s.test('der Beipackzettel heißt wie sein Bild', () => {
@@ -367,9 +429,18 @@ s.test('ein gelesener Beipackzettel trägt alle Zeilen in fester Folge', () => {
   gleich(wert('quelle'), 'Freigabe (bildschirm) · 1440 × 900 px');
   gleich(wert('erzeugt_von'), 'Screenarchiv 1.10.0');
   const leere = gelesen.zeilen.filter((z) => z.leer).map((z) => z.schluessel);
+  // Gefüllt ist, was der Zettel oben bekommen hat; alles andere ist leer.
+  // Aufgezählt wird darum das Gefüllte, nicht das Leere - sonst muss die
+  // Liste bei jedem neuen Feld nachgezogen werden.
+  const gefuellt = gelesen.zeilen.filter((z) => !z.leer).map((z) => z.schluessel);
+  tieferGleich(
+    gefuellt,
+    ['bild', 'erfasst_am', 'datum', 'titel', 'projekt', 'kategorie', 'begriffe', 'notiz', 'ausschnitt', 'quelle', 'erzeugt_von'],
+    'gefüllte Felder werden falsch erkannt'
+  );
   tieferGleich(
     leere,
-    ['version', 'land', 'seite', 'status', 'rolle', 'autor', 'browser', 'unkenntlich_gemacht', 'marken'],
+    kern.BEIPACK_FELDER.map(([schluessel]) => schluessel).filter((x) => !gefuellt.includes(x)),
     'leere Felder werden falsch erkannt'
   );
 });
@@ -1160,7 +1231,7 @@ s.test('der Beipackzettel sagt, dass etwas abgedeckt wurde', () => {
     { id: 'b', art: 'schritt', x: 1, y: 1, breite: 10, hoehe: 10, nummer: 1, text: 'klicken' }
   ];
   const zettel = JSON.parse(kern.baueBeipackzettel({ entwurf: { titel: 'T' }, bildname: 'a.png', marken }));
-  gleich(zettel.beipackzettel, 2, 'die Zettelversion muss mitwachsen');
+  gleich(zettel.beipackzettel, 3, 'die Zettelversion muss mitwachsen');
   gleich(zettel.unkenntlich_gemacht, 1);
   gleich(zettel.marken.length, 2);
   const gelesen = kern.leseBeipackzettel(JSON.stringify(zettel));

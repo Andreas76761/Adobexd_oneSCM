@@ -20,6 +20,32 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.88.0] – Sieben von neun, eine Ebene tiefer
+
+### Behoben
+* **Der Beipackzettel trug sieben der neun Labelfelder nicht** (F-26, F-45). Er
+  liegt neben jedem Bild und steht noch einmal als `tEXt`-Block **in** der
+  PNG-Datei – er ist das, was ein Bild bei sich trägt, wenn es allein
+  weitergereicht wird. Die zwei, die dastanden, standen nur dort, weil
+  `version` und `land` zufällig auch eigene Felder des Zettels sind. Jetzt
+  führt er sie in einem Satz `labels`, aus `LABEL_FELDER` gebildet statt von
+  Hand aufgezählt; gelesen wird er als Klartextzeile
+* **Zettelversion 3** – dieselbe Regel wie bei Fassung 2 (1.17.0, Marken).
+  Ein Zettel der Fassung 2 bleibt lesbar, seine Labelzeile ist dann leer.
+  `version` und `land` bleiben zusätzlich oben: dort standen sie, bevor es
+  `labels` gab
+
+### Prüfung
+* **Drei Prüfungen hielten ihre eigene Abschrift** – die Feldfolge als
+  Zeichenkettenliste, die Feldzahl als `21`, die leeren Felder als Liste.
+  Keine hätte je gemeldet, dass sieben Labels fehlen; sie meldeten nur, dass
+  ich etwas hinzugefügt habe. Jetzt abgeleitet: Folge und Zahl aus
+  `BEIPACK_FELDER`, und bei den leeren Feldern wird aufgezählt, was
+  **gefüllt** ist – das ist die kurze, stabile Seite
+* 1 neue Kernprüfung mit denselben drei Richtungen wie bei der Galerie:
+  jedes Labelfeld im Zettel, kein fremdes Feld beim Lesen, Klartext in der
+  Anzeige. Dazu der Fall des alten Zettels. Zusammen 568
+
 ## [1.87.0] – Drei Labels, die den Ordner nie erreichten
 
 ### Behoben
