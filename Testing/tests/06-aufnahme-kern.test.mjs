@@ -3189,6 +3189,55 @@ s.test('Vorgemerktes faellt am Bild weg, nicht erst an der gewaehlten Stelle', (
   gleich(plan(true)[0].bilder, 3);
 });
 
+s.test('eine interne Fassung sagt selbst, dass sie eine ist (1.83.0)', () => {
+  // Der Schalter warnt in der Seite. Sobald die Datei die Seite verlässt,
+  // warnt niemand mehr: sie sähe aus wie die freigegebene Unterlage.
+  const gliederung = outputGliederung.map((e) => (e.nummer === '6.2' ? { ...e, vormerkung: 'intern' } : e));
+  // Die Teile kommen aus `handbuchTeile`, nicht von Hand: ein zu kleines
+  // Prüfmaterial prüft die eigene Vorstellung statt den Code.
+  const teile = kern.handbuchTeile(gliederung, outputBestand, [], { nurMitBildern: true, mitVorgemerkten: true });
+
+  wahr(teile.some((t) => t.nummer === '6.2'), teile.map((t) => t.nummer).join(', '));
+  const ohne = kern.interneFassung(teile, { mitVorgemerkten: false });
+  gleich(ohne.intern, false);
+  gleich(ohne.vermerk, '', 'ein Vermerk, der immer dasteht, wird nicht gelesen');
+  const mit = kern.interneFassung(teile, { mitVorgemerkten: true });
+  gleich(mit.intern, true);
+  wahr(/Interne Fassung/.test(mit.vermerk), mit.vermerk);
+  // Zahl und Label stehen mit geschütztem Leerzeichen zusammen - sie sollen
+  // nicht über zwei Zeilen reißen.
+  wahr(/1\u00a0Intern/.test(mit.vermerk), JSON.stringify(mit.vermerk));
+  gleich(mit.marke, 'Interne Fassung \u2013 nicht zur Weitergabe', 'die Fußzeile braucht die kurze Form');
+  // Mit Schalter, aber ohne vorgemerkten Abschnitt: die gewöhnliche Unterlage.
+  gleich(kern.interneFassung(teile.filter((t) => t.nummer !== '6.2'), { mitVorgemerkten: true }).intern, false);
+  wahr(/Internal version/.test(kern.interneFassung(teile, { mitVorgemerkten: true, sprache: 'en' }).vermerk));
+
+  // Im Handbuch steht der Vermerk im Dokument, nicht nur im Dateinamen.
+  const html = kern.handbuchHtml(teile, { titel: 'Handbuch', vermerk: mit.vermerk });
+  wahr(html.includes('class="vermerk"'), 'der Vermerk fehlt im HTML-Handbuch');
+  wahr(html.indexOf('class="vermerk"') < html.indexOf('<h1>'), 'der Vermerk steht unter dem Titel statt darüber');
+  wahr(!kern.handbuchHtml(teile, { titel: 'Handbuch' }).includes('class="vermerk"'));
+
+  // Und im Plan: die **Bilder** entscheiden, nicht der Schalter.
+  const plan = (vorgemerkt, inhalte) =>
+    kern.ausgabePlan(
+      outputBestand,
+      [],
+      gliederung,
+      { vorlagen: ['quickguide'], inhalte, formate: ['pdf'], vorgemerkt },
+      kern.VORLAGEN
+    )[0];
+  gleich(plan(false, ['kapitel:6']).intern, false);
+  gleich(plan(true, ['kapitel:6']).intern, true);
+  gleich(plan(true, ['kapitel:6.3']).intern, false, 'ohne vorgemerktes Bild ist es keine interne Fassung');
+
+  // Der Dateiname trägt es vorn, und der Ordner ist ein eigener.
+  wahr(kern.ausgabeDateiname(plan(true, ['kapitel:6']), 'pdf').startsWith('intern-'));
+  wahr(!kern.ausgabeDateiname(plan(false, ['kapitel:6']), 'pdf').startsWith('intern-'));
+  tieferGleich(kern.ausgabeOrdner(plan(true, ['kapitel:6'])).slice(0, 2), ['output', 'intern']);
+  tieferGleich(kern.ausgabeOrdner(plan(false, ['kapitel:6'])).slice(0, 2), ['output', 'ohne-variante']);
+});
+
 /* ------------------------------- Die Lupe: Rezept und Kapitelweg (1.39.0) */
 
 s.test('die Lupe nennt Weg, Rezept und Schritte eines Bildes', () => {

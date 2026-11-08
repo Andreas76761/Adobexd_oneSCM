@@ -15,6 +15,20 @@ const { mitSeite, schliessen } = erzeugeBrowserHelfer(join(wurzel, 'dist', 'inde
 const s = suite('Regelwerk – Oberfläche');
 
 const REGELWERK = '#ans=regelwerk';
+
+/**
+ * Nachbau der Ablage, der die Datei mitliest - fuer den Vermerk der
+ * internen Fassung reicht der Dateiname nicht. `downloads.save` nimmt laut
+ * Vertrag `string | Blob | ArrayBuffer | ArrayBufferView`.
+ */
+const ablageNachbau = `
+  window.__abgelegt = [];
+  window.claude = { use: async (name) => name !== 'downloads' ? null : {
+    save: async (auftrag) => {
+      const text = typeof auftrag.data === 'string' ? auftrag.data : await auftrag.data.text();
+      window.__abgelegt.push({ filename: auftrag.filename, inhalt: text });
+      return { status: 'saved' };
+    } } };`;
 const AUFNAHME = '#ans=aufnahme';
 
 /** Eine Aufnahme ohne Markt und ohne Notiz – sie verstößt gegen beides. */
@@ -342,6 +356,48 @@ s.test('ein Bild an vorgemerkter Unterstelle kommt auch ueber das Oberkapitel ni
       gleich(await seite.locator('.output-zeile td:nth-child(6)').first().innerText(), '1');
     },
     { hash: AUFNAHME }
+  ));
+
+s.test('eine interne Fassung tr\u00e4gt es im Namen und im Dokument (1.83.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Bis 1.82.0 sah eine interne Fassung aus wie die freigegebene. Der
+      // Schalter warnte in der Seite; die Datei warnte niemanden mehr.
+      await eineAufnahme(seite);
+      await seite.click('#letzte-editor');
+      await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden, null, { timeout: 8000 });
+      await seite.fill('#markier-stelle', '24.1');
+      await seite.click('#markier-sichern');
+      await seite.waitForTimeout(300);
+
+      await seite.click('.portal-nav button[data-ansicht="design"]');
+      await seite.waitForSelector('#design-ansicht:not([hidden])');
+      await seite.evaluate(() => (document.getElementById('design-studio').open = true));
+      await seite.fill('#design-titel', 'oneSCM Handbuch');
+      await seite.selectOption('#handbuch-umfang', 'alle');
+      await seite.waitForTimeout(500);
+
+      // Ohne Schalter: gew\u00f6hnlicher Name, kein Vermerk.
+      await seite.click('#handbuch-sichern');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 60000 });
+      const [frei] = await seite.evaluate(() => window.__abgelegt);
+      gleich(frei.filename, 'handbuch-onescm-handbuch.html');
+      wahr(!/Interne Fassung/.test(frei.inhalt), 'die freigegebene Unterlage tr\u00e4gt einen Vermerk');
+
+      // Mit Schalter: der Name sagt es, und das Dokument sagt es auch.
+      await seite.check('#handbuch-vorgemerkt');
+      await seite.waitForTimeout(500);
+      await seite.click('#handbuch-sichern');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 2, null, { timeout: 60000 });
+      const intern = (await seite.evaluate(() => window.__abgelegt))[1];
+      gleich(intern.filename, 'handbuch-intern-onescm-handbuch.html');
+      wahr(/Interne Fassung/.test(intern.inhalt), 'der Vermerk fehlt im Dokument');
+      wahr(
+        intern.inhalt.indexOf('class="vermerk"') < intern.inhalt.indexOf('<h1>'),
+        'der Vermerk steht unter dem Titel statt dar\u00fcber'
+      );
+    },
+    { hash: AUFNAHME, initSkript: ablageNachbau }
   ));
 
 s.test('der Baum zeigt, was vorgemerkt ist (1.79.0)', () =>

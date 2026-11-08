@@ -5503,7 +5503,9 @@ export const WORTE = {
     ohneStelle: 'ohne Stelle',
     gezaehlt: 'gezählt werden Stellen, nicht Bilder',
     alleProjekte: 'alle Projekte',
-    blatt: 'Blatt'
+    blatt: 'Blatt',
+    intern: 'Interne Fassung – nicht zur Weitergabe',
+    internGrund: 'Diese Unterlage enthält vorgemerkte Abschnitte'
   },
   en: {
     unterlage: 'Document',
@@ -5530,7 +5532,9 @@ export const WORTE = {
     ohneStelle: 'without a section',
     gezaehlt: 'sections are counted, not images',
     alleProjekte: 'all projects',
-    blatt: 'Sheet'
+    blatt: 'Sheet',
+    intern: 'Internal version – not for distribution',
+    internGrund: 'This document contains sections marked internal or planned'
   }
 };
 
@@ -5580,7 +5584,10 @@ export function deckblattZeilen(info = {}) {
     titel: String(info.titel || sagen('unterlage', s)).trim(),
     untertitel: String(info.untertitel || '').trim(),
     paare,
-    hinweis: String(info.hinweis || '').trim()
+    hinweis: String(info.hinweis || '').trim(),
+    // Der Vermerk einer internen Fassung - er steht ueber dem Titel und ist
+    // keine Einstellung, sondern eine Eigenschaft der Unterlage (1.83.0).
+    vermerk: String(info.vermerk || '').trim()
   };
 }
 
@@ -6085,7 +6092,8 @@ export function handbuchHtml(
     anwendung = '',
     bilder = new Map(),
     mitTexten = true,
-    sprache = 'de'
+    sprache = 'de',
+    vermerk = ''
   } = {}
 ) {
   const m = maskiereHtml;
@@ -6180,9 +6188,13 @@ export function handbuchHtml(
   .fehlt { font-size: 13px; color: #9A6B1F; }
   .fuss { border-top: 1px solid #D6DBE4; margin-top: 40px; padding-top: 12px;
           font-size: 11.5px; color: #77839A; display: flex; justify-content: space-between; gap: 16px; }
+  .vermerk { border: 2px solid #B4432B; color: #8E3522; background: #FBF1EE; padding: 10px 14px;
+             margin: 0 0 20px; font-size: 13px; font-weight: 600; }
+  .vermerk-fuss { color: #8E3522; font-weight: 600; }
   @media print { body { background: #FFF; } .blatt { max-width: none; margin: 0; padding: 0; } }
 </style>
 </head><body><div class="blatt">
+${vermerk ? `<p class="vermerk">${m(vermerk)}</p>` : ''}
 <h1>${m(titel)}</h1>
 ${untertitel ? `<p class="untertitel">${m(untertitel)}</p>` : ''}
 <p class="stand">${m(formatiereZeitpunkt(stand))} · ${umfang.kapitel} Kapitel · ${umfang.stellen} Stellen · ${
@@ -6192,7 +6204,9 @@ ${untertitel ? `<p class="untertitel">${m(untertitel)}</p>` : ''}
 ${inhalt}
 </ul></nav>
 ${abschnitte}
-<div class="fuss"><span>Screenarchiv ${m(anwendung)}</span><span>${m(hinweis)}</span></div>
+<div class="fuss"><span>Screenarchiv ${m(anwendung)}</span>${
+    vermerk ? `<span class="vermerk-fuss">${m(vermerk)}</span>` : ''
+  }<span>${m(hinweis)}</span></div>
 </div></body></html>
 `;
 }
@@ -6777,7 +6791,16 @@ const DOCX_VORLAGEN =
  */
 export function docxAusHandbuch(
   teile = [],
-  { titel = '', untertitel = '', hinweis = '', anwendung = '', bilder = new Map(), mitTexten = true, sprache = 'de' } = {}
+  {
+    titel = '',
+    untertitel = '',
+    hinweis = '',
+    anwendung = '',
+    bilder = new Map(),
+    mitTexten = true,
+    sprache = 'de',
+    vermerk = ''
+  } = {}
 ) {
   const w = (schluessel) => sagen(schluessel, sprache);
   const hole = (kennung) => (bilder instanceof Map ? bilder.get(kennung) : bilder[kennung]);
@@ -6821,6 +6844,9 @@ export function docxAusHandbuch(
   };
 
   const koerper = [
+    // Der Vermerk steht **vor** dem Titel: wer die Datei aufmacht, liest ihn
+    // zuerst, auch wenn er nicht weiterblättert.
+    vermerk ? absatz(vermerk, { fett: true, groesse: 22 }) : '',
     absatz(titel || w('handbuch'), { vorlage: 'Heading1' }),
     untertitel ? absatz(untertitel, { kursiv: true }) : '',
     hinweis ? absatz(hinweis, { groesse: 18 }) : '',
@@ -7233,6 +7259,35 @@ export function vormerkungBericht(teile = [], { mitVorgemerkten = false } = {}) 
     return zahl ? `${zahl} ${v.label}` : '';
   }).filter(Boolean);
   return `${weg.length} Abschnitt(e) nicht in der Ausgabe: ${je.join(', ')}.`;
+}
+
+/**
+ * Der Vermerk auf einer internen Fassung (F-79).
+ *
+ * Eine Unterlage mit vorgemerkten Abschnitten sieht aus wie die
+ * freigegebene - und ist es nicht. Innerhalb der Seite warnt der Schalter;
+ * sobald die Datei die Seite verlaesst, warnt niemand mehr. Darum tragen
+ * Dokument **und** Dateiname den Vermerk.
+ *
+ * Leer, wenn nichts Vorgemerktes drin ist: ein Vermerk, der immer dasteht,
+ * wird nicht gelesen.
+ */
+export function interneFassung(teile = [], { mitVorgemerkten = false, sprache = 'de' } = {}) {
+  if (!mitVorgemerkten) return { intern: false, vermerk: '', marke: '', kennung: '' };
+  const drin = teile.filter((teil) => vormerkungVon(teil));
+  if (!drin.length) return { intern: false, vermerk: '', marke: '', kennung: '' };
+  const je = VORMERKUNGEN.map((v) => {
+    const zahl = drin.filter((teil) => vormerkungVon(teil) === v.id).length;
+    return zahl ? `${zahl}\u00a0${v.label}` : '';
+  }).filter(Boolean);
+  return {
+    intern: true,
+    // Lang fuers Deckblatt, kurz fuer die Fusszeile jeder Seite: dort ist
+    // kein Platz fuer eine Zaehlung, und gelesen werden soll die Warnung.
+    vermerk: `${sagen('intern', sprache)}. ${sagen('internGrund', sprache)}: ${je.join(', ')}.`,
+    marke: sagen('intern', sprache),
+    kennung: 'intern'
+  };
 }
 
 export const TEXTE_SCHLUESSEL = 'screenarchiv:texte';
@@ -7939,7 +7994,15 @@ export function ausgabePlan(aufnahmen = [], strecken = [], gliederung = [], wahl
           variante,
           titel: variante ? `${inhaltName} · ${variante}` : inhaltName,
           bilder: bilder.length,
-          kennungen: bilder.map((a) => a.id)
+          kennungen: bilder.map((a) => a.id),
+          // Ob dieses Dokument eine interne Fassung ist, sagen seine Bilder
+          // - nicht der Schalter. Mit Schalter, aber ohne vorgemerktes Bild
+          // ist es die gewoehnliche Unterlage (1.83.0).
+          intern: Boolean(
+            wahl.vorgemerkt &&
+              bilder.length &&
+              bilder.length > ausgabeBilder(aufnahmen, strecken, inhalt, achse, wert, { gliederung }).length
+          )
         });
       }
     }
@@ -7949,7 +8012,9 @@ export function ausgabePlan(aufnahmen = [], strecken = [], gliederung = [], wahl
 
 /** Der Dateiname eines Auftrags: Vorlage, Inhalt, Variante, Endung. */
 export function ausgabeDateiname(auftrag = {}, endung = 'pdf') {
-  const teile = [auftrag.vorlage, auftrag.inhaltName, auftrag.wert]
+  // „intern" steht vorn, nicht hinten: in einer Dateiliste sieht man den
+  // Anfang eines Namens, das Ende oft nicht.
+  const teile = [auftrag.intern ? 'intern' : '', auftrag.vorlage, auftrag.inhaltName, auftrag.wert]
     .map((t) => bereinigeDateiname(t))
     .filter(Boolean);
   return `${teile.join('-') || 'dokument'}.${endung}`;
@@ -7957,7 +8022,14 @@ export function ausgabeDateiname(auftrag = {}, endung = 'pdf') {
 
 /** Der Ordner eines Auftrags unterhalb des gewählten Verzeichnisses. */
 export function ausgabeOrdner(auftrag = {}) {
-  return ['output', bereinigeDateiname(auftrag.wert) || 'ohne-variante', bereinigeDateiname(auftrag.vorlage) || 'vorlage'];
+  // Eine interne Fassung liegt in einem eigenen Ordner: nebeneinander waere
+  // sie eines Tages mit der freigegebenen verschickt.
+  return [
+    'output',
+    ...(auftrag.intern ? ['intern'] : []),
+    bereinigeDateiname(auftrag.wert) || 'ohne-variante',
+    bereinigeDateiname(auftrag.vorlage) || 'vorlage'
+  ];
 }
 
 /** Was der Plan insgesamt bedeutet: Dokumente, Dateien, Lücken. */

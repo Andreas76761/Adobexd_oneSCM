@@ -2215,7 +2215,7 @@ Kleingedrucktes zu lesen.
 
 **Seit** 1.78.0 · **Ansicht** Gliederung, Design, Output · betrifft Handbuch
 · **geändert in** 1.79.0 (Output, Marke im Baum), 1.80.0 (gefiltert wird
-am Bild)
+am Bild), 1.83.0 (die interne Fassung trägt ihren Vermerk)
 
 **Das Problem** Nicht jeder Abschnitt gehört ins Benutzerhandbuch. Ein
 Arbeitsstand, eine offene Absprache, eine Funktion, die erst kommen soll –
@@ -2259,6 +2259,28 @@ ausmacht, verliert sie aus der Wahl statt sie stillschweigend mitzurechnen
 **Im Baum sichtbar** Jede vorgemerkte Stelle trägt ihre Marke in der
 Gliederung – bei 1161 Stellen wäre eine Angabe, die erst nach dem Anklicken
 erscheint, keine.
+
+**Eine interne Fassung sagt selbst, dass sie eine ist** (seit 1.83.0). Der
+Inhalt stimmte schon vorher; die Datei sagte nichts – gleicher Name,
+gleiches Deckblatt wie die freigegebene Unterlage. Innerhalb der Seite
+warnt der Schalter; sobald die Datei die Seite verlässt, warnt niemand
+mehr. `interneFassung()` gibt den Vermerk, lang fürs Deckblatt und kurz für
+die Fußzeile:
+
+| Wo | Was |
+| --- | --- |
+| Handbuch HTML und Word | Vermerk über dem Titel, dazu im Fuß |
+| Deckblatt eines Blattes | Vermerk über dem Titel, in der Akzentfarbe |
+| Fußzeile **jeder** Seite | die kurze Form, nicht abwählbar |
+| Dateiname | `handbuch-intern-…`, `intern-quickguide-…` – vorn, weil man in
+  einer Dateiliste den Anfang eines Namens sieht |
+| Ordner im Verzeichnis | `output/intern/…` |
+
+**Gemessen wird am Blatt, nicht am Schalter.** Intern ist eine Unterlage,
+deren *Bilder* an vorgemerkten Stellen hängen. Mit Schalter, aber ohne
+vorgemerktes Bild bleibt sie die gewöhnliche Unterlage – ein Vermerk, der
+immer dasteht, wird nicht gelesen. Umgekehrt trägt auch die Vorschau von
+Kapitel 24 im Designstudio den Vermerk.
 
 **Wo die Vormerkung liegt** Bei den eigenen Texten
 (`screenarchiv:texte`, F-65). Sie reist damit in der Projektdatei (F-63)

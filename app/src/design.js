@@ -246,16 +246,28 @@ function zeichneBlattfuss(stift, seite, aufbau, info = {}) {
     kontext
   ).join('');
   const y = fmt.hoehe - Math.round(seite.fussHoehe * 0.35);
-  stift.fillStyle = designFarbe('--tinte-3', '#77839A');
   stift.font = `400 ${Math.round(seite.fussHoehe * 0.38)}px ${designSchriftart('--schrift-mono', 'monospace')}`;
   stift.textBaseline = 'alphabetic';
-  if (rechts) {
-    stift.textAlign = 'right';
-    stift.fillText(rechts, fmt.breite - seite.rand, y);
+  stift.textAlign = 'right';
+  stift.fillStyle = designFarbe('--tinte-3', '#77839A');
+  if (rechts) stift.fillText(rechts, fmt.breite - seite.rand, y);
+  const rechtsBreite = rechts ? stift.measureText(rechts).width + 40 : 0;
+  stift.textAlign = 'left';
+  // Der Vermerk einer internen Fassung steht vor allem anderen und laesst
+  // sich nicht abwaehlen: er ist keine Einstellung, sondern eine Eigenschaft
+  // des Blattes (1.83.0).
+  let x = seite.rand;
+  if (info.vermerk) {
+    stift.fillStyle = designFarbe('--akzent', '#B4432B');
+    stift.font = `600 ${Math.round(seite.fussHoehe * 0.38)}px ${designSchriftart('--schrift-mono', 'monospace')}`;
+    const vermerk = beschneide(stift, info.vermerk, fmt.breite - 2 * seite.rand - rechtsBreite);
+    stift.fillText(vermerk, x, y);
+    x += stift.measureText(vermerk).width + Math.round(seite.fussHoehe * 0.5);
+    stift.font = `400 ${Math.round(seite.fussHoehe * 0.38)}px ${designSchriftart('--schrift-mono', 'monospace')}`;
   }
   if (links) {
-    stift.textAlign = 'left';
-    stift.fillText(beschneide(stift, links, fmt.breite - 2 * seite.rand - (rechts ? stift.measureText(rechts).width + 40 : 0)), seite.rand, y);
+    stift.fillStyle = designFarbe('--tinte-3', '#77839A');
+    stift.fillText(beschneide(stift, links, fmt.breite - seite.rand - x - rechtsBreite), x, y);
   }
 }
 
@@ -280,6 +292,20 @@ function zeichneDeckblatt(stift, aufbau, info) {
   stift.textAlign = 'left';
   stift.textBaseline = 'top';
   let y = Math.round(fmt.hoehe * 0.2);
+
+  // Der Vermerk einer internen Fassung steht über dem Titel: wer das Blatt
+  // in der Hand hält, liest ihn zuerst (1.83.0).
+  if (blatt.vermerk) {
+    const schrift = Math.round(fmt.breite * 0.018);
+    y -= Math.round(schrift * 3.4);
+    stift.fillStyle = designFarbe('--akzent', '#B4432B');
+    stift.font = `600 ${schrift}px ${designSchriftart('--schrift-mono', 'monospace')}`;
+    for (const zeile of umbrich(stift, blatt.vermerk, fmt.breite - 2 * rand).slice(0, 2)) {
+      stift.fillText(zeile, rand, y);
+      y += Math.round(schrift * 1.35);
+    }
+    y += Math.round(schrift * 1.1);
+  }
 
   const titelGross = Math.round(fmt.breite * 0.055);
   stift.fillStyle = designFarbe('--tinte', '#141A24');
@@ -463,10 +489,19 @@ async function baueBlaetter() {
   // Was allen Bildern gemeinsam ist, gehört in Kopf, Fuß und Deckblatt.
   const aufnahmen = schritte.map((s) => s.aufnahme).filter(Boolean);
   const stand = new Date().toISOString();
+  // Ob dieses Blatt eine interne Fassung ist, sagen seine Bilder - nicht ein
+  // Schalter irgendwo. Eine Vorschau von Kapitel 24 ist genauso intern wie
+  // ein Quick Guide, der Vorgemerktes mitgenommen hat (1.83.0).
+  const stellen = new Set(aufnahmen.map((a) => String(a.gliederung || '')).filter(Boolean));
+  const fassung = interneFassung(
+    gliederungJetzt().filter((e) => stellen.has(e.nummer)),
+    { mitVorgemerkten: true, sprache: ausgabeSprache() }
+  );
   const info = {
     kapitel: [...new Set(aufnahmen.map((a) => kapitelKennung(a)).filter(Boolean))].slice(0, 3).join(', '),
     projekt: [...new Set(aufnahmen.map((a) => a.projekt).filter(Boolean))].join(', '),
     labels: gemeinsameLabels(aufnahmen),
+    vermerk: fassung.marke,
     stand
   };
 
@@ -481,6 +516,7 @@ async function baueBlaetter() {
       hinweis: studio.hinweis,
       sprache: ausgabeSprache(),
       quelle: titel,
+      vermerk: fassung.vermerk,
       kapitel: info.kapitel,
       anzahl: schritte.length,
       seiten: aufbau.seiten.length,
@@ -992,7 +1028,7 @@ async function handbuchBild(aufnahme, grenze) {
  * weiterschreiben, kommentieren und mit einem Inhaltsverzeichnis versehen.
  */
 async function sichereHandbuchWord() {
-  const { teile, stelle } = handbuchAuswahl();
+  const { teile, stelle, mitVorgemerkten } = handbuchAuswahl();
   if (!teile.length) return;
   if (regelwerkHaeltAn()) return;
   const grenze = Number($('#handbuch-groesse').value) || 1600;
@@ -1018,10 +1054,12 @@ async function sichereHandbuchWord() {
 
   const eintrag = stelle ? GLIEDERUNG.find((e) => e.nummer === stelle) : null;
   const titel = studio.titel || (eintrag ? `${eintrag.nummer} ${eintrag.thema}` : sagen('handbuch', ausgabeSprache()));
+  const fassung = interneFassung(teile, { mitVorgemerkten, sprache: ausgabeSprache() });
   const daten = docxAusHandbuch(teile, {
     titel,
     untertitel: studio.untertitel,
     hinweis: studio.hinweis,
+    vermerk: fassung.vermerk,
     anwendung: DATEN.anwendung,
     bilder,
     mitTexten: studio.texte,
@@ -1032,7 +1070,7 @@ async function sichereHandbuchWord() {
     meldeDesign('Das Handbuch ist leer – es gibt nichts zu schreiben.', 'warnung');
     return;
   }
-  const name = `handbuch-${bereinigeDateiname(titel) || 'oneSCM'}.docx`;
+  const name = `handbuch${fassung.intern ? '-intern' : ''}-${bereinigeDateiname(titel) || 'oneSCM'}.docx`;
   const ergebnis = await uebergebeDatei(
     name,
     new Blob([daten], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
@@ -1070,7 +1108,7 @@ async function handbuchBildBytes(aufnahme, grenze) {
 }
 
 async function sichereHandbuch() {
-  const { teile, stelle } = handbuchAuswahl();
+  const { teile, stelle, mitVorgemerkten } = handbuchAuswahl();
   if (!teile.length) return;
   if (regelwerkHaeltAn()) return;
   const grenze = Number($('#handbuch-groesse').value) || 0;
@@ -1095,6 +1133,10 @@ async function sichereHandbuch() {
 
   const eintrag = stelle ? GLIEDERUNG.find((e) => e.nummer === stelle) : null;
   const titel = studio.titel || (eintrag ? `${eintrag.nummer} ${eintrag.thema}` : sagen('handbuch', ausgabeSprache()));
+  // Eine interne Fassung sieht aus wie die freigegebene. Innerhalb der Seite
+  // warnt der Schalter; sobald die Datei die Seite verlässt, warnt niemand
+  // mehr - also trägt sie es selbst (1.83.0).
+  const fassung = interneFassung(teile, { mitVorgemerkten, sprache: ausgabeSprache() });
   const html = handbuchHtml(teile, {
     titel,
     untertitel: studio.untertitel,
@@ -1102,9 +1144,10 @@ async function sichereHandbuch() {
     anwendung: DATEN.anwendung,
     bilder,
     mitTexten: studio.texte,
-    sprache: ausgabeSprache()
+    sprache: ausgabeSprache(),
+    vermerk: fassung.vermerk
   });
-  const name = `handbuch-${bereinigeDateiname(titel) || 'oneSCM'}.html`;
+  const name = `handbuch${fassung.intern ? '-intern' : ''}-${bereinigeDateiname(titel) || 'oneSCM'}.html`;
   const ergebnis = await uebergebeDatei(name, new Blob([html], { type: 'text/html' }));
   $('#handbuch-sichern').disabled = false;
   if (ergebnis.art === 'gesichert') {

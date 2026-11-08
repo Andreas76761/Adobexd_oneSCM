@@ -20,6 +20,34 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.83.0] – Eine interne Fassung, die es selbst sagt
+
+### Neu
+* **Jede interne Fassung trägt ihren Vermerk** (F-79). Der Inhalt stimmte
+  schon; die *Datei* sagte nichts: gleicher Name, gleiches Deckblatt wie die
+  freigegebene Unterlage, nur mit Kapitel 24 darin. Innerhalb der Seite
+  warnt der Schalter, außerhalb warnte niemand. Jetzt steht der Vermerk
+  über dem Titel (Handbuch HTML und Word, Deckblatt), in der Fußzeile
+  **jeder** Seite, im Dateinamen (`handbuch-intern-…`, `intern-quickguide-…`)
+  und im Ordner (`output/intern/…`). Der Vermerk in der Fußzeile lässt sich
+  nicht abwählen: er ist keine Einstellung, sondern eine Eigenschaft des
+  Blattes
+* **Gemessen wird am Blatt, nicht am Schalter.** Eine Unterlage ist intern,
+  wenn *ihre Bilder* an vorgemerkten Stellen hängen. Mit Schalter, aber ohne
+  vorgemerktes Bild bleibt sie die gewöhnliche Unterlage – ein Vermerk, der
+  immer dasteht, wird nicht gelesen. Umgekehrt trägt auch die Vorschau von
+  Kapitel 24 im Designstudio den Vermerk, ohne dass jemand einen Schalter
+  berührt hat
+
+### Prüfung
+* 1 neue Kernprüfung (Vermerk lang und kurz, HTML, Plan, Dateiname, Ordner)
+  und 1 neue Browserprüfung (ohne Schalter kein Vermerk, mit Schalter Name
+  **und** Dokument). Zusammen 560
+* Die erste Fassung der Kernprüfung baute die `teile` von Hand und traf das
+  Feld `schritte` als `strecken` – `handbuchHtml()` stürzte ab. Sie kommen
+  jetzt aus `handbuchTeile()`: *ein zu kleines Prüfmaterial prüft die eigene
+  Vorstellung statt den Code*
+
 ## [1.82.0] – „2 Regel(n)“ stand im Bericht, angekommen ist keine
 
 ### Behoben
