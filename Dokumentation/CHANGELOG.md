@@ -20,6 +20,31 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.82.0] – „2 Regel(n)“ stand im Bericht, angekommen ist keine
+
+### Behoben
+* **Das Regelwerk reiste nicht mit** (F-80, F-63). `PAKET_INHALT` sagte
+  `reist: true`, der Kern konnte es, und die Oberfläche packte es nie ein
+  und nie aus: `ablage.js` übergab `paketAngaben()` neun Felder und
+  `regeln` nicht, und beim Einlesen gab es keinen `gelesen.regeln`-Zweig.
+  Wer den Bestand bekam, bekam nicht den Maßstab, an dem er gemessen wird
+* **Zwei Regeln konnten dieselbe Kennung tragen.** `leereRegel()` baut sie
+  aus `Date.now()`; „Ausschalten“ und „Löschen“ gehen im Register über
+  die Kennung und hätten beide getroffen. Neu: `vereineRegeln()` benennt
+  eine vergebene fremde Kennung um und lässt dieselbe Regel nicht zweimal
+  herein – „Regel anlegen“ sagt dann „Diese Regel gibt es schon“ statt
+  stumm eine zweite Zeile zu setzen
+
+### Prüfung
+* **Die Prüfung schaute an die falsche Stelle.** Es gab eine Prüfung zu
+  `PAKET_INHALT`, und sie war grün: sie hält die Liste gegen die
+  *Schlüssel des Kerns*. Ob die Oberfläche jedes mitreisende Feld auch
+  übergibt, prüfte niemand. Der Build prüft jetzt beides – die Namen
+  liest er aus der **Signatur** von `paketAngaben()`, nicht aus einer
+  zweiten Liste
+* 1 neue Buildprüfung, 1 neue Kernprüfung, 1 neue Browserprüfung, und der
+  Umlauf der Projektdatei prüft jetzt auch das Regelwerk. Zusammen 558
+
 ## [1.81.0] – Eine Regel, die nie erfüllbar war
 
 ### Behoben

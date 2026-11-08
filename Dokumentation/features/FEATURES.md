@@ -2269,7 +2269,8 @@ beim Rückweg aus Word.
 
 ## F-80 · Register Regelwerk – woran dieses Haus seine Unterlagen misst
 
-**Seit** 1.78.0 · **Ansicht** Regelwerk · betrifft Prüfung, Design, Output, Eingang · **geändert in** 1.81.0 („Nichts Vorgemerktes“ misst die Ausgabe)
+**Seit** 1.78.0 · **Ansicht** Regelwerk · betrifft Prüfung, Design, Output, Eingang · **geändert in** 1.81.0 („Nichts Vorgemerktes“ misst die Ausgabe),
+1.82.0 (reist wirklich mit; Kennungen sind eindeutig)
 
 **Das Problem** Was ein Bild oder ein Abschnitt erfüllen muss, hängt am Haus
 und nicht an dieser Seite: der eine verlangt an jedem Bild einen Markt, der
@@ -2309,6 +2310,20 @@ sein.*
 **Bedingt erfüllt heißt nicht erfüllt.** Eine Regel, die nur eingehalten
 ist, *weil* ein Schalter aus steht, nennt im Register auch die Bedingung,
 statt bloß „eingehalten“ zu melden.
+
+**Das Regelwerk reist mit** (`screenarchiv:regeln`, in der Projektdatei
+F-63). Wer den Bestand bekommt, misst an denselben Regeln – sonst ist der
+Bestand weitergegeben und der Maßstab nicht. Bis 1.81.0 stand das in
+`PAKET_INHALT` und geschah nicht: die Oberfläche packte die Regeln nie ein
+und nie aus, während der Bericht sie zählte. Beim **Ergänzen** kommen die
+fremden Regeln dazu, beim **Ersetzen** treten sie an die Stelle der eigenen;
+der Bericht sagt, wie viele es danach sind.
+
+**Jede Regel hat genau eine Kennung.** `vereineRegeln()` benennt eine
+fremde Kennung um, die hier schon vergeben ist, und lässt dieselbe Regel
+nicht zweimal herein. Nötig, weil „Ausschalten“ und „Löschen“ über die
+Kennung gehen: zwei Regeln mit derselben hätten sich gemeinsam löschen
+lassen (seit 1.82.0).
 
 **Geprüft an drei Stellen**, damit ein Verstoß dort auffällt, wo er entsteht:
 

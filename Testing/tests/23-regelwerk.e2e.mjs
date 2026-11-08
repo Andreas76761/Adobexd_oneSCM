@@ -72,6 +72,34 @@ s.test('eine Regel wird angelegt und misst sofort am Bestand', () =>
     { hash: AUFNAHME }
   ));
 
+s.test('dieselbe Regel zweimal legt sie nicht zweimal an (1.82.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await legeRegelAn(seite, { art: 'begruendung', schaerfe: 'hinweis' });
+      gleich(await seite.locator('.regel-zeile').count(), 1);
+      await seite.click('#regel-anlegen');
+      await seite.waitForTimeout(300);
+      gleich(await seite.locator('.regel-zeile').count(), 1, 'die Regel steht zweimal da');
+      wahr(
+        /gibt es schon/.test(await seite.locator('#regelwerk-meldung').innerText()),
+        await seite.locator('#regelwerk-meldung').innerText()
+      );
+
+      // Eine Regel, die nur anders scharf ist, ist eine andere Regel.
+      await seite.selectOption('#regel-schaerfe', 'pflicht');
+      await seite.waitForTimeout(150);
+      await seite.click('#regel-anlegen');
+      await seite.waitForTimeout(300);
+      gleich(await seite.locator('.regel-zeile').count(), 2);
+
+      // Und Löschen trifft genau eine - die Kennungen sind eindeutig.
+      await seite.locator('.regel-zeile').first().locator('button', { hasText: 'Löschen' }).click();
+      await seite.waitForTimeout(300);
+      gleich(await seite.locator('.regel-zeile').count(), 1, 'Löschen hat mehr als eine Regel getroffen');
+    },
+    { hash: REGELWERK }
+  ));
+
 s.test('eine Pflichtregel hält das Erzeugen an, ein Hinweis nicht', () =>
   mitSeite(
     async (seite) => {

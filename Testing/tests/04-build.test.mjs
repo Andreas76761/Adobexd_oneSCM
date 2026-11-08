@@ -125,6 +125,43 @@ s.test('der Skriptbereich ist die einzige Stelle mit Dokumentgerüst', () => {
   gleich((markup.match(/<!doctype/gi) || []).length, 0);
 });
 
+s.test('die Projektdatei trägt wirklich, was sie zu tragen verspricht (1.82.0)', () => {
+  // `PAKET_INHALT` sagt je Speicherschlüssel, ob er mitreist. Geprüft wurde
+  // daran bisher nur der **Kern**: dass die Liste alle Schlüssel kennt. Ob
+  // die Oberfläche sie auch einpackt und wieder auspackt, prüfte niemand -
+  // und `regeln` tat sie nicht. Die Datei zählte „2 Regel(n)" im Bericht und
+  // enthielt keine; eingelesen wurde ohnehin nichts.
+  const quelle = readFileSync(join(wurzel, 'app', 'src', 'ablage.js'), 'utf8');
+
+  // Was `paketAngaben` entgegennimmt, muss die Oberfläche auch übergeben.
+  // Die Namen kommen aus der Signatur des Kerns, nicht aus einer zweiten
+  // Liste - eine zweite Liste wäre nur eine zweite Stelle zum Vergessen.
+  const kern = readFileSync(join(wurzel, 'app', 'src', 'core.mjs'), 'utf8');
+  const signatur = kern.slice(kern.indexOf('export function paketAngaben({'));
+  const felder = signatur
+    .slice(0, signatur.indexOf('} = {}) {'))
+    .split('\n')
+    .map((zeile) => (zeile.match(/^\s{2}([a-z]+) =/) || [])[1])
+    .filter(Boolean)
+    .filter((name) => name !== 'stand' && name !== 'anwendung');
+  wahr(felder.length >= 10, 'die Signatur von paketAngaben wurde nicht gelesen: ' + felder.join(', '));
+
+  const anfang = quelle.indexOf('paketAngaben({');
+  wahr(anfang > 0, 'ablage.js ruft paketAngaben nicht auf');
+  const aufruf = quelle.slice(anfang, quelle.indexOf('});', anfang));
+  for (const feld of felder) {
+    wahr(
+      new RegExp(`(^|[\\s,{])${feld}\\s*[:,]`, 'm').test(aufruf),
+      `paketAngaben kennt „${feld}", die Oberfläche übergibt es nicht - es reist nicht mit`
+    );
+  }
+
+  // Und was mitreist, muss beim Einlesen auch ausgepackt werden.
+  for (const feld of ['strecken', 'projekte', 'design', 'ocr', 'wortliste', 'vorgehen', 'texte', 'verzeichnis', 'regeln']) {
+    wahr(quelle.includes(`gelesen.${feld}`), `beim Einlesen wird „${feld}" nicht übernommen`);
+  }
+});
+
 s.test('nennt die Version der Anwendung', () => {
   const paket = JSON.parse(readFileSync(join(wurzel, 'package.json'), 'utf8'));
   wahr(seite.includes('v' + paket.version), `Version ${paket.version} steht nicht in der Seite`);

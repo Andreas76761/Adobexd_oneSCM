@@ -255,6 +255,20 @@ s.test('der ganze Bestand wandert in eine Projektdatei und wieder zurück', () =
           })
         )
       );
+      // Das Regelwerk (F-80) – der Maßstab, an dem gemessen wird. Es stand
+      // bis 1.81.0 in der Projektdatei, wurde im Bericht gezählt und beim
+      // Einlesen weggeworfen.
+      await seite.evaluate(() =>
+        localStorage.setItem(
+          'screenarchiv:regeln',
+          JSON.stringify({
+            version: 1,
+            regeln: [
+              { id: 'REG-haus', art: 'pflichtlabel', wert: 'markt', geltung: '7', schaerfe: 'pflicht', aktiv: true }
+            ]
+          })
+        )
+      );
       await seite.reload();
       await seite.waitForSelector('.portal-nav');
       await seite.click('.portal-nav button[data-ansicht="verzeichnis"]');
@@ -357,6 +371,27 @@ s.test('der ganze Bestand wandert in eine Projektdatei und wieder zurück', () =
         wahr(
           (await seite.locator('#ruecklauf-stand').innerText()).includes('1'),
           await seite.locator('#ruecklauf-stand').innerText()
+        );
+
+        // Und das Regelwerk (1.82.0). Bis 1.81.0 stand im Bericht „1 Regel(n)"
+        // und ankam keine: wer den Bestand bekam, bekam nicht den Maßstab,
+        // an dem er gemessen wird.
+        wahr(
+          /1 Regel\(n\)/.test(await seite.locator('#paket-bericht').innerText()),
+          await seite.locator('#paket-bericht').innerText()
+        );
+        const regeln = await seite.evaluate(() => JSON.parse(localStorage.getItem('screenarchiv:regeln') || 'null'));
+        wahr(regeln && regeln.regeln && regeln.regeln.length === 1, 'die Regeln sind nicht mitgereist');
+        gleich(regeln.regeln[0].art, 'pflichtlabel');
+        gleich(regeln.regeln[0].geltung, '7');
+        // Und sie gilt: das Register zeigt sie, nicht „noch keine Regel".
+        await seite.click('.portal-nav button[data-ansicht="regelwerk"]');
+        await seite.waitForSelector('#regelwerk-ansicht:not([hidden])');
+        await seite.waitForTimeout(300);
+        gleich(await seite.locator('.regel-zeile').count(), 1, 'das Register ist leer');
+        wahr(
+          /1 Regel\(n\)/.test(await seite.locator('#regelwerk-stand').innerText()),
+          await seite.locator('#regelwerk-stand').innerText()
         );
 
         // Und das Namensmuster (1.68.0) – dieselbe Art Sache wie das

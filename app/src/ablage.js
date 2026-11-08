@@ -342,6 +342,9 @@ async function sicherePaket() {
     // sich eine Klammer, und gliederung.js wird vorher geladen.
     texte: stellentexte,
     verzeichnis: verzeichnisWahl,
+    // `regeln` steht in regelwerk.js - zur Laufzeit ist es da, auch wenn das
+    // Modul nach diesem geladen wird.
+    regeln,
     anwendung: DATEN.anwendung
   });
   dateien.unshift({ name: PAKET_NAME, daten: JSON.stringify(angaben, null, 2) });
@@ -506,6 +509,16 @@ async function lesePaketDatei(datei) {
       stellentexte = art === 'ersetzen' ? gelesen.texte : { ...gelesen.texte, ...stellentexte };
       if (!sichereStellentexte()) bericht.push('Die eigenen Texte gelten nur für diese Sitzung – der Speicher ist voll.');
       zeichneRuecklauf();
+    }
+    if ((gelesen.regeln || []).length) {
+      // Das Regelwerk reist mit (F-80) - bis 1.81.0 stand es in der
+      // Projektdatei, wurde im Bericht gezaehlt („2 Regel(n)") und beim
+      // Einlesen stillschweigend weggeworfen. Wer den Bestand bekam, bekam
+      // nicht den Massstab, an dem er gemessen wird.
+      regeln = art === 'ersetzen' ? vereineRegeln([], gelesen.regeln) : vereineRegeln(regeln, gelesen.regeln);
+      if (!sichereRegeln()) bericht.push('Die Regeln gelten nur für diese Sitzung – der Speicher ist voll.');
+      bericht.push(`Das Regelwerk hat jetzt ${regeln.length} Regel(n).`);
+      zeichneRegelwerk();
     }
     if (gelesen.verzeichnis) {
       verzeichnisWahl = gelesen.verzeichnis;

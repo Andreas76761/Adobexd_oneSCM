@@ -200,7 +200,15 @@ function legeRegelAn() {
     meldeRegelwerk('Diese Regel braucht noch einen Wert.', 'warnung');
     return;
   }
-  regeln = [...regeln, leereRegel({ ...regelEntwurf, id: `REG-${Date.now().toString(36)}` })];
+  // Über `vereineRegeln`: dieselbe Regel zweimal misst nicht strenger, und
+  // zwei Regeln in derselben Millisekunde bekämen dieselbe Kennung – dann
+  // hätte „Löschen" beide getroffen (1.82.0).
+  const vorher = regeln.length;
+  regeln = vereineRegeln(regeln, [leereRegel({ ...regelEntwurf, id: `REG-${Date.now().toString(36)}` })]);
+  if (regeln.length === vorher) {
+    meldeRegelwerk('Diese Regel gibt es schon – dieselbe Art, dieselbe Geltung, dieselbe Schärfe.', 'warnung');
+    return;
+  }
   const gesichert = sichereRegeln();
   regelEntwurf = leereRegel({ art: regelEntwurf.art, geltung: regelEntwurf.geltung, schaerfe: regelEntwurf.schaerfe });
   zeichneRegelwerk();

@@ -3906,6 +3906,35 @@ s.test('„Nichts Vorgemerktes" misst die Ausgabe, nicht den Bestand (1.80.0)', 
   gleich(kern.pruefeRegeln([regel], ohneBild, regelGliederung, { mitVorgemerkten: true }).length, 0);
 });
 
+s.test('zwei Regelwerke lassen sich zusammenführen, ohne Kennungen zu doppeln (1.82.0)', () => {
+  // `leereRegel` baut die Kennung aus `Date.now()`. Zwei Regeln in derselben
+  // Millisekunde bekommen dieselbe - und „Ausschalten" und „Löschen" gehen
+  // im Register über die Kennung. Sie hätten beide getroffen.
+  const a = kern.leereRegel({ id: 'REG-x', art: 'pflichtlabel', wert: 'markt' });
+  const b = kern.leereRegel({ id: 'REG-x', art: 'begruendung' });
+  const vereint = kern.vereineRegeln([a], [b]);
+  gleich(vereint.length, 2);
+  gleich(new Set(vereint.map((r) => r.id)).size, 2, 'zwei Regeln tragen dieselbe Kennung');
+  gleich(vereint[0].id, 'REG-x', 'die eigene Kennung bleibt - umbenannt wird die fremde');
+
+  // Dieselbe Regel kommt nicht zweimal: sie misst dasselbe.
+  gleich(kern.vereineRegeln([a], [{ ...a, id: 'REG-fremd' }]).length, 1);
+  // Eine Regel, die nur anders *scharf* ist, ist eine andere Regel.
+  gleich(kern.vereineRegeln([a], [{ ...a, id: 'REG-fremd', schaerfe: 'pflicht' }]).length, 2);
+  // Und eine, die nur anderswo gilt, auch.
+  gleich(kern.vereineRegeln([a], [{ ...a, id: 'REG-fremd', geltung: '7' }]).length, 2);
+
+  // Eine von Hand gebaute Datei mit doppelter Kennung wird beim Lesen sauber.
+  const gelesen = kern.leseRegeln(JSON.stringify({ version: 1, regeln: [a, { ...b, id: a.id }] }));
+  gleich(gelesen.length, 2);
+  gleich(new Set(gelesen.map((r) => r.id)).size, 2);
+
+  // Nichts dazu heisst: nichts ändert sich.
+  gleich(kern.vereineRegeln([a, b]).length, 2);
+  gleich(kern.vereineRegeln().length, 0);
+  gleich(kern.vereineRegeln([null, 'kaputt'], [undefined]).length, 0);
+});
+
 s.test('das Regelwerk überlebt Speichern und Lesen (1.78.0)', () => {
   const regeln = [
     kern.leereRegel({ art: 'pflichtlabel', wert: 'sparte', geltung: '7', schaerfe: 'pflicht' }),

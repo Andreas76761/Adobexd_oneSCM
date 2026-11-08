@@ -4361,7 +4361,42 @@ export function leseRegeln(text) {
     return [];
   }
   const liste = Array.isArray(inhalt) ? inhalt : (inhalt && inhalt.regeln) || [];
-  return liste.filter((r) => r && typeof r === 'object').map((r) => leereRegel(r));
+  // Ueber `vereineRegeln` gelesen: so kommt keine doppelte Kennung herein,
+  // auch nicht aus einer von Hand bearbeiteten Datei.
+  return vereineRegeln([], liste);
+}
+
+/** Der Fingerabdruck einer Regel: was sie misst, wo, und wie scharf. */
+function regelAbdruck(regel = {}) {
+  return [regel.art, regel.geltung, regel.wert, regel.schaerfe].map((t) => String(t || '')).join('|');
+}
+
+/**
+ * Zwei Regelwerke zusammenfuehren (1.82.0).
+ *
+ * Eine Regel, die inhaltlich schon da ist, kommt nicht zweimal: sie misst
+ * dasselbe und waere nur Laerm im Bericht. Eine fremde Kennung, die hier
+ * vergeben ist, wird umbenannt - eine doppelte Kennung ist schlimmer als
+ * eine doppelte Regel, denn „Ausschalten" und „Loeschen" gehen ueber die
+ * Kennung und trafen dann beide Regeln auf einmal.
+ */
+export function vereineRegeln(eigene = [], fremde = []) {
+  const ergebnis = [];
+  const kennungen = new Set();
+  const abdruecke = new Set();
+  let lauf = 0;
+  for (const regel of [...eigene, ...fremde]) {
+    if (!regel || typeof regel !== 'object') continue;
+    const sauber = leereRegel(regel);
+    const abdruck = regelAbdruck(sauber);
+    if (abdruecke.has(abdruck)) continue;
+    let id = sauber.id;
+    while (kennungen.has(id)) id = `${sauber.id}-${(lauf += 1)}`;
+    kennungen.add(id);
+    abdruecke.add(abdruck);
+    ergebnis.push({ ...sauber, id });
+  }
+  return ergebnis;
 }
 
 export function schreibeRegeln(regeln = []) {
