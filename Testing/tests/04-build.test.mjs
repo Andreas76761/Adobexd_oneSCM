@@ -152,6 +152,49 @@ s.test('Farbwerte sind vollständig im hellen Grundzustand definiert', () => {
   gleich(fehlend.length, 0, 'ohne Ersatzwert benutzt, aber nirgends definiert: ' + fehlend.join(', '));
 });
 
+s.test('jede Tinte hat auf jedem Grund genug Kontrast (1.77.0)', () => {
+  // Es gab eine Kontrastprüfung, und sie war nicht falsch: sie sah den
+  // Grund der Seite gegen die Schrift an, und eine Überschrift. Zwei
+  // Stellen. Gemessen über **alle** sichtbaren Texte lagen in der hellen
+  // Fassung 798 unter den 4,5:1, die WCAG 2.1 AA verlangt – und fast alle
+  // an einem einzigen Token, `--tinte-3`.
+  //
+  // Hier wird gerechnet statt gemessen: jede Tinte gegen jeden Grund,
+  // beide Themen, ohne Browser. Ein Token, das zu blass wird, fällt beim
+  // Bauen auf und nicht erst auf einem Bildschirm.
+  const leuchte = (hex) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+    const f = (v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+  const kontrast = (a, b) => {
+    const [x, y] = [leuchte(a), leuchte(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  };
+  const werte = (block) => {
+    const karte = {};
+    for (const t of block.matchAll(/(--[a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{6})\b/g)) karte[t[1]] = t[2];
+    return karte;
+  };
+  const hell = werte(css.slice(css.indexOf(':root {'), css.indexOf('@media (prefers-color-scheme: dark)')));
+  const dunkelBlock = css.slice(css.indexOf('@media (prefers-color-scheme: dark)'));
+  const dunkel = { ...hell, ...werte(dunkelBlock.slice(0, dunkelBlock.indexOf('}\n}'))) };
+
+  const GRUENDE = ['--grund', '--flaeche', '--flaeche-2', '--flaeche-3'];
+  const TINTEN = ['--tinte', '--tinte-2', '--tinte-3'];
+  const schwach = [];
+  for (const [name, satz] of [['hell', hell], ['dunkel', dunkel]]) {
+    for (const t of TINTEN) {
+      for (const g of GRUENDE) {
+        wahr(satz[t] && satz[g], `${name}: ${t} oder ${g} fehlt`);
+        const k = kontrast(satz[t], satz[g]);
+        if (k < 4.5) schwach.push(`${name} ${t} (${satz[t]}) auf ${g} (${satz[g]}): ${k.toFixed(2)}:1`);
+      }
+    }
+  }
+  gleich(schwach.length, 0, 'unter 4,5:1 nach WCAG 2.1 AA –\n  ' + schwach.join('\n  '));
+});
+
 s.test('kein Gitter ist breiter als der Bildschirm (1.76.0)', () => {
   // `repeat(auto-fit, minmax(380px, 1fr))` ist eine Spalte von **mindestens**
   // 380 px - auch dann, wenn nur 374 da sind. Auf einem Telefon schiebt

@@ -174,6 +174,18 @@ Ohne Angabe 390 und 768 px. Gemessen wird, was sich zaehlen laesst:
 Element hinausragt und wie weit, und wie viele Knoepfe unter 24 px hoch
 sind - die trifft ein Daumen nicht.
 
+### `kontrast.mjs`
+
+Der Kontrast **jedes** sichtbaren Textes, hell und dunkel, alle
+Ansichten.
+
+```bash
+node Testing/messungen/kontrast.mjs [--alle]
+```
+
+Gemessen nach WCAG 2.1: 4,5:1 fuer gewoehnlichen Text, 3:1 fuer grossen.
+Der Grund ist der erste Vorfahr, der deckt - nicht der Koerper.
+
 ## Was dabei herauskam (1.62.0)
 
 | | vorher | nachher |
@@ -384,3 +396,19 @@ Die Zahl der kleinen Knoepfe (Gliederung 56, Design 13) steht weiter in
 der Messung. Geaendert wurde sie nicht: die Seite braucht
 Bildschirmfreigabe und Ordnerzugriff, die es nur auf dem Rechner gibt.
 Ein Telefon liest hier, es arbeitet nicht.
+
+## Was dabei herauskam (1.77.0)
+
+| | unter der Grenze |
+| --- | --- |
+| helles Thema | **798** |
+| dunkles Thema | **71** |
+| danach, beide | **0** |
+
+798 Befunde, aber nur drei Verhaeltnisse: 3,11 - 3,32 - 3,82. Immer
+dieselbe Farbe auf vier verschiedenen Gruenden. `--tinte-3` ist die
+Farbe jedes Hinweises, Labels und jeder Zahl daneben; an dieser einen
+Zeile hingen alle 798.
+
+Das **dunkle** Thema war das bessere - und genau das einzige, das die
+bestehende Pruefung ansah.

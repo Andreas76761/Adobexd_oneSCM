@@ -13,7 +13,11 @@
   --flaeche-3: #E4E8EF;
   --tinte: #141A24;
   --tinte-2: #4A5769;
-  --tinte-3: #77839A;
+  /* Gemessen, nicht gewaehlt: #77839A lag je nach Grund bei 3,11 bis
+     3,82:1 und damit unter den 4,5:1, die WCAG 2.1 AA fuer gewoehnlichen
+     Text verlangt - auf 798 Textstellen in vierzehn Ansichten. #5F687A
+     erreicht 4,56 bis 5,60:1 auf allen vier Gruenden. */
+  --tinte-3: #5F687A;
   --linie: #D6DBE4;
   --linie-stark: #B4BECD;
   --akzent: #B4432B;
@@ -45,7 +49,8 @@
     --flaeche-3: #232A35;
     --tinte: #E8ECF2;
     --tinte-2: #A9B4C3;
-    --tinte-3: #7B8698;
+    /* Auf --flaeche-3 nur 3,92:1; #8691A5 erreicht 4,54 bis 5,86:1. */
+  --tinte-3: #8691A5;
     --linie: #29313D;
     --linie-stark: #3B4553;
     --akzent: #DD7B60;
@@ -73,7 +78,8 @@
   --flaeche-3: #232A35;
   --tinte: #E8ECF2;
   --tinte-2: #A9B4C3;
-  --tinte-3: #7B8698;
+  /* Auf --flaeche-3 nur 3,92:1; #8691A5 erreicht 4,54 bis 5,86:1. */
+  --tinte-3: #8691A5;
   --linie: #29313D;
   --linie-stark: #3B4553;
   --akzent: #DD7B60;

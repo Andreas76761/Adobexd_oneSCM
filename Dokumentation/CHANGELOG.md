@@ -20,6 +20,33 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.77.0] – 798 Textstellen, zwei Zahlen
+
+Die Kontrastprüfung sah zwei Textstellen an. Die Frage gilt allen.
+
+### Behoben
+* **798 Textstellen im hellen und 71 im dunklen Thema lagen unter den
+  4,5:1 von WCAG 2.1 AA** – fast alle an einem einzigen Token.
+  `--tinte-3` (#77839A), die Farbe jedes Hinweises, Labels und jeder
+  Zahl daneben, erreichte je nach Grund nur 3,11 bis 3,82:1. Jetzt
+  #5F687A (4,56–5,60:1); im dunklen Thema #8691A5 statt #7B8698
+  (4,54–5,86:1 statt 3,92–5,06:1)
+* Beide bleiben in derselben Farbrichtung und zwischen `--tinte-2` und
+  dem Grund – die Abstufung Überschrift / Text / Nebensache bleibt
+
+### Bemerkenswert
+* Das **dunkle** Thema war das bessere (71 gegen 798) – und genau das
+  einzige, das geprüft wurde
+
+### Prüfung
+* 1 neue Build-Prüfung, die **rechnet** statt zu messen: jede `--tinte-*`
+  gegen jede `--grund`/`--flaeche*`, beide Themen, 24 Paare in
+  Millisekunden. Gegengeprobt – mit dem alten Wert fällt sie
+* 1 neue Browserprüfung, die **misst**: alle vierzehn Ansichten in beiden
+  Themen, jeder sichtbare Text gegen seinen wirklichen Grund. Sie fängt,
+  was die Rechnung nicht sieht – eine Farbe, die nicht aus einem Token
+  kommt. Neu: `Testing/messungen/kontrast.mjs`. Zusammen 538
+
 ## [1.76.0] – Vierzehn Ansichten, nie auf einem Telefon
 
 Jede Prüfung und jede Messung lief bisher bei 1400 bis 1500 px Breite.

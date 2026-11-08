@@ -203,6 +203,70 @@ s.test('dunkles Thema bleibt lesbar', () =>
     { thema: 'dark' }
   ));
 
+/**
+ * Misst im Browser jeden sichtbaren Text gegen den Grund, der wirklich
+ * hinter ihm liegt - der erste Vorfahr, der deckt. Die Grenzen sind die
+ * von WCAG 2.1 AA: 4,5:1, und 3:1 für großen Text (ab 24 px oder ab
+ * 18,66 px fett).
+ */
+const MISS_KONTRAST = () => {
+  const zahlen = (rgb) => (String(rgb).match(/[\d.]+/g) || []).map(Number);
+  const kanal = (k) => (k / 255 <= 0.03928 ? k / 255 / 12.92 : Math.pow((k / 255 + 0.055) / 1.055, 2.4));
+  const leuchte = ([r, g, b]) => 0.2126 * kanal(r) + 0.7152 * kanal(g) + 0.0722 * kanal(b);
+  const grundVon = (el) => {
+    for (let k = el; k && k !== document.documentElement; k = k.parentElement) {
+      const f = zahlen(getComputedStyle(k).backgroundColor);
+      if (f.length >= 3 && (f[3] === undefined || f[3] >= 0.95)) return f.slice(0, 3);
+    }
+    return zahlen(getComputedStyle(document.body).backgroundColor).slice(0, 3);
+  };
+  const schwach = [];
+  for (const el of document.querySelectorAll('body *')) {
+    if (!el.offsetParent) continue;
+    if (![...el.childNodes].some((k) => k.nodeType === 3 && k.textContent.trim())) continue;
+    const stil = getComputedStyle(el);
+    if (stil.visibility === 'hidden' || Number(stil.opacity) < 0.5) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4) continue;
+    const vorn = zahlen(stil.color).slice(0, 3);
+    if (vorn.length < 3) continue;
+    const a = leuchte(vorn);
+    const b = leuchte(grundVon(el));
+    const ist = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    const px = parseFloat(stil.fontSize);
+    const soll = px >= 24 || (Number(stil.fontWeight) >= 700 && px >= 18.66) ? 3 : 4.5;
+    if (ist + 0.05 < soll) {
+      const was = el.id ? '#' + el.id : el.className ? '.' + String(el.className).split(' ')[0] : el.tagName.toLowerCase();
+      schwach.push(`${was} ${ist.toFixed(2)}:1 statt ${soll}`);
+    }
+  }
+  return [...new Set(schwach)];
+};
+
+s.test('jeder Text ist lesbar – hell wie dunkel, alle Ansichten (1.77.0)', () => {
+  // Die Prüfung daneben sieht zwei Textstellen an. Diese sieht alle an:
+  // vor 1.77.0 lagen **798** unter der Grenze im hellen Thema und 71 im
+  // dunklen, fast alle an einem einzigen Token.
+  const ansichten = [
+    'archiv', 'aufnahme', 'import', 'video', 'ausschneiden', 'markieren', 'strecke',
+    'ocr', 'gliederung', 'pruefung', 'design', 'output', 'verzeichnis', 'eingang'
+  ];
+  const lauf = (thema) =>
+    mitSeite(
+      async (seite) => {
+        const schwach = [];
+        for (const ansicht of ansichten) {
+          await seite.click(`.portal-nav button[data-ansicht="${ansicht}"]`);
+          await seite.waitForTimeout(120);
+          for (const fund of await seite.evaluate(MISS_KONTRAST)) schwach.push(`${ansicht}: ${fund}`);
+        }
+        gleich(schwach.length, 0, `${thema} – zu blass:\n  ` + schwach.slice(0, 12).join('\n  '));
+      },
+      { thema }
+    );
+  return lauf('light').then(() => lauf('dark'));
+});
+
 s.test('auf Telefonbreite scrollt nichts zur Seite (1.76.0)', () =>
   mitSeite(
     async (seite) => {
