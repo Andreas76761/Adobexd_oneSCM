@@ -203,6 +203,32 @@ s.test('dunkles Thema bleibt lesbar', () =>
     { thema: 'dark' }
   ));
 
+s.test('auf Telefonbreite scrollt nichts zur Seite (1.76.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // 320 px ist die schmalste Breite, mit der zu rechnen ist. Wer dort
+      // waagerecht schieben muss, um Text zu lesen, liest nicht.
+      // Gemessen vor 1.76.0: Archiv +36, Prüfung +36, Design +76,
+      // Eingang +49 – vier von vierzehn Ansichten.
+      const ansichten = [
+        'archiv', 'aufnahme', 'import', 'video', 'ausschneiden', 'markieren', 'strecke',
+        'ocr', 'gliederung', 'pruefung', 'design', 'output', 'verzeichnis', 'eingang'
+      ];
+      const quer = [];
+      for (const ansicht of ansichten) {
+        await seite.click(`.portal-nav button[data-ansicht="${ansicht}"]`);
+        await seite.waitForTimeout(150);
+        const ueber = await seite.evaluate(
+          (breite) => Math.round(document.documentElement.scrollWidth - breite),
+          320
+        );
+        if (ueber > 1) quer.push(`${ansicht} +${ueber}`);
+      }
+      gleich(quer.length, 0, 'diese Ansichten scrollen zur Seite: ' + quer.join(', '));
+    },
+    { viewport: { width: 320, height: 800 } }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

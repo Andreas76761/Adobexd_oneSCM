@@ -152,6 +152,25 @@ s.test('Farbwerte sind vollständig im hellen Grundzustand definiert', () => {
   gleich(fehlend.length, 0, 'ohne Ersatzwert benutzt, aber nirgends definiert: ' + fehlend.join(', '));
 });
 
+s.test('kein Gitter ist breiter als der Bildschirm (1.76.0)', () => {
+  // `repeat(auto-fit, minmax(380px, 1fr))` ist eine Spalte von **mindestens**
+  // 380 px - auch dann, wenn nur 374 da sind. Auf einem Telefon schiebt
+  // man die Seite dann waagerecht, um Text zu lesen.
+  //
+  // `minmax(min(380px, 100%), 1fr)` ändert nichts, wo der Platz reicht,
+  // und lässt die Spalte schrumpfen, wo er fehlt. Gemessen bei 320 px:
+  // vier Ansichten scrollten quer, danach keine.
+  const starr = [...css.matchAll(/repeat\((?:auto-fit|auto-fill),\s*minmax\((\d+)px/g)].map((m) => m[0]);
+  gleich(
+    starr.length,
+    0,
+    'diese Gitter können breiter werden als das Fenster: ' + starr.join(' | ')
+  );
+  // Und es gibt sie wirklich - sonst prüfte der Riegel nichts.
+  const weich = [...css.matchAll(/repeat\((?:auto-fit|auto-fill),\s*minmax\(min\(/g)];
+  wahr(weich.length >= 15, 'die Gitter wurden nicht gefunden: ' + weich.length);
+});
+
 s.test('kein Selektor ist doppelt gesetzt', () => {
   // Zwei gleiche Blöcke heißen: eine Bearbeitung hat sich verdoppelt, und der
   // spätere Block hebt den früheren still auf.

@@ -161,6 +161,19 @@ Die Browserpruefung haelt von jeder Datei nur Pfad, Groesse und Typ fest;
 dieser Pruefstand schreibt den Ordner wirklich und zeigt den Baum samt
 Beipackzettel und Uebersicht. Nur so sieht man, was in den Dateien steht.
 
+### `schmal.mjs`
+
+Was die Seite auf einem schmalen Bildschirm tut.
+
+```bash
+node Testing/messungen/schmal.mjs [breite ...]
+```
+
+Ohne Angabe 390 und 768 px. Gemessen wird, was sich zaehlen laesst:
+**Querscrollen** (ist die Seite breiter als das Fenster?), welches
+Element hinausragt und wie weit, und wie viele Knoepfe unter 24 px hoch
+sind - die trifft ein Daumen nicht.
+
 ## Was dabei herauskam (1.62.0)
 
 | | vorher | nachher |
@@ -351,3 +364,23 @@ Dafuer wurde beim Aufraeumen etwas anderes belegt: dieselben
 fuenfundzwanzig Zeilen standen in vier Dateien, und genau dort waren in
 dieser Sitzung zweimal dieselben Fehler zu reparieren. Das ist der
 Nachweis fuer die Zusammenfuehrung, nicht die Vermutung.
+
+## Was dabei herauskam (1.76.0)
+
+Jede Pruefung und jede Messung lief bis dahin bei 1400 bis 1500 px.
+
+| Breite | Ansichten mit Querscrollen |
+| --- | --- |
+| 320 px | **4 von 14** (Design +76, Eingang +49, Archiv +36, Pruefung +36) |
+| 360 px | 2 |
+| 390 px | 1 (6 px) |
+| danach | **keine** |
+
+Zwei Ursachen: zwanzigmal `minmax(380px, 1fr)` in einem
+`auto-fit`-Gitter - das ist eine Spalte von **mindestens** 380 px, auch
+wenn nur 374 da sind -, und zwei Flex-Reihen ohne `flex-wrap`.
+
+Die Zahl der kleinen Knoepfe (Gliederung 56, Design 13) steht weiter in
+der Messung. Geaendert wurde sie nicht: die Seite braucht
+Bildschirmfreigabe und Ordnerzugriff, die es nur auf dem Rechner gibt.
+Ein Telefon liest hier, es arbeitet nicht.

@@ -20,6 +20,39 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.76.0] – Vierzehn Ansichten, nie auf einem Telefon
+
+Jede Prüfung und jede Messung lief bisher bei 1400 bis 1500 px Breite.
+
+### Behoben
+* **Vier von vierzehn Ansichten scrollten bei 320 px zur Seite** (Archiv
+  +36, Prüfung +36, Design +76, Eingang +49), zwei noch bei 360 px.
+  Ursache zum einen **zwanzig starre Gitter**: `minmax(380px, 1fr)` ist
+  eine Spalte von *mindestens* 380 px, auch wenn nur 374 da sind –
+  `auto-fit` verringert die Zahl der Spalten, nicht ihre Mindestbreite.
+  Jetzt `minmax(min(380px, 100%), 1fr)`: wo der Platz reicht, ändert das
+  nichts
+* Zum anderen **zwei Flex-Reihen ohne `flex-wrap`** (`.zeile-meta`,
+  `.eingang-aktionen`), die bei 320 px breiter bleiben als der Schirm
+
+### Nachgesehen, nicht angenommen
+* Auf 1480 px ist alles unverändert: Archiv dreispaltig, fünf
+  Kennzahlen, jedes Gitter mit derselben Spaltenzahl wie zuvor
+
+### Bewusst nicht geändert
+* **Ankreuzfelder unter 24 px** (Gliederung 56, Design 13). Ein Daumen
+  trifft sie schlecht – aber die Seite braucht Bildschirmfreigabe und
+  Ordnerzugriff, die es nur auf dem Rechner gibt: ein Telefon liest hier,
+  es arbeitet nicht. Größere Felder zögen jede Liste dort auseinander, wo
+  die Arbeit stattfindet. Die Zahl steht in der Messung, damit sie nicht
+  vergessen ist
+
+### Prüfung
+* 1 neue Build-Prüfung (kein `minmax(<zahl>px` in einem
+  `auto-fit`-Gitter) und 1 neue Browserprüfung (alle vierzehn Ansichten
+  bei 320 px, Querscrollen gemessen). Neu:
+  `Testing/messungen/schmal.mjs`. Zusammen 536
+
 ## [1.75.0] – Der PDF-Weg hält, und vier Abschriften werden eine
 
 ### Angesehen, nicht beanstandet
