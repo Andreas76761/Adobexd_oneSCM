@@ -50,6 +50,7 @@ const ABSCHNITTE = {
   design: '#design-ansicht',
   gliederung: '#gliederung-ansicht',
   pruefung: '#pruefung-ansicht',
+  regelwerk: '#regelwerk-ansicht',
   verzeichnis: '#verzeichnis-ansicht',
   ocr: '#ocr-ansicht',
   output: '#output-ansicht',

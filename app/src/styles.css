@@ -688,6 +688,33 @@ dialog.detail::backdrop { background: rgba(12, 16, 22, .62); backdrop-filter: bl
 .feld-paar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .feld-hinweis { font-size: 11.5px; color: var(--tinte-3); line-height: 1.45; }
 
+.eingang-karte--regel { border-color: var(--akzent); }
+.regel-marke {
+  font-size: 10.5px; letter-spacing: var(--spur); text-transform: uppercase;
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--akzent-hauch); color: var(--akzent-tief);
+}
+
+/* ------------------------------------------------------------- Regelwerk */
+
+.regelwerk-raster {
+  display: grid; gap: clamp(18px, 2.5vw, 32px); padding: 18px 0 60px;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr); align-items: start;
+}
+@media (max-width: 900px) { .regelwerk-raster { grid-template-columns: 1fr; } }
+.regelwerk-neu, .regelwerk-bestand {
+  border: 1px solid var(--linie); border-radius: var(--radius);
+  background: var(--flaeche); padding: 16px 18px 20px;
+}
+.regelwerk-liste { display: grid; gap: 10px; margin-top: 12px; }
+.regel-zeile {
+  display: grid; gap: 6px; padding: 12px 14px;
+  border: 1px solid var(--linie); border-radius: var(--radius); background: var(--flaeche-2);
+}
+.regel-zeile--aus { opacity: .6; }
+.regel-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.regel-satz { font-size: 13.5px; color: var(--tinte); }
+
 /* ---------------------------------------------------------------- Studio */
 
 .aufnahme-raster {

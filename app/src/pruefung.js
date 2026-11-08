@@ -31,7 +31,7 @@ function laufeAgent(id) {
     [id]: {
       // Der Agent „Sprache" bekommt die Wortliste und die Lesungen aus OCR
       // dazu; die anderen übergehen das zweite Argument.
-      ...fuehreAgent(id, imProjekt(), GLIEDERUNG, strecken, { wortliste, ocr: ocrTexte }),
+      ...fuehreAgent(id, imProjekt(), gliederungJetzt(), strecken, { wortliste, ocr: ocrTexte, regeln }),
       gelaufen_am: new Date().toISOString()
     }
   };
@@ -548,7 +548,22 @@ async function kommentiereMitClaude(agent) {
   zeichnePruefung();
   meldePruefung(`${agent.label}: Claude liest den Bericht …`, 'neutral');
   try {
+    // Beim Agenten Regelwerk sind die freien Regeln die eigentliche Frage:
+    // sie lassen sich nicht rechnen, nur deuten (F-80).
+    const freie =
+      agent.id === 'regelwerk'
+        ? regeln
+            .filter((r) => r.aktiv !== false && r.art === 'frei' && String(r.wert || '').trim())
+            .map((r) => `- ${regelText(r)}`)
+        : [];
     const antwort = await pruefClaude(
+      (freie.length
+        ? 'Prüfe zusätzlich diese frei formulierten Regeln am Bericht und sage je Regel, ob sie ' +
+          'eingehalten scheint, verletzt scheint oder sich am Bericht nicht entscheiden lässt. ' +
+          'Erfinde nichts dazu.\n' +
+          freie.join('\n') +
+          '\n\n'
+        : '') +
       'Du kommentierst den Prüfbericht einer Bilddatenbank für ein Benutzerhandbuch (System oneSCM, ' +
         'Mercedes-Benz Servicevertragswesen). Schreibe höchstens fünf Sätze auf Deutsch: was der Bericht ' +
         'über den Zustand sagt, was zuerst anzufassen wäre und warum. Keine neuen Zahlen, keine Aufzählung, ' +

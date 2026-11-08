@@ -119,11 +119,40 @@ function zeichneTeilschritte() {
     return;
   }
   beschreibung.hidden = false;
+  const vorgemerkt = vormerkungVon(eintrag);
+  const ausKapitel = VORMERKUNGEN.find((v) => v.kapitel === String(eintrag.nummer).split('.')[0]);
   beschreibung.replaceChildren(
     el('h3', { klasse: 'beschreibung-titel', text: `${eintrag.nummer} ${eintrag.thema}` }),
     eintrag.eigenerText
       ? el('p', { klasse: 'kennung', text: 'eigener Text – aus Word zurückgelesen' })
       : null,
+    // Vormerken: was hier steht, fällt aus dem Handbuch (F-79).
+    el('div', { klasse: 'feld' }, [
+      el('label', { for: 'stelle-vormerkung', text: 'Vormerkung' }),
+      el(
+        'select',
+        {
+          id: 'stelle-vormerkung',
+          onchange: (e) => setzeVormerkung(eintrag.nummer, e.target.value)
+        },
+        [
+          el('option', {
+            value: ausKapitel ? 'keine' : '',
+            text: ausKapitel ? `keine (das Kapitel sagt „${ausKapitel.label}")` : 'keine – steht im Handbuch',
+            selected: !vorgemerkt
+          }),
+          ...VORMERKUNGEN.map((v) =>
+            el('option', { value: v.id, text: v.label, selected: vorgemerkt === v.id })
+          )
+        ]
+      )
+    ]),
+    el('p', {
+      klasse: 'feld-hinweis',
+      text: vorgemerkt
+        ? `${VORMERKUNGEN.find((v) => v.id === vorgemerkt).hinweis} Diese Stelle fehlt im Handbuch, solange „Vorgemerktes mitnehmen" im Designstudio aus ist.`
+        : 'Vorgemerkte Abschnitte fallen aus dem Handbuch. Die Kapitel 24 und 25 sind vorgemerkt geboren.'
+    }),
     ...(eintrag.kriterium
       ? [el('p', { klasse: 'beschreibung-schild', text: 'Abschlusskriterium' }), el('p', { text: eintrag.kriterium })]
       : []),
@@ -133,6 +162,29 @@ function zeichneTeilschritte() {
     ...(eintrag.text
       ? [el('p', { klasse: 'beschreibung-schild', text: 'Übergang' }), el('p', { text: eintrag.text })]
       : [])
+  );
+}
+
+/**
+ * Eine Stelle vormerken oder die Vormerkung ihres Kapitels aufheben. Die
+ * Angabe liegt bei den eigenen Texten - sie reist also mit der
+ * Projektdatei und lässt die Gliederung des Projekts unberührt.
+ */
+function setzeVormerkung(nummer, wert) {
+  const satz = { ...(stellentexte[nummer] || {}) };
+  if (wert) satz.vormerkung = wert;
+  else delete satz.vormerkung;
+  satz.geaendert_am = new Date().toISOString();
+  if (Object.keys(satz).filter((k) => k !== 'geaendert_am').length) stellentexte[nummer] = satz;
+  else delete stellentexte[nummer];
+  sichereStellentexte();
+  zeichneGliederung();
+  zeichneRuecklauf();
+  meldeRuecklauf(
+    wert && wert !== 'keine'
+      ? `${nummer} ist als „${(VORMERKUNGEN.find((v) => v.id === wert) || {}).label}" vorgemerkt – die Stelle fehlt im Handbuch.`
+      : `${nummer} ist nicht mehr vorgemerkt.`,
+    'gut'
   );
 }
 

@@ -1189,7 +1189,7 @@ function nimmLabelsAusBild() {
 
 /**
  * Die Auswahl Kapitel → Unterkapitel → Stelle. Jede Ebene zeigt Nummer und
- * Namen; die tieferen Ebenen richten sich nach der höheren. Wer 1153 Stellen
+ * Namen; die tieferen Ebenen richten sich nach der höheren. Wer 1161 Stellen
  * zuordnen soll, soll sie nicht tippen müssen.
  */
 function fuelleStellenwahl(kennungen, stelle) {
@@ -1217,7 +1217,7 @@ function fuelleStellenwahl(kennungen, stelle) {
   }
 }
 
-/** Höchstens 60 Vorschläge - eine Liste mit 1153 Einträgen hilft niemandem. */
+/** Höchstens 60 Vorschläge - eine Liste mit 1161 Einträgen hilft niemandem. */
 function fuelleStellenvorschlaege(text) {
   const treffer = sucheGliederung(GLIEDERUNG, text).slice(0, 60);
   $('#gliederung-vorschlaege').replaceChildren(

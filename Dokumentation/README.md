@@ -10,6 +10,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
 | [durchsicht.md](durchsicht.md) | Bestandsaufnahme über 69 Funktionen in dreizehn Ansichten: was zusammengehört, was wahrscheinlich tot ist, was bewusst bleibt |
+| [versionen/v1.78.0.md](versionen/v1.78.0.md) | Regeln, Vormerkungen und eine dritte Sparte |
 | [versionen/v1.77.0.md](versionen/v1.77.0.md) | 798 Textstellen, zwei Zahlen – Kontrast über alle Ansichten |
 | [versionen/v1.76.0.md](versionen/v1.76.0.md) | Vierzehn Ansichten, nie auf einem Telefon – Querscrollen gemessen |
 | [versionen/v1.75.0.md](versionen/v1.75.0.md) | Der PDF-Weg hält, und vier Abschriften werden eine |

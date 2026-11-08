@@ -70,7 +70,7 @@ function zeichneOutputWahl() {
   );
 
   // Die Inhalte stehen nach Kapiteln geordnet: erst die Strecken, dann je
-  // Kapitel seine Stellen mit Bildern. Eine flache Liste mit 1153 Stellen
+  // Kapitel seine Stellen mit Bildern. Eine flache Liste mit 1161 Stellen
   // wäre keine Auswahl.
   const quellen = designQuellen();
   const strecken1 = quellen.filter((q) => q.id.startsWith('strecke:'));
@@ -221,6 +221,14 @@ async function erzeugeOutput() {
   if (outputLaeuft) return;
   const offen = outputPlan.filter((a) => a.bilder > 0);
   if (!offen.length) return;
+  // Eine verletzte Pflichtregel hält das Erzeugen an (F-80). Ein Hinweis
+  // nicht: die Seite entscheidet nicht, was wichtig ist - das Regelwerk
+  // entscheidet es, und dort steht die Schärfe.
+  const sperre = regelSperre(regeln, imProjekt(), gliederungJetzt());
+  if (sperre) {
+    meldeOutput(`${sperre} – im Register Regelwerk nachsehen, oder die Regel auf „Hinweis" stellen.`, 'warnung');
+    return;
+  }
   outputLaeuft = true;
   $('#output-erzeugen').disabled = true;
   outputFertig = new Map();

@@ -12,12 +12,25 @@
 
 /* ------------------------------------------------------ Eingang zeichnen */
 
+/**
+ * Verstösst diese Aufnahme gegen eine **Pflichtregel** (F-80)? Dann steht
+ * es an der Karte, und zwar hier - wo die Aufnahme entsteht und nicht erst
+ * am Ende, wenn das Erzeugen stehenbleibt.
+ */
+function regelverstossVon(aufnahme) {
+  const befunde = pruefeRegeln(regeln, [aufnahme], gliederungJetzt(), { nurPflicht: true });
+  const harte = befunde.filter((b) => b.art === 'fehler');
+  return harte.length ? harte.map((b) => b.text).join(' ') : '';
+}
+
 function eingangKarte(aufnahme) {
   const vollstaendig = istVollstaendig(aufnahme);
+  const verstoss = regelverstossVon(aufnahme);
   return el(
     'article',
     {
-      klasse: 'eingang-karte' + (vollstaendig ? '' : ' eingang-karte--offen'),
+      klasse:
+        'eingang-karte' + (vollstaendig ? '' : ' eingang-karte--offen') + (verstoss ? ' eingang-karte--regel' : ''),
       tabindex: '0',
       role: 'button',
       'data-id': aufnahme.id,
@@ -44,7 +57,8 @@ function eingangKarte(aufnahme) {
           : null,
         leseFassungen(aufnahme).length
           ? el('span', { klasse: 'markiert-marke', text: `Fassung ${neuesteFassung(aufnahme).nummer}` })
-          : null
+          : null,
+        verstoss ? el('span', { klasse: 'regel-marke', text: 'gegen eine Regel', title: verstoss }) : null
       ]),
       el('div', { klasse: 'eingang-text' }, [
         el('div', { klasse: 'zeile-meta' }, [

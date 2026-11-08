@@ -34,7 +34,7 @@ npm test          # muss vollständig grün sein
 * **Alle Oberflächenmodule (`ui.js`, `aufnahme.js`, `eingang.js`,
   `schnipsel.js`, `markieren.js`, `strecke.js`, `gliederung.js`, `design.js`,
   `import.js`, `chat.js`, `pruefung.js`, `ablage.js`, `output.js`,
-  `video.js`, `ocr.js`)
+  `regelwerk.js`, `video.js`, `ocr.js`)
   landen in einer gemeinsamen Klammer.** Zwei gleiche Namen
   darin sind einer zu viel – der Build bricht darauf ab. Sie teilen sich dadurch `el`, `$`, `zustand` und
   `zeichne`. Der Start steht in `starte()` (erklärt in `ui.js`) und wird in der
@@ -57,6 +57,10 @@ npm test          # muss vollständig grün sein
   mindestens einen Testfall.
 * Version in `package.json` und Datenversion in `data/eintraege.json` werden
   getrennt geführt; die Regeln stehen im `CHANGELOG.md`.
+
+* **Ein neuer Speicherschlüssel muss sagen, ob er mitreist.** `PAKET_INHALT`
+  in `core.mjs` nennt jeden – auch jeden, der absichtlich bleibt, mit Grund.
+  Eine Kernprüfung hält die Liste gegen die Schlüssel des Kerns.
 
 * **Aufnahmen liegen im Browser des Betrachters**: im `localStorage`
   (Schlüssel `screenarchiv:eingang`) stehen **nur die Metadaten**, in der

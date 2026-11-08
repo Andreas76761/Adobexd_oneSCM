@@ -630,6 +630,7 @@ const ABSCHNITTE = {
   design: 'design-ansicht',
   gliederung: 'gliederung-ansicht',
   pruefung: 'pruefung-ansicht',
+  regelwerk: 'regelwerk-ansicht',
   verzeichnis: 'verzeichnis-ansicht',
   output: 'output-ansicht',
   ocr: 'ocr-ansicht',

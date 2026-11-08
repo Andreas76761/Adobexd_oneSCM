@@ -931,7 +931,7 @@ s.test('die Labels stehen in fester Folge und nennen ihren Klartext', () => {
   gleich(kern.labelWert('sprache', 'xx'), 'xx', 'ein unbekannter Code wird nicht verschwiegen');
   wahr(kern.SPRACHEN.length >= 19, 'es fehlen Sprachen: ' + kern.SPRACHEN.length);
   tieferGleich(kern.ROLLEN_LABEL.map((r) => r.label), ['Dealer', 'Market', 'HQ', 'MO']);
-  tieferGleich(kern.SPARTEN.map((s) => s.label), ['PC', 'Van']);
+  tieferGleich(kern.SPARTEN.map((s) => s.label), ['Beide', 'PC', 'Van']);
 });
 
 s.test('die Vorschläge für freie Felder kommen aus der bisherigen Arbeit', () => {
@@ -2576,8 +2576,17 @@ s.test('jede Rolle und jede Sparte hat ihr eigenes Zeichen', () => {
   gleich(rolle.werte[0].symbol, 'rolle-hq');
 });
 
-s.test('die Sparten heißen PC und Van, die Suche kennt beide Namen', () => {
-  tieferGleich(kern.SPARTEN.map((s) => s.id), ['pkw', 'van'], 'die Kennung darf sich nicht ändern');
+s.test('die Sparten heißen Beide, PC und Van – und Beide ist die Vorgabe', () => {
+  // „Beide" kam in 1.78.0 dazu und steht vorn: das meiste in oneSCM gilt
+  // für Pkw und Van gleichermaßen, und wer eine Reihe aufnimmt, soll
+  // nicht bei jedem Bild eine Entscheidung treffen, die meist keine ist.
+  tieferGleich(kern.SPARTEN.map((s) => s.id), ['beide', 'pkw', 'van'], 'die Kennung darf sich nicht ändern');
+  gleich(kern.SPARTE_VORGABE, 'beide');
+  gleich(kern.leereAufnahme('2026-11-08').sparte, 'beide', 'ein neues Bild steht nicht auf Beide');
+  // Eine Vorlage, die eine Sparte nennt, behält sie.
+  gleich(kern.leereAufnahme('2026-11-08', { sparte: 'van' }).sparte, 'van');
+  gleich(kern.labelWert('sparte', 'beide'), 'Beide');
+  gleich(kern.deuteFrage('Bilder für beide Sparten').filter.sparte, 'beide');
   gleich(kern.labelWert('sparte', 'pkw'), 'PC');
   gleich(kern.deuteFrage('Bilder PC').filter.sparte, 'pkw');
   gleich(kern.deuteFrage('Pkw Bilder').filter.sparte, 'pkw', 'der alte Name wird nicht mehr verstanden');
@@ -3755,6 +3764,122 @@ s.test('der Vergleich zeigt, was sich ändern würde – bevor etwas geschieht',
   // Mit den eigenen Texten darüber ist dieselbe Datei danach „gleich".
   const danach = kern.vergleicheStellentexte(wordGliederung, gelesen, eigene);
   gleich(danach.find((v) => v.nummer === '7').art, 'gleich');
+});
+
+/* ------------------------------------------- Das Regelwerk (1.78.0) */
+
+const regelGliederung = kern.leseGliederung({
+  eintraege: [
+    { nummer: '7', thema: 'Unterschrift', ebene: 1, kriterium: 0 },
+    { nummer: '7.5', thema: 'Digitale Unterschrift', ebene: 2 },
+    { nummer: '24', thema: 'Intern', ebene: 1 }
+  ],
+  texte: ['der Beleg liegt vor']
+});
+const regelBestand = [
+  { id: 'A1', gliederung: '7.5', status: 'übernommen', notiz: 'Maske öffnen', markt: 'Germany' },
+  { id: 'A2', gliederung: '7.5', status: 'in Prüfung', notiz: '', markt: '' },
+  { id: 'A3', gliederung: '24', status: 'übernommen', notiz: 'Arbeitsstand', markt: 'Germany' }
+];
+
+s.test('eine Regel misst am Bild – und nur, wo sie gilt (1.78.0)', () => {
+  const regel = (satz) => kern.leereRegel(satz);
+
+  // Pflichtlabel: zwei Bilder ohne Markt wären es, aber die Regel gilt nur
+  // für Kapitel 7 – das Bild in 24 zählt nicht mit.
+  const markt = kern.pruefeRegeln([regel({ art: 'pflichtlabel', wert: 'markt', geltung: '7', schaerfe: 'pflicht' })], regelBestand, regelGliederung);
+  gleich(markt.length, 1);
+  gleich(markt[0].art, 'fehler', 'eine Pflichtregel wiegt schwerer als ein Hinweis');
+  tieferGleich(markt[0].kennungen, ['A2']);
+  wahr(markt[0].text.includes('Kapitel 7'), markt[0].text);
+
+  // Dieselbe Regel überall: dann zählt auch das Bild in 24 nicht, denn es
+  // hat einen Markt. Ein Bild ohne Notiz dagegen schon.
+  const notiz = kern.pruefeRegeln([regel({ art: 'begruendung', schaerfe: 'hinweis' })], regelBestand, regelGliederung);
+  gleich(notiz[0].art, 'warnung');
+  tieferGleich(notiz[0].kennungen, ['A2']);
+
+  // Eine ausgeschaltete Regel prüft nichts.
+  gleich(kern.pruefeRegeln([regel({ art: 'begruendung', aktiv: false })], regelBestand, regelGliederung).length, 0);
+});
+
+s.test('eine Regel misst an der Stelle (1.78.0)', () => {
+  const regel = (satz) => kern.leereRegel(satz);
+
+  // Mindestzahl: 7.5 hat zwei Bilder, Kapitel 24 nur eines. Auf Kapitel 7
+  // eingegrenzt ist bei zwei nichts zu beanstanden, bei drei schon.
+  gleich(kern.pruefeRegeln([regel({ art: 'mindestbilder', wert: '2', geltung: '7' })], regelBestand, regelGliederung).length, 0);
+  gleich(kern.pruefeRegeln([regel({ art: 'mindestbilder', wert: '3', geltung: '7' })], regelBestand, regelGliederung).length, 1);
+  // Überall gilt sie auch für 24 – dort liegt nur ein Bild.
+  const ueberall = kern.pruefeRegeln([regel({ art: 'mindestbilder', wert: '2' })], regelBestand, regelGliederung);
+  gleich(ueberall.length, 1);
+  gleich(ueberall[0].stelle, '24');
+
+  // Kriterium: 7 hat eines, 7.5 nicht – gezählt wird nur, wo Bilder liegen.
+  const krit = kern.pruefeRegeln([regel({ art: 'kriterium-gesetzt' })], regelBestand, regelGliederung);
+  gleich(krit.length, 1);
+  wahr(krit[0].titel.includes('2 Stelle'), krit[0].titel);
+
+  // Vorgemerktes in der Ausgabe: Kapitel 24 ist vorgemerkt und hat ein Bild.
+  const vorgemerkt = kern.pruefeRegeln([regel({ art: 'keine-vorgemerkten', schaerfe: 'pflicht' })], regelBestand, regelGliederung);
+  gleich(vorgemerkt.length, 1);
+  gleich(vorgemerkt[0].stelle, '24');
+
+  // Die freie Regel wird **genannt, nicht geprüft** – sonst stünde im
+  // Bericht eine Antwort, die niemand gegeben hat.
+  const frei = kern.pruefeRegeln([regel({ art: 'frei', wert: 'Jede Maske zeigt die Vertragsnummer.', schaerfe: 'pflicht' })], regelBestand, regelGliederung);
+  gleich(frei.length, 1);
+  gleich(frei[0].art, 'hinweis', 'eine freie Regel darf nichts anhalten, was niemand geprüft hat');
+  wahr(frei[0].titel.includes('nur mit Claude'), frei[0].titel);
+});
+
+s.test('nur eine Pflichtregel hält das Erzeugen an (1.78.0)', () => {
+  const pflicht = kern.leereRegel({ art: 'pflichtlabel', wert: 'markt', schaerfe: 'pflicht' });
+  const hinweis = kern.leereRegel({ art: 'begruendung', schaerfe: 'hinweis' });
+
+  wahr(kern.regelSperre([pflicht], regelBestand, regelGliederung).includes('Markt'), 'die Pflichtregel hält nicht an');
+  gleich(kern.regelSperre([hinweis], regelBestand, regelGliederung), '', 'ein Hinweis hält an, soll aber nicht');
+  gleich(kern.regelSperre([], regelBestand, regelGliederung), '');
+  // Auch eine freie Pflichtregel hält nichts an: sie ist nicht geprüft.
+  gleich(kern.regelSperre([kern.leereRegel({ art: 'frei', wert: 'Etwas.', schaerfe: 'pflicht' })], regelBestand, regelGliederung), '');
+});
+
+s.test('das Regelwerk überlebt Speichern und Lesen (1.78.0)', () => {
+  const regeln = [
+    kern.leereRegel({ art: 'pflichtlabel', wert: 'sparte', geltung: '7', schaerfe: 'pflicht' }),
+    kern.leereRegel({ art: 'frei', wert: 'Jede Maske zeigt die Vertragsnummer.', aktiv: false })
+  ];
+  const zurueck = kern.leseRegeln(kern.schreibeRegeln(regeln));
+  gleich(zurueck.length, 2);
+  gleich(zurueck[0].wert, 'sparte');
+  gleich(zurueck[0].geltung, '7');
+  gleich(zurueck[1].aktiv, false, 'eine ausgeschaltete Regel kommt eingeschaltet zurück');
+  // Unsinn wird nicht übernommen, sondern auf die Vorgabe gesetzt.
+  gleich(kern.leseRegeln('{"regeln":[{"art":"gibtsnicht"}]}')[0].art, 'pflichtlabel');
+  tieferGleich(kern.leseRegeln('kein json'), []);
+  // Und der Satz in Worten nennt Geltung und Inhalt.
+  wahr(kern.regelText(regeln[0]).includes('Kapitel 7'), kern.regelText(regeln[0]));
+  wahr(kern.regelText(kern.leereRegel({ art: 'begruendung' })).includes('überall'));
+});
+
+s.test('der Agent Regelwerk zählt, was das Haus verabredet hat (1.78.0)', () => {
+  const regeln = [
+    kern.leereRegel({ art: 'pflichtlabel', wert: 'markt', schaerfe: 'pflicht' }),
+    kern.leereRegel({ art: 'begruendung', schaerfe: 'hinweis' }),
+    kern.leereRegel({ art: 'begruendung', aktiv: false })
+  ];
+  const ergebnis = kern.fuehreAgent('regelwerk', regelBestand, regelGliederung, [], { regeln });
+  gleich(ergebnis.agent, 'regelwerk');
+  const zahl = (schild) => (ergebnis.kennzahlen.find((k) => k.schild === schild) || {}).wert;
+  gleich(zahl('Regeln'), '2', 'die ausgeschaltete zählt mit');
+  gleich(zahl('Pflicht'), '1');
+  gleich(zahl('Verstöße'), '1');
+
+  // Ohne Regeln sagt der Agent, wo man sie anlegt – statt stumm zu bleiben.
+  const leer = kern.fuehreAgent('regelwerk', regelBestand, regelGliederung, [], { regeln: [] });
+  gleich(leer.befunde.length, 1);
+  gleich(leer.befunde[0].weg, 'regelwerk');
+  wahr(kern.AGENTEN.some((a) => a.id === 'regelwerk'), 'der Agent steht nicht in der Liste');
 });
 
 s.test('jeder Speicherschlüssel sagt, ob er mitreist (1.68.0)', () => {

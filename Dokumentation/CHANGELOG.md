@@ -20,6 +20,46 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.78.0] – Regeln, Vormerkungen und eine dritte Sparte
+
+### Neu
+* **Sparte „Beide" – und sie ist die Vorgabe.** Das meiste in oneSCM gilt
+  für Pkw und Van gleichermaßen; Spartenspezifisches wird ausdrücklich auf
+  PC oder Van gesetzt. Bus und Truck standen schon vorher nicht in der Liste
+* **Vormerken: intern und in Planung** (F-79). Zwei neue Kapitel – **24
+  Intern** und **25 In Planung** – sind vorgemerkt geboren; jede andere
+  Stelle lässt sich in der Gliederung vormerken, und „keine" hebt die
+  Vormerkung eines Kapitels für eine einzelne Stelle auf. Vorgemerktes fällt
+  aus der Ausgabe, **schon im Umfang**, und der Umfang sagt auch, was
+  wegfällt. Der Schalter „Vorgemerktes mitnehmen" holt es für eine interne
+  Fassung zurück. Die Vormerkung liegt bei den eigenen Texten und reist
+  damit in der Projektdatei
+* **Register Regelwerk** (F-80), das fünfzehnte: Regeln, allgemein oder je
+  Kapitel, **Pflicht** oder **Hinweis**. Zehn Arten, die sich rechnen
+  lassen, und eine freie, die in Worten dasteht. Geprüft an drei Stellen –
+  im Eingang an der Karte, im Register Prüfung als fünfter Agent, und vor
+  dem Erzeugen in Design und Output, wo eine Pflichtregel anhält
+* Die Regeln reisen mit der Projektdatei. Der Riegel aus 1.68.0 hat das
+  erzwungen: ein neuer Speicherschlüssel ohne Eintrag in `PAKET_INHALT`
+  lässt die Prüfung fallen
+
+### Ausdrücklich
+* **Die freie Regel ist eine Deutung, keine Rechnung.** Sie wird im Bericht
+  genannt, nicht geprüft, und hält auch als Pflichtregel nichts an – sonst
+  stünde dort eine Antwort, die niemand gegeben hat. Geprüft wird sie über
+  Claude, im Kommentar des Agenten, und steht dort als Kommentar
+
+### Nachgezogen
+* Sechs Prüfungen, die nach der neuen Vorgabe **richtig falsch** waren:
+  ein ungelabeltes Bild liegt jetzt unter `beide/`, „Labels ins Bild"
+  schreibt zwei Marken statt einer. Die zweite prüft nun, dass die
+  *gewählte* Marke da ist, statt auf eine feste Zahl zu zählen
+
+### Prüfung
+* 5 neue Kernprüfungen, 5 neue Browserprüfungen in
+  `23-regelwerk.e2e.mjs`, die Begehung läuft durch fünfzehn Ansichten.
+  Zusammen 549
+
 ## [1.77.0] – 798 Textstellen, zwei Zahlen
 
 Die Kontrastprüfung sah zwei Textstellen an. Die Frage gilt allen.

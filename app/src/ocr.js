@@ -410,6 +410,9 @@ function verdrahteOcr() {
 }
 
 verdrahteOcr();
+// Das Regelwerk steht im Modul davor; verdrahtet wird es hier, weil erst
+// jetzt alles bereitsteht, was es anfasst.
+verdrahteRegelwerk();
 
 // Der Start steht in der letzten Zeile der letzten Datei (siehe CLAUDE.md).
 starte();

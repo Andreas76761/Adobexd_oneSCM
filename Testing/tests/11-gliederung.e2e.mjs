@@ -1,5 +1,5 @@
 /**
- * Browserprüfung der Gliederung: 1153 Stellen aus der Arbeitsmappe des
+ * Browserprüfung der Gliederung: 1161 Stellen aus der Arbeitsmappe des
  * Projekts, die Zahl der Bilder je Stelle und die Zuordnung im Editor.
  */
 import { join } from 'node:path';
@@ -42,9 +42,14 @@ s.test('die Gliederung des Handbuchs steht vollständig in der Seite', () =>
       null,
       { timeout: 5000 }
     );
-    wahr((await seite.locator('#gliederung-stand').innerText()).includes('1153'), 'die Zahl der Stellen stimmt nicht');
+    wahr((await seite.locator('#gliederung-stand').innerText()).includes('1161'), 'die Zahl der Stellen stimmt nicht');
     const kennzahlen = await seite.locator('.gliederung-kennzahlen').innerText();
-    wahr(/23/.test(kennzahlen), 'die 23 Kapitel fehlen: ' + kennzahlen.replace(/\n/g, ' '));
+    // Seit 1.78.0 kommen „24 Intern" und „25 In Planung" dazu – gezählt
+    // werden die Kapitel der obersten Ebene, Anhänge nicht mitgerechnet.
+    wahr(/\b25\b/.test(kennzahlen), 'die 25 Kapitel fehlen: ' + kennzahlen.replace(/\n/g, ' '));
+    const oberste = await seite.locator('.gliederung-baum > .stelle .stelle-thema').allInnerTexts();
+    wahr(oberste.includes('Intern'), 'das Kapitel Intern fehlt: ' + oberste.slice(-4).join(' | '));
+    wahr(oberste.includes('In Planung'), 'das Kapitel In Planung fehlt: ' + oberste.slice(-4).join(' | '));
     // Die oberste Ebene steht da, die Unterkapitel erst nach dem Aufklappen.
     gleich(await seite.locator('.stelle--ebene2').count(), 0, 'alles ist schon aufgeklappt');
     await seite.locator('.stelle--ebene1 .stelle-schalter').first().click();
@@ -203,8 +208,12 @@ s.test('ein Label im Bild lässt sich verschieben', () =>
       await seite.click('#markier-labels summary');
       await seite.selectOption('#label-sprache', 'de');
       await seite.click('#label-ins-bild');
+      // Ins Bild wandert **jedes** gesetzte Label. Seit 1.78.0 steht die
+      // Sparte auf „Beide", also sind es Sprache und Sparte – gezählt wird
+      // darum nicht auf eine feste Zahl, sondern darauf, dass die
+      // gewählte Sprache dabei ist.
       await seite.waitForFunction(
-        () => document.querySelectorAll('.marke-zeile').length === 1,
+        () => [...document.querySelectorAll('.marke-zeile')].some((z) => /Deutsch/.test(z.textContent)),
         null,
         { timeout: 5000 }
       );
@@ -226,7 +235,10 @@ s.test('ein Label im Bild lässt sich verschieben', () =>
       );
       const marke = await seite.evaluate(() => {
         const fassungen = JSON.parse(localStorage.getItem('screenarchiv:eingang')).aufnahmen[0].fassungen;
-        return fassungen[fassungen.length - 1].marken[0];
+        const marken = fassungen[fassungen.length - 1].marken;
+        // Die gezogene ist die, die weit weg liegt – die übrigen stehen
+        // noch an ihrem Platz.
+        return marken.slice().sort((a, b) => b.x + b.y - (a.x + a.y))[0];
       });
       wahr(marke.x > 100 && marke.y > 100, 'das Label blieb liegen: ' + JSON.stringify(marke));
       gleich(vorher, 0);

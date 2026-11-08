@@ -902,24 +902,49 @@ async function sichereAlsHtml() {
 
 /* ------------------------------------------------------------ Handbuch */
 
+/**
+ * Hält eine Pflichtregel das Erzeugen an (F-80)? Gibt true zurück, wenn
+ * gestoppt wurde, und sagt dann auch, warum.
+ */
+function regelwerkHaeltAn() {
+  const sperre = regelSperre(regeln, imProjekt(), gliederungJetzt());
+  if (!sperre) return false;
+  meldeDesign(`${sperre} – im Register Regelwerk nachsehen, oder die Regel auf „Hinweis" stellen.`, 'warnung');
+  return true;
+}
+
 /** Welche Stellen das Handbuch umfassen soll - nach der Wahl im Studio. */
 function handbuchAuswahl() {
   const umfang = $('#handbuch-umfang').value;
   const stelle = umfang === 'kapitel' && designQuelle.startsWith('kapitel:') ? designQuelle.slice(8) : '';
+  const mitVorgemerkten = Boolean($('#handbuch-vorgemerkt') && $('#handbuch-vorgemerkt').checked);
   return {
     stelle,
-    teile: handbuchTeile(gliederungJetzt(), imProjekt(), strecken, { stelle, nurMitBildern: umfang !== 'alle' })
+    mitVorgemerkten,
+    teile: handbuchTeile(gliederungJetzt(), imProjekt(), strecken, {
+      stelle,
+      nurMitBildern: umfang !== 'alle',
+      mitVorgemerkten
+    }),
+    // Wofür der Bericht: was wegfällt, soll dastehen und nicht
+    // stillschweigend geschehen.
+    alle: handbuchTeile(gliederungJetzt(), imProjekt(), strecken, {
+      stelle,
+      nurMitBildern: umfang !== 'alle',
+      mitVorgemerkten: true
+    })
   };
 }
 
 /** Sagt vor dem Rechnen, was herauskäme. */
 function zeigeHandbuchUmfang() {
-  const { teile, stelle } = handbuchAuswahl();
+  const { teile, stelle, alle, mitVorgemerkten } = handbuchAuswahl();
   const zahl = handbuchUmfang(teile);
+  const vorgemerkt = vormerkungBericht(alle, { mitVorgemerkten });
   $('#handbuch-umfang-stand').textContent = zahl.stellen
     ? `${zahl.kapitel} Kapitel · ${zahl.stellen} Stellen · ${zahl.bilder} Bilder${
         zahl.ohneBild ? ` · ${zahl.ohneBild} noch ohne Bild` : ''
-      }${stelle ? ` · nur ${stelle}` : ''}`
+      }${stelle ? ` · nur ${stelle}` : ''}${vorgemerkt ? ' · ' + vorgemerkt : ''}`
     : 'Keine Stelle im Umfang – Bildern im Editor eine Stelle geben oder „die ganze Gliederung" wählen.';
   $('#handbuch-sichern').disabled = !zahl.stellen;
 }
@@ -955,6 +980,7 @@ async function handbuchBild(aufnahme, grenze) {
 async function sichereHandbuchWord() {
   const { teile, stelle } = handbuchAuswahl();
   if (!teile.length) return;
+  if (regelwerkHaeltAn()) return;
   const grenze = Number($('#handbuch-groesse').value) || 1600;
   $('#handbuch-word').disabled = true;
   const zahl = handbuchUmfang(teile);
@@ -1032,6 +1058,7 @@ async function handbuchBildBytes(aufnahme, grenze) {
 async function sichereHandbuch() {
   const { teile, stelle } = handbuchAuswahl();
   if (!teile.length) return;
+  if (regelwerkHaeltAn()) return;
   const grenze = Number($('#handbuch-groesse').value) || 0;
   $('#handbuch-sichern').disabled = true;
   const zahl = handbuchUmfang(teile);
@@ -1114,6 +1141,7 @@ function verdrahteDesign() {
     });
   }
   $('#handbuch-umfang').addEventListener('change', zeigeHandbuchUmfang);
+  $('#handbuch-vorgemerkt').addEventListener('change', zeigeHandbuchUmfang);
   $('#design-pdf').addEventListener('click', sichereAlsPdf);
   $('#handbuch-sichern').addEventListener('click', sichereHandbuch);
   $('#handbuch-word').addEventListener('click', sichereHandbuchWord);

@@ -151,6 +151,7 @@
               <span class="nav-aufgabe">Ordnen und prüfen</span>
               <button type="button" data-ansicht="gliederung"><svg class="symbol" aria-hidden="true"><use href="#sym-kapitel"/></svg>Gliederung</button>
               <button type="button" data-ansicht="pruefung"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-pruefung"/></svg>Prüfung</button>
+              <button type="button" data-ansicht="regelwerk"><svg class="symbol" aria-hidden="true"><use href="#sym-nav-pruefung"/></svg>Regelwerk</button>
             </span>
             <span class="nav-gruppe">
               <span class="nav-aufgabe">Ausgeben</span>
@@ -833,6 +834,16 @@
               <option value="0">in voller Auflösung (PNG)</option>
             </select>
           </div>
+          <label class="markier-schalter">
+            <input type="checkbox" id="handbuch-vorgemerkt">
+            <span>Vorgemerktes mitnehmen (intern, in Planung)</span>
+          </label>
+          <p class="feld-hinweis">
+            Abschnitte, die als <b>intern</b> oder <b>in Planung</b> vorgemerkt
+            sind, fehlen im Handbuch – das ist die Vorgabe. Die Kapitel 24 und
+            25 sind vorgemerkt geboren; einzelne Stellen lassen sich in der
+            Gliederung vormerken. Für eine interne Fassung hier ankreuzen.
+          </p>
           <p class="feld-hinweis" id="handbuch-umfang-stand"></p>
           <div class="markier-knoepfe">
             <button type="button" class="knopf knopf--haupt" id="handbuch-sichern">Handbuch als HTML sichern</button>
@@ -1214,6 +1225,50 @@
     <div class="video-bilder" id="video-bilder"></div>
   </section>
 
+  <section id="regelwerk-ansicht" aria-label="Regelwerk" hidden>
+    <p class="band-hinweis">
+      Hier stehen die Regeln, an denen dieses Haus seine Unterlagen misst –
+      <b>allgemein</b> oder für ein <b>Kapitel</b>. Geprüft wird an drei
+      Stellen: beim Aufnehmen und im Eingang, im Register <b>Prüfung</b> als
+      eigener Agent, und vor dem <b>Erzeugen</b> der Dokumente. Eine
+      <b>Pflichtregel</b> hält das Erzeugen an, ein <b>Hinweis</b> wird nur
+      genannt. Die Regeln reisen mit der Projektdatei.
+    </p>
+
+    <div class="regelwerk-raster">
+      <div class="regelwerk-neu">
+        <h2 class="studio-titel">Regel anlegen</h2>
+        <div class="feld">
+          <label for="regel-art">Was die Regel verlangt</label>
+          <select id="regel-art"></select>
+        </div>
+        <div class="feld" id="regel-wert-feld"></div>
+        <div class="feld">
+          <label for="regel-geltung">Gilt für Kapitel</label>
+          <input type="text" id="regel-geltung" list="gliederung-vorschlaege" autocomplete="off"
+                 placeholder="leer lassen = überall">
+        </div>
+        <div class="feld">
+          <label for="regel-schaerfe">Schärfe</label>
+          <select id="regel-schaerfe"></select>
+        </div>
+        <p class="feld-hinweis" id="regel-vorschau"></p>
+        <div class="markier-knoepfe">
+          <button type="button" class="knopf knopf--haupt" id="regel-anlegen">Regel anlegen</button>
+        </div>
+        <p class="studio-meldung" id="regelwerk-meldung"></p>
+      </div>
+
+      <div class="regelwerk-bestand">
+        <div class="verzeichnis-kopf">
+          <h2 class="studio-titel">Regeln</h2>
+          <span class="kennung" id="regelwerk-stand"></span>
+        </div>
+        <div class="regelwerk-liste" id="regelwerk-liste"></div>
+      </div>
+    </div>
+  </section>
+
   <section id="ocr-ansicht" aria-label="OCR" hidden>
     <div class="output-kopf">
       <div class="markier-knoepfe">
@@ -1571,6 +1626,7 @@
 /*%PRUEFUNG%*/
 /*%ABLAGE%*/
 /*%OUTPUT%*/
+/*%REGELWERK%*/
 /*%VIDEO%*/
 /*%OCR%*/
 })();

@@ -49,7 +49,7 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `17-varianten.e2e.mjs` | Varianten im Browser: verbinden und lösen, Deckungsmatrix, Ausgabe in einer anderen Sprache | 5 |
 
-| `18-begehung.e2e.mjs` | Begehung: jeder sichtbare Befehl in **jeder der vierzehn** Ansichten (seit 1.51.0 auch Output und OCR, seit 1.55.0 Video), die zerstörenden Befehle, die Tastatur | 4 |
+| `18-begehung.e2e.mjs` | Begehung: jeder sichtbare Befehl in **jeder der fünfzehn** Ansichten (seit 1.51.0 auch Output und OCR, seit 1.55.0 Video), die zerstörenden Befehle, die Tastatur | 4 |
 
 | `22-video.e2e.mjs` | Video im Browser: Grenze und Formate benannt, Video öffnen, Nichtvideo abweisen, automatisch abtasten, Bild von Hand, Stellen und Labels, Übernahme in den Eingang, Strecke aus dem Video, Durchgänge mit Vergleich und Diagnose, Vorgehen, Verwerfen, leere Antwort beim Deuten. Das Prüfvideo entsteht in der Seite selbst (`captureStream` + `MediaRecorder`) – keine Beispieldatei im Repo | 16 |
 
@@ -59,7 +59,9 @@ Browserprüfung. Fehlt das Paket oder Chromium, meldet sich die Stufe als
 
 | `19-projekte.e2e.mjs` | Projekte im Browser: anlegen, wählen, zählen, löschen, Vorschläge aus dem Bestand, Version und Land am Bild und im Eingangsdialog, die Arbeitsmenge in Eingang, Gliederung, Verzeichnis und Editor | 12 |
 
-Summe: **538 Prüfungen**.
+| `23-regelwerk.e2e.mjs` | Regelwerk im Browser: leeres Register, Regel anlegen und über das Neuladen behalten, Anhalten im Eingang, im Designstudio und als Agent, Vormerkung von intern und in Planung | 6 |
+
+Summe: **549 Prüfungen**.
 
 ## Messungen – nicht Teil des Durchlaufs
 

@@ -32,6 +32,7 @@ export const ANSICHTEN = [
   'design',
   'gliederung',
   'pruefung',
+  'regelwerk',
   'verzeichnis',
   'output',
   'ocr',
@@ -354,6 +355,9 @@ export function leereAufnahme(heute, vorlage = {}) {
   // die Nachpflege: wer eine Reihe aufnimmt, nimmt sie in *einer* Sprache und
   // fuer *eine* Rolle auf. Darum wandern sie aus der Vorlage mit.
   for (const feld of LABEL_FELDER) entwurf[feld.id] = String(vorlage[feld.id] || '');
+  // Die Sparte ist die eine Ausnahme: sie steht auf „Beide", bis jemand
+  // etwas anderes waehlt. Siehe SPARTE_VORGABE.
+  if (!entwurf.sparte) entwurf.sparte = SPARTE_VORGABE;
   return entwurf;
 }
 
@@ -2274,10 +2278,20 @@ export const ROLLEN_LABEL = [
  * `pkw` - abgelegte Bilder sollen beim Umbenennen des Schildes nicht ihre
  * Zuordnung verlieren.
  */
+/**
+ * Die Sparten. `beide` ist die **Vorgabe**: das meiste in oneSCM gilt fuer
+ * Pkw und Van gleichermassen, und wer eine Reihe aufnimmt, soll nicht bei
+ * jedem Bild eine Entscheidung treffen muessen, die meist keine ist.
+ * Spartenspezifisches wird dann ausdruecklich auf `pkw` oder `van` gesetzt.
+ */
 export const SPARTEN = [
+  { id: 'beide', label: 'Beide', lang: 'Passenger Cars und Vans', alias: ['beides', 'both', 'PC+Van'], symbol: 'sparte' },
   { id: 'pkw', label: 'PC', lang: 'Passenger Cars (Pkw)', alias: ['Pkw', 'Passenger Cars'], symbol: 'sparte-pkw' },
   { id: 'van', label: 'Van', lang: 'Vans', alias: ['Transporter'], symbol: 'sparte-van' }
 ];
+
+/** Welche Sparte ein neues Bild bekommt, solange niemand etwas anderes sagt. */
+export const SPARTE_VORGABE = 'beide';
 
 /**
  * Die Labelfelder in fester Folge. Sprache, Rolle und Sparte haben eine feste
@@ -2456,7 +2470,7 @@ export function zaehleBilder(eintraege = [], aufnahmen = []) {
     eigene.set(stelle, (eigene.get(stelle) || 0) + 1);
   }
   // Die Summe je Stelle entsteht von unten nach oben: jede belegte Stelle
-  // zaehlt sich ihren Vorfahren zu. Der umgekehrte Weg - jede der 1153
+  // zaehlt sich ihren Vorfahren zu. Der umgekehrte Weg - jede der 1161
   // Stellen gegen jede belegte pruefen - kostet bei vielen Bildern ein
   // Vielfaches und liefert dasselbe.
   const summen = new Map();
@@ -4178,6 +4192,11 @@ export const AGENTEN = [
     zweck: 'Heißt dasselbe überall gleich? Wortliste, Schreibweisen und die Sprache der Texte gegen das Label.'
   },
   {
+    id: 'regelwerk',
+    label: 'Regelwerk',
+    zweck: 'Die Regeln dieses Hauses: was im Register Regelwerk verabredet wurde, am heutigen Bestand gemessen.'
+  },
+  {
     id: 'empfehlung',
     label: 'Empfehlung',
     zweck: 'Was als nächstes zu tun ist – nach Gewicht sortiert, mit dem Weg dorthin.'
@@ -4206,6 +4225,275 @@ const befund = (art, titel, text, zusatz = {}) => ({
 function sortiereBefunde(befunde) {
   const rang = { fehler: 0, warnung: 1, hinweis: 2 };
   return [...befunde].sort((a, b) => b.gewicht - a.gewicht || rang[a.art] - rang[b.art] || a.titel.localeCompare(b.titel));
+}
+
+/* =========================================================================
+   Das Regelwerk.
+
+   Was ein Bild oder ein Abschnitt erfuellen muss, haengt am Haus und nicht
+   an dieser Seite: der eine verlangt an jedem Bild einen Markt, der naechste
+   nicht. Fest eingebaute Pruefungen waeren darum entweder zu streng oder
+   nutzlos.
+
+   Hier schreibt man die Regeln selbst - **allgemein** oder **je Kapitel**.
+   Geprueft werden sie an drei Stellen, damit ein Verstoss dort auffaellt,
+   wo er entsteht, und nicht erst am Ende: beim Aufnehmen, im Register
+   Pruefung und vor dem Erzeugen der Dokumente.
+
+   Eine Regel ist **Pflicht** oder **Hinweis**. Nur eine Pflichtregel haelt
+   das Erzeugen an; ein Hinweis wird genannt und laesst weiterarbeiten. Die
+   Seite entscheidet nicht, was wichtig ist - das Haus entscheidet es.
+   ========================================================================= */
+
+export const REGELN_SCHLUESSEL = 'screenarchiv:regeln';
+export const REGELN_VERSION = 1;
+
+/**
+ * Was eine Regel verlangen kann. `wert` sagt, was danebensteht; `wo` sagt,
+ * woran gemessen wird - an jedem Bild (`bild`) oder an jeder Stelle
+ * (`stelle`). `claude` markiert die eine Art, die nicht gerechnet, sondern
+ * gedeutet wird.
+ */
+export const REGEL_ARTEN = [
+  {
+    id: 'pflichtlabel',
+    label: 'Label ist Pflicht',
+    wo: 'bild',
+    wert: 'feld',
+    satz: (r) => `Jedes Bild braucht ${(LABEL_FELDER.find((f) => f.id === r.wert) || {}).label || r.wert}.`
+  },
+  {
+    id: 'mindestbilder',
+    label: 'Mindestzahl Bilder je Stelle',
+    wo: 'stelle',
+    wert: 'zahl',
+    satz: (r) => `Jede belegte Stelle braucht mindestens ${Number(r.wert) || 1} Bild(er).`
+  },
+  {
+    id: 'stelle-belegt',
+    label: 'Stelle muss belegt sein',
+    wo: 'stelle',
+    wert: '',
+    satz: () => 'Jede Stelle im Geltungsbereich braucht wenigstens ein Bild.'
+  },
+  {
+    id: 'begruendung',
+    label: 'Bild braucht eine Begründung',
+    wo: 'bild',
+    wert: '',
+    satz: () => 'Jedes Bild braucht eine Notiz, die sagt, was darauf zu tun ist.'
+  },
+  {
+    id: 'text-enthaelt',
+    label: 'Text muss ein Wort enthalten',
+    wo: 'stelle',
+    wert: 'wort',
+    satz: (r) => `Der Text der Stelle muss „${r.wert}" enthalten.`
+  },
+  {
+    id: 'text-verboten',
+    label: 'Text darf ein Wort nicht enthalten',
+    wo: 'stelle',
+    wert: 'wort',
+    satz: (r) => `Der Text der Stelle darf „${r.wert}" nicht enthalten.`
+  },
+  {
+    id: 'hoechstlaenge',
+    label: 'Höchstlänge des Textes',
+    wo: 'stelle',
+    wert: 'zahl',
+    satz: (r) => `Der Text der Stelle darf höchstens ${Number(r.wert) || 0} Zeichen haben.`
+  },
+  {
+    id: 'kriterium-gesetzt',
+    label: 'Abschlusskriterium muss gesetzt sein',
+    wo: 'stelle',
+    wert: '',
+    satz: () => 'Jede Stelle braucht ein Abschlusskriterium („Fertig, wenn: …").'
+  },
+  {
+    id: 'status-uebernommen',
+    label: 'Nur übernommene Bilder',
+    wo: 'bild',
+    wert: '',
+    satz: () => 'Ein Bild im Handbuch muss den Status „übernommen" tragen.'
+  },
+  {
+    id: 'keine-vorgemerkten',
+    label: 'Nichts Vorgemerktes in der Ausgabe',
+    wo: 'stelle',
+    wert: '',
+    satz: () => 'Als intern oder in Planung vorgemerkte Abschnitte dürfen nicht ausgegeben werden.'
+  },
+  {
+    id: 'frei',
+    label: 'Freie Regel, von Claude geprüft',
+    wo: 'stelle',
+    wert: 'text',
+    claude: true,
+    satz: (r) => String(r.wert || 'Eine frei formulierte Regel.')
+  }
+];
+
+export const REGEL_SCHAERFEN = [
+  { id: 'pflicht', label: 'Pflicht', art: 'fehler', hinweis: 'Hält das Erzeugen an.' },
+  { id: 'hinweis', label: 'Hinweis', art: 'warnung', hinweis: 'Wird genannt, hält nichts an.' }
+];
+
+/** Eine leere Regel, wie sie im Register angelegt wird. */
+export function leereRegel(vorlage = {}) {
+  return {
+    id: String(vorlage.id || `REG-${Date.now().toString(36)}`),
+    art: REGEL_ARTEN.some((a) => a.id === vorlage.art) ? vorlage.art : 'pflichtlabel',
+    // Leer heisst: gilt ueberall. Sonst die Kapitelnummer, auf die sie zielt.
+    geltung: String(vorlage.geltung || ''),
+    wert: String(vorlage.wert || ''),
+    schaerfe: REGEL_SCHAERFEN.some((s) => s.id === vorlage.schaerfe) ? vorlage.schaerfe : 'hinweis',
+    aktiv: vorlage.aktiv !== false
+  };
+}
+
+export function leseRegeln(text) {
+  let inhalt = null;
+  try {
+    inhalt = JSON.parse(text || 'null');
+  } catch (fehler) {
+    return [];
+  }
+  const liste = Array.isArray(inhalt) ? inhalt : (inhalt && inhalt.regeln) || [];
+  return liste.filter((r) => r && typeof r === 'object').map((r) => leereRegel(r));
+}
+
+export function schreibeRegeln(regeln = []) {
+  return JSON.stringify({ version: REGELN_VERSION, stand: new Date().toISOString(), regeln });
+}
+
+/** Die Regel in einem Satz - fuer die Liste und fuer den Befund. */
+export function regelText(regel = {}) {
+  const art = REGEL_ARTEN.find((a) => a.id === regel.art);
+  const satz = art ? art.satz(regel) : String(regel.art || '');
+  const wo = regel.geltung ? `Kapitel ${regel.geltung}` : 'überall';
+  return `${satz} (${wo})`;
+}
+
+/** Gilt die Regel fuer diese Stelle? Leere Geltung heisst: ueberall. */
+export function regelGiltFuer(regel = {}, nummer = '') {
+  if (!regel.geltung) return true;
+  return gehoertZu(String(nummer || ''), regel.geltung);
+}
+
+/**
+ * Was die Regeln am Bestand zu beanstanden haben.
+ *
+ * Gerechnet wird nur, was sich rechnen laesst: die freie Regel (`frei`)
+ * braucht Claude und wird hier **genannt, nicht geprueft** - sonst stuende
+ * im Bericht eine Antwort, die niemand gegeben hat.
+ */
+export function pruefeRegeln(regeln = [], aufnahmen = [], gliederung = [], { nurPflicht = false } = {}) {
+  const befunde = [];
+  const aktive = regeln.filter((r) => r && r.aktiv !== false).filter((r) => !nurPflicht || r.schaerfe === 'pflicht');
+  const stelleVon = (a) => String(a.gliederung || '').trim();
+  const artVon = (regel) => (REGEL_SCHAERFEN.find((s) => s.id === regel.schaerfe) || REGEL_SCHAERFEN[1]).art;
+
+  for (const regel of aktive) {
+    const beschreibung = REGEL_ARTEN.find((a) => a.id === regel.art);
+    if (!beschreibung) continue;
+    const kopf = regelText(regel);
+
+    if (beschreibung.claude) {
+      befunde.push(
+        befund('hinweis', 'Freie Regel – nur mit Claude prüfbar', kopf, {
+          stelle: regel.geltung,
+          gewicht: 1
+        })
+      );
+      continue;
+    }
+
+    if (beschreibung.wo === 'bild') {
+      const betroffen = aufnahmen.filter((a) => regelGiltFuer(regel, stelleVon(a)));
+      const verstoesse = betroffen.filter((a) => {
+        if (regel.art === 'pflichtlabel') return !String(a[regel.wert] || '').trim();
+        if (regel.art === 'begruendung') return !String(a.notiz || '').trim();
+        if (regel.art === 'status-uebernommen') return String(a.status || '') !== 'übernommen';
+        return false;
+      });
+      if (verstoesse.length) {
+        befunde.push(
+          befund(artVon(regel), `${verstoesse.length} Bild(er) gegen eine Regel`, kopf, {
+            kennungen: verstoesse.map((a) => a.id),
+            stelle: regel.geltung,
+            weg: 'eingang',
+            gewicht: regel.schaerfe === 'pflicht' ? 3 : 2
+          })
+        );
+      }
+      continue;
+    }
+
+    // Regeln an der Stelle.
+    const stellen = gliederung.filter((e) => e.art !== 'uebergang' && regelGiltFuer(regel, e.nummer));
+    const verstoesse = [];
+    for (const eintrag of stellen) {
+      const eigene = aufnahmen.filter((a) => stelleVon(a) === eintrag.nummer);
+      const darunter = aufnahmen.filter((a) => gehoertZu(stelleVon(a), eintrag.nummer));
+      const text = [eintrag.text, eintrag.kriterium, eintrag.notiz].filter(Boolean).join(' ');
+      if (regel.art === 'mindestbilder') {
+        if (eigene.length && eigene.length < (Number(regel.wert) || 1)) verstoesse.push(eintrag.nummer);
+      } else if (regel.art === 'stelle-belegt') {
+        if (!darunter.length) verstoesse.push(eintrag.nummer);
+      } else if (regel.art === 'text-enthaelt') {
+        if (darunter.length && !normalisiere(text).includes(normalisiere(regel.wert))) verstoesse.push(eintrag.nummer);
+      } else if (regel.art === 'text-verboten') {
+        if (regel.wert && normalisiere(text).includes(normalisiere(regel.wert))) verstoesse.push(eintrag.nummer);
+      } else if (regel.art === 'hoechstlaenge') {
+        if (text.length > (Number(regel.wert) || 0)) verstoesse.push(eintrag.nummer);
+      } else if (regel.art === 'kriterium-gesetzt') {
+        if (darunter.length && !String(eintrag.kriterium || '').trim()) verstoesse.push(eintrag.nummer);
+      } else if (regel.art === 'keine-vorgemerkten') {
+        if (darunter.length && vormerkungVon(eintrag)) verstoesse.push(eintrag.nummer);
+      }
+    }
+    if (verstoesse.length) {
+      befunde.push(
+        befund(artVon(regel), `${verstoesse.length} Stelle(n) gegen eine Regel`, kopf, {
+          stelle: verstoesse[0],
+          weg: 'gliederung',
+          gewicht: regel.schaerfe === 'pflicht' ? 3 : 2
+        })
+      );
+    }
+  }
+  return sortiereBefunde(befunde);
+}
+
+/** Hält eine Pflichtregel das Erzeugen an? Dann sagt dieser Satz, warum. */
+export function regelSperre(regeln = [], aufnahmen = [], gliederung = []) {
+  const harte = pruefeRegeln(regeln, aufnahmen, gliederung, { nurPflicht: true }).filter((b) => b.art === 'fehler');
+  if (!harte.length) return '';
+  return `${harte.length} Pflichtregel(n) verletzt: ${harte.map((b) => b.text).join(' · ')}`;
+}
+
+/** Der Agent zum Regelwerk: dieselben Regeln, als Befunde und Kennzahlen. */
+export function pruefeRegelwerkAgent(eingang = [], gliederung = [], regeln = []) {
+  const aktive = regeln.filter((r) => r && r.aktiv !== false);
+  const befunde = pruefeRegeln(regeln, eingang, gliederung);
+  return {
+    agent: 'regelwerk',
+    befunde: aktive.length
+      ? befunde
+      : [
+          befund('hinweis', 'Noch keine Regel', 'Im Register Regelwerk lässt sich festlegen, woran dieses Haus seine Unterlagen misst.', {
+            weg: 'regelwerk'
+          })
+        ],
+    kennzahlen: [
+      { schild: 'Regeln', wert: String(aktive.length), zusatz: `${regeln.length - aktive.length} aus` },
+      { schild: 'Pflicht', wert: String(aktive.filter((r) => r.schaerfe === 'pflicht').length) },
+      { schild: 'Verstöße', wert: String(befunde.filter((b) => b.art === 'fehler').length), zusatz: 'gegen eine Pflichtregel' },
+      { schild: 'Hinweise', wert: String(befunde.filter((b) => b.art === 'warnung').length) }
+    ]
+  };
 }
 
 /* ------------------------------------------------------------ Roter Faden */
@@ -4850,6 +5138,7 @@ export function fuehreAgent(id, eingang = [], gliederung = [], strecken = [], me
   if (id === 'faden') return pruefeFaden(eingang, gliederung, strecken);
   if (id === 'audit') return pruefeAudit(eingang, gliederung, strecken);
   if (id === 'sprache') return pruefeSprache(eingang, gliederung, strecken, mehr);
+  if (id === 'regelwerk') return pruefeRegelwerkAgent(eingang, gliederung, mehr.regeln || []);
   if (id === 'empfehlung') return empfehlungen(eingang, gliederung, strecken);
   return { agent: String(id || ''), befunde: [], kennzahlen: [] };
 }
@@ -5666,11 +5955,19 @@ export function streckeFuerStelle(strecken = [], eingang = [], nummer) {
  * der Gliederung steht. Leere Kapitel sind keine Panne: sie zeigen, was noch
  * fehlt, und halten die Nummerierung des Handbuchs zusammen.
  */
-export function handbuchTeile(gliederung = [], eingang = [], strecken = [], { stelle = '', nurMitBildern = true } = {}) {
+export function handbuchTeile(
+  gliederung = [],
+  eingang = [],
+  strecken = [],
+  { stelle = '', nurMitBildern = true, mitVorgemerkten = false } = {}
+) {
   const teile = [];
   for (const eintrag of gliederung) {
     if (eintrag.art === 'uebergang') continue;
     if (stelle && !gehoertZu(eintrag.nummer, stelle)) continue;
+    // Vorgemerktes faellt hier weg, nicht erst im Blatt: so stimmen auch
+    // Umfang und Seitenzahl. Mit `mitVorgemerkten` bleibt alles stehen.
+    if (!mitVorgemerkten && vormerkungVon(eintrag)) continue;
     const bilder = sortiereNachKapitel(eingang.filter((a) => String(a.gliederung || '').trim() === eintrag.nummer));
     const kinderBilder = eingang.filter((a) => gehoertZu(String(a.gliederung || '').trim(), eintrag.nummer)).length;
     if (nurMitBildern && !kinderBilder) continue;
@@ -5679,6 +5976,7 @@ export function handbuchTeile(gliederung = [], eingang = [], strecken = [], { st
       nummer: eintrag.nummer,
       thema: eintrag.thema,
       ebene: eintrag.ebene,
+      vormerkung: vormerkungVon(eintrag),
       // Wie viele Bilder unterhalb liegen: ein Kapitel ohne eigene Bilder ist
       // keine Luecke, wenn seine Unterkapitel welche haben.
       nachkommen: kinderBilder,
@@ -6817,6 +7115,61 @@ export function vergleichsPaare(aufnahmen = [], wahlA = '', wahlB = '', gliederu
    zurücknehmen.
    ========================================================================= */
 
+/* =========================================================================
+   Vormerken: intern und in Planung.
+
+   Nicht jeder Abschnitt gehoert ins Benutzerhandbuch. Ein Arbeitsstand,
+   eine offene Absprache, eine Funktion, die erst kommen soll - das sind
+   Texte, die im Projekt stehen muessen und in der Unterlage nicht.
+
+   Darum traegt jede Stelle eine **Vormerkung**. Sie liegt bei den eigenen
+   Texten (`screenarchiv:texte`), reist also mit der Projektdatei und laesst
+   die Gliederung des Projekts unberuehrt. Die Kapitel 24 und 25 sind
+   vorgemerkt geboren; einzelne Stellen anderswo lassen sich ebenso
+   vormerken.
+
+   In der Ausgabe fallen sie weg - **es sei denn**, jemand schaltet sie
+   ausdruecklich dazu. Eine interne Fassung soll moeglich sein; sie soll
+   nur nicht aus Versehen entstehen.
+   ========================================================================= */
+
+export const VORMERKUNGEN = [
+  { id: 'intern', label: 'Intern', kapitel: '24', hinweis: 'Nur für das Team. Nicht in einer veröffentlichten Unterlage.' },
+  { id: 'planung', label: 'In Planung', kapitel: '25', hinweis: 'Beschreibt, was kommen soll – nicht, was ist.' }
+];
+
+/** Die Vormerkung einer Stelle: aus dem Kapitel oder von Hand gesetzt. */
+export function vormerkungVon(eintrag = {}) {
+  const eigen = String(eintrag.vormerkung || '');
+  if (VORMERKUNGEN.some((v) => v.id === eigen)) return eigen;
+  // „keine" hebt die Vormerkung des Kapitels ausdruecklich auf.
+  if (eigen === 'keine') return '';
+  const kopf = String(eintrag.nummer || '').split('.')[0];
+  const ausKapitel = VORMERKUNGEN.find((v) => v.kapitel === kopf);
+  return ausKapitel ? ausKapitel.id : '';
+}
+
+/**
+ * Die Teile einer Unterlage ohne die vorgemerkten. `mitVorgemerkten` nimmt
+ * sie wieder dazu - fuer eine interne Fassung.
+ */
+export function ohneVorgemerkte(teile = [], { mitVorgemerkten = false } = {}) {
+  if (mitVorgemerkten) return teile;
+  return teile.filter((t) => !vormerkungVon(t));
+}
+
+/** Was beim Ausgeben weggefallen ist - in einem Satz, nicht stillschweigend. */
+export function vormerkungBericht(teile = [], { mitVorgemerkten = false } = {}) {
+  const weg = teile.filter((t) => vormerkungVon(t));
+  if (!weg.length) return '';
+  if (mitVorgemerkten) return `${weg.length} vorgemerkte(r) Abschnitt(e) sind **mit** in der Ausgabe.`;
+  const je = VORMERKUNGEN.map((v) => {
+    const zahl = weg.filter((t) => vormerkungVon(t) === v.id).length;
+    return zahl ? `${zahl} ${v.label}` : '';
+  }).filter(Boolean);
+  return `${weg.length} Abschnitt(e) nicht in der Ausgabe: ${je.join(', ')}.`;
+}
+
 export const TEXTE_SCHLUESSEL = 'screenarchiv:texte';
 export const TEXTE_VERSION = 1;
 
@@ -6833,7 +7186,7 @@ export function leseStellentexte(text) {
   for (const [nummer, eintrag] of Object.entries(roh || {})) {
     if (!eintrag || typeof eintrag !== 'object') continue;
     const satz = {};
-    for (const feld of ['text', 'kriterium', 'notiz']) {
+    for (const feld of ['text', 'kriterium', 'notiz', 'vormerkung']) {
       const wert = String(eintrag[feld] || '').trim();
       if (wert) satz[feld] = wert;
     }
@@ -7024,7 +7377,7 @@ export function uebernimmStellentexte(eigene = {}, vergleich = [], nummern = nul
 /* =========================================================================
    Das Fortschrittsblatt – wie weit ist das Handbuch?
 
-   Die Gliederung hat 1153 Stellen. „Wie weit sind wir?" lässt sich daran
+   Die Gliederung hat 1161 Stellen. „Wie weit sind wir?" lässt sich daran
    nicht ablesen, und eine Zahl allein („312 Bilder") sagt nichts darüber,
    ob das viel ist. Hier wird je Kapitel gezählt: wie viele seiner Stellen
    belegt sind, wie viele Bilder daran hängen und wie es um die gewählte
@@ -7135,6 +7488,7 @@ export function paketAngaben({
   vorgehen = null,
   texte = {},
   verzeichnis = null,
+  regeln = [],
   stand = new Date().toISOString(),
   anwendung = ''
 } = {}) {
@@ -7162,7 +7516,10 @@ export function paketAngaben({
     // Das Namensmuster des Verzeichnisses ist dieselbe Art Sache wie das
     // Vorgehen: eine Verabredung, wie dieses Projekt seine Dateien nennt.
     // Wer den Bestand bekommt und anders ablegt, legt anderswohin ab.
-    verzeichnis
+    verzeichnis,
+    // Das Regelwerk ist die Verabredung schlechthin: woran dieses Haus
+    // seine Unterlagen misst. Ohne sie prueft der Naechste nach anderen.
+    regeln
   };
 }
 
@@ -7209,7 +7566,8 @@ export function lesePaketAngaben(text) {
     wortliste: Array.isArray(inhalt.wortliste) ? leseWortliste(JSON.stringify({ regeln: inhalt.wortliste })) : [],
     vorgehen: inhalt.vorgehen ? leseVorgehen(JSON.stringify(inhalt.vorgehen)) : null,
     texte: inhalt.texte ? leseStellentexte(JSON.stringify(inhalt.texte)) : {},
-    verzeichnis: inhalt.verzeichnis ? leseVerzeichnisWahl(JSON.stringify(inhalt.verzeichnis)) : null
+    verzeichnis: inhalt.verzeichnis ? leseVerzeichnisWahl(JSON.stringify(inhalt.verzeichnis)) : null,
+    regeln: Array.isArray(inhalt.regeln) ? leseRegeln(JSON.stringify({ regeln: inhalt.regeln })) : []
   };
 }
 
@@ -7268,6 +7626,7 @@ export function paketBericht(gelesen = {}, bilder = 0) {
     gelesen.vorgehen ? 'Vorgehen für das Register Video' : '',
     Object.keys(gelesen.texte || {}).length ? `${Object.keys(gelesen.texte).length} eigene(r) Text aus Word` : '',
     gelesen.verzeichnis ? 'Namensmuster des Verzeichnisses' : '',
+    (gelesen.regeln || []).length ? `${gelesen.regeln.length} Regel(n)` : '',
     gelesen.design ? 'Einstellungen des Studios' : ''
   ].filter(Boolean);
   const woher = gelesen.erzeugt_von ? ` · aus ${gelesen.erzeugt_von}` : '';
@@ -7907,6 +8266,7 @@ export const PAKET_INHALT = [
   { schluessel: VORGEHEN_SCHLUESSEL, reist: true, feld: 'vorgehen' },
   { schluessel: TEXTE_SCHLUESSEL, reist: true, feld: 'texte' },
   { schluessel: VERZEICHNIS_SCHLUESSEL, reist: true, feld: 'verzeichnis' },
+  { schluessel: REGELN_SCHLUESSEL, reist: true, feld: 'regeln' },
   {
     schluessel: ABLAGE_SCHLUESSEL,
     reist: false,

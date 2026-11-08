@@ -835,7 +835,12 @@ Rolle, Sparte und Sprache zusammenstellen.
 | --- | --- |
 | Sprache | feste Auswahl, 21 Sprachen von Deutsch bis Arabisch |
 | Rolle | Dealer, Market, HQ, MO |
-| Sparte | Pkw, Van |
+| Sparte | **Beide** (Vorgabe), PC, Van |
+
+> Seit 1.78.0 steht die Sparte an einem neuen Bild auf **Beide**: das meiste
+> in oneSCM gilt für Pkw und Van gleichermaßen, und wer eine Reihe aufnimmt,
+> soll nicht bei jedem Bild eine Entscheidung treffen, die meist keine ist.
+> Spartenspezifisches wird dann ausdrücklich auf PC oder Van gesetzt.
 | Markt | Text, Vorschläge aus der bisherigen Arbeit |
 | Domäne | Text – etwa „Templates – Market Settings“ |
 | Reiter | Text – etwa „Documents“, „Emails“, „System Notifications“ |
@@ -1015,7 +1020,7 @@ ziehen, an der Ecke in der Größe ändern und behält Lage, Größe und Zustand
 (`screenarchiv:chat`). Es wird vom Rahmen im Bild gehalten: ein Fenster
 außerhalb des Fensters wäre unerreichbar. Escape schließt.
 
-**Was erkannt wird** Rolle (Dealer, Market, HQ, MO), Sparte (Pkw, Van),
+**Was erkannt wird** Rolle (Dealer, Market, HQ, MO), Sparte (Beide, PC, Van),
 Sprache (21), Markt, Stelle der Gliederung (`Kapitel 6.2`, `6.2.3` oder ein
 Thema, wenn es eindeutig ist), eine Anzahl („die letzten 5“) und die
 Eigenschaften `unkenntlich`, `markiert`, `import`, `ohne Stelle`,
@@ -2204,3 +2209,87 @@ One Pager näher dran. Kein Deckblatt. Das Bild ist etwa elf Zentimeter
 breit – genug, um mit dem Rahmen (F-77) die Stelle zu finden, nicht, um
 Kleingedrucktes zu lesen.
 
+---
+
+## F-79 · Vormerken – intern und in Planung
+
+**Seit** 1.78.0 · **Ansicht** Gliederung, Design · betrifft Handbuch
+
+**Das Problem** Nicht jeder Abschnitt gehört ins Benutzerhandbuch. Ein
+Arbeitsstand, eine offene Absprache, eine Funktion, die erst kommen soll –
+das sind Texte, die im Projekt stehen müssen und in der Unterlage nicht. Wer
+sie löscht, verliert sie; wer sie stehen lässt, gibt sie heraus.
+
+**Die Lösung** Jede Stelle trägt eine **Vormerkung**: *intern* oder *in
+Planung*. Zwei neue Kapitel sind vorgemerkt geboren –
+
+| | |
+| --- | --- |
+| **24 Intern** | Arbeitsstände, Absprachen, Prüfnotizen |
+| **25 In Planung** | angekündigte Funktionen, vorgesehene Änderungen, offene Fragen |
+
+– und jede andere Stelle lässt sich in der Gliederung vormerken. Umgekehrt
+hebt „keine" die Vormerkung eines Kapitels für eine einzelne Stelle auf.
+
+**In der Ausgabe fallen sie weg.** Nicht erst im Blatt, sondern schon im
+Umfang: so stimmen auch Seitenzahl und Kennzahlen. Der Umfang sagt dabei,
+*was* wegfällt – „4 Abschnitt(e) nicht in der Ausgabe: 2 Intern, 2 In
+Planung" –, damit es nicht stillschweigend geschieht.
+
+**Schaltbar, aber nicht aus Versehen.** Im Designstudio nimmt
+„Vorgemerktes mitnehmen" sie wieder dazu. Eine interne Fassung soll möglich
+sein; sie soll nur nicht entstehen, weil niemand hingesehen hat.
+
+**Wo die Vormerkung liegt** Bei den eigenen Texten
+(`screenarchiv:texte`, F-65). Sie reist damit in der Projektdatei (F-63)
+und lässt die Gliederung des Projekts unberührt – dieselbe Überlegung wie
+beim Rückweg aus Word.
+
+---
+
+## F-80 · Register Regelwerk – woran dieses Haus seine Unterlagen misst
+
+**Seit** 1.78.0 · **Ansicht** Regelwerk · betrifft Prüfung, Design, Output, Eingang
+
+**Das Problem** Was ein Bild oder ein Abschnitt erfüllen muss, hängt am Haus
+und nicht an dieser Seite: der eine verlangt an jedem Bild einen Markt, der
+nächste nicht. Fest eingebaute Prüfungen wären darum entweder zu streng oder
+nutzlos.
+
+**Die Lösung** Die Regeln werden selbst geschrieben – **allgemein** oder für
+ein **Kapitel**:
+
+| Art | misst an |
+| --- | --- |
+| Label ist Pflicht | jedem Bild |
+| Bild braucht eine Begründung | jedem Bild |
+| Nur übernommene Bilder | jedem Bild |
+| Mindestzahl Bilder je Stelle | jeder Stelle |
+| Stelle muss belegt sein | jeder Stelle |
+| Text muss / darf nicht ein Wort enthalten | jeder Stelle |
+| Höchstlänge des Textes | jeder Stelle |
+| Abschlusskriterium muss gesetzt sein | jeder Stelle |
+| Nichts Vorgemerktes in der Ausgabe | jeder Stelle |
+| **Freie Regel**, von Claude geprüft | jeder Stelle |
+
+**Pflicht oder Hinweis.** Nur eine **Pflichtregel** hält das Erzeugen an; ein
+**Hinweis** wird genannt und lässt weiterarbeiten. Die Seite entscheidet
+nicht, was wichtig ist – das Haus entscheidet es.
+
+**Geprüft an drei Stellen**, damit ein Verstoß dort auffällt, wo er entsteht:
+
+* **Im Eingang** trägt eine Aufnahme, die gegen eine Pflichtregel verstößt,
+  eine Marke und einen roten Rand.
+* **Im Register Prüfung** steht „Regelwerk" als fünfter Agent neben den
+  vieren – mit Kennzahlen und Befunden, und mit dem Weg zum Bild.
+* **Vor dem Erzeugen** in Design und Output hält eine verletzte Pflichtregel
+  an und nennt, welche.
+
+**Die freie Regel ist eine Deutung, keine Rechnung.** Sie wird im Bericht
+**genannt, nicht geprüft**, und hält darum auch als Pflichtregel nichts an –
+sonst stünde dort eine Antwort, die niemand gegeben hat. Geprüft wird sie
+über Claude, im Kommentar des Agenten, und das Ergebnis steht als Kommentar
+da, nicht als Befund.
+
+**Die Regeln reisen mit der Projektdatei** (F-63). Wer den Bestand bekommt,
+misst an denselben Regeln – sonst prüft der Nächste nach anderen.

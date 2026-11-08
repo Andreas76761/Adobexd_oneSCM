@@ -117,7 +117,11 @@ s.test('der Plan zeigt jede Datei, bevor eine entsteht', () =>
       await zweiBilder(seite);
       const plan = await seite.locator('#verzeichnis-plan').innerText();
       wahr(plan.includes('pc/de/6-2/dealer/'), 'die Ordnung nach Sparte, Sprache, Kapitel, Rolle fehlt: ' + plan);
-      wahr(plan.includes('ohne-sparte/ohne-sprache/ohne-kapitel/ohne-rolle/'), 'das ungelabelte Bild fehlt');
+      // Seit 1.78.0 steht die Sparte auf „Beide", bis jemand etwas anderes
+      // wählt – ein sonst ungelabeltes Bild liegt darum unter `beide/`
+      // und nicht mehr unter `ohne-sparte/`. Die übrigen Felder sind
+      // weiterhin leer und heißen auch so.
+      wahr(plan.includes('beide/ohne-sprache/ohne-kapitel/ohne-rolle/'), 'das ungelabelte Bild fehlt: ' + plan);
       wahr(plan.includes('index.json') && plan.includes('index.csv'), 'die Übersicht fehlt');
       gleich(await seite.evaluate(() => window.__geschrieben.length), 0, 'es wurde ohne Auftrag geschrieben');
 

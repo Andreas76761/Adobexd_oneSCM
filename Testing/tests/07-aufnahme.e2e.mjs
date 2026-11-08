@@ -95,11 +95,12 @@ const eingangImSpeicher = (seite) =>
 
 /* ------------------------------------------------------------ Navigation */
 
-s.test('die Portalnavigation führt zu den vierzehn Ansichten in fünf Aufgaben', () =>
+s.test('die Portalnavigation führt zu den fünfzehn Ansichten in fünf Aufgaben', () =>
   mitSeite(async (seite) => {
-    gleich(await seite.locator('.portal-nav button').count(), 14);
-    // Seit 1.51.0 stehen die dreizehn in fünf Aufgaben, in der Reihenfolge
-    // der Arbeit - dreizehn gleiche Knöpfe in einer Reihe liest niemand.
+    gleich(await seite.locator('.portal-nav button').count(), 15);
+    // Seit 1.51.0 stehen sie in fünf Aufgaben, in der Reihenfolge der
+    // Arbeit - fünfzehn gleiche Knöpfe in einer Reihe liest niemand.
+    // „Regelwerk" kam in 1.78.0 dazu, zu „Ordnen und prüfen".
     // Gelesen wird der Text im Markup - angezeigt wird er in Kapitälchen.
     gleich(
       await seite.evaluate(() => [...document.querySelectorAll('.nav-aufgabe')].map((e) => e.textContent.trim()).join('|')),
@@ -108,10 +109,10 @@ s.test('die Portalnavigation führt zu den vierzehn Ansichten in fünf Aufgaben'
     gleich(await seite.locator('.nav-gruppe').count(), 5);
     gleich(
       (await seite.locator('.portal-nav button').allInnerTexts()).map((t) => t.split('\n')[0].trim()).join('|'),
-      'Archiv|Eingang|Aufnahme|Import|Video|Ausschneiden|Editor|Strecke|OCR|Gliederung|Prüfung|Design|Output|Verzeichnis'
+      'Archiv|Eingang|Aufnahme|Import|Video|Ausschneiden|Editor|Strecke|OCR|Gliederung|Prüfung|Regelwerk|Design|Output|Verzeichnis'
     );
     // Jeder Knopf steht in genau einer Aufgabe - keiner fällt heraus.
-    gleich(await seite.locator('.nav-gruppe button').count(), 14);
+    gleich(await seite.locator('.nav-gruppe button').count(), 15);
     gleich(await seite.locator('.portal-nav button[aria-current="page"]').innerText(), 'Archiv');
     gleich(await seite.locator('#archiv-ansicht').isVisible(), true);
     gleich(await seite.locator('#aufnahme-ansicht').isVisible(), false);

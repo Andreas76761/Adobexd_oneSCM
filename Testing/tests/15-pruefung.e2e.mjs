@@ -41,13 +41,14 @@ async function zweiAufnahmen(seite) {
   await seite.waitForTimeout(250);
 }
 
-s.test('die vier Agenten stellen sich vor, bevor sie laufen', () =>
+s.test('die fünf Agenten stellen sich vor, bevor sie laufen', () =>
   mitSeite(
     async (seite) => {
       gleich(await seite.locator('#pruefung-ansicht').isVisible(), true);
-      gleich(await seite.locator('.pruef-agent').count(), 4);
+      // Seit 1.78.0 steht „Regelwerk" neben den vier anderen (F-80).
+      gleich(await seite.locator('.pruef-agent').count(), 5);
       const namen = await seite.locator('.pruef-agent h3').allInnerTexts();
-      gleich(namen.join('|'), 'Roter Faden|Audit|Sprache|Empfehlung');
+      gleich(namen.join('|'), 'Roter Faden|Audit|Sprache|Regelwerk|Empfehlung');
       gleich(await seite.locator('#pruef-bericht').isDisabled(), true, 'ein leerer Bericht ließe sich sichern');
       wahr(
         (await seite.locator('.pruef-agent').first().innerText()).includes('Noch nicht gelaufen'),
@@ -68,7 +69,7 @@ s.test('ein Lauf nennt Kennzahlen, Befunde und die betroffenen Bilder', () =>
       await seite.click('.portal-nav button[data-ansicht="pruefung"]');
       await seite.waitForSelector('#pruefung-ansicht:not([hidden])');
       await seite.click('#pruef-alle');
-      await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 4, null, { timeout: 8000 });
+      await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 5, null, { timeout: 8000 });
 
       const faden = seite.locator('.pruef-agent[data-agent="faden"]');
       wahr((await faden.innerText()).includes('ohne Stelle'), 'das Bild ohne Stelle fällt nicht auf');
@@ -122,7 +123,7 @@ s.test('der Bericht wird als Text gesichert – ohne Claude', () =>
       await zweiAufnahmen(seite);
       await seite.click('.portal-nav button[data-ansicht="pruefung"]');
       await seite.click('#pruef-alle');
-      await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 4, null, { timeout: 8000 });
+      await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 5, null, { timeout: 8000 });
       await seite.click('#pruef-bericht');
       await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 8000 });
       const [datei] = await seite.evaluate(() => window.__abgelegt);
@@ -377,7 +378,8 @@ s.test('der Agent Sprache prüft gegen die Wortliste', () =>
 
       await seite.click('.portal-nav button[data-ansicht="pruefung"]');
       await seite.waitForSelector('#pruefung-ansicht:not([hidden])');
-      gleich(await seite.locator('.pruef-agent').count(), 4);
+      // Seit 1.78.0 steht „Regelwerk" neben den vier anderen (F-80).
+      gleich(await seite.locator('.pruef-agent').count(), 5);
 
       await seite.click('#pruef-sprache');
       await seite.waitForFunction(() => document.querySelectorAll('.pruef-kennzahlen').length === 1, null, { timeout: 8000 });
