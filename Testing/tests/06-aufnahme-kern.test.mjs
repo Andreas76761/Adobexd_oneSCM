@@ -3731,6 +3731,47 @@ const fortschrittGliederung = kern.leseGliederung({
   ]
 });
 
+s.test('die Suche findet auch, was im Haus geschrieben wurde (1.85.0)', () => {
+  const roh = kern.leseGliederung({
+    eintraege: [
+      { nummer: '6', thema: 'Markt', ebene: 1 },
+      { nummer: '6.1', thema: 'Einstellungen', ebene: 2 },
+      { nummer: '24', thema: 'Intern', ebene: 1 },
+      { nummer: '24.1', thema: 'Arbeitsst\u00e4nde', ebene: 2 }
+    ],
+    texte: ['Freigabebeleg dokumentieren']
+  });
+  const jetzt = kern.gliederungMitTexten(roh, {
+    '6.1': { text: 'Das Signaturprotokoll liegt im Vertragsordner.', vormerkung: 'planung' }
+  });
+
+  // Bis 1.84.0 stand im Heuhaufen nur Nummer und Thema: wer einen Abschnitt
+  // selbst geschrieben hatte, fand ihn \u00fcber kein Wort daraus wieder.
+  gleich(kern.sucheGliederung(roh, 'Signaturprotokoll').length, 0);
+  tieferGleich(kern.sucheGliederung(jetzt, 'Signaturprotokoll').map((e) => e.nummer), ['6.1']);
+  tieferGleich(kern.sucheGliederung(jetzt, 'Vertragsordner Signaturprotokoll').map((e) => e.nummer), ['6.1']);
+
+  // Nummer und Thema finden weiter wie bisher.
+  tieferGleich(kern.sucheGliederung(jetzt, 'markt').map((e) => e.nummer), ['6']);
+  gleich(kern.sucheGliederung(jetzt, '').length, jetzt.length);
+
+  // `kriterium` und `notiz` bleiben drau\u00dfen - sie stehen an jeder Stelle
+  // und sind gleichlautend. Eine Suche, die fast alles findet, findet nichts.
+  const mitKriterium = kern.gliederungMitTexten(roh, { '6': { kriterium: 'Signaturprotokoll pr\u00fcfen' } });
+  gleich(kern.sucheGliederung(mitKriterium, 'Signaturprotokoll').length, 0);
+
+  // Und die Vormerkung l\u00e4sst sich filtern: ein Wortsuche nach „Intern"
+  // f\u00e4nde Kapitel 24 und verf\u00e4nglich jede Stelle, die das Wort f\u00fchrt.
+  tieferGleich(
+    kern.sucheGliederung(jetzt, '', { nurVorgemerkte: true }).map((e) => e.nummer),
+    ['6.1', '24', '24.1']
+  );
+  tieferGleich(
+    kern.sucheGliederung(jetzt, '24', { nurVorgemerkte: true }).map((e) => e.nummer),
+    ['24', '24.1']
+  );
+});
+
 s.test('der Fortschritt z\u00e4hlt nicht, was nie ins Handbuch kommt (1.84.0)', () => {
   // Das Blatt hei\u00dft „Stand des Handbuchs". Vorgemerktes kommt nicht ins
   // Handbuch (F-79) - bis 1.83.0 standen „24 Intern" und „25 In Planung"

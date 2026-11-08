@@ -1219,7 +1219,9 @@ function fuelleStellenwahl(kennungen, stelle) {
 
 /** Höchstens 60 Vorschläge - eine Liste mit 1161 Einträgen hilft niemandem. */
 function fuelleStellenvorschlaege(text) {
-  const treffer = sucheGliederung(GLIEDERUNG, text).slice(0, 60);
+  // Die gelebte Gliederung: wer im Haus einen Abschnitt geschrieben hat,
+  // soll ihn hier über ein Wort daraus wiederfinden (1.85.0).
+  const treffer = sucheGliederung(gliederungJetzt(), text).slice(0, 60);
   $('#gliederung-vorschlaege').replaceChildren(
     ...treffer.map((e) => el('option', { value: `${e.nummer} ${e.thema}` }))
   );

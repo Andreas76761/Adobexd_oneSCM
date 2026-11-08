@@ -554,7 +554,7 @@ function oeffneEingangDialog(kennung) {
           el(
             'datalist',
             { id: 'vorschlag-bearbeite-stelle' },
-            sucheGliederung(GLIEDERUNG, '')
+            sucheGliederung(gliederungJetzt(), '')
               .slice(0, 300)
               .map((e) => el('option', { value: e.nummer, text: e.thema }))
           )

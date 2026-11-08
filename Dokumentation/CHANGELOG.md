@@ -20,6 +20,40 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.85.0] – Die Suche fand nur, was geliefert wurde
+
+### Behoben
+* **Eigene Texte waren unauffindbar** (F-65). `sucheGliederung()` durchsuchte
+  nur Nummer und Thema. Jeder im Haus geschriebene Satz – der ganze Zweck
+  des Rückwegs aus Word – war über kein Wort daraus zu finden; bei 1161
+  Stellen heißt das: er ist weg, auch wenn er dasteht. Gesucht wird jetzt
+  auch im **Text**, in allen drei Suchen (Gliederung, Editor, Eingang), und
+  alle drei bekommen die gelebte Gliederung statt der gelieferten
+* **Ein Filter, der zuklappt, filtert nicht.** Aufgeklappt wurde der Baum
+  nur bei einer Suche, nicht bei einem Filter – „Mit Bildern“ zeigte eine
+  Handvoll zugeklappter Kapitel, und die Treffer steckten darin
+
+### Neu
+* **Filter „Vorgemerkte“** neben „Alle · Mit Bildern · Ohne Bilder“ (F-79).
+  Vorgemerktes trug seit 1.79.0 seine Marke im Baum, war aber nicht zu
+  **finden**: die Wortsuche nach „Intern“ lieferte 12.7, 14.5.4 und 24 –
+  zwei Kapitel, die das Wort zufällig führen, und von acht vorgemerkten
+  Stellen genau eine. Der Stand und die Kennzahl „Kapitel“ nennen jetzt
+  auch die Zahl; letztere ist die Brücke zum Fortschrittsblatt, das 23
+  Kapitel und 1123 Stellen zählt
+
+### Gemessen, nicht geraten
+* `kriterium` und `notiz` bleiben aus dem Heuhaufen draußen: sie stehen an
+  **jeder** Stelle und sind weitgehend gleichlautend. Mit `kriterium` fände
+  „Freigabe“ 1150 statt 41 Stellen und „Scope“ 970 statt 33; mit `notiz`
+  fände „Status“ 1025 statt 43. Eine Suche, die fast alles findet, findet
+  nichts
+
+### Prüfung
+* 1 neue Kernprüfung und 1 neue Browserprüfung. Die bestehende Suchprüfung
+  erwartet jetzt zwei Treffer statt einem: der Übergang T7-8 nennt das
+  Signaturergebnis in seinem Text. Zusammen 564
+
 ## [1.84.0] – Ein Rückstand, den niemand aufholen soll
 
 ### Behoben

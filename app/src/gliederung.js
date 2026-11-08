@@ -20,8 +20,12 @@ let matrixFeld = 'sprache'; // Feld der Deckungsmatrix
 
 /** Die Stellen, die nach Suche und Filter übrig bleiben. */
 function sichtbareStellen() {
-  const gesucht = sucheGliederung(GLIEDERUNG, gliederungSuche);
-  if (gliederungZeigen === 'alle') return gesucht;
+  // Gesucht wird in der **gelebten** Gliederung: nur dort stehen die eigenen
+  // Texte und die von Hand gesetzten Vormerkungen (1.85.0).
+  const gesucht = sucheGliederung(gliederungJetzt(), gliederungSuche, {
+    nurVorgemerkte: gliederungZeigen === 'vorgemerkt'
+  });
+  if (gliederungZeigen === 'alle' || gliederungZeigen === 'vorgemerkt') return gesucht;
   const { zahlen } = zaehleBilder(GLIEDERUNG, imProjekt());
   return gesucht.filter((e) => {
     const zahl = (zahlen.get(e.nummer) || { gesamt: 0 }).gesamt;
@@ -37,10 +41,17 @@ function zeichneGliederung() {
   const sichtbareNummern = new Set(sichtbar.map((e) => e.nummer));
   const kapitel = GLIEDERUNG.filter((e) => e.ebene === 1).length;
   const mitBildern = GLIEDERUNG.filter((e) => (zahlen.get(e.nummer) || {}).eigene).length;
+  const vorgemerkte = gliederungJetzt().filter((e) => vormerkungVon(e)).length;
 
   $('#gliederung-kennzahlen').replaceChildren(
     ...[
-      ['Kapitel', String(kapitel), `${GLIEDERUNG.length} Stellen insgesamt`],
+      [
+        'Kapitel',
+        String(kapitel),
+        // Die Brücke zum Fortschrittsblatt darunter: dort stehen 23 Kapitel
+        // und weniger Stellen, weil Vorgemerktes nicht ins Handbuch kommt.
+        `${GLIEDERUNG.length} Stellen insgesamt` + (vorgemerkte ? `, ${vorgemerkte} vorgemerkt` : '')
+      ],
       [
         'Bilder zugeordnet',
         String(menge.length - ohneStelle),
@@ -59,7 +70,9 @@ function zeichneGliederung() {
       ])
     )
   );
-  $('#gliederung-stand').textContent = `${sichtbar.length} von ${GLIEDERUNG.length} Stellen`;
+  $('#gliederung-stand').textContent =
+    `${sichtbar.length} von ${GLIEDERUNG.length} Stellen` +
+    (vorgemerkte ? ` · ${vorgemerkte} vorgemerkt` : '');
   zeichneRuecklauf();
   zeichneFortschritt();
 
@@ -199,7 +212,10 @@ function zeichneStelle(knoten, zahlen, sichtbar) {
   if (!selbstSichtbar && !kinder.length) return null;
 
   const zahl = zahlen.get(knoten.nummer) || { eigene: 0, gesamt: 0 };
-  const offen = gliederungOffen.has(knoten.nummer) || Boolean(gliederungSuche);
+  // Wer gefiltert hat, hat schon gesagt, was er sucht - dann klappt der
+  // Baum auf. Bis 1.84.0 galt das nur für die Suche: „Mit Bildern“ zeigte
+  // eine Handvoll zugeklappter Kapitel, und die Treffer blieben darin.
+  const offen = gliederungOffen.has(knoten.nummer) || Boolean(gliederungSuche) || gliederungZeigen !== 'alle';
   const zeile = el('div', { klasse: 'stelle-zeile' + (zahl.gesamt ? '' : ' stelle-zeile--leer') }, [
     kinder.length
       ? el('button', {

@@ -1755,6 +1755,16 @@ sichern.
 ## F-65 · Der Rückweg aus Word – geänderte Texte zurück in die Gliederung
 
 **Seit** 1.47.0 · betrifft Gliederung, Designstudio, Handbuch
+· **geändert in** 1.85.0 (die Suche findet den eigenen Text)
+
+**Auffindbar** Die Suche in der Gliederung, in der Stellenwahl des Editors
+und im Eingang durchsucht seit 1.85.0 auch den **Text** einer Stelle – den
+gelieferten wie den im Haus geschriebenen. Bis dahin standen dort nur Nummer
+und Thema: jeder selbst geschriebene Satz war über kein Wort daraus zu
+finden, und bei 1161 Stellen heißt das, er ist weg, auch wenn er dasteht.
+`kriterium` und `notiz` bleiben draußen, gemessen: sie stehen an jeder
+Stelle und sind weitgehend gleichlautend – mit `kriterium` fände
+„Freigabe“ 1150 statt 41 Stellen.
 
 **Das Problem** Das Handbuch geht als Word-Datei ins Haus (F-61). Dort wird
 daran geschrieben: ein Satz genauer, ein Kriterium klarer. Bisher endete der
@@ -2216,7 +2226,7 @@ Kleingedrucktes zu lesen.
 **Seit** 1.78.0 · **Ansicht** Gliederung, Design, Output · betrifft Handbuch
 · **geändert in** 1.79.0 (Output, Marke im Baum), 1.80.0 (gefiltert wird
 am Bild), 1.83.0 (die interne Fassung trägt ihren Vermerk), 1.84.0 (das
-Fortschrittsblatt zählt sie nicht)
+Fortschrittsblatt zählt sie nicht), 1.85.0 (Filter „Vorgemerkte“)
 
 **Das Problem** Nicht jeder Abschnitt gehört ins Benutzerhandbuch. Ein
 Arbeitsstand, eine offene Absprache, eine Funktion, die erst kommen soll –
@@ -2282,6 +2292,12 @@ deren *Bilder* an vorgemerkten Stellen hängen. Mit Schalter, aber ohne
 vorgemerktes Bild bleibt sie die gewöhnliche Unterlage – ein Vermerk, der
 immer dasteht, wird nicht gelesen. Umgekehrt trägt auch die Vorschau von
 Kapitel 24 im Designstudio den Vermerk.
+
+**Zu finden über den Filter „Vorgemerkte“** (seit 1.85.0), neben „Alle ·
+Mit Bildern · Ohne Bilder“ im Register Gliederung. Die Marke im Baum machte
+sie sichtbar, aber nicht auffindbar: eine Wortsuche nach „Intern“ lieferte
+zwei Kapitel, die das Wort zufällig im Thema führen, und von acht
+vorgemerkten Stellen genau eine.
 
 **Das Fortschrittsblatt zählt sie nicht** (seit 1.84.0). Es heißt „Stand
 des Handbuchs", und Vorgemerktes kommt nie ins Handbuch. Bis dahin standen

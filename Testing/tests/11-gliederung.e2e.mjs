@@ -59,8 +59,11 @@ s.test('die Gliederung des Handbuchs steht vollständig in der Seite', () =>
 s.test('die Suche findet Stellen und zeigt ihren Zusammenhang', () =>
   mitSeite(async (seite) => {
     await seite.fill('#gliederung-suche', 'signaturergebnis');
+    // Zwei Treffer: die Stelle 7.5.2 über ihr Thema und der Übergang T7-8,
+    // dessen **Text** das Signaturergebnis nennt. Seit 1.85.0 sucht die
+    // Suche auch im Text - das ist der zweite Treffer, kein Fehler.
     await seite.waitForFunction(
-      () => document.getElementById('gliederung-stand').textContent.startsWith('1 von'),
+      () => document.getElementById('gliederung-stand').textContent.startsWith('2 von'),
       null,
       { timeout: 5000 }
     );
@@ -75,6 +78,52 @@ s.test('die Suche findet Stellen und zeigt ihren Zusammenhang', () =>
     );
     gleich(await seite.locator('.stelle-zeile').count(), 0, 'ohne Treffer steht trotzdem etwas da');
   }, { hash: GLIEDERUNG }));
+
+s.test('die Suche findet den eigenen Text, der Filter die Vorgemerkten (1.85.0)', () =>
+  mitSeite(
+    async (seite) => {
+      // Ein im Haus geschriebener Abschnitt (F-65). Bis 1.84.0 war er \u00fcber
+      // kein Wort daraus zu finden - bei 1161 Stellen hei\u00dft das: gar nicht.
+      await seite.evaluate(() =>
+        localStorage.setItem(
+          'screenarchiv:texte',
+          JSON.stringify({
+            version: 1,
+            texte: { '7.5.1': { text: 'Das Signaturprotokoll liegt im Vertragsordner.', geaendert_am: '2026-11-08' } }
+          })
+        )
+      );
+      await seite.reload();
+      await seite.waitForSelector('html[data-bereit="ja"]');
+      await seite.fill('#gliederung-suche', 'Vertragsordner');
+      await seite.waitForFunction(
+        () => document.getElementById('gliederung-stand').textContent.startsWith('1 von'),
+        null,
+        { timeout: 5000 }
+      );
+      const baum = await seite.locator('.gliederung-baum').innerText();
+      wahr(baum.includes('7.5.1'), 'der eigene Text ist nicht zu finden: ' + baum.slice(0, 200));
+
+      // Der Filter „Vorgemerkte": die Kapitel 24 und 25 mit je drei Stellen.
+      await seite.fill('#gliederung-suche', '');
+      await seite.locator('#gliederung-filter button[data-zeigen="vorgemerkt"]').click();
+      await seite.waitForFunction(
+        () => document.getElementById('gliederung-stand').textContent.startsWith('8 von'),
+        null,
+        { timeout: 5000 }
+      );
+      const nummern = await seite.evaluate(() =>
+        [...document.querySelectorAll('.gliederung-baum .stelle-nummer')].map((n) => n.textContent.trim())
+      );
+      wahr(nummern.includes('24.1') && nummern.includes('25.3'), nummern.join(' '));
+      // Und der Stand sagt, wie viele es insgesamt sind.
+      wahr(
+        /8 vorgemerkt/.test(await seite.locator('#gliederung-stand').innerText()),
+        await seite.locator('#gliederung-stand').innerText()
+      );
+    },
+    { hash: GLIEDERUNG }
+  ));
 
 s.test('ein zugeordnetes Bild zählt an seiner Stelle und darüber', () =>
   mitSeite(

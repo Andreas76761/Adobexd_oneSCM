@@ -3197,12 +3197,24 @@ export function laeufeText(laeufe = [], titel = '') {
 }
 
 /** Sucht in Nummer und Thema; ohne Suchtext kommt alles zurueck. */
-export function sucheGliederung(eintraege = [], text) {
+export function sucheGliederung(eintraege = [], text, { nurVorgemerkte = false } = {}) {
+  const grundmenge = nurVorgemerkte ? eintraege.filter((e) => vormerkungVon(e)) : eintraege;
   const gesucht = normalisiereLang(String(text || ''));
-  if (!gesucht) return eintraege;
+  if (!gesucht) return grundmenge;
   const teile = gesucht.split(/\s+/);
-  return eintraege.filter((e) => {
-    const heuhaufen = normalisiereLang(`${e.nummer} ${e.thema}`);
+  return grundmenge.filter((e) => {
+    // Gesucht wird auch im **Text** der Stelle - dem gelieferten wie dem im
+    // Haus geschriebenen (F-65). Bis 1.84.0 stand im Heuhaufen nur Nummer
+    // und Thema; wer einen Abschnitt selbst geschrieben hatte, fand ihn
+    // ueber kein Wort daraus wieder, und bei 1161 Stellen heisst das: gar
+    // nicht.
+    //
+    // `kriterium` und `notiz` bleiben draussen, und zwar gemessen: sie
+    // stehen an **jeder** Stelle und sind weitgehend gleichlautend. Mit
+    // `kriterium` fand „Freigabe" 1150 statt 41 Stellen, „Scope" 970 statt
+    // 33; mit `notiz` fand „Status" 1025 statt 43. Eine Suche, die fast
+    // alles findet, findet nichts.
+    const heuhaufen = normalisiereLang([e.nummer, e.thema, e.text].filter(Boolean).join(' '));
     return teile.every((t) => heuhaufen.includes(t));
   });
 }
