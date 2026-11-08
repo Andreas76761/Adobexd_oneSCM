@@ -729,9 +729,18 @@ async function sichereAlsDatei() {
   if (!liste.length) return;
   const name = `screenarchiv-eingang-${heute()}.json`;
   const ergebnis = await uebergebeDatei(name, eingangAlsExport(liste, heute(), true));
-  // Ohne Bilder ist das eine Sicherung, kein Weg zum Weitergeben - wer die
-  // Datei verschickt, erzeugt beim Empfänger leere Karten.
-  if (meldeAblage(ergebnis, `${liste.length} Aufnahmen als ${name} – nur die Metadaten, ohne Bilder. Zum Weitergeben die Projektdatei im Verzeichnis.`)) {
+  // Die Datei trägt die **Vorschauen** mit, nicht die vollen Bilder. Bis
+  // 1.88.0 stand hier „nur die Metadaten, ohne Bilder" – das stimmte einmal,
+  // als der Aufruf noch `false` übergab. Zehn Aufnahmen wiegen so 363 kB
+  // statt 1 kB, und wer die Datei weitergibt, gibt Bilder weiter, von denen
+  // ihm gesagt wurde, sie seien nicht darin.
+  if (
+    meldeAblage(
+      ergebnis,
+      `${liste.length} Aufnahmen als ${name} – Metadaten und Vorschaubilder, nicht die vollen Bilder. ` +
+        'Zum Weitergeben die Projektdatei im Verzeichnis.'
+    )
+  ) {
     zeigeErsatzausgabe();
   }
 }

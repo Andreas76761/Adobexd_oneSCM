@@ -20,6 +20,32 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.89.0] – „Ohne Bilder", mit Bildern
+
+### Behoben
+* **„Als JSON sichern" sagte „nur die Metadaten, ohne Bilder" und legte die
+  Vorschauen ab** (F-22). Zehn Aufnahmen wiegen so 363 kB statt 1 kB; in
+  derselben Meldung stand „ohne Bilder" direkt neben „gesichert (38 kB)".
+  Der Aufruf war irgendwann auf `true` umgestellt worden, Meldung, Kommentar
+  und die Tafel „Vier Wege" blieben beim alten Stand. Wer gesagt bekommt,
+  dass keine Bilder in der Datei sind, gibt sie anders weiter als jemand,
+  der weiß, dass jede aufgenommene Maske darin zu sehen ist
+* Die Datei bleibt, wie sie ist – sie ist die einzige Sicherung, die eine
+  einzelne Datei ist. Richtiggestellt wird, was über sie gesagt wird; die
+  Tafel nennt jetzt auch, dass sich das Format **nirgends einlesen** lässt
+
+### Prüfung
+* **Zwei Prüfungen sicherten den falschen Satz ab** – beide hielten die
+  Meldung gegen eine abgeschriebene Zeichenkette (`includes('ohne Bilder')`)
+  und waren grün, solange die Aussage falsch blieb. Sie halten sie jetzt
+  gegen die **Datei**: trägt sie Vorschauen, darf keine Zeile „ohne Bilder"
+  sagen
+* **Der Ablage-Nachbau merkte sich nur den Dateinamen** – kein Test konnte
+  je nachsehen, was in der Datei steht. Er nimmt jetzt den Inhalt mit. *Ein
+  Nachbau, der enger ist als der Vertrag, verbirgt Code*, derselbe Satz wie
+  in 1.68.0
+* Gegengeprüft: mit dem alten Satz schlägt die Prüfung an. Zusammen 568
+
 ## [1.88.0] – Sieben von neun, eine Ebene tiefer
 
 ### Behoben

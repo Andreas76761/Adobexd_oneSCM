@@ -328,14 +328,24 @@ Löschen geht je Aufnahme im Dialog; „Eingang leeren“ fragt einmal nach.
 
 ## F-22 · Eingang als JSON sichern
 
-**geändert in** 1.53.0 (siehe F-71): die Datei nimmt keine Bilder mit, und
-die Meldung sagt das jetzt. Zum Weitergeben ist die Projektdatei (F-63) der
-Weg; dies hier ist eine Sicherung des eigenen Speichers.
+**geändert in** 1.53.0 (siehe F-71), 1.89.0 (die Meldung stimmt wieder)
 
-**Als JSON sichern** übergibt den Eingang mitsamt Bildern an die
-Ablagefähigkeit des Artifacts (`downloads`). Die veröffentlichte Seite hat
-keinen Server – das ist der Weg, auf dem Aufnahmen in `data/eintraege.json`
-gelangen.
+**Als JSON sichern** übergibt den Eingang an die Ablagefähigkeit des
+Artifacts (`downloads`). Die veröffentlichte Seite hat keinen Server – das
+ist der Weg, auf dem Aufnahmen in `data/eintraege.json` gelangen.
+
+**Was wirklich drin ist** Metadaten **und die Vorschaubilder**, nicht die
+Bilder in voller Auflösung. Zehn Aufnahmen wiegen damit 363 kB statt 1 kB.
+Diese Beschreibung sagte bis 1.88.0 beides auf einmal – vier Zeilen
+auseinander „die Datei nimmt keine Bilder mit" und „übergibt den Eingang
+mitsamt Bildern" –, die Meldung sagte das erste und die Datei war das
+zweite. Zwei Prüfungen sicherten den falschen Satz ab, weil sie die Meldung
+gegen eine abgeschriebene Zeichenkette hielten; sie halten sie jetzt gegen
+die Datei.
+
+**Zum Weitergeben ist die Projektdatei (F-63) der Weg.** Dies hier ist eine
+Sicherung des eigenen Speichers – und sie lässt sich **nirgends wieder
+einlesen**, auch nicht in diese Seite.
 
 Fehlt die Fähigkeit oder lehnt der Betrachter ab, erscheint statt einer Datei
 ein Textfeld mit den Metadaten zum Herauskopieren; die Bilder bleiben dann im
@@ -2017,14 +2027,16 @@ klappt das Studio gleich auf); die beiden im Eingang stehen oben in der
 Leiste und werden nicht verdoppelt.
 
 Darunter der Satz, der die Entscheidung abnimmt: **im Zweifel die
-Projektdatei**, weil eine JSON-Datei allein beim Empfänger leere Karten
-ergibt.
+Projektdatei**, weil sie die Bilder in voller Auflösung mitnimmt und die
+JSON-Datei sich nirgends wieder einlesen lässt.
 
-**Als JSON sichern** meldet seit dieser Fassung beim Sichern mit, was
-**nicht** in der Datei steht („nur die Metadaten, ohne Bilder. Zum
-Weitergeben die Projektdatei im Verzeichnis.“). Der Knopf bleibt – er ist
-eine Sicherung des eigenen Speichers und seit 1.0 an seinem Platz; er hört
-nur auf, sich als etwas anzubieten, das er nicht ist.
+**Als JSON sichern** meldet seit dieser Fassung beim Sichern mit, was in der
+Datei steht. Seit 1.89.0 stimmt dieser Satz auch: „Metadaten und
+Vorschaubilder, nicht die vollen Bilder. Zum Weitergeben die Projektdatei im
+Verzeichnis." Bis dahin stand dort „nur die Metadaten, ohne Bilder", während
+die Datei die Vorschauen trug. Der Knopf bleibt – er ist eine Sicherung des
+eigenen Speichers und seit 1.0 an seinem Platz; er hört nur auf, sich als
+etwas anzubieten, das er nicht ist.
 
 Verzeichnis und Design zeigen mit je einem Satz auf die Übersicht zurück.
 

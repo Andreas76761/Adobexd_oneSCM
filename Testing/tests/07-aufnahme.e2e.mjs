@@ -1655,8 +1655,11 @@ s.test('die Übersicht nennt die vier Wege und führt zu den zwei fernen (1.53.0
         [...document.querySelectorAll('.weitergeben-tafel tbody th')].map((e) => e.textContent.trim()).join('|')
       );
       gleich(wege, 'Projektdatei|Hausmarkendatei|Kontaktbogen|Als JSON sichern');
-      // Der Weg, der am wenigsten kann, sagt das auch.
-      wahr(tafel[3].includes('ohne Bilder'), tafel[3]);
+      // Der Weg, der am wenigsten kann, sagt das auch - und sagt es richtig.
+      // Bis 1.88.0 stand hier „ohne Bilder", während die Datei die
+      // Vorschauen trug; diese Prüfung sicherte den Satz mit ab.
+      wahr(!/ohne Bilder/.test(tafel[3]), 'die Tafel sagt „ohne Bilder": ' + tafel[3]);
+      wahr(tafel[3].includes('Vorschaubilder'), tafel[3]);
       wahr(tafel[3].includes('kein Weg zum Weitergeben'), tafel[3]);
 
       // Die zwei fernen Wege führen auch wirklich dorthin.
@@ -1678,7 +1681,15 @@ s.test('die Übersicht nennt die vier Wege und führt zu den zwei fernen (1.53.0
     { hash: '#ans=eingang' }
   ));
 
-/** Eine Ablage, die gelingt - sonst meldet die Seite nur den Ersatzweg. */
+/**
+ * Eine Ablage, die gelingt - sonst meldet die Seite nur den Ersatzweg.
+ *
+ * Bis 1.88.0 merkte sie sich **nur den Dateinamen**. Damit konnte keine
+ * Pruefung je nachsehen, was wirklich in der Datei steht; die Pruefung zu
+ * „Als JSON sichern" verglich darum die Meldung mit einer abgeschriebenen
+ * Zeichenkette - und sicherte so eine Aussage ab, die nicht mehr stimmte.
+ * Ein Nachbau, der enger ist als der Vertrag, verbirgt Code.
+ */
 function mitAblage() {
   window.__abgelegt = [];
   window.claude = {
@@ -1686,7 +1697,8 @@ function mitAblage() {
       name === 'downloads'
         ? {
             save: async (a) => {
-              window.__abgelegt.push(a.filename);
+              const text = typeof a.data === 'string' ? a.data : '';
+              window.__abgelegt.push({ filename: a.filename, inhalt: text, groesse: text.length });
               return { status: 'saved' };
             }
           }
@@ -1694,7 +1706,7 @@ function mitAblage() {
   };
 }
 
-s.test('„Als JSON sichern" sagt beim Sichern, was es nicht mitnimmt (1.53.0)', () =>
+s.test('„Als JSON sichern" sagt beim Sichern, was wirklich in der Datei steht (1.53.0, 1.88.0)', () =>
   mitSeite(
     async (seite) => {
       await seite.click('#quelle-beispiel');
@@ -1710,9 +1722,25 @@ s.test('„Als JSON sichern" sagt beim Sichern, was es nicht mitnimmt (1.53.0)',
       await seite.click('#eingang-sichern');
       await seite.waitForTimeout(400);
       const meldung = await seite.locator('#eingang-meldung').innerText();
-      wahr(meldung.includes('ohne Bilder'), meldung);
-      wahr(meldung.includes('Projektdatei'), meldung);
       gleich(await seite.evaluate(() => window.__abgelegt.length), 1, 'nichts abgelegt');
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+      const inhalt = JSON.parse(datei.inhalt);
+
+      // Die Meldung wird gegen die **Datei** gehalten, nicht gegen eine
+      // abgeschriebene Zeichenkette. Bis 1.88.0 stand dort „nur die
+      // Metadaten, ohne Bilder", während die Datei die Vorschauen trug -
+      // und diese Prüfung sicherte genau diesen Satz ab.
+      gleich(inhalt.mit_bildern, true, 'die Datei trägt keine Vorschauen mehr');
+      wahr(inhalt.aufnahmen[0].bild, 'die erste Aufnahme hat kein Vorschaubild');
+      wahr(
+        !/ohne Bilder/.test(meldung),
+        'die Meldung sagt „ohne Bilder", und die Datei trägt welche: ' + meldung
+      );
+      wahr(/Vorschaubilder/.test(meldung), meldung);
+      wahr(/nicht die vollen Bilder/.test(meldung), meldung);
+      wahr(meldung.includes('Projektdatei'), meldung);
+      // Und die Vorschauen wiegen: ohne sie wäre die Datei ein Bruchteil.
+      wahr(datei.groesse > 10000, 'die Datei ist zu klein für eine Vorschau: ' + datei.groesse);
     },
     { hash: AUFNAHME, initSkript: mitAblage }
   ));
