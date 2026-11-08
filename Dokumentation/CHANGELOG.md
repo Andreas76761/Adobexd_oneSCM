@@ -20,6 +20,38 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.86.0] – Das Blatt zur Durchsicht kannte die Labels nicht
+
+### Behoben
+* **Der Kontaktbogen trug kein einziges Labelfeld** (F-23). Er nannte
+  Projekt, Status, Rolle und Browser – aber nicht Sprache, Rolle, Sparte,
+  Markt, Domäne, Reiter, Schritt, Version und Land. Das sind genau die
+  Felder, nach denen der Eingang gefiltert und die Ausgabe gerechnet wird;
+  wer den Bogen zur Durchsicht in der Hand hielt, sah nicht, worüber er
+  entscheiden soll. `labelListe()` gibt es im Kern seit langem – Editor,
+  Lupe und Suche nutzen sie, der Kontaktbogen nicht
+* **Vorgemerktes war auf dem Bogen nicht gekennzeichnet** (F-79). Dieselbe
+  Frage wie in 1.83.0, an einer übersehenen Stelle: der Kontaktbogen ist
+  eine Datei, die das Haus verlässt. Der betroffene Satz trägt jetzt eine
+  Marke, oben steht „Nicht zur Weitergabe – 1 von 2 Aufnahmen hängt an einem
+  vorgemerkten Abschnitt." Eigene Worte, nicht die des Handbuchs: ein
+  Kontaktbogen ist keine „interne Fassung", sondern ein Blatt zur Durchsicht
+* **Die Beugung folgte der falschen Zahl.** Das Substantiv folgt der
+  Gesamtzahl, das Verb der betroffenen – geprüft für 1 von 1, 1 von 2 und
+  2 von 3
+
+### Gemessen, nicht geraten
+* Drei Fehlalarme beim Messen, alle aus derselben Quelle: eine Wortsuche
+  über ein ganzes HTML-Dokument findet den Stilblock und die Überschriften
+  mit. Gemessen wird jetzt nur im Artikelteil, und die Prüfung tut es ebenso.
+  Zwei weitere Verdächtige lösten sich auf: der kaputte Datumstitel war eine
+  falsche Testeingabe (`formatiereDatum` bekommt überall nur `JJJJ-MM-TT`),
+  und „unvollständig" stimmte – `istVollstaendig` verlangt eine Kategorie
+
+### Prüfung
+* 1 neue Kernprüfung und 1 neue Browserprüfung. Die Browserprüfung wurde
+  gegengeprüft: ohne die Gliederung im Aufruf schlägt sie an. Zusammen 566
+
 ## [1.85.0] – Die Suche fand nur, was geliefert wurde
 
 ### Behoben

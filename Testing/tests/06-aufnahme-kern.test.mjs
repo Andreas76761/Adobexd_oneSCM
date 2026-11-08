@@ -1421,6 +1421,61 @@ s.test('der Kontaktbogen enthält alle Aufnahmen mit Bild und Metadaten', () => 
   wahr(html.includes('unvollständig'), 'die unvollständige Aufnahme ist nicht markiert');
 });
 
+s.test('der Kontaktbogen trägt die Labels und kennzeichnet Vorgemerktes (1.86.0)', () => {
+  // Der Bogen nannte Projekt, Status und Browser - aber keines der neun
+  // Labelfelder, nach denen der Eingang gefiltert und die Ausgabe gerechnet
+  // wird. Wer ihn zur Durchsicht in der Hand hielt, sah nicht, für welchen
+  // Markt, welche Sprache und welche Sparte ein Bild gilt.
+  const bestand = [
+    {
+      ...bogenProbe()[0],
+      id: 'AUF-L1',
+      gliederung: '7.5.1',
+      sprache: 'fr',
+      rolle_label: 'dealer',
+      sparte: 'van',
+      markt: 'France',
+      reiter: 'Uebersicht'
+    },
+    { ...bogenProbe()[1], id: 'AUF-L2', gliederung: '24.1' }
+  ];
+  const gliederung = kern.leseGliederung({
+    eintraege: [
+      { nummer: '7', thema: 'Unterschrift', ebene: 1 },
+      { nummer: '7.5.1', thema: 'Signaturwege', ebene: 3 },
+      { nummer: '24', thema: 'Intern', ebene: 1 },
+      { nummer: '24.1', thema: 'Arbeitsstände', ebene: 2 }
+    ]
+  });
+  const html = kern.baueKontaktbogen(bestand, { stand: '2025-06-30', gliederung });
+  // Gelesen wird nur der Artikelteil: eine Wortsuche über das ganze Dokument
+  // findet den Stilblock mit.
+  const saetze = [...html.matchAll(/<article class="satz[^"]*">([\s\S]*?)<\/article>/g)]
+    .map((t) => t[1].replace(/<[^>]+>/g, " "))
+    .join(" ");
+  for (const wert of ['Französisch', 'Dealer', 'Van', 'France', 'Uebersicht']) {
+    wahr(saetze.includes(wert), `das Label „${wert}" fehlt auf dem Bogen`);
+  }
+  for (const bezeichnung of ['Sprache', 'Sparte', 'Markt']) {
+    wahr(saetze.includes(bezeichnung), `die Bezeichnung „${bezeichnung}" fehlt`);
+  }
+
+  // Vorgemerktes ist gekennzeichnet - am einzelnen Satz und oben am Blatt.
+  wahr(/<span class="vorgemerkt">Intern</.test(html), 'die vorgemerkte Aufnahme trägt keine Marke');
+  gleich((html.match(/<article class="satz satz--vorgemerkt">/g) || []).length, 1);
+  const vermerk = (html.match(/<p class="vermerk">([^<]*)</) || ['', ''])[1];
+  wahr(/Nicht zur Weitergabe/.test(vermerk), vermerk);
+  wahr(/1 von 2 Aufnahmen hängt/.test(vermerk), 'die Beugung folgt der falschen Zahl: ' + vermerk);
+
+  // Ohne Gliederung weiß der Bogen nichts von Vormerkungen - dann bleibt
+  // alles, wie es war.
+  const ohne = kern.baueKontaktbogen(bestand, { stand: '2025-06-30' });
+  wahr(!/<p class="vermerk">/.test(ohne), 'ohne Gliederung steht ein Vermerk da');
+  wahr(!/<span class="vorgemerkt">/.test(ohne), 'ohne Gliederung steht eine Marke da');
+  // Die Labels stehen trotzdem - sie hängen an der Aufnahme, nicht an der Gliederung.
+  wahr(ohne.includes('Französisch'), 'die Labels hängen an der Gliederung statt an der Aufnahme');
+});
+
 s.test('Freitext aus den Metadaten kann das Dokument nicht zerlegen', () => {
   const html = kern.baueKontaktbogen(bogenProbe(), { stand: '2025-06-30' });
   wahr(!html.includes('<script>alert(1)</script>'), 'ungefiltertes Markup im Dokument');

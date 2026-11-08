@@ -707,7 +707,14 @@ async function sichereKontaktbogen() {
   const liste = sichtbareAufnahmen();
   if (!liste.length) return;
   const name = `screenarchiv-kontaktbogen-${heute()}.html`;
-  const blatt = baueKontaktbogen(liste, { stand: heute(), auswahl: auswahlText(), gesamt: eingang.length });
+  const blatt = baueKontaktbogen(liste, {
+    stand: heute(),
+    auswahl: auswahlText(),
+    gesamt: eingang.length,
+    // Mit der gelebten Gliederung: nur sie kennt die von Hand gesetzten
+    // Vormerkungen (1.86.0).
+    gliederung: gliederungJetzt()
+  });
   meldeEingang('Kontaktbogen wird vorbereitet …', 'neutral');
   const ergebnis = await uebergebeDatei(name, blatt);
   if (meldeAblage(ergebnis, `${liste.length} Aufnahmen als Kontaktbogen`)) {

@@ -1193,6 +1193,43 @@ s.test('der Kontaktbogen wird als eine HTML-Datei übergeben', () =>
     { hash: AUFNAHME, initSkript: ablageNachbau() }
   ));
 
+s.test('der Kontaktbogen trägt Labels und kennzeichnet Vorgemerktes (1.86.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await zweiAufnahmen(seite);
+      // Die erste Aufnahme bekommt Labels und eine gewöhnliche Stelle, die
+      // zweite hängt an der vorgemerkten 24.1.
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.waitForSelector('#eingang-ansicht:not([hidden])');
+      await seite.evaluate(() => {
+        const roh = JSON.parse(localStorage.getItem('screenarchiv:eingang'));
+        const liste = roh.aufnahmen || roh;
+        liste[0] = { ...liste[0], gliederung: '7.5.1', sprache: 'fr', sparte: 'van', markt: 'France' };
+        liste[1] = { ...liste[1], gliederung: '24.1' };
+        localStorage.setItem('screenarchiv:eingang', JSON.stringify(roh.aufnahmen ? { ...roh, aufnahmen: liste } : liste));
+      });
+      await seite.reload();
+      await seite.waitForSelector('html[data-bereit="ja"]');
+      await seite.click('.portal-nav button[data-ansicht="eingang"]');
+      await seite.waitForSelector('#eingang-ansicht:not([hidden])');
+      await seite.click('#eingang-kontaktbogen');
+      await seite.waitForFunction(() => (window.__abgelegt || []).length === 1, null, { timeout: 8000 });
+      const [datei] = await seite.evaluate(() => window.__abgelegt);
+
+      // Gelesen wird der Artikelteil - eine Wortsuche über das ganze
+      // Dokument fände den Stilblock mit.
+      const saetze = [...datei.data.matchAll(/<article class="satz[^"]*">([\s\S]*?)<\/article>/g)]
+        .map((t) => t[1].replace(/<[^>]+>/g, ' '))
+        .join(' ');
+      for (const wert of ['Französisch', 'Van', 'France']) {
+        wahr(saetze.includes(wert), `das Label „${wert}" fehlt: ` + saetze.slice(0, 300));
+      }
+      wahr(/<span class="vorgemerkt">Intern</.test(datei.data), 'die interne Aufnahme trägt keine Marke');
+      wahr(/Nicht zur Weitergabe/.test(datei.data), 'der Vermerk fehlt oben am Blatt');
+    },
+    { hash: AUFNAHME, initSkript: ablageNachbau() }
+  ));
+
 s.test('der Kontaktbogen enthält nur die sichtbare Auswahl', () =>
   mitSeite(
     async (seite) => {

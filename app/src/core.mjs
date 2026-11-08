@@ -740,6 +740,19 @@ h2 { margin: 6px 0 12px; font-size: 17px; line-height: 1.3; }
 dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px 16px; margin: 0; font-size: 13px; }
 dt { color: #5c6675; }
 dd { margin: 0; }
+.labels { display: flex; flex-wrap: wrap; gap: 5px 8px; margin-top: 12px; font-size: 12px; }
+.labels span { border: 1px solid #d6dbe4; border-radius: 2px; padding: 1px 7px; }
+.labels i { color: #5c6675; font-style: normal; }
+.satz--vorgemerkt { border-left: 3px solid #b4432b; padding-left: 13px; margin-left: -16px; }
+.vorgemerkt {
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10.5px;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: #8f3320; border: 1px solid #b4432b; border-radius: 2px; padding: 1px 6px;
+}
+.vermerk {
+  border: 2px solid #b4432b; color: #8f3320; background: #fbf1ee;
+  padding: 9px 13px; margin: 14px 0 0; font-size: 13px; font-weight: 600;
+}
 .begriffe { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .begriffe span {
   font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
@@ -775,8 +788,14 @@ function fassungZeile(aufnahme) {
   return `Fassung ${juengste.nummer} – ${teile.join(', ') || 'ohne Marken'}`;
 }
 
-function kontaktbogenSatz(aufnahme) {
+function kontaktbogenSatz(aufnahme, vormerkung = '') {
   const m = maskiereHtml;
+  // Die Labels gehoeren auf das Blatt (1.86.0). Bis dahin trug der
+  // Kontaktbogen Projekt, Status und Browser - aber keines der neun Felder,
+  // nach denen der Eingang gefiltert und die Ausgabe gerechnet wird. Wer das
+  // Blatt zur Durchsicht in der Hand hielt, sah nicht, fuer welchen Markt,
+  // welche Sprache und welche Sparte ein Bild gilt.
+  const labels = labelListe(aufnahme);
   const zeile = (bezeichnung, wert) =>
     wert ? `<dt>${m(bezeichnung)}</dt><dd>${m(wert)}</dd>` : '';
   const rolle = { vorher: 'Vorher', nachher: 'Nachher', einzeln: 'Einzelaufnahme' }[aufnahme.rolle] || aufnahme.rolle;
@@ -784,13 +803,14 @@ function kontaktbogenSatz(aufnahme) {
     { bildschirm: 'Bildschirm', datei: 'Datei', beispiel: 'Beispiel' }[aufnahme.quelle?.art] || 'Quelle';
   const a = aufnahme.ausschnitt || {};
   return `
-      <article class="satz">
+      <article class="satz${vormerkung ? ' satz--vorgemerkt' : ''}">
         <div><img src="${m(anzeigeBild(aufnahme))}" alt="${m(aufnahme.titel)}"></div>
         <div>
           <div class="satz-kopf">
             <span class="kennung">${m(kapitelKennung(aufnahme) ? `${kapitelKennung(aufnahme)} · ${aufnahme.id}` : aufnahme.id)}</span>
             <span class="kennung">${m(formatiereDatum(aufnahme.datum))}</span>
             ${istVollstaendig(aufnahme) ? '' : '<span class="offen">unvollständig</span>'}
+            ${vormerkung ? `<span class="vorgemerkt">${m(vormerkung)}</span>` : ''}
           </div>
           <h2>${m(aufnahme.titel)}</h2>
           <dl>
@@ -803,6 +823,13 @@ function kontaktbogenSatz(aufnahme) {
             ${zeile('Browser', aufnahme.browser)}
             ${zeile('Fassung', fassungZeile(aufnahme))}
           </dl>
+          ${
+            labels.length
+              ? `<div class="labels">${labels
+                  .map((l) => `<span><i>${m(l.bezeichnung)}</i> ${m(l.wert)}</span>`)
+                  .join('')}</div>`
+              : ''
+          }
           ${
             (aufnahme.begriffe || []).length
               ? `<div class="begriffe">${aufnahme.begriffe.map((b) => `<span>#${m(b)}</span>`).join('')}</div>`
@@ -829,8 +856,28 @@ export function baueKontaktbogen(aufnahmen, angaben = {}) {
     angaben.auswahl && angaben.gesamt && angaben.gesamt !== liste.length
       ? `<p class="auswahl">Ausschnitt aus dem Eingang: ${m(angaben.auswahl)} – ${liste.length} von ${angaben.gesamt} Aufnahmen.</p>`
       : '';
+  // Vorgemerktes auch hier kenntlich machen (F-79): der Kontaktbogen ist
+  // eine Datei, die das Haus verlaesst. Ohne Gliederung weiss der Bogen
+  // nichts davon - dann bleibt alles, wie es war.
+  const gliederung = angaben.gliederung || [];
+  const vorgemerkt = gliederung.filter((e) => vormerkungVon(e));
+  const marke = (aufnahme) => {
+    const treffer = vorgemerkt.find((e) => gehoertZu(String(aufnahme.gliederung || ''), e.nummer));
+    if (!treffer) return '';
+    const art = VORMERKUNGEN.find((v) => v.id === vormerkungVon(treffer));
+    return art ? art.label : '';
+  };
+  const betroffen = liste.filter((a) => marke(a)).length;
+  // Eigene Worte statt der des Handbuchs: ein Kontaktbogen ist keine
+  // „interne Fassung" einer Unterlage, sondern ein Blatt zur Durchsicht.
+  // Gezaehlt wird, was betroffen ist - die Beugung folgt dieser Zahl.
+  const vermerk = betroffen
+    ? `<p class="vermerk">Nicht zur Weitergabe – ${betroffen} von ${liste.length} ${
+        liste.length === 1 ? 'Aufnahme' : 'Aufnahmen'
+      } ${betroffen === 1 ? 'hängt' : 'hängen'} an einem vorgemerkten Abschnitt.</p>`
+    : '';
   const inhalt = liste.length
-    ? liste.map(kontaktbogenSatz).join('')
+    ? liste.map((a) => kontaktbogenSatz(a, marke(a))).join('')
     : '<p class="leer">Keine Aufnahmen in dieser Auswahl.</p>';
 
   return `<!doctype html>
@@ -857,6 +904,7 @@ export function baueKontaktbogen(aufnahmen, angaben = {}) {
     <span><b>${k.begriffe}</b> ${k.begriffe === 1 ? 'Begriff' : 'Begriffe'}</span>
   </p>
   ${auswahlHinweis}
+  ${vermerk}
   ${inhalt}
   <p class="fuss">
     Alle Bilder sind in diese Datei eingebettet – sie funktioniert ohne Netzverbindung.

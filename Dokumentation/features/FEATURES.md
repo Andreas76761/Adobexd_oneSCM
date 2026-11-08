@@ -37,7 +37,7 @@ Funktion später ändert; die Spalte „Version“ nennt dann zusätzlich die Ä
 | F-26 | Ausschneiden mit wählbarer Ablage | 1.7.0, erweitert 1.9.0 | `core.mjs` → `dateinameAus`, `pruefeAblage`, `baueBeipackzettel`; `schnipsel.js` | Kernlogik: 10 Fälle · Ausschneiden: 22 Fälle |
 | F-25 | Bilderstapel | 1.6.0 | `aufnahme.js` → `quelleDateien`, `zeigeStapelbild` | Aufnahme: 5 Fälle |
 | F-24 | Kompakter Aufnahmemodus | 1.5.0 | `aufnahme.js` → `setzeKompakt`; `styles.css` → `body.kompakt` | Aufnahme: 9 Fälle |
-| F-23 | Kontaktbogen als eine Datei | 1.2.0 | `core.mjs` → `baueKontaktbogen`, `maskiereHtml`; `aufnahme.js` → `sichereKontaktbogen`, `uebergebeDatei` | Kernlogik: 8 Fälle · Aufnahme: 6 Fälle |
+| F-23 | Kontaktbogen als eine Datei | 1.2.0 (1.86.0: Labels, Vormerkung) | `core.mjs` → `baueKontaktbogen`, `maskiereHtml`; `aufnahme.js` → `sichereKontaktbogen`, `uebergebeDatei` | Kernlogik: 8 Fälle · Aufnahme: 6 Fälle |
 
 ---
 
@@ -358,8 +358,24 @@ eingeschränkt, steht das im Blatt.
 **Das Blatt** Kopf mit Stempel und Stand, eine Zeile mit Anzahl, offenen
 Aufnahmen, Projekten und Begriffen, dann je Aufnahme das Bild neben Kennung,
 Datum, Titel, Projekt, Seite, Kategorie, Status, Rolle, erfassender Person,
-Browser, Begriffen, Notiz und einer Herkunftszeile mit Quelle, Ausschnittmaßen
-und Erfassungszeitpunkt. Unvollständige Aufnahmen sind markiert.
+Browser, **den gesetzten Labels**, Begriffen, Notiz und einer Herkunftszeile
+mit Quelle, Ausschnittmaßen und Erfassungszeitpunkt. Unvollständige Aufnahmen
+sind markiert.
+
+**Die Labels gehören aufs Blatt** (seit 1.86.0). Bis dahin fehlte jedes der
+neun Felder – Sprache, Rolle, Sparte, Markt, Version, Land, Domäne, Reiter,
+Schritt –, obwohl genau nach ihnen der Eingang gefiltert und die Ausgabe
+gerechnet wird. Wer den Bogen zur Durchsicht in der Hand hielt, sah nicht,
+worüber er entscheiden soll. Gezeigt wird, was gesetzt ist; ein Blatt voller
+Gedankenstriche liest sich schlechter als eines ohne.
+
+**Vorgemerktes ist gekennzeichnet** (seit 1.86.0, F-79). Der Kontaktbogen ist
+eine Datei, die das Haus verlässt: eine Aufnahme an einer vorgemerkten Stelle
+trägt eine Marke und einen Rand, und oben steht „Nicht zur Weitergabe – n von
+m Aufnahmen hängt an einem vorgemerkten Abschnitt". Das sind eigene Worte,
+nicht die der internen Fassung (F-79): ein Kontaktbogen ist keine Ausgabe,
+sondern ein Blatt zur Durchsicht. Ohne Gliederung weiß der Bogen nichts von
+Vormerkungen – dann bleibt alles, wie es war.
 
 **Beschaffenheit** Ein vollständiges HTML-Dokument mit eingebetteten Bildern,
 Systemschriften, **ohne externen Verweis und ohne Skript**. Es öffnet sich in
