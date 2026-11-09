@@ -8025,6 +8025,26 @@ export function ohneVorgemerkteBilder(aufnahmen = [], gliederung = [], { mitVorg
   );
 }
 
+/**
+ * Die Schritte eines Inhalts, die in dieser Variante **keine Entsprechung**
+ * haben (1.91.0).
+ *
+ * `streckeInVariante` tauscht je Schritt das Bild gegen sein Gegenstueck;
+ * wo keines vorliegt, bleibt das bisherige stehen. Das Designstudio nennt
+ * diese Luecken seit jeher - der Plan des Registers Output warf sie weg.
+ * Ein franzoesischer Quick Guide kam so mit einem deutschen Bild heraus,
+ * und nichts sagte es.
+ *
+ * Nur Strecken koennen luecken: ein Kapitel filtert nach dem Labelwert,
+ * dort erscheint ein Bild der falschen Sprache gar nicht erst.
+ */
+export function ausgabeLuecken(aufnahmen = [], strecken = [], inhalt = '', feld = '', wert = '') {
+  if (!feld || !wert || !String(inhalt).startsWith('strecke:')) return [];
+  const gefunden = strecken.find((s) => 'strecke:' + s.id === inhalt);
+  if (!gefunden) return [];
+  return streckeInVariante(gefunden, aufnahmen, feld, wert).fehlt;
+}
+
 /** Die Bilder eines Inhalts in einer Variante - dieselbe Regel wie im Studio. */
 export function ausgabeBilder(
   aufnahmen = [],
@@ -8140,6 +8160,9 @@ export function ausgabePlan(aufnahmen = [], strecken = [], gliederung = [], wahl
           titel: variante ? `${inhaltName} · ${variante}` : inhaltName,
           bilder: bilder.length,
           kennungen: bilder.map((a) => a.id),
+          // Schritte, die in dieser Variante kein Gegenstueck haben und
+          // darum ihr altes Bild behalten - das Dokument ist dann gemischt.
+          luecken: ausgabeLuecken(aufnahmen, strecken, inhalt, achse, wert),
           // Ob dieses Dokument eine interne Fassung ist, sagen seine Bilder
           // - nicht der Schalter. Mit Schalter, aber ohne vorgemerktes Bild
           // ist es die gewoehnliche Unterlage (1.83.0).

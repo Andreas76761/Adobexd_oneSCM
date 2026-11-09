@@ -20,6 +20,30 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.91.0] – Ein französischer Quick Guide mit deutschem Bild
+
+### Behoben
+* **Das Register Output verschwieg die Schritte ohne Entsprechung** (F-46, F-56).
+  Eine Strecke in einer anderen Sprache tauscht je Schritt das Bild; wo
+  keines vorliegt, bleibt das bisherige stehen. `streckeInVariante()` gibt
+  diese Lücken zurück, das Designstudio nennt sie seit jeher – der Plan warf
+  sie weg. Gerade Output rechnet den **ganzen Satz** auf einmal: wer zwanzig
+  Quick Guides in fünf Sprachen erzeugt, erfuhr in keinem, welche gemischt
+  sind. Neu: `ausgabeLuecken()`, jeder Auftrag trägt `luecken`
+* Im Register stehen sie jetzt in der **Zeile** (Marke mit den betroffenen
+  Schritten im Titel, Streifen in Warnfarbe) und in der **Meldung nach dem
+  Erzeugen**, die dann als Warnung dasteht. Nur Strecken können lücken –
+  ein Kapitel filtert nach dem Labelwert; das hält die Prüfung fest
+
+### Prüfung
+* **Ein Fehlschlag aus einem fremden Bereich, der keiner sein wollte.** Der
+  volle Durchlauf meldete einmal „Suchbegriff fehlt in der Adresse"; einzeln
+  bestand die Prüfung zweimal. Es war ein echtes Wettrennen: die Suche
+  schreibt die Adresse gedrosselt, der Klick auf das Segment sofort, und die
+  Prüfung wartete nur auf das zweite. Gewartet wird jetzt auf beides
+* 1 neue Kernprüfung und 1 neue Browserprüfung, letztere gegengeprüft.
+  Zusammen 570
+
 ## [1.90.0] – Die fremde Lesung auf dem eigenen Bild
 
 ### Behoben

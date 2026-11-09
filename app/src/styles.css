@@ -1771,6 +1771,13 @@ div.streifen-bild { cursor: default; }
 .output-liste { overflow-x: auto; }
 .output-gitter td, .output-gitter th { white-space: nowrap; }
 .output-zeile--leer { color: var(--tinte-3); }
+.output-zeile--luecke th[scope="row"] { box-shadow: inset 3px 0 0 var(--warn); }
+.output-luecke {
+  display: inline-block; margin-left: .4rem; padding: 0 .35rem;
+  border: 1px solid var(--warn); border-radius: var(--radius);
+  color: var(--warn); background: var(--warn-hauch);
+  font-family: var(--schrift-mono); font-size: .68rem; letter-spacing: var(--spur);
+}
 .output-zeile--schau th { border-left: 3px solid var(--akzent); }
 .output-schau { display: grid; gap: 10px; }
 .output-schau .design-rahmen { margin: 0; }

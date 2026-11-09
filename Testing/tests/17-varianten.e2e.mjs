@@ -222,6 +222,70 @@ s.test('das Designstudio gibt dieselbe Strecke in einer anderen Sprache aus', ()
     { hash: AUFNAHME }
   ));
 
+s.test('das Register Output nennt die Schritte ohne Entsprechung (1.91.0)', () =>
+  mitSeite(
+    async (seite) => {
+      await dreiMitSprachen(seite);
+      await seite.click('.portal-nav button[data-ansicht="markieren"]');
+      await seite.selectOption('#markier-wahl', 'AUF-2026-001');
+      await seite.waitForFunction(() => !document.getElementById('markier-leinwand').hidden, null, { timeout: 8000 });
+      await seite.evaluate(() => (document.getElementById('markier-varianten').open = true));
+      await seite.selectOption('#varianten-andere', 'AUF-2026-002');
+      await seite.click('#varianten-verbinden');
+      await seite.waitForFunction(() => document.querySelectorAll('.varianten-zeile').length === 2, null, { timeout: 5000 });
+
+      await seite.click('.portal-nav button[data-ansicht="strecke"]');
+      await seite.click('#strecke-neu');
+      await seite.fill('#strecke-name', 'Vorlage anlegen');
+      for (const [kennung, text] of [
+        ['AUF-2026-001', 'Liste \u00f6ffnen'],
+        ['AUF-2026-003', 'Formular f\u00fcllen']
+      ]) {
+        const vorher = await seite.locator('.strecke-schritt').count();
+        await seite.selectOption('#strecke-aufnahme', kennung);
+        await seite.click('#strecke-anhaengen');
+        await seite.waitForFunction((zahl) => document.querySelectorAll('.strecke-schritt').length === zahl, vorher + 1, {
+          timeout: 5000
+        });
+        await seite.fill('#schritt-text-' + vorher, text);
+      }
+
+      // Dieselbe Strecke, englisch, im Register Output. Das Designstudio
+      // nennt die L\u00fccke seit jeher; hier stand sie bis 1.90.0 nirgends.
+      await seite.click('.portal-nav button[data-ansicht="output"]');
+      await seite.waitForSelector('#output-ansicht:not([hidden])');
+      await seite.waitForTimeout(500);
+      await seite.selectOption('#output-inhalte', ['strecke:' + (await seite.evaluate(() =>
+        [...document.getElementById('output-inhalte').options]
+          .map((o) => o.value)
+          .filter((v) => v.startsWith('strecke:'))[0]
+          .slice(8)
+      ))]);
+      await seite.selectOption('#output-achse', 'sprache');
+      await seite.waitForTimeout(400);
+      await seite.check('#output-werte-en');
+      await seite.waitForTimeout(500);
+
+      // Die Zeile tr\u00e4gt die Marke, mit den Schritten im Titel.
+      const marke = seite.locator('.output-zeile--luecke .output-luecke');
+      gleich(await marke.count(), 1, 'die Zeile nennt die L\u00fccke nicht');
+      wahr(/1 ohne Entsprechung/.test(await marke.innerText()), await marke.innerText());
+      wahr(/Schritt 2/.test(await marke.getAttribute('title')), await marke.getAttribute('title'));
+
+      // Und die Meldung nach dem Erzeugen sagt es auch.
+      await seite.click('#output-erzeugen');
+      await seite.waitForFunction(
+        () => /Dokument\(e\) gerechnet/.test(document.getElementById('output-meldung').textContent),
+        null,
+        { timeout: 60000 }
+      );
+      const meldung = await seite.locator('#output-meldung').innerText();
+      wahr(/ohne Entsprechung/.test(meldung), meldung);
+      wahr(/Bild der Ausgangssprache/.test(meldung), meldung);
+    },
+    { hash: AUFNAHME }
+  ));
+
 s.test('Browser wieder schließen', () => schliessen());
 
 export default s;

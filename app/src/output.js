@@ -208,12 +208,25 @@ function outputZeile(auftrag) {
     ? stellen.slice(0, 3).join(', ') + (stellen.length > 3 ? ` +${stellen.length - 3}` : '')
     : 'ohne Stelle';
   const labels = gemeinsameLabels(bilder) || '–';
-  return el('tr', { klasse: 'output-zeile' + (auftrag.bilder ? '' : ' output-zeile--leer') + (outputSchau === auftrag.id ? ' output-zeile--schau' : '') }, [
+  // Schritte ohne Entsprechung in dieser Variante: das Dokument behält dort
+  // sein altes Bild und ist damit gemischt. Das Designstudio sagt das seit
+  // jeher; hier stand es bis 1.90.0 nirgends (1.91.0).
+  const luecken = auftrag.luecken || [];
+  return el('tr', { klasse: 'output-zeile' + (auftrag.bilder ? '' : ' output-zeile--leer') + (luecken.length ? ' output-zeile--luecke' : '') + (outputSchau === auftrag.id ? ' output-zeile--schau' : '') }, [
     el('th', { scope: 'row', text: auftrag.inhaltName }),
     el('td', { klasse: 'output-kapitel', text: kapitel }),
     el('td', { text: auftrag.vorlageLabel }),
     el('td', { text: auftrag.variante || '–' }),
-    el('td', { klasse: 'output-labels', text: labels }),
+    el('td', { klasse: 'output-labels' }, [
+      el('span', { text: labels }),
+      luecken.length
+        ? el('span', {
+            klasse: 'output-luecke',
+            title: luecken.map((l) => `Schritt ${l.nummer}: ${l.titel}`).join(' · '),
+            text: `${luecken.length} ohne Entsprechung`
+          })
+        : null
+    ]),
     el('td', { text: String(auftrag.bilder) }),
     el('td', { text: fertig ? String(fertig.blaetter.length) : auftrag.bilder ? 'noch nicht' : 'leer' }),
     el('td', {}, [
@@ -277,7 +290,18 @@ async function erzeugeOutput() {
   }
   outputLaeuft = false;
   const seiten = [...outputFertig.values()].reduce((summe, e) => summe + e.blaetter.length, 0);
-  meldeOutput(`${fertig} Dokument(e) gerechnet · ${seiten} Blätter. Jetzt sichern oder in den Ordner schreiben.`, 'gut');
+  // Wo ein Schritt keine Entsprechung hatte, steht im Dokument das Bild der
+  // Ausgangssprache. Wer zwanzig Dokumente auf einmal rechnet, sieht das
+  // sonst in keinem davon.
+  const gemischt = offen.filter((a) => (a.luecken || []).length);
+  const schritte = gemischt.reduce((summe, a) => summe + a.luecken.length, 0);
+  meldeOutput(
+    `${fertig} Dokument(e) gerechnet · ${seiten} Blätter. Jetzt sichern oder in den Ordner schreiben.` +
+      (gemischt.length
+        ? ` · ${gemischt.length} Dokument(e) mit ${schritte} Schritt(en) ohne Entsprechung – dort steht das Bild der Ausgangssprache.`
+        : ''),
+    gemischt.length ? 'warnung' : 'gut'
+  );
   // Das erste Dokument liegt gleich in der Vorschau.
   if (offen.length) zeigeOutputSchau(offen[0]);
   zeichneOutputKnoepfe();

@@ -124,7 +124,15 @@ s.test('Adresszeile trägt den Zustand und stellt ihn wieder her', () =>
   mitSeite(async (seite) => {
     await seite.fill('#suche', 'formular');
     await seite.click('.segment button[data-archiv="alle"]');
-    await seite.waitForFunction(() => location.hash.includes('a=alle'));
+    // Gewartet wird auf **beides**. Die Suche schreibt die Adresse gedrosselt,
+    // der Klick auf das Segment sofort: wer nur auf `a=alle` wartet, prüft
+    // `q=formular` mitunter, bevor es geschrieben ist. Dieser Fall fiel im
+    // vollen Durchlauf auf, einzeln nie - ein Wettrennen, kein Zufall.
+    await seite.waitForFunction(
+      () => location.hash.includes('a=alle') && location.hash.includes('q=formular'),
+      null,
+      { timeout: 5000 }
+    );
     const hash = await seite.evaluate(() => location.hash);
     wahr(hash.includes('q=formular'), 'Suchbegriff fehlt in der Adresse');
     const treffer = await karten(seite);

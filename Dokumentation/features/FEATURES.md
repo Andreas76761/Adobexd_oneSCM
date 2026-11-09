@@ -1514,6 +1514,21 @@ PDF entsteht aus den gerenderten Blättern.
 ## F-56 · Register Output – fertige Dokumente in jeder Variante
 
 **Seit** 1.39.0 · betrifft Output, Design, Verzeichnis
+· **geändert in** 1.79.0 (Vorgemerktes fällt weg), 1.83.0 (die interne
+Fassung trägt ihren Vermerk), 1.91.0 (Schritte ohne Entsprechung)
+
+**Was lückt, wird genannt** (seit 1.91.0) Eine Strecke in einer anderen
+Sprache tauscht je Schritt das Bild gegen sein Gegenstück; wo keines
+vorliegt, bleibt das bisherige stehen – ein fehlendes Bild wäre schlechter
+als ein fremdsprachiges. Jeder Auftrag trägt darum `luecken`
+(`ausgabeLuecken()`), und das Register nennt sie in der Zeile und in der
+Meldung nach dem Erzeugen, die dann als Warnung dasteht. Gerade hier zählt
+es: Output rechnet den **ganzen Satz** auf einmal, und bis 1.90.0 erfuhr man
+in keinem der Dokumente, welche gemischt sind. Nur Strecken können lücken –
+ein Kapitel filtert nach dem Labelwert. Das **Blatt** trägt keinen Vermerk:
+anders als eine interne Fassung (F-79) ist ein gemischtes Dokument ein
+Mangel an Vollständigkeit, kein Vertrauensbruch; dieselbe Entscheidung
+trifft das Designstudio seit jeher.
 
 **Das Problem** Das Designstudio rechnet *ein* Blatt nach dem anderen: eine
 Vorlage, ein Inhalt, eine Variante. Ein Handbuch für drei Sprachen und zwei

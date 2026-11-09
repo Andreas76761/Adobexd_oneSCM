@@ -10,6 +10,7 @@ geändert wurde. Abgelöste Belege bleiben im Archiv erhalten.
 | [grenzen.md](grenzen.md) | Was die Seite nicht kann, warum, und welcher Weg bleibt |
 | [CHANGELOG.md](CHANGELOG.md) | Versionsverlauf und Versionierungsregeln |
 | [durchsicht.md](durchsicht.md) | Bestandsaufnahme über 69 Funktionen in dreizehn Ansichten: was zusammengehört, was wahrscheinlich tot ist, was bewusst bleibt |
+| [versionen/v1.91.0.md](versionen/v1.91.0.md) | Ein französischer Quick Guide mit deutschem Bild |
 | [versionen/v1.90.0.md](versionen/v1.90.0.md) | Die fremde Lesung auf dem eigenen Bild |
 | [versionen/v1.89.0.md](versionen/v1.89.0.md) | „Ohne Bilder“, mit Bildern |
 | [versionen/v1.88.0.md](versionen/v1.88.0.md) | Sieben von neun, eine Ebene tiefer |

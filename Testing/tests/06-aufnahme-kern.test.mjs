@@ -3365,6 +3365,68 @@ s.test('Vorgemerktes faellt am Bild weg, nicht erst an der gewaehlten Stelle', (
   gleich(plan(true)[0].bilder, 3);
 });
 
+s.test('der Plan nennt die Schritte ohne Entsprechung (1.91.0)', () => {
+  // `streckeInVariante` tauscht je Schritt das Bild gegen sein Gegenst\u00fcck;
+  // wo keines vorliegt, bleibt das bisherige stehen. Das Designstudio nennt
+  // diese L\u00fccken seit jeher \u2013 der Plan warf sie weg. Ein franz\u00f6sischer
+  // Quick Guide kam so mit einem deutschen Bild heraus, und nichts sagte es.
+  const bestand = [
+    { id: 'A1-de', titel: 'Liste', gliederung: '6.2', sprache: 'de', variante: 'VAR-1' },
+    { id: 'A1-fr', titel: 'Liste FR', gliederung: '6.2', sprache: 'fr', variante: 'VAR-1' },
+    { id: 'A2-de', titel: 'Formular', gliederung: '6.2', sprache: 'de' }
+  ];
+  const strecken = [
+    {
+      id: 'S1', name: 'Vorlage anlegen',
+      schritte: [
+        { art: 'schritt', aufnahmen: ['A1-de'], text: 'Liste \u00f6ffnen' },
+        { art: 'schritt', aufnahmen: ['A2-de'], text: 'Formular f\u00fcllen' }
+      ]
+    }
+  ];
+  const plan = (werte) =>
+    kern.ausgabePlan(
+      bestand,
+      strecken,
+      outputGliederung,
+      { vorlagen: ['quickguide'], inhalte: ['strecke:S1'], achse: 'sprache', werte, formate: ['pdf'] },
+      kern.VORLAGEN
+    );
+
+  const franzoesisch = plan(['fr'])[0];
+  // Das Dokument ist gemischt: das zweite Bild bleibt deutsch.
+  tieferGleich(franzoesisch.kennungen, ['A1-fr', 'A2-de']);
+  gleich(franzoesisch.luecken.length, 1, 'die L\u00fccke fehlt im Plan');
+  gleich(franzoesisch.luecken[0].nummer, 2);
+  gleich(franzoesisch.luecken[0].titel, 'Formular');
+
+  // In der Ausgangssprache gibt es nichts umzustellen.
+  gleich(plan(['de'])[0].luecken.length, 0);
+
+  // Dasselbe ohne Achse: ohne Variante keine L\u00fccke.
+  const ohneAchse = kern.ausgabePlan(
+    bestand, strecken, outputGliederung,
+    { vorlagen: ['quickguide'], inhalte: ['strecke:S1'], formate: ['pdf'] },
+    kern.VORLAGEN
+  )[0];
+  tieferGleich(ohneAchse.luecken, []);
+
+  // Ein **Kapitel** kann nicht l\u00fccken: dort wird nach dem Labelwert
+  // gefiltert, ein Bild der falschen Sprache erscheint gar nicht erst.
+  const kapitel = kern.ausgabePlan(
+    bestand, strecken, outputGliederung,
+    { vorlagen: ['quickguide'], inhalte: ['kapitel:6.2'], achse: 'sprache', werte: ['fr'], formate: ['pdf'] },
+    kern.VORLAGEN
+  )[0];
+  tieferGleich(kapitel.luecken, []);
+  tieferGleich(kapitel.kennungen, ['A1-fr'], 'das deutsche Bild steht im franz\u00f6sischen Kapitel');
+
+  // Und die Funktion selbst, einzeln.
+  gleich(kern.ausgabeLuecken(bestand, strecken, 'strecke:S1', 'sprache', 'fr').length, 1);
+  gleich(kern.ausgabeLuecken(bestand, strecken, 'strecke:S1', '', '').length, 0);
+  gleich(kern.ausgabeLuecken(bestand, strecken, 'strecke:gibtesnicht', 'sprache', 'fr').length, 0);
+});
+
 s.test('eine interne Fassung sagt selbst, dass sie eine ist (1.83.0)', () => {
   // Der Schalter warnt in der Seite. Sobald die Datei die Seite verlässt,
   // warnt niemand mehr: sie sähe aus wie die freigegebene Unterlage.
