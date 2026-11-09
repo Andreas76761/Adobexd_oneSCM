@@ -3888,6 +3888,29 @@ s.test('beim Ergänzen behält keiner sein Bild auf Kosten des anderen', () => {
   );
   tieferGleich(strecken[0].schritte[0].aufnahmen, [neueKennung, 'AUF-2026-002']);
 
+  // Und die Lesungen ebenso (1.90.0). Bis 1.89.0 blieben sie auf der alten
+  // Kennung liegen - und die gehörte danach einem **anderen** Bild: die
+  // fremde Lesung landete auf der eigenen Aufnahme, und die fremde Aufnahme
+  // stand ohne da. Gelesener Text wandert von dort in die Notiz.
+  const lesungen = kern.ocrMitNeuenKennungen(
+    { 'AUF-2026-001': { text: 'Vertragsnummer 4711' }, 'AUF-2026-002': { text: 'Zweite' } },
+    zusammen.umbenannt
+  );
+  tieferGleich(Object.keys(lesungen).sort(), [neueKennung, 'AUF-2026-002'].sort());
+  gleich(lesungen[neueKennung].text, 'Vertragsnummer 4711', 'die Lesung ist nicht mitgewandert');
+  gleich(lesungen['AUF-2026-001'], undefined, 'die fremde Lesung liegt auf der eigenen Aufnahme');
+  // Jede Lesung trifft danach wirklich eine Aufnahme.
+  for (const kennung of Object.keys(lesungen)) {
+    wahr(
+      zusammen.eingang.some((a) => a.id === kennung),
+      `die Lesung auf „${kennung}" trifft keine Aufnahme`
+    );
+  }
+  // Ohne Umbenennung bleibt alles, wie es ist - und zwar dasselbe Objekt.
+  const unberuehrt = { 'AUF-2026-001': { text: 'x' } };
+  gleich(kern.ocrMitNeuenKennungen(unberuehrt, new Map()), unberuehrt);
+  tieferGleich(kern.ocrMitNeuenKennungen({}, zusammen.umbenannt), {});
+
   // Ersetzen räumt den eigenen Bestand ab - und sagt es.
   const ersetzt = kern.fuehrePaketZusammen(eigene, fremde, 'ersetzen');
   gleich(ersetzt.eingang.length, 2);

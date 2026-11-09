@@ -7859,6 +7859,25 @@ export function streckenMitNeuenKennungen(strecken = [], umbenannt = new Map()) 
   }));
 }
 
+/**
+ * Die Lesungen auf neue Kennungen umschreiben (1.90.0).
+ *
+ * Eine Lesung haengt an der Kennung einer Aufnahme. Benennt das Einlesen
+ * eine fremde Kennung um, weil sie hier schon vergeben ist, muss die Lesung
+ * mit - sonst bleibt sie auf der alten Kennung liegen, und die gehoert
+ * jetzt einem **anderen** Bild. Bis 1.89.0 geschah das: die fremde Lesung
+ * landete auf der eigenen Aufnahme, und die fremde Aufnahme stand ohne da.
+ * Gelesener Text wandert von dort in die Notiz und ins Handbuch.
+ */
+export function ocrMitNeuenKennungen(ocr = {}, umbenannt = new Map()) {
+  if (!umbenannt.size) return ocr;
+  const neu = {};
+  for (const [kennung, eintrag] of Object.entries(ocr || {})) {
+    neu[umbenannt.get(kennung) || kennung] = eintrag;
+  }
+  return neu;
+}
+
 /** Was eine Projektdatei enthält, in einem Satz. */
 export function paketBericht(gelesen = {}, bilder = 0) {
   if (!gelesen.ok) return gelesen.grund || 'Die Datei ließ sich nicht lesen.';
@@ -8556,12 +8575,19 @@ export function projekteAusBestand(aufnahmen = [], vorhandene = []) {
  * Prüfung hält die Liste gegen die Schlüssel des Kerns; wer einen neuen
  * einführt, muss sich entscheiden, statt ihn zu vergessen.
  */
+/*
+ * `kennungen: true` heisst: dieser Speicher zeigt auf Aufnahmen. Beim
+ * Einlesen werden kollidierende Kennungen umbenannt - dann muss er mit,
+ * sonst zeigt er auf ein fremdes Bild. Der Build haelt die Liste gegen
+ * `ablage.js`: zu jedem solchen Feld muss dort `<feld>MitNeuenKennungen(`
+ * aufgerufen werden.
+ */
 export const PAKET_INHALT = [
   { schluessel: EINGANG_SCHLUESSEL, reist: true, feld: 'aufnahmen' },
-  { schluessel: STRECKEN_SCHLUESSEL, reist: true, feld: 'strecken' },
+  { schluessel: STRECKEN_SCHLUESSEL, reist: true, feld: 'strecken', kennungen: true },
   { schluessel: PROJEKTE_SCHLUESSEL, reist: true, feld: 'projekte' },
   { schluessel: DESIGN_SCHLUESSEL, reist: true, feld: 'design' },
-  { schluessel: OCR_SCHLUESSEL, reist: true, feld: 'ocr' },
+  { schluessel: OCR_SCHLUESSEL, reist: true, feld: 'ocr', kennungen: true },
   { schluessel: WORTLISTE_SCHLUESSEL, reist: true, feld: 'wortliste' },
   { schluessel: VORGEHEN_SCHLUESSEL, reist: true, feld: 'vorgehen' },
   { schluessel: TEXTE_SCHLUESSEL, reist: true, feld: 'texte' },

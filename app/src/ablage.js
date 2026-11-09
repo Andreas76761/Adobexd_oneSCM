@@ -482,7 +482,10 @@ async function lesePaketDatei(datei) {
       sichereProjekte();
     }
     if (Object.keys(gelesen.ocr).length) {
-      ocrTexte = { ...(art === 'ersetzen' ? {} : ocrTexte), ...gelesen.ocr };
+      // Mit den neuen Kennungen, wie die Strecken: eine Lesung auf einer
+      // umbenannten Kennung laege sonst auf einem fremden Bild (1.90.0).
+      const umgeschrieben = ocrMitNeuenKennungen(gelesen.ocr, zusammen.umbenannt);
+      ocrTexte = { ...(art === 'ersetzen' ? {} : ocrTexte), ...umgeschrieben };
       sichereOcr();
     }
     if (gelesen.wortliste.length) {

@@ -20,6 +20,28 @@ Jede Funktion trägt im [Feature-Katalog](features/FEATURES.md) eine Kennung
 (`F-01` …) und die Version, seit der es sie gibt. Wird eine Funktion geändert,
 bleibt die Kennung bestehen und die Zeile „geändert in“ wird ergänzt.
 
+## [1.90.0] – Die fremde Lesung auf dem eigenen Bild
+
+### Behoben
+* **Die Lesungen des Registers OCR wurden beim Einlesen nicht umbenannt**
+  (F-63, F-74). Kollidiert eine Kennung, wird die fremde Aufnahme umbenannt
+  und die Strecken werden umgeschrieben – die Lesungen blieben auf der alten
+  Kennung liegen. Das ist nicht „verloren", sondern schlechter: der **fremde
+  Text landet auf dem eigenen Bild**, und das Bild, zu dem er gehört, steht
+  ohne da. Gelesener Text geht von dort in die Suche, in den Agenten und auf
+  Knopfdruck in die Notiz – und von dort ins Handbuch. Neu:
+  `ocrMitNeuenKennungen()`
+
+### Prüfung
+* `PAKET_INHALT` sagt jetzt mit `kennungen: true`, welcher Speicher auf
+  Aufnahmen zeigt; der Build hält die Liste gegen `ablage.js` – zu jedem
+  solchen Feld muss dort `<feld>MitNeuenKennungen(` stehen. Gegengeprüft
+* Die übrigen sieben mitreisenden Speicher wurden durchgesehen: keiner zeigt
+  auf Aufnahmen
+* Zwei bestehende Prüfungen geschärft statt zweier neuer daneben; die
+  Kernprüfung prüft jetzt auch die Umkehrung, dass **jede Lesung nach dem
+  Zusammenführen eine Aufnahme trifft**. Zusammen weiterhin 568
+
 ## [1.89.0] – „Ohne Bilder", mit Bildern
 
 ### Behoben

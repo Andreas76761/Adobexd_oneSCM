@@ -1733,6 +1733,8 @@ Ein Logo wird nicht nachgeladen, sondern als Datei übernommen und eingebettet
 ## F-63 · Die Projektdatei – den Bestand weitergeben
 
 **Seit** 1.45.0 · betrifft Verzeichnis, Eingang, Strecke, Design, OCR
+· **geändert in** 1.82.0 (das Regelwerk reist mit), 1.90.0 (die Lesungen
+werden mit umbenannt)
 
 **Das Problem** Der Bestand liegt im Browser eines Menschen. „Als JSON
 sichern“ nimmt die Metadaten mit, nicht die Bilder; das Verzeichnis legt
@@ -1754,9 +1756,17 @@ entstehen beim Einlesen neu aus dem vollen Bild.
 
 **Beim Einlesen** entscheidet eine Wahl: *ergänzen* behält den eigenen
 Bestand und hängt das Paket an; *ersetzen* gibt ihn auf. Beim Ergänzen
-bekommt eine Kennung, die schon vergeben ist, eine neue – und die Strecken
-des Pakets werden auf die neuen Kennungen umgeschrieben, damit kein Schritt
+bekommt eine Kennung, die schon vergeben ist, eine neue – und **jeder
+Speicher, der auf Aufnahmen zeigt**, wird mit umgeschrieben, damit nichts
 ins Leere zeigt. Was umbenannt wurde, steht im Bericht.
+
+Welche Speicher das sind, sagt `PAKET_INHALT` mit `kennungen: true`: die
+Strecken und die Lesungen des Registers OCR. Der Build hält die Liste gegen
+`ablage.js`. Bis 1.89.0 wurden nur die Strecken umgeschrieben; die Lesungen
+blieben auf der alten Kennung liegen, und die gehörte danach einem anderen
+Bild – der fremde Text landete auf der eigenen Aufnahme (seit 1.90.0
+behoben). Die Bedingung, die das verletzte und die jetzt geprüft wird:
+**jede Lesung trifft nach dem Zusammenführen eine Aufnahme.**
 
 Gelesen wird nachsichtig: eine Datei aus einer neueren Fassung wird
 eingelesen und als solche genannt; ein Bild, das sich nicht entpacken lässt,

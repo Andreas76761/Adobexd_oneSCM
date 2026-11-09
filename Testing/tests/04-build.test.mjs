@@ -207,6 +207,20 @@ s.test('die Projektdatei trägt wirklich, was sie zu tragen verspricht (1.82.0)'
     );
   }
 
+  // Ein Speicher, der auf Aufnahmen zeigt, muss beim Einlesen mit umbenannt
+  // werden. Bis 1.89.0 taten das nur die Strecken; die Lesungen blieben auf
+  // der alten Kennung liegen - und die gehoerte dann einem anderen Bild.
+  const inhalt = kern.slice(kern.indexOf('export const PAKET_INHALT = ['));
+  const mitKennungen = [...inhalt.slice(0, inhalt.indexOf('\n];')).matchAll(/feld: '([a-z]+)', kennungen: true/g)]
+    .map((t) => t[1]);
+  wahr(mitKennungen.length >= 2, 'PAKET_INHALT nennt keine Speicher mit Kennungen: ' + mitKennungen.join(', '));
+  for (const feld of mitKennungen) {
+    wahr(
+      quelle.includes(`${feld}MitNeuenKennungen(`),
+      `„${feld}" zeigt auf Aufnahmen, wird beim Einlesen aber nicht umbenannt`
+    );
+  }
+
   // Und was mitreist, muss beim Einlesen auch ausgepackt werden.
   for (const feld of ['strecken', 'projekte', 'design', 'ocr', 'wortliste', 'vorgehen', 'texte', 'verzeichnis', 'regeln']) {
     wahr(quelle.includes(`gelesen.${feld}`), `beim Einlesen wird „${feld}" nicht übernommen`);
